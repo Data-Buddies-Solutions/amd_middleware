@@ -129,7 +129,7 @@ func verifyCmd() *cobra.Command {
 func printVerifiedPatient(ctx context.Context, p domain.Patient, officeConfig *domain.OfficeConfig) error {
 	tokenData := getToken()
 
-	carrierName, carrierID, err := app.amdClient.GetDemographic(ctx, tokenData, p.ID)
+	demoResult, err := app.amdClient.GetDemographic(ctx, tokenData, p.ID)
 	if err != nil {
 		log.Printf("WARNING: failed to get demographics: %v", err)
 	}
@@ -142,22 +142,31 @@ func printVerifiedPatient(ctx context.Context, p domain.Patient, officeConfig *d
 		"phone":     p.Phone,
 	}
 
-	if carrierName != "" {
-		resp["insuranceCarrier"] = carrierName
-	}
+	if demoResult != nil {
+		if demoResult.CarrierName != "" {
+			resp["insuranceCarrier"] = demoResult.CarrierName
+		}
 
-	if carrierID != "" {
-		resp["insuranceCarrierId"] = carrierID
-		routing, ambiguous := domain.RoutingForCarrierID(carrierID)
-		resp["routing"] = string(routing)
-		resp["allowedProviders"] = officeConfig.ProvidersForRouting(routing)
-		resp["routingAmbiguous"] = ambiguous
+		if demoResult.CarrierID != "" {
+			resp["insuranceCarrierId"] = demoResult.CarrierID
+			routing, ambiguous := domain.RoutingForCarrierID(demoResult.CarrierID)
+			resp["routing"] = string(routing)
+			resp["allowedProviders"] = officeConfig.ProvidersForRouting(routing)
+			resp["routingAmbiguous"] = ambiguous
 
-		// Pediatric override
-		if domain.IsMinor(p.DOB) && routing != domain.RoutingNotAccepted {
-			resp["routing"] = string(officeConfig.PediatricRouting)
-			resp["allowedProviders"] = officeConfig.ProvidersForRouting(officeConfig.PediatricRouting)
-			resp["routingAmbiguous"] = false
+			// Pediatric override
+			if domain.IsMinor(p.DOB) && routing != domain.RoutingNotAccepted {
+				resp["routing"] = string(officeConfig.PediatricRouting)
+				resp["allowedProviders"] = officeConfig.ProvidersForRouting(officeConfig.PediatricRouting)
+				resp["routingAmbiguous"] = false
+			}
+		}
+
+		if demoResult.InsPlanID != "" {
+			resp["insPlanId"] = demoResult.InsPlanID
+		}
+		if demoResult.RespPartyID != "" {
+			resp["respPartyId"] = demoResult.RespPartyID
 		}
 	}
 
