@@ -61,6 +61,8 @@ type VerifyPatientResponse struct {
 	Phone              string         `json:"phone,omitempty"`
 	InsuranceCarrier   string         `json:"insuranceCarrier,omitempty"`
 	InsuranceCarrierID string         `json:"insuranceCarrierId,omitempty"`
+	InsPlanID          string         `json:"insPlanId,omitempty"`
+	RespPartyID        string         `json:"respPartyId,omitempty"`
 	Routing            string         `json:"routing,omitempty"`
 	AllowedProviders   []string       `json:"allowedProviders,omitempty"`
 	RoutingAmbiguous   bool           `json:"routingAmbiguous,omitempty"`
@@ -494,26 +496,31 @@ func (h *Handlers) HandleVerifyPatient(w http.ResponseWriter, r *http.Request) {
 
 	case 1:
 		p := matchingPatients[0]
-		carrierName, carrierID, err := h.amdClient.GetDemographic(r.Context(), tokenData, p.ID)
+		demoResult, err := h.amdClient.GetDemographic(r.Context(), tokenData, p.ID)
 		if err != nil {
 			log.Printf("WARNING: failed to get demographics for patient %s: %v", p.ID, err)
 		}
 
 		resp := VerifyPatientResponse{
-			Status:           "verified",
-			PatientID:        p.ID,
-			Name:             p.FullName,
-			DOB:              p.DOB,
-			Phone:            p.Phone,
-			InsuranceCarrier: carrierName,
+			Status:    "verified",
+			PatientID: p.ID,
+			Name:      p.FullName,
+			DOB:       p.DOB,
+			Phone:     p.Phone,
 		}
 
-		if carrierID != "" {
-			resp.InsuranceCarrierID = carrierID
-			routing, ambiguous := domain.RoutingForCarrierID(carrierID)
-			resp.Routing = string(routing)
-			resp.AllowedProviders = office.ProvidersForRouting(routing)
-			resp.RoutingAmbiguous = ambiguous
+		if demoResult != nil {
+			resp.InsuranceCarrier = demoResult.CarrierName
+			resp.InsPlanID = demoResult.InsPlanID
+			resp.RespPartyID = demoResult.RespPartyID
+
+			if demoResult.CarrierID != "" {
+				resp.InsuranceCarrierID = demoResult.CarrierID
+				routing, ambiguous := domain.RoutingForCarrierID(demoResult.CarrierID)
+				resp.Routing = string(routing)
+				resp.AllowedProviders = office.ProvidersForRouting(routing)
+				resp.RoutingAmbiguous = ambiguous
+			}
 		}
 
 		// Pediatric override: under-18 patients → office pediatric routing
@@ -541,26 +548,31 @@ func (h *Handlers) HandleVerifyPatient(w http.ResponseWriter, r *http.Request) {
 			upperFirstName := strings.ToUpper(domain.StripDiacritics(req.FirstName))
 			for _, p := range matchingPatients {
 				if strings.HasPrefix(p.FirstName, upperFirstName) {
-					carrierName, carrierID, err := h.amdClient.GetDemographic(r.Context(), tokenData, p.ID)
+					demoResult, err := h.amdClient.GetDemographic(r.Context(), tokenData, p.ID)
 					if err != nil {
 						log.Printf("WARNING: failed to get demographics for patient %s: %v", p.ID, err)
 					}
 
 					resp := VerifyPatientResponse{
-						Status:           "verified",
-						PatientID:        p.ID,
-						Name:             p.FullName,
-						DOB:              p.DOB,
-						Phone:            p.Phone,
-						InsuranceCarrier: carrierName,
+						Status:    "verified",
+						PatientID: p.ID,
+						Name:      p.FullName,
+						DOB:       p.DOB,
+						Phone:     p.Phone,
 					}
 
-					if carrierID != "" {
-						resp.InsuranceCarrierID = carrierID
-						routing, ambiguous := domain.RoutingForCarrierID(carrierID)
-						resp.Routing = string(routing)
-						resp.AllowedProviders = office.ProvidersForRouting(routing)
-						resp.RoutingAmbiguous = ambiguous
+					if demoResult != nil {
+						resp.InsuranceCarrier = demoResult.CarrierName
+						resp.InsPlanID = demoResult.InsPlanID
+						resp.RespPartyID = demoResult.RespPartyID
+
+						if demoResult.CarrierID != "" {
+							resp.InsuranceCarrierID = demoResult.CarrierID
+							routing, ambiguous := domain.RoutingForCarrierID(demoResult.CarrierID)
+							resp.Routing = string(routing)
+							resp.AllowedProviders = office.ProvidersForRouting(routing)
+							resp.RoutingAmbiguous = ambiguous
+						}
 					}
 
 					// Pediatric override: under-18 patients → office pediatric routing
@@ -800,20 +812,22 @@ func (h *Handlers) HandlePatientLookup(w http.ResponseWriter, r *http.Request) {
 		Phone:     patient.Phone,
 	}
 
-	carrierName, carrierID, err := h.amdClient.GetDemographic(r.Context(), tokenData, patient.ID)
+	demoResult, err := h.amdClient.GetDemographic(r.Context(), tokenData, patient.ID)
 	if err != nil {
 		log.Printf("WARNING: patient-lookup: failed to get demographics for %s: %v", patient.ID, err)
 	}
 
-	if carrierName != "" {
-		resp.InsuranceCarrier = carrierName
-	}
-	if carrierID != "" {
-		resp.InsuranceCarrierID = carrierID
-		routing, ambiguous := domain.RoutingForCarrierID(carrierID)
-		resp.Routing = string(routing)
-		resp.AllowedProviders = office.ProvidersForRouting(routing)
-		resp.RoutingAmbiguous = ambiguous
+	if demoResult != nil {
+		if demoResult.CarrierName != "" {
+			resp.InsuranceCarrier = demoResult.CarrierName
+		}
+		if demoResult.CarrierID != "" {
+			resp.InsuranceCarrierID = demoResult.CarrierID
+			routing, ambiguous := domain.RoutingForCarrierID(demoResult.CarrierID)
+			resp.Routing = string(routing)
+			resp.AllowedProviders = office.ProvidersForRouting(routing)
+			resp.RoutingAmbiguous = ambiguous
+		}
 	}
 
 	// Pediatric override
@@ -1538,4 +1552,124 @@ func enforcePreauthMinDate(requestedDate time.Time, now time.Time) (time.Time, s
 		return minDate, minDate.Format("2006-01-02")
 	}
 	return requestedDate, requestedDate.Format("2006-01-02")
+}
+
+// UpdateInsuranceRequest is the expected JSON body for insurance updates.
+type UpdateInsuranceRequest struct {
+	PatientID      string `json:"patientId"`
+	InsPlanID      string `json:"insPlanId"`
+	RespPartyID    string `json:"respPartyId"`
+	OldInsurance   string `json:"oldInsurance"`
+	Insurance      string `json:"insurance"`
+	SubscriberName string `json:"subscriberName"`
+	SubscriberNum  string `json:"subscriberNum"`
+	Office         string `json:"office,omitempty"`
+}
+
+// UpdateInsuranceResponse is returned after updating insurance.
+type UpdateInsuranceResponse struct {
+	Status           string   `json:"status"`
+	PatientID        string   `json:"patientId,omitempty"`
+	OldInsurance     string   `json:"oldInsurance,omitempty"`
+	NewInsurance     string   `json:"newInsurance,omitempty"`
+	Routing          string   `json:"routing,omitempty"`
+	AllowedProviders []string `json:"allowedProviders,omitempty"`
+	RoutingAmbiguous bool     `json:"routingAmbiguous,omitempty"`
+	PreauthRequired  bool     `json:"preauthRequired,omitempty"`
+	Message          string   `json:"message,omitempty"`
+}
+
+// HandleUpdateInsurance swaps a patient's insurance: end-dates the old plan and attaches a new one.
+func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var req UpdateInsuranceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
+			Status:  "error",
+			Message: "Invalid JSON body",
+		})
+		return
+	}
+
+	// Validate required fields
+	if req.PatientID == "" || req.Insurance == "" || req.SubscriberNum == "" {
+		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
+			Status:  "error",
+			Message: "patientId, insurance, and subscriberNum are required",
+		})
+		return
+	}
+
+	office, err := resolveOffice(req.Office)
+	if err != nil {
+		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// Look up new insurance
+	insEntry, found := domain.LookupInsurance(req.Insurance)
+	if !found {
+		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Insurance not recognized: %q. Please use an insurance name from the accepted list.", req.Insurance),
+		})
+		return
+	}
+
+	if insEntry.Routing == domain.RoutingNotAccepted {
+		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("%s is not accepted at %s.", req.Insurance, office.DisplayName),
+		})
+		return
+	}
+
+	// Get AMD token
+	tokenData, err := h.tokenManager.GetToken(r.Context())
+	if err != nil {
+		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
+			Status:  "error",
+			Message: "Failed to get authentication token: " + err.Error(),
+		})
+		return
+	}
+
+	// End-date old plan if insplan ID provided
+	if req.InsPlanID != "" {
+		if err := h.amdClient.EndDateInsurance(r.Context(), tokenData, req.PatientID, req.InsPlanID); err != nil {
+			json.NewEncoder(w).Encode(UpdateInsuranceResponse{
+				Status:  "error",
+				Message: "Failed to end-date existing insurance: " + err.Error(),
+			})
+			return
+		}
+	}
+
+	// Add new insurance plan
+	if err := h.amdClient.AddInsurance(r.Context(), tokenData, req.PatientID, req.RespPartyID, insEntry.CarrierID, req.SubscriberNum); err != nil {
+		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
+			Status:  "error",
+			Message: "Failed to add new insurance: " + err.Error(),
+		})
+		return
+	}
+
+	routing := insEntry.Routing
+	_, ambiguous := domain.RoutingForCarrierID(insEntry.CarrierID)
+
+	json.NewEncoder(w).Encode(UpdateInsuranceResponse{
+		Status:           "updated",
+		PatientID:        req.PatientID,
+		OldInsurance:     req.OldInsurance,
+		NewInsurance:     req.Insurance,
+		Routing:          string(routing),
+		AllowedProviders: office.ProvidersForRouting(routing),
+		RoutingAmbiguous: ambiguous,
+		PreauthRequired:  insEntry.PreauthRequired,
+		Message:          "Insurance updated successfully",
+	})
 }
