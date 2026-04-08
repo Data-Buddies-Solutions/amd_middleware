@@ -836,3 +836,58 @@ func TestPatientApptDetail_IncludesID(t *testing.T) {
 		t.Errorf("Expected id 9570263, got %v", id)
 	}
 }
+
+func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
+	handlers := &Handlers{}
+
+	tests := []struct {
+		name        string
+		body        string
+		expectedMsg string
+	}{
+		{
+			name:        "invalid JSON",
+			body:        "not json",
+			expectedMsg: "Invalid JSON body",
+		},
+		{
+			name:        "missing patientId",
+			body:        `{"insurance":"Aetna","subscriberNum":"ABC123"}`,
+			expectedMsg: "patientId, insurance, and subscriberNum are required",
+		},
+		{
+			name:        "missing insurance",
+			body:        `{"patientId":"pat123","subscriberNum":"ABC123"}`,
+			expectedMsg: "patientId, insurance, and subscriberNum are required",
+		},
+		{
+			name:        "missing subscriberNum",
+			body:        `{"patientId":"pat123","insurance":"Aetna"}`,
+			expectedMsg: "patientId, insurance, and subscriberNum are required",
+		},
+		{
+			name:        "insurance not recognized",
+			body:        `{"patientId":"pat123","insurance":"FakeInsurance","subscriberNum":"ABC123"}`,
+			expectedMsg: `Insurance not recognized: "FakeInsurance". Please use an insurance name from the accepted list.`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			handlers.HandleUpdateInsurance(w, req)
+
+			var body UpdateInsuranceResponse
+			json.NewDecoder(w.Result().Body).Decode(&body)
+			if body.Status != "error" {
+				t.Errorf("Expected status 'error', got %q", body.Status)
+			}
+			if body.Message != tt.expectedMsg {
+				t.Errorf("Expected message %q, got %q", tt.expectedMsg, body.Message)
+			}
+		})
+	}
+}

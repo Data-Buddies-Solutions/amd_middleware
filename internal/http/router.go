@@ -32,6 +32,7 @@ func NewRouter(handlers *Handlers, apiSecret string) http.Handler {
 		r.Post("/patient/appointments", handlers.HandleGetPatientAppointments)
 		r.Post("/appointment/book", handlers.HandleBookAppointment)
 		r.Post("/appointment/cancel", handlers.HandleCancelAppointment)
+		r.Post("/patient/update-insurance", handlers.HandleUpdateInsurance)
 	})
 
 	return r

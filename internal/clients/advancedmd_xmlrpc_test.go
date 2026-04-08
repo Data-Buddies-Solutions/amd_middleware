@@ -318,9 +318,15 @@ func TestAdvancedMDClient_GetDemographic(t *testing.T) {
 					"patientlist": {
 						"patient": {
 							"@id": "pat123",
+							"@respparty": "resp456",
+							"@dob": "08/18/2000",
 							"insplanlist": {
 								"insplan": {
-									"@carrier": "car40906"
+									"@id": "ins789",
+									"@carrier": "car40906",
+									"@subscriber": "resp456",
+									"@enddate": "",
+									"@coverage": "1"
 								}
 							}
 						}
@@ -339,16 +345,22 @@ func TestAdvancedMDClient_GetDemographic(t *testing.T) {
 	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
 	defer cleanup()
 
-	carrierName, carrierID, err := client.GetDemographic(context.Background(), tokenData, "pat123")
+	result, err := client.GetDemographic(context.Background(), tokenData, "pat123")
 	if err != nil {
 		t.Fatalf("GetDemographic failed: %v", err)
 	}
 
-	if carrierName != "HUMANA MEDICARE" {
-		t.Errorf("Expected carrier name 'HUMANA MEDICARE', got %q", carrierName)
+	if result.CarrierName != "HUMANA MEDICARE" {
+		t.Errorf("Expected carrier name 'HUMANA MEDICARE', got %q", result.CarrierName)
 	}
-	if carrierID != "car40906" {
-		t.Errorf("Expected carrier ID 'car40906', got %q", carrierID)
+	if result.CarrierID != "car40906" {
+		t.Errorf("Expected carrier ID 'car40906', got %q", result.CarrierID)
+	}
+	if result.InsPlanID != "ins789" {
+		t.Errorf("Expected insplan ID 'ins789', got %q", result.InsPlanID)
+	}
+	if result.RespPartyID != "resp456" {
+		t.Errorf("Expected resp party ID 'resp456', got %q", result.RespPartyID)
 	}
 }
 
@@ -360,7 +372,8 @@ func TestAdvancedMDClient_GetDemographic_NoInsurance(t *testing.T) {
 				"Results": {
 					"patientlist": {
 						"patient": {
-							"@id": "pat123"
+							"@id": "pat123",
+							"@respparty": "resp456"
 						}
 					}
 				}
@@ -371,16 +384,19 @@ func TestAdvancedMDClient_GetDemographic_NoInsurance(t *testing.T) {
 	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
 	defer cleanup()
 
-	carrierName, carrierID, err := client.GetDemographic(context.Background(), tokenData, "pat123")
+	result, err := client.GetDemographic(context.Background(), tokenData, "pat123")
 	if err != nil {
 		t.Fatalf("GetDemographic failed: %v", err)
 	}
 
-	if carrierName != "" {
-		t.Errorf("Expected empty carrier name, got %q", carrierName)
+	if result.CarrierName != "" {
+		t.Errorf("Expected empty carrier name, got %q", result.CarrierName)
 	}
-	if carrierID != "" {
-		t.Errorf("Expected empty carrier ID, got %q", carrierID)
+	if result.CarrierID != "" {
+		t.Errorf("Expected empty carrier ID, got %q", result.CarrierID)
+	}
+	if result.RespPartyID != "resp456" {
+		t.Errorf("Expected resp party ID 'resp456' from patient, got %q", result.RespPartyID)
 	}
 }
 
@@ -393,8 +409,9 @@ func TestAdvancedMDClient_GetDemographic_MultipleCarriers(t *testing.T) {
 					"patientlist": {
 						"patient": {
 							"@id": "pat123",
+							"@respparty": "resp456",
 							"insplanlist": {
-								"insplan": {"@carrier": "car40906"}
+								"insplan": {"@id": "ins100", "@carrier": "car40906", "@enddate": "", "@coverage": "1", "@subscriber": "resp456"}
 							}
 						}
 					},
@@ -412,16 +429,94 @@ func TestAdvancedMDClient_GetDemographic_MultipleCarriers(t *testing.T) {
 	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
 	defer cleanup()
 
-	carrierName, carrierID, err := client.GetDemographic(context.Background(), tokenData, "pat123")
+	result, err := client.GetDemographic(context.Background(), tokenData, "pat123")
 	if err != nil {
 		t.Fatalf("GetDemographic failed: %v", err)
 	}
 
-	if carrierName != "HUMANA MEDICARE" {
-		t.Errorf("Expected carrier name 'HUMANA MEDICARE', got %q", carrierName)
+	if result.CarrierName != "HUMANA MEDICARE" {
+		t.Errorf("Expected carrier name 'HUMANA MEDICARE', got %q", result.CarrierName)
 	}
-	if carrierID != "car40906" {
-		t.Errorf("Expected carrier ID 'car40906', got %q", carrierID)
+	if result.CarrierID != "car40906" {
+		t.Errorf("Expected carrier ID 'car40906', got %q", result.CarrierID)
+	}
+}
+
+func TestAdvancedMDClient_GetDemographic_MultiplePlansPicksActive(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{
+			"PPMDResults": {
+				"Results": {
+					"patientlist": {
+						"patient": {
+							"@id": "pat123",
+							"@respparty": "resp456",
+							"insplanlist": {
+								"insplan": [
+									{"@id": "ins100", "@carrier": "car40887", "@enddate": "04/08/2026", "@coverage": "1", "@subscriber": "resp456"},
+									{"@id": "ins200", "@carrier": "car40906", "@enddate": "", "@coverage": "1", "@subscriber": "resp456"}
+								]
+							}
+						}
+					},
+					"carrierlist": {
+						"carrier": [
+							{"@id": "car40887", "@name": "AETNA"},
+							{"@id": "car40906", "@name": "HUMANA MEDICARE"}
+						]
+					}
+				}
+			}
+		}`))
+	})
+
+	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
+	defer cleanup()
+
+	result, err := client.GetDemographic(context.Background(), tokenData, "pat123")
+	if err != nil {
+		t.Fatalf("GetDemographic failed: %v", err)
+	}
+
+	if result.InsPlanID != "ins200" {
+		t.Errorf("Expected active insplan ID 'ins200', got %q", result.InsPlanID)
+	}
+	if result.CarrierID != "car40906" {
+		t.Errorf("Expected active carrier ID 'car40906', got %q", result.CarrierID)
+	}
+	if result.CarrierName != "HUMANA MEDICARE" {
+		t.Errorf("Expected carrier name 'HUMANA MEDICARE', got %q", result.CarrierName)
+	}
+}
+
+func TestAdvancedMDClient_EndDateInsurance(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"PPMDResults":{"Results":{"@success":"1","patient":{"@insorder":""}}}}`))
+	})
+
+	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
+	defer cleanup()
+
+	err := client.EndDateInsurance(context.Background(), tokenData, "pat123", "ins789")
+	if err != nil {
+		t.Fatalf("EndDateInsurance failed: %v", err)
+	}
+}
+
+func TestAdvancedMDClient_EndDateInsurance_Error(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"PPMDResults":{"Error":"Insurance record not found"}}`))
+	})
+
+	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
+	defer cleanup()
+
+	err := client.EndDateInsurance(context.Background(), tokenData, "pat123", "ins789")
+	if err == nil {
+		t.Fatal("Expected error for failed end-date, got nil")
 	}
 }
 
