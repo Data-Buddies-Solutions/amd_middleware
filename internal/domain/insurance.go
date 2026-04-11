@@ -71,7 +71,8 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 	"humana medicare":         {CarrierID: "car308175", Routing: RoutingBachOnly},
 	"humana ppo":              {CarrierID: "car308175", Routing: RoutingBachOnly},
 	"humana healthy horizons":  {CarrierID: "car308175", Routing: RoutingBachOnly},
-	"humana premier hmo":      {CarrierID: "car308175", Routing: RoutingBachOnly},
+	"humana premier hmo":      {CarrierID: "car308175", Routing: RoutingNotAccepted},
+	"humana hmo":              {CarrierID: "car308175", Routing: RoutingNotAccepted},
 	"molina medicare":         {CarrierID: "car308175", Routing: RoutingBachOnly},
 	"cigna medicare advantage": {CarrierID: "car308175", Routing: RoutingBachLicht},
 	"molina marketplace":      {CarrierID: "car308175", Routing: RoutingNotAccepted},
@@ -136,11 +137,11 @@ var CarrierRoutingMap = map[string]RoutingRule{
 	"car40916":  RoutingNotAccepted, // PREFERRED CARE PARTNERS
 	"car301737": RoutingNotAccepted, // EYE MANAGEMENT INC (AvMed Medicare via EMI)
 	"car280750": RoutingNotAccepted, // EYE MANAGEMENT INC (FL Blue HMO via EMI)
+	"car303061": RoutingNotAccepted, // HUMANA PREMIER HMO
 	// BACH ONLY
 	"car303033": RoutingBachOnly, // HUMANA MEDICAID
 	"car40906":  RoutingBachOnly, // HUMANA MEDICARE
 	"car303062": RoutingBachOnly, // HUMANA PPO POS
-	"car303061": RoutingBachOnly, // HUMANA PREMIER HMO
 	"car308175": RoutingBachOnly, // HUMANA GOLD PLUS
 	"car308627": RoutingBachOnly, // EYECARE AMERICA AAO
 	"car301578": RoutingBachOnly, // MERITAIN HEALTH
@@ -170,10 +171,12 @@ var AmbiguousCarriers = map[string]bool{
 var InsuranceAliases = map[string]string{
 	// Parent company shorthand → safest canonical name
 	"oscar":          "oscar health",
+	"oscar insurance": "oscar health",
 	"humana":         "humana ppo",
 	"tricare":        "tricare select",
 	"united":         "united healthcare",
 	"uhc":            "united healthcare",
+	"uhc medicare":   "united healthcare aarp medicare",
 	"cigna":          "cigna ppo",
 	"blue cross":     "florida blue",
 	"bcbs":               "florida blue",
@@ -184,6 +187,8 @@ var InsuranceAliases = map[string]string{
 	"staywell":       "staywell medicare",
 	"simply":         "simply medicaid",
 	"simply healthcare": "simply medicaid",
+	"simply health":     "simply medicaid",
+	"simply health plans": "simply medicaid",
 	"multiplan":      "multiplan phcs",
 	"phcs":           "multiplan phcs",
 	"imagine":        "imagine health",
