@@ -24,11 +24,11 @@ The LLM has a fixed list of insurance names in its TOOLS prompt. When a patient 
 
 ## Carrier ID Groupings
 
-76 insurance names consolidate down to **22 carrier IDs**. The 8 major networks cover 62 plans; 14 standalone carriers cover 1 plan each.
+85 insurance names consolidate down to **22 carrier IDs**. The 8 major networks cover 68 plans; 14 standalone carriers cover 1 plan each; 3 additional plans are hard-rejected with no carrier ID.
 
 ---
 
-### iCare — car40907 (12 plans)
+### iCare — car40907 (14 plans)
 
 | Insurance Name | Routing |
 |---------------|---------|
@@ -38,8 +38,10 @@ The LLM has a fixed list of insurance names in its TOOLS prompt. When a patient 
 | Aetna HMO | All 3 |
 | Aetna Medicare HMO | All 3 |
 | Community Care Plan | All 3 |
+| Eye Care Health Solutions | All 3 |
 | Florida Community Care | All 3 |
 | Florida Complete Care | All 3 |
+| iCare | All 3 |
 | Miami Children's Health Plan | All 3 |
 | Simply Medicaid | All 3 |
 | Vivida | All 3 |
@@ -47,13 +49,15 @@ The LLM has a fixed list of insurance names in its TOOLS prompt. When a patient 
 
 ---
 
-### United Healthcare — car40923 (12 plans)
+### United Healthcare — car40923 (14 plans)
 
 | Insurance Name | Routing |
 |---------------|---------|
 | United Healthcare | All 3 |
 | United Healthcare AARP Medicare | All 3 |
 | United Healthcare All Savers | All 3 |
+| United Healthcare Choice | All 3 |
+| United Healthcare Dual Complete | All 3 |
 | United Healthcare Golden Rule | All 3 |
 | United Healthcare HMO | All 3 |
 | United Healthcare NHP | All 3 |
@@ -66,11 +70,12 @@ The LLM has a fixed list of insurance names in its TOOLS prompt. When a patient 
 
 ---
 
-### Envolve — car281245 (8 plans)
+### Envolve — car281245 (9 plans)
 
 | Insurance Name | Routing |
 |---------------|---------|
 | Ambetter | All 3 |
+| Ambetter Premier | All 3 |
 | Ambetter Select | All 3 |
 | Ambetter Value | All 3 |
 | Children's Medical Services | All 3 |
@@ -81,17 +86,19 @@ The LLM has a fixed list of insurance names in its TOOLS prompt. When a patient 
 
 ---
 
-### Humana Consolidated — car308175 (8 plans)
+### Humana Consolidated — car308175 (10 plans)
 
 | Insurance Name | Routing |
 |---------------|---------|
 | Humana Gold Plus | Bach Only |
+| Humana Healthy Horizons | Bach Only |
 | Humana Medicaid | Bach Only |
 | Humana Medicare | Bach Only |
 | Humana PPO | Bach Only |
-| Humana Premier HMO | Bach Only |
 | Molina Medicare | Bach Only |
 | Cigna Medicare Advantage | Bach + Licht |
+| Humana HMO | **Not Accepted** |
+| Humana Premier HMO | **Not Accepted** |
 | Molina Marketplace | **Not Accepted** |
 
 ---
@@ -122,11 +129,12 @@ The LLM has a fixed list of insurance names in its TOOLS prompt. When a patient 
 
 ---
 
-### Aetna — car40887 (4 plans)
+### Aetna — car40887 (5 plans)
 
 | Insurance Name | Routing |
 |---------------|---------|
 | Aetna | All 3 |
+| Aetna Medicare Signature PPO | All 3 |
 | Aetna QHP Individual Exchange | All 3 |
 | Aetna EPO North Broward | Bach Only |
 | Aetna EPO University of Miami | **Not Accepted** |
@@ -165,6 +173,18 @@ The LLM has a fixed list of insurance names in its TOOLS prompt. When a patient 
 
 ---
 
+### Not Accepted — No Carrier ID (3 plans)
+
+Hard-rejected by name before any AMD lookup. No carrier ID is stored because these plans are never attached to patients at Spring Hill.
+
+| Insurance Name | Routing |
+|---------------|---------|
+| Care Plus | **Not Accepted** |
+| Care Health Plus | **Not Accepted** |
+| Optimum Healthcare | **Not Accepted** |
+
+---
+
 ## Ambiguous Carriers (Existing Patients)
 
 These 5 carrier IDs appear across multiple routing tiers in the name map. When we get one from an existing patient's demographics, we can't determine the specific plan — so we default to **All 3** and set `routingAmbiguous: true` so the agent asks a clarifying question.
@@ -189,10 +209,10 @@ For existing patients, these unambiguous carrier IDs map to a fixed routing rule
 | car40916 | PREFERRED CARE PARTNERS | Not Accepted |
 | car301737 | EYE MANAGEMENT INC (AvMed Medicare) | Not Accepted |
 | car280750 | EYE MANAGEMENT INC (FL Blue HMO) | Not Accepted |
+| car303061 | HUMANA PREMIER HMO | Not Accepted |
 | car303033 | HUMANA MEDICAID | Bach Only |
 | car40906 | HUMANA MEDICARE | Bach Only |
 | car303062 | HUMANA PPO POS | Bach Only |
-| car303061 | HUMANA PREMIER HMO | Bach Only |
 | car308175 | HUMANA GOLD PLUS | Bach Only |
 | car308627 | EYECARE AMERICA AAO | Bach Only |
 | car301578 | MERITAIN HEALTH | Bach Only |
