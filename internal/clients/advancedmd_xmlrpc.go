@@ -298,14 +298,14 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.T
 				"@changed": "1",
 				"insplanlist": map[string]interface{}{
 					"insplan": map[string]interface{}{
-						"@id":                 "",
-						"@carrier":            carrierID,
-						"@subscriber":         respPartyID,
-						"@subscribernum":      subscriberNum,
-						"@hipaarelationship":  "18",
-						"@relationship":       "1",
-						"@copay":              "0.00",
-						"@coverage":           "1",
+						"@id":                "",
+						"@carrier":           carrierID,
+						"@subscriber":        respPartyID,
+						"@subscribernum":     subscriberNum,
+						"@hipaarelationship": "18",
+						"@relationship":      "1",
+						"@copay":             "0.00",
+						"@coverage":          "1",
 					},
 				},
 			},
@@ -393,6 +393,7 @@ func checkInsuranceError(body []byte, operation string) error {
 type DemographicResult struct {
 	CarrierName string // "AETNA"
 	CarrierID   string // "car40887"
+	DOB         string // patient's DOB from demographic record
 	InsPlanID   string // "ins8719894" — active insplan ID for end-dating
 	RespPartyID string // "resp21543970" — for new plan's @subscriber
 }
@@ -471,6 +472,7 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *domain
 	}
 
 	result := &DemographicResult{
+		DOB:         resp.PPMDResults.Results.PatientList.Patient.DOB,
 		RespPartyID: resp.PPMDResults.Results.PatientList.Patient.RespParty,
 	}
 

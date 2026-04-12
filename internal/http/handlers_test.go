@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -36,28 +37,32 @@ func TestHandleVerifyPatient_ValidationErrors(t *testing.T) {
 	handlers := &Handlers{}
 
 	tests := []struct {
-		name        string
-		method      string
-		body        string
-		expectedMsg string
+		name            string
+		method          string
+		body            string
+		expectedMsg     string
+		expectedOutcome string
 	}{
 		{
-			name:        "invalid JSON",
-			method:      "POST",
-			body:        "not json",
-			expectedMsg: "Invalid JSON body",
+			name:            "invalid JSON",
+			method:          "POST",
+			body:            "not json",
+			expectedMsg:     "Invalid JSON body.",
+			expectedOutcome: "invalid_request",
 		},
 		{
-			name:        "missing lastName and phone",
-			method:      "POST",
-			body:        `{"dob":"01/15/1980"}`,
-			expectedMsg: "Provide phone + firstName, phone + dob, or lastName + dob",
+			name:            "missing lastName and phone",
+			method:          "POST",
+			body:            `{"dob":"01/15/1980"}`,
+			expectedMsg:     "Provide phone plus first name, phone plus date of birth, or last name plus date of birth.",
+			expectedOutcome: "invalid_request",
 		},
 		{
-			name:        "missing dob",
-			method:      "POST",
-			body:        `{"lastName":"Smith"}`,
-			expectedMsg: "Provide phone + firstName, phone + dob, or lastName + dob",
+			name:            "missing dob",
+			method:          "POST",
+			body:            `{"lastName":"Smith"}`,
+			expectedMsg:     "Provide phone plus first name, phone plus date of birth, or last name plus date of birth.",
+			expectedOutcome: "invalid_request",
 		},
 	}
 
@@ -75,13 +80,122 @@ func TestHandleVerifyPatient_ValidationErrors(t *testing.T) {
 				t.Errorf("Expected status 200, got %d", resp.StatusCode)
 			}
 
-			var body VerifyPatientResponse
+			var body ToolResponse[VerifyPatientStructured]
 			json.NewDecoder(resp.Body).Decode(&body)
-			if body.Status != "error" {
-				t.Errorf("Expected status 'error', got '%s'", body.Status)
+			if !body.IsError {
+				t.Errorf("Expected isError=true, got false")
 			}
-			if body.Message != tt.expectedMsg {
-				t.Errorf("Expected message '%s', got '%s'", tt.expectedMsg, body.Message)
+			if len(body.Content) != 1 || body.Content[0].Text != tt.expectedMsg {
+				t.Errorf("Expected message '%s', got %+v", tt.expectedMsg, body.Content)
+			}
+			if body.StructuredContent.Outcome != tt.expectedOutcome {
+				t.Errorf("Expected outcome %q, got %q", tt.expectedOutcome, body.StructuredContent.Outcome)
+			}
+		})
+	}
+}
+
+func TestBookingTokenRoundTrip(t *testing.T) {
+	handlers := &Handlers{bookingTokenSecret: "test-secret"}
+	token, err := handlers.mintBookingToken(bookingTokenPayload{
+		ColumnID:      101,
+		ProfileID:     202,
+		FacilityID:    "303",
+		StartDatetime: "2026-04-24T09:00",
+		Duration:      15,
+		Office:        domain.DefaultPhone,
+	})
+	if err != nil {
+		t.Fatalf("mintBookingToken failed: %v", err)
+	}
+
+	payload, err := handlers.parseBookingToken(token)
+	if err != nil {
+		t.Fatalf("parseBookingToken failed: %v", err)
+	}
+	if payload.ColumnID != 101 || payload.ProfileID != 202 || payload.FacilityID != "303" ||
+		payload.StartDatetime != "2026-04-24T09:00" || payload.Duration != 15 || payload.Office != domain.DefaultPhone {
+		t.Fatalf("unexpected parsed payload: %+v", payload)
+	}
+}
+
+func TestBookingTokenRejectsExpiredAndTamperedTokens(t *testing.T) {
+	handlers := &Handlers{bookingTokenSecret: "test-secret"}
+
+	expiredToken, err := handlers.mintBookingToken(bookingTokenPayload{
+		ColumnID:      101,
+		ProfileID:     202,
+		FacilityID:    "303",
+		StartDatetime: "2026-04-24T09:00",
+		Duration:      15,
+		Office:        domain.DefaultPhone,
+		Exp:           time.Now().Add(-time.Minute).Unix(),
+	})
+	if err != nil {
+		t.Fatalf("mintBookingToken failed: %v", err)
+	}
+	if _, err := handlers.parseBookingToken(expiredToken); err == nil || !strings.Contains(err.Error(), "expired") {
+		t.Fatalf("expected expired token error, got %v", err)
+	}
+
+	validToken, err := handlers.mintBookingToken(bookingTokenPayload{
+		ColumnID:      101,
+		ProfileID:     202,
+		FacilityID:    "303",
+		StartDatetime: "2026-04-24T09:00",
+		Duration:      15,
+		Office:        domain.DefaultPhone,
+	})
+	if err != nil {
+		t.Fatalf("mintBookingToken failed: %v", err)
+	}
+	tamperedToken := validToken[:len(validToken)-1] + "x"
+	if _, err := handlers.parseBookingToken(tamperedToken); err == nil || !strings.Contains(err.Error(), "signature") {
+		t.Fatalf("expected invalid signature error, got %v", err)
+	}
+}
+
+func TestHandleBookAppointment_InvalidBookingToken(t *testing.T) {
+	handlers := &Handlers{bookingTokenSecret: "test-secret"}
+
+	req := httptest.NewRequest("POST", "/api/appointment/book", bytes.NewBufferString(`{
+		"patientId":"12345",
+		"bookingToken":"bad.token",
+		"appointmentTypeId":1007
+	}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandleBookAppointment(w, req)
+
+	var body ToolResponse[BookAppointmentStructured]
+	if err := json.NewDecoder(w.Result().Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if !body.IsError {
+		t.Fatalf("expected isError=true, got false")
+	}
+	if body.StructuredContent.Outcome != "stale_booking_token" {
+		t.Fatalf("expected outcome stale_booking_token, got %q", body.StructuredContent.Outcome)
+	}
+}
+
+func TestPreauthRequiredForCarrierID(t *testing.T) {
+	tests := []struct {
+		carrierID string
+		expected  bool
+	}{
+		{carrierID: "car40897", expected: false},  // Florida Blue mixes PPO and HMO
+		{carrierID: "car40907", expected: false},  // Aetna iCare mix
+		{carrierID: "car40921", expected: false},  // Tricare mixed
+		{carrierID: "car301737", expected: false}, // not accepted only
+		{carrierID: "", expected: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.carrierID, func(t *testing.T) {
+			if got := preauthRequiredForCarrierID(tt.carrierID); got != tt.expected {
+				t.Fatalf("preauthRequiredForCarrierID(%q) = %v, want %v", tt.carrierID, got, tt.expected)
 			}
 		})
 	}
@@ -218,7 +332,7 @@ func TestCalculateAvailableSlots_AllBookedAtMax(t *testing.T) {
 		StartTime:       "09:00",
 		EndTime:         "10:00",
 		Interval:        15,
-		MaxApptsPerSlot: 2, // Max 2 per slot
+		MaxApptsPerSlot: 2,  // Max 2 per slot
 		Workweek:        24, // Wed-Thu
 	}
 
@@ -313,8 +427,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected:     false,
 		},
 		{
-			name:     "30-min appt ends exactly at slot — no overlap",
-			slotTime: time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
+			name:         "30-min appt ends exactly at slot — no overlap",
+			slotTime:     time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 30},
@@ -322,8 +436,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: false, // 9:00+30min=9:30, [9:30,10:00) does not overlap [9:00,9:30)
 		},
 		{
-			name:     "60-min appt overlaps into next slot — blocked (4101)",
-			slotTime: time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
+			name:         "60-min appt overlaps into next slot — blocked (4101)",
+			slotTime:     time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 60},
@@ -331,8 +445,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: true, // [9:30,10:00) overlaps [9:00,10:00)
 		},
 		{
-			name:     "60-min appt does not overlap past its end",
-			slotTime: time.Date(2026, 3, 6, 10, 0, 0, 0, eastern),
+			name:         "60-min appt does not overlap past its end",
+			slotTime:     time.Date(2026, 3, 6, 10, 0, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 60},
@@ -340,8 +454,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: false, // [10:00,10:30) does not overlap [9:00,10:00)
 		},
 		{
-			name:     "same-start-time appt is blocked — no double booking",
-			slotTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern),
+			name:         "same-start-time appt is blocked — no double booking",
+			slotTime:     time.Date(2026, 3, 6, 9, 0, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 30},
@@ -349,8 +463,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: true, // [9:00,9:30) overlaps [9:00,9:30)
 		},
 		{
-			name:     "Licht 12:15 scenario — Bourque at 12:00 with 30-min duration blocks 12:15",
-			slotTime: time.Date(2026, 3, 10, 12, 15, 0, 0, eastern),
+			name:         "Licht 12:15 scenario — Bourque at 12:00 with 30-min duration blocks 12:15",
+			slotTime:     time.Date(2026, 3, 10, 12, 15, 0, 0, eastern),
 			slotDuration: 15 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 3, 10, 12, 0, 0, 0, eastern), Duration: 30}, // Bourque 12:00-12:30
@@ -358,8 +472,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: true, // [12:15,12:30) overlaps [12:00,12:30) — AMD 4101
 		},
 		{
-			name:     "overlap from earlier appt even with same-start appt present",
-			slotTime: time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
+			name:         "overlap from earlier appt even with same-start appt present",
+			slotTime:     time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 60},  // overlaps into 9:30
@@ -368,8 +482,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: true, // the 9:00 appt overlaps — hard block regardless of the 9:30 same-start
 		},
 		{
-			name:     "off-grid appt at 8:45 blocks 30-min booking at 8:30",
-			slotTime: time.Date(2026, 5, 13, 8, 30, 0, 0, eastern),
+			name:         "off-grid appt at 8:45 blocks 30-min booking at 8:30",
+			slotTime:     time.Date(2026, 5, 13, 8, 30, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 5, 13, 8, 45, 0, 0, eastern), Duration: 15},
@@ -377,8 +491,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: true, // [8:30,9:00) overlaps [8:45,9:00) — the bug this fix addresses
 		},
 		{
-			name:     "off-grid appt at 9:15 blocks 30-min booking at 9:00",
-			slotTime: time.Date(2026, 5, 13, 9, 0, 0, 0, eastern),
+			name:         "off-grid appt at 9:15 blocks 30-min booking at 9:00",
+			slotTime:     time.Date(2026, 5, 13, 9, 0, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 5, 13, 9, 15, 0, 0, eastern), Duration: 15},
@@ -386,8 +500,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: true, // [9:00,9:30) overlaps [9:15,9:30)
 		},
 		{
-			name:     "off-grid appt at 8:45 does NOT block 8:00 slot",
-			slotTime: time.Date(2026, 5, 13, 8, 0, 0, 0, eastern),
+			name:         "off-grid appt at 8:45 does NOT block 8:00 slot",
+			slotTime:     time.Date(2026, 5, 13, 8, 0, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 5, 13, 8, 45, 0, 0, eastern), Duration: 15},
@@ -543,39 +657,39 @@ func TestEnforcePreauthMinDate(t *testing.T) {
 	now := time.Date(2026, 3, 10, 14, 0, 0, 0, eastern) // March 10, 2026
 
 	tests := []struct {
-		name         string
-		requestDate  time.Time
-		expectedDate string
+		name          string
+		requestDate   time.Time
+		expectedDate  string
 		shouldAdvance bool
 	}{
 		{
-			name:         "date tomorrow — advances to 14 days out",
-			requestDate:  time.Date(2026, 3, 11, 0, 0, 0, 0, eastern),
-			expectedDate: "2026-03-24",
+			name:          "date tomorrow — advances to 14 days out",
+			requestDate:   time.Date(2026, 3, 11, 0, 0, 0, 0, eastern),
+			expectedDate:  "2026-03-24",
 			shouldAdvance: true,
 		},
 		{
-			name:         "date 7 days out — advances to 14 days out",
-			requestDate:  time.Date(2026, 3, 17, 0, 0, 0, 0, eastern),
-			expectedDate: "2026-03-24",
+			name:          "date 7 days out — advances to 14 days out",
+			requestDate:   time.Date(2026, 3, 17, 0, 0, 0, 0, eastern),
+			expectedDate:  "2026-03-24",
 			shouldAdvance: true,
 		},
 		{
-			name:         "date 13 days out — still advances to 14 days out",
-			requestDate:  time.Date(2026, 3, 23, 0, 0, 0, 0, eastern),
-			expectedDate: "2026-03-24",
+			name:          "date 13 days out — still advances to 14 days out",
+			requestDate:   time.Date(2026, 3, 23, 0, 0, 0, 0, eastern),
+			expectedDate:  "2026-03-24",
 			shouldAdvance: true,
 		},
 		{
-			name:         "date exactly 14 days out — no change",
-			requestDate:  time.Date(2026, 3, 24, 0, 0, 0, 0, eastern),
-			expectedDate: "2026-03-24",
+			name:          "date exactly 14 days out — no change",
+			requestDate:   time.Date(2026, 3, 24, 0, 0, 0, 0, eastern),
+			expectedDate:  "2026-03-24",
 			shouldAdvance: false,
 		},
 		{
-			name:         "date 30 days out — no change",
-			requestDate:  time.Date(2026, 4, 9, 0, 0, 0, 0, eastern),
-			expectedDate: "2026-04-09",
+			name:          "date 30 days out — no change",
+			requestDate:   time.Date(2026, 4, 9, 0, 0, 0, 0, eastern),
+			expectedDate:  "2026-04-09",
 			shouldAdvance: false,
 		},
 	}
@@ -600,29 +714,39 @@ func TestHandleGetPatientAppointments_ValidationErrors(t *testing.T) {
 	handlers := &Handlers{}
 
 	tests := []struct {
-		name        string
-		body        string
-		expectedMsg string
+		name            string
+		body            string
+		expectedMsg     string
+		expectedIsError bool
+		expectedOutcome string
 	}{
 		{
-			name:        "invalid JSON",
-			body:        "not json",
-			expectedMsg: "Invalid JSON body",
+			name:            "invalid JSON",
+			body:            "not json",
+			expectedMsg:     "Invalid JSON body.",
+			expectedIsError: true,
+			expectedOutcome: "invalid_request",
 		},
 		{
-			name:        "missing patientId",
-			body:        `{}`,
-			expectedMsg: "patientId is required",
+			name:            "missing patientId",
+			body:            `{}`,
+			expectedMsg:     "patientId is required.",
+			expectedIsError: true,
+			expectedOutcome: "invalid_request",
 		},
 		{
-			name:        "empty patientId",
-			body:        `{"patientId":""}`,
-			expectedMsg: "patientId is required",
+			name:            "empty patientId",
+			body:            `{"patientId":""}`,
+			expectedMsg:     "patientId is required.",
+			expectedIsError: true,
+			expectedOutcome: "invalid_request",
 		},
 		{
-			name:        "non-numeric patientId",
-			body:        `{"patientId":"abc"}`,
-			expectedMsg: "patientId must be numeric",
+			name:            "non-numeric patientId",
+			body:            `{"patientId":"abc"}`,
+			expectedMsg:     "patientId must be numeric.",
+			expectedIsError: true,
+			expectedOutcome: "invalid_request",
 		},
 	}
 
@@ -639,13 +763,16 @@ func TestHandleGetPatientAppointments_ValidationErrors(t *testing.T) {
 				t.Errorf("Expected status 200, got %d", resp.StatusCode)
 			}
 
-			var body PatientApptResponse
+			var body ToolResponse[PatientAppointmentsStructured]
 			json.NewDecoder(resp.Body).Decode(&body)
-			if body.Status != "error" {
-				t.Errorf("Expected status 'error', got '%s'", body.Status)
+			if body.IsError != tt.expectedIsError {
+				t.Errorf("Expected isError %v, got %v", tt.expectedIsError, body.IsError)
 			}
-			if body.Message != tt.expectedMsg {
-				t.Errorf("Expected message %q, got %q", tt.expectedMsg, body.Message)
+			if got := body.Content[0].Text; got != tt.expectedMsg {
+				t.Errorf("Expected message %q, got %q", tt.expectedMsg, got)
+			}
+			if body.StructuredContent.Outcome != tt.expectedOutcome {
+				t.Errorf("Expected outcome %q, got %q", tt.expectedOutcome, body.StructuredContent.Outcome)
 			}
 		})
 	}
@@ -726,7 +853,7 @@ func TestAppointmentTypeNames(t *testing.T) {
 func TestRouter(t *testing.T) {
 	// Create minimal handlers for testing
 	amdClient := clients.NewAdvancedMDClient(&http.Client{})
-	handlers := NewHandlers(nil, amdClient, nil) // nil token manager - can't test full flow
+	handlers := NewHandlers(nil, amdClient, nil, "test-secret") // nil token manager - can't test full flow
 
 	router := NewRouter(handlers, "test-secret")
 
@@ -763,24 +890,32 @@ func TestHandleCancelAppointment_ValidationErrors(t *testing.T) {
 	handlers := &Handlers{}
 
 	tests := []struct {
-		name        string
-		body        string
-		expectedMsg string
+		name            string
+		body            string
+		expectedMsg     string
+		expectedIsError bool
+		expectedOutcome string
 	}{
 		{
-			name:        "invalid JSON",
-			body:        "not json",
-			expectedMsg: "Invalid JSON body",
+			name:            "invalid JSON",
+			body:            "not json",
+			expectedMsg:     "Invalid JSON body.",
+			expectedIsError: true,
+			expectedOutcome: "invalid_request",
 		},
 		{
-			name:        "missing appointmentId",
-			body:        `{}`,
-			expectedMsg: "appointmentId is required",
+			name:            "missing appointmentId",
+			body:            `{}`,
+			expectedMsg:     "appointmentId is required.",
+			expectedIsError: true,
+			expectedOutcome: "invalid_request",
 		},
 		{
-			name:        "zero appointmentId",
-			body:        `{"appointmentId":0}`,
-			expectedMsg: "appointmentId is required",
+			name:            "zero appointmentId",
+			body:            `{"appointmentId":0}`,
+			expectedMsg:     "appointmentId is required.",
+			expectedIsError: true,
+			expectedOutcome: "invalid_request",
 		},
 	}
 
@@ -797,13 +932,16 @@ func TestHandleCancelAppointment_ValidationErrors(t *testing.T) {
 				t.Errorf("Expected status 200, got %d", resp.StatusCode)
 			}
 
-			var body CancelAppointmentResponse
+			var body ToolResponse[CancelAppointmentStructured]
 			json.NewDecoder(resp.Body).Decode(&body)
-			if body.Status != "error" {
-				t.Errorf("Expected status 'error', got '%s'", body.Status)
+			if body.IsError != tt.expectedIsError {
+				t.Errorf("Expected isError %v, got %v", tt.expectedIsError, body.IsError)
 			}
-			if body.Message != tt.expectedMsg {
-				t.Errorf("Expected message %q, got %q", tt.expectedMsg, body.Message)
+			if got := body.Content[0].Text; got != tt.expectedMsg {
+				t.Errorf("Expected message %q, got %q", tt.expectedMsg, got)
+			}
+			if body.StructuredContent.Outcome != tt.expectedOutcome {
+				t.Errorf("Expected outcome %q, got %q", tt.expectedOutcome, body.StructuredContent.Outcome)
 			}
 		})
 	}
@@ -841,34 +979,46 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 	handlers := &Handlers{}
 
 	tests := []struct {
-		name        string
-		body        string
-		expectedMsg string
+		name            string
+		body            string
+		expectedMsg     string
+		expectedIsError bool
+		expectedOutcome string
 	}{
 		{
-			name:        "invalid JSON",
-			body:        "not json",
-			expectedMsg: "Invalid JSON body",
+			name:            "invalid JSON",
+			body:            "not json",
+			expectedMsg:     "Invalid JSON body.",
+			expectedIsError: true,
+			expectedOutcome: "invalid_request",
 		},
 		{
-			name:        "missing patientId",
-			body:        `{"insurance":"Aetna","subscriberNum":"ABC123"}`,
-			expectedMsg: "patientId, insurance, and subscriberNum are required",
+			name:            "missing patientId",
+			body:            `{"insurance":"Aetna","subscriberNum":"ABC123"}`,
+			expectedMsg:     "patientId, insurance, and subscriberNum are required.",
+			expectedIsError: true,
+			expectedOutcome: "invalid_request",
 		},
 		{
-			name:        "missing insurance",
-			body:        `{"patientId":"pat123","subscriberNum":"ABC123"}`,
-			expectedMsg: "patientId, insurance, and subscriberNum are required",
+			name:            "missing insurance",
+			body:            `{"patientId":"pat123","subscriberNum":"ABC123"}`,
+			expectedMsg:     "patientId, insurance, and subscriberNum are required.",
+			expectedIsError: true,
+			expectedOutcome: "invalid_request",
 		},
 		{
-			name:        "missing subscriberNum",
-			body:        `{"patientId":"pat123","insurance":"Aetna"}`,
-			expectedMsg: "patientId, insurance, and subscriberNum are required",
+			name:            "missing subscriberNum",
+			body:            `{"patientId":"pat123","insurance":"Aetna"}`,
+			expectedMsg:     "patientId, insurance, and subscriberNum are required.",
+			expectedIsError: true,
+			expectedOutcome: "invalid_request",
 		},
 		{
-			name:        "insurance not recognized",
-			body:        `{"patientId":"pat123","insurance":"FakeInsurance","subscriberNum":"ABC123"}`,
-			expectedMsg: `Insurance not recognized: "FakeInsurance". Please use an insurance name from the accepted list.`,
+			name:            "insurance not recognized",
+			body:            `{"patientId":"pat123","insurance":"FakeInsurance","subscriberNum":"ABC123"}`,
+			expectedMsg:     `Insurance not recognized: "FakeInsurance". Please use an insurance name from the accepted list.`,
+			expectedIsError: false,
+			expectedOutcome: "unrecognized_insurance",
 		},
 	}
 
@@ -880,13 +1030,16 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 
 			handlers.HandleUpdateInsurance(w, req)
 
-			var body UpdateInsuranceResponse
+			var body ToolResponse[UpdateInsuranceStructured]
 			json.NewDecoder(w.Result().Body).Decode(&body)
-			if body.Status != "error" {
-				t.Errorf("Expected status 'error', got %q", body.Status)
+			if body.IsError != tt.expectedIsError {
+				t.Errorf("Expected isError %v, got %v", tt.expectedIsError, body.IsError)
 			}
-			if body.Message != tt.expectedMsg {
-				t.Errorf("Expected message %q, got %q", tt.expectedMsg, body.Message)
+			if got := body.Content[0].Text; got != tt.expectedMsg {
+				t.Errorf("Expected message %q, got %q", tt.expectedMsg, got)
+			}
+			if body.StructuredContent.Outcome != tt.expectedOutcome {
+				t.Errorf("Expected outcome %q, got %q", tt.expectedOutcome, body.StructuredContent.Outcome)
 			}
 		})
 	}

@@ -68,7 +68,7 @@ func main() {
 	amdRestClient := clients.NewAdvancedMDRestClient(httpClient)
 
 	// Initialize handlers
-	handlers := apphttp.NewHandlers(tokenManager, amdClient, amdRestClient)
+	handlers := apphttp.NewHandlers(tokenManager, amdClient, amdRestClient, cfg.APISecret)
 
 	// Create router
 	router := apphttp.NewRouter(handlers, cfg.APISecret)
