@@ -11,6 +11,7 @@ func TestLookupOffice(t *testing.T) {
 	}{
 		{"spring hill", "+17275919997", "spring_hill", true},
 		{"optical eyeworks", "+19542872010", "optical_eyeworks", true},
+		{"beacon eye", "+17864657509", "beacon_eye", true},
 		{"crystal river", "+13523202007", "crystal_river", true},
 		{"unknown phone", "+15551234567", "", false},
 		{"empty string", "", "", false},
@@ -177,6 +178,28 @@ func TestOpticalEyeworksConfig(t *testing.T) {
 	}
 	if office.PediatricRouting != RoutingAll {
 		t.Errorf("Optical Eyeworks PediatricRouting = %q, want %q", office.PediatricRouting, RoutingAll)
+	}
+}
+
+func TestBeaconEyeConfig(t *testing.T) {
+	office, ok := LookupOffice("+17864657509")
+	if !ok {
+		t.Fatal("prod registry should have +17864657509")
+	}
+	if office.FacilityID != "1487" {
+		t.Errorf("Beacon Eye FacilityID = %q, want %q", office.FacilityID, "1487")
+	}
+	if office.DefaultProfileID != "1996" {
+		t.Errorf("Beacon Eye DefaultProfileID = %q, want %q", office.DefaultProfileID, "1996")
+	}
+	if !office.IsAllowedColumn("1287") {
+		t.Error("Beacon Eye should allow column 1287")
+	}
+	if !office.IsAllowedColumn("1309") {
+		t.Error("Beacon Eye should allow column 1309")
+	}
+	if office.PediatricRouting != RoutingAll {
+		t.Errorf("Beacon Eye PediatricRouting = %q, want %q", office.PediatricRouting, RoutingAll)
 	}
 }
 

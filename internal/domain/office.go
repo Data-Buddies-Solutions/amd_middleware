@@ -197,6 +197,20 @@ var prodOffices = map[string]*OfficeConfig{
 		},
 		PediatricRouting: RoutingAll,
 	},
+	"+17864657509": {
+		ID:               "beacon_eye",
+		DisplayName:      "Beacon Eye",
+		FacilityID:       "1487",
+		DefaultProfileID: "1996",
+		Columns: map[string]OfficeColumn{
+			"1287": {ProfileID: "1996", DisplayName: "Dr. Maria Casas", ShortName: "Dr. Casas", MatchKey: "CASAS"},
+			"1309": {ProfileID: "1996", DisplayName: "Dr. Maria Casas (Overflow)", ShortName: "Dr. Casas", MatchKey: "CASAS"},
+		},
+		RoutingTiers: map[RoutingRule][]string{
+			RoutingAll: {"1287", "1309"},
+		},
+		PediatricRouting: RoutingAll,
+	},
 	"+13523202007": {
 		ID:               "crystal_river",
 		DisplayName:      "Crystal River",

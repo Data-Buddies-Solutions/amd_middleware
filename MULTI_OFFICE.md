@@ -26,6 +26,7 @@ All office configuration is in **one file**: `internal/domain/office.go`
 |--------|----|----------|-------|-----------|
 | Spring Hill | `spring_hill` | 1568 | +1 (727) 591-9997 | Dr. Bach, Dr. Licht, Dr. Noel |
 | Optical Eyeworks | `optical_eyeworks` | 1505 | +1 (954) 287-2010 | Dr. Otero |
+| Beacon Eye | `beacon_eye` | 1487 | +1 (786) 465-7509 | Dr. Casas |
 | Crystal River | `crystal_river` | 1576 | +1 (352) 320-2007 | Dr. Licht |
 
 ## Adding a New Office
