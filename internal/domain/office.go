@@ -184,6 +184,19 @@ var prodOffices = map[string]*OfficeConfig{
 		},
 		PediatricRouting: RoutingBachOnly,
 	},
+	"+19542872010": {
+		ID:               "optical_eyeworks",
+		DisplayName:      "Optical Eyeworks",
+		FacilityID:       "1505",
+		DefaultProfileID: "1983",
+		Columns: map[string]OfficeColumn{
+			"1304": {ProfileID: "1983", DisplayName: "Dr. Melissa Otero", ShortName: "Dr. Otero", MatchKey: "OTERO"},
+		},
+		RoutingTiers: map[RoutingRule][]string{
+			RoutingAll:       {"1304"},
+		},
+		PediatricRouting: RoutingAll,
+	},
 	"+13523202007": {
 		ID:               "crystal_river",
 		DisplayName:      "Crystal River",
@@ -324,5 +337,3 @@ func ValidOfficeNames() []string {
 	}
 	return names
 }
-
-

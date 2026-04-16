@@ -10,6 +10,7 @@ func TestLookupOffice(t *testing.T) {
 		wantOK  bool
 	}{
 		{"spring hill", "+17275919997", "spring_hill", true},
+		{"optical eyeworks", "+19542872010", "optical_eyeworks", true},
 		{"crystal river", "+13523202007", "crystal_river", true},
 		{"unknown phone", "+15551234567", "", false},
 		{"empty string", "", "", false},
@@ -160,6 +161,25 @@ func TestOfficeConfig_AppointmentColor(t *testing.T) {
 	}
 }
 
+func TestOpticalEyeworksConfig(t *testing.T) {
+	office, ok := LookupOffice("+19542872010")
+	if !ok {
+		t.Fatal("prod registry should have +19542872010")
+	}
+	if office.FacilityID != "1505" {
+		t.Errorf("Optical Eyeworks FacilityID = %q, want %q", office.FacilityID, "1505")
+	}
+	if office.DefaultProfileID != "1983" {
+		t.Errorf("Optical Eyeworks DefaultProfileID = %q, want %q", office.DefaultProfileID, "1983")
+	}
+	if !office.IsAllowedColumn("1304") {
+		t.Error("Optical Eyeworks should allow column 1304")
+	}
+	if office.PediatricRouting != RoutingAll {
+		t.Errorf("Optical Eyeworks PediatricRouting = %q, want %q", office.PediatricRouting, RoutingAll)
+	}
+}
+
 func TestInitRegistry(t *testing.T) {
 	// Ensure we restore prod after this test
 	defer InitRegistry("prod")
@@ -215,4 +235,3 @@ func TestInitRegistry(t *testing.T) {
 		t.Errorf("default FacilityID = %q, want %q", office.FacilityID, "1568")
 	}
 }
-
