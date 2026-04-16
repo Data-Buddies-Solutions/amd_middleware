@@ -88,7 +88,6 @@ func appointmentsCmd() *cobra.Command {
 				Provider  string `json:"provider,omitempty"`
 				Type      string `json:"type,omitempty"`
 				Facility  string `json:"facility,omitempty"`
-				Confirmed bool   `json:"confirmed"`
 			}
 
 			var details []apptDetail
@@ -123,7 +122,6 @@ func appointmentsCmd() *cobra.Command {
 					Provider:  officeConfig.FriendlyProviderName(a.Provider),
 					Type:      typeName,
 					Facility:  friendlyFacilityName(a.Facility),
-					Confirmed: a.ConfirmDate != nil,
 				})
 			}
 

@@ -324,7 +324,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 	strippedID := domain.StripPatientPrefix(rawPatientID)
 
 	// Look up insurance entry from name
-	insEntry, ok := domain.LookupInsurance(req.Insurance)
+	insEntry, ok := domain.LookupInsuranceForOffice(req.Insurance, office)
 	if !ok {
 		json.NewEncoder(w).Encode(AddPatientResponse{
 			Status:    "partial",
@@ -628,7 +628,6 @@ type PatientApptDetail struct {
 	Provider  string `json:"provider,omitempty"`   // e.g., "Dr. Austin Bach"
 	Type      string `json:"type,omitempty"`       // e.g., "New Adult Medical"
 	Facility  string `json:"facility,omitempty"`   // e.g., "Abita Eye Group Spring Hill"
-	Confirmed bool   `json:"confirmed"`            // Whether the appointment has been confirmed
 }
 
 // HandleGetPatientAppointments retrieves appointments for a verified patient.
@@ -920,7 +919,6 @@ func (h *Handlers) fetchUpcomingAppointments(ctx context.Context, tokenData *dom
 			Provider:  office.FriendlyProviderName(a.Provider),
 			Type:      typeName,
 			Facility:  friendlyFacilityName(a.Facility),
-			Confirmed: a.ConfirmDate != nil,
 		})
 	}
 
@@ -1611,7 +1609,7 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Look up new insurance
-	insEntry, found := domain.LookupInsurance(req.Insurance)
+	insEntry, found := domain.LookupInsuranceForOffice(req.Insurance, office)
 	if !found {
 		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
 			Status:  "error",

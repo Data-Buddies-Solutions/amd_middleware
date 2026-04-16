@@ -817,7 +817,6 @@ func TestPatientApptDetail_IncludesID(t *testing.T) {
 		Provider:  "Dr. Austin Bach",
 		Type:      "New Adult Medical",
 		Facility:  "Abita Eye Group Spring Hill",
-		Confirmed: false,
 	}
 
 	data, err := json.Marshal(detail)

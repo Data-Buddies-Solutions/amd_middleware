@@ -194,13 +194,14 @@ Insurance-based provider routing is enforced server-side. See `INSURANCE_CROSSWA
 - 44 insurance plans mapped to carrier IDs + routing rules in `InsuranceNameMap`
 - 4 routing tiers: `not_accepted`, `bach_only`, `bach_licht`, `all_three`
 - **Existing patients**: `verify-patient` calls `GetDemographic` → gets carrier ID → `RoutingForCarrierID()` returns routing + ambiguity flag
-- **New patients**: `add-patient` receives insurance name from LLM → `LookupInsurance()` returns carrier ID + routing
+- **New patients**: `add-patient` receives insurance name from LLM → `LookupInsuranceForOffice()` chooses the office-specific crosswalk and returns carrier ID + routing
 - **Scheduling**: `get_availability` accepts optional `routing` param → `ColumnsForRouting()` filters columns before any AMD API calls
 - 5 ambiguous carrier IDs (Aetna, FL Blue, Molina, UHC, Cigna HMO) default to `all_three` with `routingAmbiguous: true` flag so the agent can ask a clarifying question
 - **Pediatric override**: Patients under 18 (via `IsMinor()` in `patient.go`) are automatically routed to `bach_only` regardless of insurance routing. Applied server-side in both `verify-patient` and `add-patient` handlers after insurance routing is determined. Does not override `not_accepted` insurance.
+- **Vision offices**: Optical Eyeworks and Beacon Eye use a separate vision insurance map so overlapping names like `Humana`, `Aetna`, `Florida Blue`, and `CarePlus` resolve to vision billing carriers instead of the medical map.
 
 **Key files:**
-- `internal/domain/insurance.go` — `InsuranceNameMap`, `CarrierRoutingMap`, `AmbiguousCarriers`, routing functions
+- `internal/domain/insurance.go` — medical and vision insurance maps, aliases, `CarrierRoutingMap`, and routing functions
 - `internal/domain/patient.go` — `IsMinor()` for age-based pediatric routing override
 - `INSURANCE_CROSSWALK.md` — Source reference with all 44 plans, routing rules, and shared carrier ID documentation
 

@@ -211,24 +211,117 @@ var InsuranceAliases = map[string]string{
 	"care health":         "care health plus",
 }
 
-// LookupInsurance looks up an insurance name and returns its entry.
-// First tries exact match in InsuranceNameMap, then checks InsuranceAliases.
-// Uses NormalizeForLookup for tolerance of punctuation, casing, and spacing.
-func LookupInsurance(name string) (InsuranceEntry, bool) {
+// VisionInsuranceNameMap maps canonical vision billing buckets to AMD carrier IDs.
+// Vision offices normalize patient-reported plan names into these top-level carriers.
+var VisionInsuranceNameMap = map[string]InsuranceEntry{
+	"vsp":                    {CarrierID: "car280695", Routing: RoutingAll},
+	"eyemed":                 {CarrierID: "car280684", Routing: RoutingAll},
+	"nva":                    {CarrierID: "car308794", Routing: RoutingAll},
+	"davis":                  {CarrierID: "car280612", Routing: RoutingAll},
+	"spectera":               {CarrierID: "car308790", Routing: RoutingAll},
+	"solstice":               {CarrierID: "car301652", Routing: RoutingAll},
+	"icare":                  {CarrierID: "car40907", Routing: RoutingAll},
+	"guardian":               {CarrierID: "car308792", Routing: RoutingAll},
+	"alivi":                  {CarrierID: "car308796", Routing: RoutingAll},
+	"premier":                {CarrierID: "car281317", Routing: RoutingAll},
+	"envolve":                {CarrierID: "car281245", Routing: RoutingAll},
+	"sunhealth":              {CarrierID: "car308086", Routing: RoutingAll},
+	"sunhealth discount plan": {CarrierID: "car308086", Routing: RoutingAll},
+}
+
+// VisionInsuranceAliases maps subplans and common names to the canonical
+// top-level vision billing buckets above.
+var VisionInsuranceAliases = map[string]string{
+	// Top-level carrier aliases
+	"eye med":              "eyemed",
+	"eye med vision care":  "eyemed",
+	"eye med vision":       "eyemed",
+	"national vision":      "nva",
+	"national vision administrators": "nva",
+	"davis vision":         "davis",
+	"spectera vision":      "spectera",
+	"solstice vision":      "solstice",
+	"guardian vision":      "guardian",
+	"alivi health":         "alivi",
+	"envolve vision":       "envolve",
+	"sun health":           "sunhealth",
+	"sunhealth vision":     "sunhealth",
+
+	// VSP
+	"metlife":              "vsp",
+	"liberty financial":    "vsp",
+	"lincoln financial":    "vsp",
+
+	// EyeMed
+	"humana":               "eyemed",
+	"aetna":                "eyemed",
+	"unum":                 "eyemed",
+	"cigna":                "eyemed",
+
+	// Davis
+	"superior":             "davis",
+	"florida blue":         "davis",
+	"blueview":             "davis",
+	"versant":              "davis",
+
+	// Spectera
+	"united healthcare":    "spectera",
+	"united health care":   "spectera",
+	"united vision":        "spectera",
+
+	// iCare
+	"humana gold plus":     "icare",
+	"simply medicare":      "icare",
+	"simply medicaid":      "icare",
+	"freedom":              "icare",
+	"optimum":              "icare",
+	"optimum healthcare":   "icare",
+	"aetna better health":  "icare",
+	"avmed":                "icare",
+
+	// Envolve
+	"ambetter":             "envolve",
+	"sunshine":             "envolve",
+
+	// Premier
+	"amerihealth":          "premier",
+	"devoted":              "premier",
+
+	// Alivi
+	"careplus":             "alivi",
+	"care plus":            "alivi",
+}
+
+func lookupInsuranceFromMaps(name string, entries map[string]InsuranceEntry, aliases map[string]string) (InsuranceEntry, bool) {
 	normalized := NormalizeForLookup(name)
 
-	// Exact match
-	if entry, ok := InsuranceNameMap[normalized]; ok {
+	if entry, ok := entries[normalized]; ok {
 		return entry, ok
 	}
 
-	// Alias match
-	if canonical, ok := InsuranceAliases[normalized]; ok {
-		entry, ok := InsuranceNameMap[canonical]
+	if canonical, ok := aliases[normalized]; ok {
+		entry, ok := entries[canonical]
 		return entry, ok
 	}
 
 	return InsuranceEntry{}, false
+}
+
+// LookupInsurance looks up an insurance name and returns its entry.
+// First tries exact match in InsuranceNameMap, then checks InsuranceAliases.
+// Uses NormalizeForLookup for tolerance of punctuation, casing, and spacing.
+func LookupInsurance(name string) (InsuranceEntry, bool) {
+	return lookupInsuranceFromMaps(name, InsuranceNameMap, InsuranceAliases)
+}
+
+// LookupInsuranceForOffice chooses the correct insurance crosswalk for the
+// given office. Vision offices use a separate billing map because many
+// patient-facing plan names overlap with the medical crosswalk.
+func LookupInsuranceForOffice(name string, office *OfficeConfig) (InsuranceEntry, bool) {
+	if office != nil && office.InsuranceMode == InsuranceModeVision {
+		return lookupInsuranceFromMaps(name, VisionInsuranceNameMap, VisionInsuranceAliases)
+	}
+	return LookupInsurance(name)
 }
 
 // RoutingForCarrierID returns the routing rule for a carrier ID from demographics.

@@ -10,7 +10,7 @@ Each ElevenLabs/LiveKit agent serves one office. When a call comes in, the middl
 2. `main.ts` calls `setOffice(trunkPhone)` once at call start
 3. Every tool call automatically includes `"office": "+17275919997"` in the request body
 4. Middleware's `LookupOffice()` resolves the E.164 trunk phone number (with or without the leading `+`) against the active office registry → resolves to `spring_hill`
-5. The resolved `OfficeConfig` determines: facility ID, allowed providers, routing tiers, pediatric routing, appointment colors, and profile ID for new patients
+5. The resolved `OfficeConfig` determines: facility ID, allowed providers, routing tiers, pediatric routing, insurance mode, appointment colors, and profile ID for new patients
 
 ### Where Office Config Lives
 
@@ -43,11 +43,13 @@ You need these from the live AMD system for the new office:
 - **Trunk phone number** — the E.164 number callers dial for that office
 - **Routing decision** — whether the office needs tier-specific provider restrictions, or just `RoutingAll`
 - **Pediatric decision** — whether minors route to a specific tier, `RoutingAll`, or `RoutingNotAccepted`
+- **Insurance mode** — whether the office should use the medical insurance map or the separate vision insurance map
 
 Notes:
 
 - Work hours, intervals, and workweek come live from `getschedulersetup`; they are not stored in the office registry.
 - If an office accepts all schedulable patients for the same provider pool, defining only `RoutingAll` is enough. Other routing values fall back to `RoutingAll`.
+- Vision offices can use a separate insurance crosswalk so overlapping names like `Humana`, `Aetna`, `Florida Blue`, and `CarePlus` resolve to vision billing carriers instead of the medical map.
 
 ### Step 2: Add the office config in `office.go`
 
