@@ -1,6 +1,7 @@
 name: Release
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*"
@@ -8,15 +9,24 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: true
+
+      - name: Download modules
+        run: go mod download
 
       - name: Build API server (linux/amd64)
         env:
@@ -39,6 +49,9 @@ jobs:
           CGO_ENABLED: "0"
         run: go build -trimpath -ldflags="-s -w" -o amd-darwin-arm64 ./cmd/cli
 
+      - name: Generate checksums
+        run: shasum -a 256 gateway-linux-amd64 amd-linux-amd64 amd-darwin-arm64 > checksums.txt
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -47,3 +60,4 @@ jobs:
             gateway-linux-amd64
             amd-linux-amd64
             amd-darwin-arm64
+            checksums.txt
