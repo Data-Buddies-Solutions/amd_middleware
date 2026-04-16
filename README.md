@@ -177,6 +177,7 @@ Looks up a patient by first name, last name, and DOB. Names are automatically st
 Creates a new patient and attaches insurance. Two sequential XMLRPC calls: `addpatient` then `addinsurance`.
 
 Names are automatically stripped of diacritical marks (e.g., "López" → "Lopez") before being sent to AMD.
+Insurance lookup is office-aware: medical offices use the medical insurance crosswalk, while Optical Eyeworks and Beacon Eye use a separate vision billing crosswalk.
 
 **Request (all fields required except aptSuite):**
 ```json
@@ -303,15 +304,14 @@ Retrieves appointments for a verified patient. Queries all allowed provider colu
       "time": "12:00 PM",
       "provider": "Dr. Austin Bach",
       "type": "New Adult Medical",
-      "facility": "Abita Eye Group Spring Hill",
-      "confirmed": false
+      "facility": "Abita Eye Group Spring Hill"
     }
   ],
   "message": "Found 1 upcoming appointment(s)"
 }
 ```
 
-Appointment type IDs are mapped to friendly names (1006 → "New Adult Medical", etc.). Provider names are mapped to display names. Facility names are title-cased. Past appointments are filtered out. The `confirmed` field reflects whether AMD has a `confirmdate` set.
+Appointment type IDs are mapped to friendly names (1006 → "New Adult Medical", etc.). Provider names are mapped to display names. Facility names are title-cased. Past appointments are filtered out.
 
 ### POST /api/appointment/book
 
@@ -407,7 +407,9 @@ Hour 20: Background refresh → 2-step AMD login → Update Redis + memory
 
 ### Insurance Routing
 
-71 insurance plans consolidated to 22 carrier IDs across 4 routing tiers. 8 major networks (iCare, UHC, Envolve, Humana, FL Blue, Cigna, Aetna, Tricare) cover 56 plans; 14 standalone carriers cover the rest. `LookupInsurance()` includes an alias map for common shorthand (e.g., "Oscar" → "Oscar Health", "Humana" → "Humana PPO"). See `INSURANCE_CROSSWALK.md`.
+Medical offices use the existing medical crosswalk: 71 insurance plans consolidated to 22 carrier IDs across 4 routing tiers. `LookupInsurance()` includes an alias map for common shorthand (e.g., "Oscar" → "Oscar Health", "Humana" → "Humana PPO"). See `INSURANCE_CROSSWALK.md`.
+
+Optical Eyeworks and Beacon Eye use a separate vision billing crosswalk through `LookupInsuranceForOffice()`. That allows overlapping names like `Humana`, `Aetna`, `Florida Blue`, `United Healthcare`, and `CarePlus` to map to the correct top-level vision billing carriers instead of the medical map.
 
 | Routing | Providers |
 |---------|-----------|

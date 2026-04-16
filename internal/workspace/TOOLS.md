@@ -295,7 +295,6 @@ For callers who want to confirm an existing appointment. This is a two-step flow
   - `provider` — e.g., "Dr. Austin Bach"
   - `type` — e.g., "New Adult Medical"
   - `facility` — e.g., "Abita Eye Group Spring Hill"
-  - `confirmed` — whether it's already been confirmed
 
 **If no appointments are found:** "I'm not seeing any appointments on file for you. Would you like to schedule one, or would you like me to connect you with someone here?"
 

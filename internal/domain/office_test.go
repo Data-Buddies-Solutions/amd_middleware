@@ -10,6 +10,8 @@ func TestLookupOffice(t *testing.T) {
 		wantOK  bool
 	}{
 		{"spring hill", "+17275919997", "spring_hill", true},
+		{"optical eyeworks", "+19542872010", "optical_eyeworks", true},
+		{"beacon eye", "+17864657509", "beacon_eye", true},
 		{"crystal river", "+13523202007", "crystal_river", true},
 		{"unknown phone", "+15551234567", "", false},
 		{"empty string", "", "", false},
@@ -103,12 +105,7 @@ func TestOfficeConfig_ProviderDisplayName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.profileID, func(t *testing.T) {
 			got := office.ProviderDisplayName(tt.profileID)
-			if tt.profileID == "620" {
-				// Profile 620 maps to both Bach and Bach Overflow columns; accept either.
-				if got != "Dr. Austin Bach" && got != "Dr. Austin Bach (Overflow)" {
-					t.Errorf("ProviderDisplayName(%q) = %q, want Dr. Austin Bach or Dr. Austin Bach (Overflow)", tt.profileID, got)
-				}
-			} else if got != tt.want {
+			if got != tt.want {
 				t.Errorf("ProviderDisplayName(%q) = %q, want %q", tt.profileID, got, tt.want)
 			}
 		})
@@ -120,27 +117,20 @@ func TestOfficeConfig_FriendlyProviderName(t *testing.T) {
 
 	tests := []struct {
 		input string
-		want  []string
+		want  string
 	}{
-		{"BACH, AUSTIN", []string{"Dr. Austin Bach", "Dr. Austin Bach (Overflow)"}},
-		{"LICHT, JONATHAN", []string{"Dr. J. Licht"}},
-		{"NOEL, DON HERSHELSON", []string{"Dr. D. Noel"}},
-		{"UNKNOWN", []string{"UNKNOWN"}},
-		{"", []string{""}},
+		{"BACH, AUSTIN", "Dr. Austin Bach"},
+		{"LICHT, JONATHAN", "Dr. J. Licht"},
+		{"NOEL, DON HERSHELSON", "Dr. D. Noel"},
+		{"UNKNOWN", "UNKNOWN"},
+		{"", ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
 			got := office.FriendlyProviderName(tt.input)
-			valid := false
-			for _, w := range tt.want {
-				if got == w {
-					valid = true
-					break
-				}
-			}
-			if !valid {
-				t.Errorf("FriendlyProviderName(%q) = %q, want one of %v", tt.input, got, tt.want)
+			if got != tt.want {
+				t.Errorf("FriendlyProviderName(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
@@ -157,6 +147,47 @@ func TestOfficeConfig_AppointmentColor(t *testing.T) {
 	_, ok = office.AppointmentColor(9999)
 	if ok {
 		t.Error("AppointmentColor(9999) should return false")
+	}
+}
+
+func TestOpticalEyeworksConfig(t *testing.T) {
+	office, ok := LookupOffice("+19542872010")
+	if !ok {
+		t.Fatal("prod registry should have +19542872010")
+	}
+	if office.FacilityID != "1505" {
+		t.Errorf("Optical Eyeworks FacilityID = %q, want %q", office.FacilityID, "1505")
+	}
+	if office.DefaultProfileID != "1983" {
+		t.Errorf("Optical Eyeworks DefaultProfileID = %q, want %q", office.DefaultProfileID, "1983")
+	}
+	if !office.IsAllowedColumn("1304") {
+		t.Error("Optical Eyeworks should allow column 1304")
+	}
+	if office.PediatricRouting != RoutingAll {
+		t.Errorf("Optical Eyeworks PediatricRouting = %q, want %q", office.PediatricRouting, RoutingAll)
+	}
+}
+
+func TestBeaconEyeConfig(t *testing.T) {
+	office, ok := LookupOffice("+17864657509")
+	if !ok {
+		t.Fatal("prod registry should have +17864657509")
+	}
+	if office.FacilityID != "1487" {
+		t.Errorf("Beacon Eye FacilityID = %q, want %q", office.FacilityID, "1487")
+	}
+	if office.DefaultProfileID != "1996" {
+		t.Errorf("Beacon Eye DefaultProfileID = %q, want %q", office.DefaultProfileID, "1996")
+	}
+	if !office.IsAllowedColumn("1287") {
+		t.Error("Beacon Eye should allow column 1287")
+	}
+	if !office.IsAllowedColumn("1309") {
+		t.Error("Beacon Eye should allow column 1309")
+	}
+	if office.PediatricRouting != RoutingAll {
+		t.Errorf("Beacon Eye PediatricRouting = %q, want %q", office.PediatricRouting, RoutingAll)
 	}
 }
 
@@ -215,4 +246,3 @@ func TestInitRegistry(t *testing.T) {
 		t.Errorf("default FacilityID = %q, want %q", office.FacilityID, "1568")
 	}
 }
-

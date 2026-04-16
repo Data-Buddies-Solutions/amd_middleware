@@ -141,6 +141,65 @@ func TestLookupInsurance(t *testing.T) {
 	}
 }
 
+func TestLookupInsuranceForOffice_Vision(t *testing.T) {
+	office, ok := LookupOffice("+19542872010")
+	if !ok {
+		t.Fatal("expected Optical Eyeworks office to exist")
+	}
+
+	tests := []struct {
+		name        string
+		input       string
+		wantID      string
+		wantRouting RoutingRule
+		wantFound   bool
+	}{
+		{"top level exact", "VSP", "car280695", RoutingAll, true},
+		{"eyemed alias", "Humana", "car280684", RoutingAll, true},
+		{"davis alias", "Florida Blue", "car280612", RoutingAll, true},
+		{"spectera alias", "United Healthcare", "car308790", RoutingAll, true},
+		{"icare alias", "Aetna Better Health", "car40907", RoutingAll, true},
+		{"alivi alias", "CarePlus", "car308796", RoutingAll, true},
+		{"medical not accepted becomes vision bucket", "Optimum", "car40907", RoutingAll, true},
+		{"unknown carrier", "unknown", "", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			entry, gotFound := LookupInsuranceForOffice(tt.input, office)
+			if gotFound != tt.wantFound {
+				t.Errorf("LookupInsuranceForOffice(%q) found = %v, want %v", tt.input, gotFound, tt.wantFound)
+			}
+			if gotFound {
+				if entry.CarrierID != tt.wantID {
+					t.Errorf("LookupInsuranceForOffice(%q) carrierID = %q, want %q", tt.input, entry.CarrierID, tt.wantID)
+				}
+				if entry.Routing != tt.wantRouting {
+					t.Errorf("LookupInsuranceForOffice(%q) routing = %q, want %q", tt.input, entry.Routing, tt.wantRouting)
+				}
+			}
+		})
+	}
+}
+
+func TestLookupInsuranceForOffice_Medical(t *testing.T) {
+	office, ok := LookupOffice("+17275919997")
+	if !ok {
+		t.Fatal("expected Spring Hill office to exist")
+	}
+
+	entry, found := LookupInsuranceForOffice("Humana", office)
+	if !found {
+		t.Fatal("expected Humana to resolve for medical office")
+	}
+	if entry.CarrierID != "car308175" {
+		t.Fatalf("LookupInsuranceForOffice(Humana) carrierID = %q, want %q", entry.CarrierID, "car308175")
+	}
+	if entry.Routing != RoutingBachOnly {
+		t.Fatalf("LookupInsuranceForOffice(Humana) routing = %q, want %q", entry.Routing, RoutingBachOnly)
+	}
+}
+
 func TestFormatPhone(t *testing.T) {
 	tests := []struct {
 		name     string

@@ -2,11 +2,21 @@ package domain
 
 import (
 	"log"
+	"sort"
 	"strings"
+)
+
+// InsuranceMode selects which insurance crosswalk to use for an office.
+type InsuranceMode string
+
+const (
+	InsuranceModeMedical InsuranceMode = "medical"
+	InsuranceModeVision  InsuranceMode = "vision"
 )
 
 // OfficeConfig defines the configuration for a single office location.
 type OfficeConfig struct {
+	InsuranceMode    InsuranceMode            // "medical" or "vision"
 	ID               string                   // "spring_hill"
 	DisplayName      string                   // "Spring Hill"
 	FacilityID       string                   // "1568"
@@ -89,7 +99,8 @@ func (o *OfficeConfig) ValidProviderNames() []string {
 
 // ProviderDisplayName returns the display name for a profile ID.
 func (o *OfficeConfig) ProviderDisplayName(profileID string) string {
-	for _, col := range o.Columns {
+	for _, id := range o.sortedColumnIDs() {
+		col := o.Columns[id]
 		if col.ProfileID == profileID {
 			return col.DisplayName
 		}
@@ -100,12 +111,22 @@ func (o *OfficeConfig) ProviderDisplayName(profileID string) string {
 // FriendlyProviderName maps an AMD provider name to a friendly display name.
 func (o *OfficeConfig) FriendlyProviderName(amdName string) string {
 	upper := strings.ToUpper(amdName)
-	for _, col := range o.Columns {
+	for _, id := range o.sortedColumnIDs() {
+		col := o.Columns[id]
 		if col.MatchKey != "" && strings.Contains(upper, col.MatchKey) {
 			return col.DisplayName
 		}
 	}
 	return amdName
+}
+
+func (o *OfficeConfig) sortedColumnIDs() []string {
+	ids := make([]string, 0, len(o.Columns))
+	for id := range o.Columns {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	return ids
 }
 
 // AppointmentColor returns the booking color for an appointment type ID.
@@ -167,6 +188,7 @@ func ResolveAppointmentTypeID(typeID int) (int, bool) {
 // prodOffices contains office configs keyed by SIP trunk phone number (E.164).
 var prodOffices = map[string]*OfficeConfig{
 	"+17275919997": {
+		InsuranceMode:    InsuranceModeMedical,
 		ID:               "spring_hill",
 		DisplayName:      "Spring Hill",
 		FacilityID:       "1568",
@@ -184,7 +206,37 @@ var prodOffices = map[string]*OfficeConfig{
 		},
 		PediatricRouting: RoutingBachOnly,
 	},
+	"+19542872010": {
+		InsuranceMode:    InsuranceModeVision,
+		ID:               "optical_eyeworks",
+		DisplayName:      "Optical Eyeworks",
+		FacilityID:       "1505",
+		DefaultProfileID: "1983",
+		Columns: map[string]OfficeColumn{
+			"1304": {ProfileID: "1983", DisplayName: "Dr. Melissa Otero", ShortName: "Dr. Otero", MatchKey: "OTERO"},
+		},
+		RoutingTiers: map[RoutingRule][]string{
+			RoutingAll:       {"1304"},
+		},
+		PediatricRouting: RoutingAll,
+	},
+	"+17864657509": {
+		InsuranceMode:    InsuranceModeVision,
+		ID:               "beacon_eye",
+		DisplayName:      "Beacon Eye",
+		FacilityID:       "1487",
+		DefaultProfileID: "1996",
+		Columns: map[string]OfficeColumn{
+			"1287": {ProfileID: "1996", DisplayName: "Dr. Maria Casas", ShortName: "Dr. Casas", MatchKey: "CASAS"},
+			"1309": {ProfileID: "1996", DisplayName: "Dr. Maria Casas (Overflow)", ShortName: "Dr. Casas", MatchKey: "CASAS"},
+		},
+		RoutingTiers: map[RoutingRule][]string{
+			RoutingAll: {"1287", "1309"},
+		},
+		PediatricRouting: RoutingAll,
+	},
 	"+13523202007": {
+		InsuranceMode:    InsuranceModeMedical,
 		ID:               "crystal_river",
 		DisplayName:      "Crystal River",
 		FacilityID:       "1576",
@@ -201,6 +253,7 @@ var prodOffices = map[string]*OfficeConfig{
 	},
 	// TODO: clean up — placeholder number for Crystal River, duplicates config above
 	"+16182265883": {
+		InsuranceMode:    InsuranceModeMedical,
 		ID:               "crystal_river",
 		DisplayName:      "Crystal River",
 		FacilityID:       "1576",
@@ -220,6 +273,7 @@ var prodOffices = map[string]*OfficeConfig{
 // devOffices contains office configs keyed by SIP trunk phone number (E.164).
 var devOffices = map[string]*OfficeConfig{
 	"+14843989071": {
+		InsuranceMode:    InsuranceModeMedical,
 		ID:               "spring_hill",
 		DisplayName:      "Spring Hill",
 		FacilityID:       "1032",
@@ -238,6 +292,7 @@ var devOffices = map[string]*OfficeConfig{
 	},
 	// TODO: clean up — placeholder number for Crystal River, uses prod IDs
 	"+16182265883": {
+		InsuranceMode:    InsuranceModeMedical,
 		ID:               "crystal_river",
 		DisplayName:      "Crystal River",
 		FacilityID:       "1576",
@@ -324,5 +379,3 @@ func ValidOfficeNames() []string {
 	}
 	return names
 }
-
-
