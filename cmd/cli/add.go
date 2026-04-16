@@ -94,7 +94,7 @@ func addPatientCmd() *cobra.Command {
 
 			strippedID := domain.StripPatientPrefix(rawPatientID)
 
-			insEntry, ok := domain.LookupInsurance(insurance)
+			insEntry, ok := domain.LookupInsuranceForOffice(insurance, officeConfig)
 			if !ok {
 				printJSON(map[string]interface{}{
 					"status":    "partial",
