@@ -87,6 +87,43 @@ func TestHandleVerifyPatient_ValidationErrors(t *testing.T) {
 	}
 }
 
+func TestAddPatientMissingFields_EmailOptional(t *testing.T) {
+	baseReq := AddPatientRequest{
+		FirstName:      "Jane",
+		LastName:       "Doe",
+		DOB:            "2000-03-01",
+		Phone:          "555-123-4567",
+		Street:         "123 Main St",
+		City:           "Miami",
+		State:          "FL",
+		Zip:            "33101",
+		Sex:            "F",
+		Insurance:      "Aetna",
+		SubscriberName: "Jane Doe",
+		SubscriberNum:  "A12345",
+	}
+
+	tests := []struct {
+		name  string
+		email string
+	}{
+		{name: "omitted", email: ""},
+		{name: "blank", email: "   "},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := baseReq
+			req.Email = tt.email
+
+			missing := addPatientMissingFields(req)
+			if len(missing) != 0 {
+				t.Fatalf("Expected no missing fields when email is %s, got %v", tt.name, missing)
+			}
+		})
+	}
+}
+
 func TestAuthMiddleware(t *testing.T) {
 	apiSecret := "test-secret-123"
 	middleware := AuthMiddleware(apiSecret)

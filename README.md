@@ -178,7 +178,7 @@ Creates a new patient and attaches insurance. Two sequential XMLRPC calls: `addp
 
 Names are automatically stripped of diacritical marks (e.g., "López" → "Lopez") before being sent to AMD.
 
-**Request (all fields required except aptSuite):**
+**Request (all fields required except aptSuite and email):**
 ```json
 {
   "firstName": "John",
