@@ -224,47 +224,8 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 	log.Printf("add-patient: received request: firstName=%q lastName=%q dob=%q phone=%q email=%q street=%q aptSuite=%q city=%q state=%q zip=%q sex=%q insurance=%q subscriberName=%q subscriberNum=%q office=%q",
 		req.FirstName, req.LastName, req.DOB, req.Phone, req.Email, req.Street, req.AptSuite, req.City, req.State, req.Zip, req.Sex, req.Insurance, req.SubscriberName, req.SubscriberNum, office.ID)
 
-	// Validate required fields (aptSuite is optional)
-	missing := []string{}
-	if req.FirstName == "" {
-		missing = append(missing, "firstName")
-	}
-	if req.LastName == "" {
-		missing = append(missing, "lastName")
-	}
-	if req.DOB == "" {
-		missing = append(missing, "dob")
-	}
-	if req.Phone == "" {
-		missing = append(missing, "phone")
-	}
-	if req.Email == "" {
-		missing = append(missing, "email")
-	}
-	if req.Street == "" {
-		missing = append(missing, "street")
-	}
-	if req.City == "" {
-		missing = append(missing, "city")
-	}
-	if req.State == "" {
-		missing = append(missing, "state")
-	}
-	if req.Zip == "" {
-		missing = append(missing, "zip")
-	}
-	if req.Sex == "" {
-		missing = append(missing, "sex")
-	}
-	if req.Insurance == "" {
-		missing = append(missing, "insurance")
-	}
-	if req.SubscriberName == "" {
-		missing = append(missing, "subscriberName")
-	}
-	if req.SubscriberNum == "" {
-		missing = append(missing, "subscriberNum")
-	}
+	// Validate required fields (aptSuite and email are optional)
+	missing := addPatientMissingFields(req)
 	if len(missing) > 0 {
 		json.NewEncoder(w).Encode(AddPatientResponse{
 			Status:  "error",
@@ -279,6 +240,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 	normalizedSex := domain.NormalizeSex(req.Sex)
 	normalizedFirstName := domain.StripDiacritics(req.FirstName)
 	normalizedLastName := domain.StripDiacritics(req.LastName)
+	normalizedEmail := strings.TrimSpace(req.Email)
 
 	// Get auth token
 	tokenData, err := h.tokenManager.GetToken(r.Context())
@@ -296,7 +258,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		LastName:  normalizedLastName,
 		DOB:       normalizedDOB,
 		Phone:     formattedPhone,
-		Email:     req.Email,
+		Email:     normalizedEmail,
 		Street:    req.Street,
 		AptSuite:  req.AptSuite,
 		City:      req.City,
@@ -376,6 +338,47 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		PreauthRequired:  insEntry.PreauthRequired,
 		Message:          "Patient created and insurance attached successfully",
 	})
+}
+
+func addPatientMissingFields(req AddPatientRequest) []string {
+	missing := []string{}
+	if req.FirstName == "" {
+		missing = append(missing, "firstName")
+	}
+	if req.LastName == "" {
+		missing = append(missing, "lastName")
+	}
+	if req.DOB == "" {
+		missing = append(missing, "dob")
+	}
+	if req.Phone == "" {
+		missing = append(missing, "phone")
+	}
+	if req.Street == "" {
+		missing = append(missing, "street")
+	}
+	if req.City == "" {
+		missing = append(missing, "city")
+	}
+	if req.State == "" {
+		missing = append(missing, "state")
+	}
+	if req.Zip == "" {
+		missing = append(missing, "zip")
+	}
+	if req.Sex == "" {
+		missing = append(missing, "sex")
+	}
+	if req.Insurance == "" {
+		missing = append(missing, "insurance")
+	}
+	if req.SubscriberName == "" {
+		missing = append(missing, "subscriberName")
+	}
+	if req.SubscriberNum == "" {
+		missing = append(missing, "subscriberNum")
+	}
+	return missing
 }
 
 // HandleVerifyPatient looks up a patient by name and DOB.

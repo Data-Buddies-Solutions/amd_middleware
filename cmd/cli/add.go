@@ -31,7 +31,7 @@ func addPatientCmd() *cobra.Command {
 			missing := []string{}
 			for _, pair := range []struct{ name, val string }{
 				{"--first", firstName}, {"--last", lastName}, {"--dob", dob},
-				{"--phone", phone}, {"--email", email}, {"--street", street},
+				{"--phone", phone}, {"--street", street},
 				{"--city", city}, {"--state", state}, {"--zip", zip},
 				{"--sex", sex}, {"--insurance", insurance},
 				{"--subscriber-name", subscriberName}, {"--subscriber-num", subscriberNum},
@@ -151,7 +151,7 @@ func addPatientCmd() *cobra.Command {
 	cmd.Flags().StringVar(&lastName, "last", "", "Last name (required)")
 	cmd.Flags().StringVar(&dob, "dob", "", "Date of birth (required)")
 	cmd.Flags().StringVar(&phone, "phone", "", "Phone number (required)")
-	cmd.Flags().StringVar(&email, "email", "", "Email address (required)")
+	cmd.Flags().StringVar(&email, "email", "", "Email address (optional)")
 	cmd.Flags().StringVar(&street, "street", "", "Street address (required)")
 	cmd.Flags().StringVar(&aptSuite, "apt", "", "Apartment/suite (optional)")
 	cmd.Flags().StringVar(&city, "city", "", "City (required)")
