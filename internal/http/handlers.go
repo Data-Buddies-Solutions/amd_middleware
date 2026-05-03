@@ -1003,6 +1003,7 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 // BookAppointmentRequest is the expected JSON body for booking an appointment.
 type BookAppointmentRequest struct {
 	PatientID         string `json:"patientId"`
+	PatientName       string `json:"patientName,omitempty"`
 	ColumnID          int    `json:"columnId"`
 	ProfileID         int    `json:"profileId"`
 	StartDatetime     string `json:"startDatetime"`
@@ -1013,9 +1014,61 @@ type BookAppointmentRequest struct {
 
 // BookAppointmentResponse is returned after booking an appointment.
 type BookAppointmentResponse struct {
-	Status        string `json:"status"`
-	AppointmentID int    `json:"appointmentId,omitempty"`
-	Message       string `json:"message"`
+	Status              string `json:"status"`
+	AppointmentID       int    `json:"appointmentId,omitempty"`
+	PatientID           string `json:"patientId,omitempty"`
+	PatientName         string `json:"patientName,omitempty"`
+	ProviderName        string `json:"providerName,omitempty"`
+	LocationName        string `json:"locationName,omitempty"`
+	StartDatetime       string `json:"startDatetime,omitempty"`
+	Duration            int    `json:"duration,omitempty"`
+	AppointmentTypeID   int    `json:"appointmentTypeId,omitempty"`
+	AppointmentTypeName string `json:"appointmentTypeName,omitempty"`
+	Message             string `json:"message"`
+}
+
+func buildBookAppointmentReceipt(req BookAppointmentRequest, office *domain.OfficeConfig, appointmentID int) BookAppointmentResponse {
+	colIDStr := strconv.Itoa(req.ColumnID)
+	providerName := ""
+	if col, ok := office.Columns[colIDStr]; ok {
+		providerName = col.DisplayName
+	}
+	if providerName == "" {
+		providerName = office.ProviderDisplayName(strconv.Itoa(req.ProfileID))
+	}
+	appointmentTypeName, _ := office.AppointmentTypeName(req.AppointmentTypeID)
+
+	return BookAppointmentResponse{
+		Status:              "booked",
+		AppointmentID:       appointmentID,
+		PatientID:           req.PatientID,
+		PatientName:         normalizeBookingPatientName(req.PatientName),
+		ProviderName:        providerName,
+		LocationName:        office.DisplayName,
+		StartDatetime:       req.StartDatetime,
+		Duration:            req.Duration,
+		AppointmentTypeID:   req.AppointmentTypeID,
+		AppointmentTypeName: appointmentTypeName,
+		Message:             "Appointment booked successfully",
+	}
+}
+
+func normalizeBookingPatientName(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return ""
+	}
+
+	if parts := strings.SplitN(name, ",", 2); len(parts) == 2 {
+		first := strings.TrimSpace(parts[1])
+		last := strings.TrimSpace(parts[0])
+		name = strings.TrimSpace(strings.Join([]string{first, last}, " "))
+	}
+
+	if name == strings.ToUpper(name) || name == strings.ToLower(name) {
+		return cases.Title(language.English).String(strings.ToLower(name))
+	}
+	return name
 }
 
 // HandleBookAppointment books an appointment in AdvancedMD.
@@ -1158,11 +1211,7 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 
 	log.Printf("book-appointment: success appointmentId=%d", apptID)
 
-	json.NewEncoder(w).Encode(BookAppointmentResponse{
-		Status:        "booked",
-		AppointmentID: apptID,
-		Message:       "Appointment booked successfully",
-	})
+	json.NewEncoder(w).Encode(buildBookAppointmentReceipt(req, office, apptID))
 }
 
 // AvailabilityRequest is the expected JSON body for availability lookup.

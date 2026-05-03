@@ -32,6 +32,60 @@ func TestHandleHealth(t *testing.T) {
 	}
 }
 
+func TestBuildBookAppointmentReceipt(t *testing.T) {
+	office := &domain.OfficeConfig{
+		DisplayName: "Spring Hill",
+		Columns: map[string]domain.OfficeColumn{
+			"1513": {
+				ProfileID:   "620",
+				DisplayName: "Dr. Austin Bach",
+			},
+		},
+	}
+	req := BookAppointmentRequest{
+		PatientID:         "12345",
+		PatientName:       "SMITH,JANE",
+		ColumnID:          1513,
+		ProfileID:         620,
+		StartDatetime:     "2026-05-12T11:00",
+		Duration:          30,
+		AppointmentTypeID: 1007,
+	}
+
+	receipt := buildBookAppointmentReceipt(req, office, 98765)
+
+	if receipt.Status != "booked" {
+		t.Fatalf("expected status booked, got %q", receipt.Status)
+	}
+	if receipt.AppointmentID != 98765 {
+		t.Errorf("expected appointment ID 98765, got %d", receipt.AppointmentID)
+	}
+	if receipt.PatientID != "12345" {
+		t.Errorf("expected patient ID 12345, got %q", receipt.PatientID)
+	}
+	if receipt.PatientName != "Jane Smith" {
+		t.Errorf("expected patient name Jane Smith, got %q", receipt.PatientName)
+	}
+	if receipt.ProviderName != "Dr. Austin Bach" {
+		t.Errorf("expected provider name Dr. Austin Bach, got %q", receipt.ProviderName)
+	}
+	if receipt.LocationName != "Spring Hill" {
+		t.Errorf("expected location Spring Hill, got %q", receipt.LocationName)
+	}
+	if receipt.StartDatetime != "2026-05-12T11:00" {
+		t.Errorf("expected start datetime to be echoed, got %q", receipt.StartDatetime)
+	}
+	if receipt.Duration != 30 {
+		t.Errorf("expected duration 30, got %d", receipt.Duration)
+	}
+	if receipt.AppointmentTypeID != 1007 {
+		t.Errorf("expected appointment type ID 1007, got %d", receipt.AppointmentTypeID)
+	}
+	if receipt.AppointmentTypeName != "Established Adult Medical (Follow Up)" {
+		t.Errorf("expected appointment type name Established Adult Medical (Follow Up), got %q", receipt.AppointmentTypeName)
+	}
+}
+
 func TestHandleVerifyPatient_ValidationErrors(t *testing.T) {
 	handlers := &Handlers{}
 
