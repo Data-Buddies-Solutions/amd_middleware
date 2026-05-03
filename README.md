@@ -359,6 +359,7 @@ Possible statuses:
 Request fields:
 
 - `patientId`
+- `patientName`
 - `columnId`
 - `profileId`
 - `startDatetime`
@@ -377,6 +378,10 @@ Possible statuses:
 
 - `booked`
 - `error`
+
+Successful bookings return a canonical booking receipt with `appointmentId`,
+`patientId`, `patientName`, `providerName`, `locationName`, `startDatetime`,
+`duration`, `appointmentTypeId`, and `appointmentTypeName`.
 
 ### Cancellation
 
