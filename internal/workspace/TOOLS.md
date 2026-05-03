@@ -263,7 +263,9 @@ The finish line. Only call this after the caller confirms the details.
 
 **What comes back:**
 
-- `booking_confirmed` — from `id` in response. If this comes back, the appointment is booked.
+- `status` — `booked` or `error`
+- `appointmentId` — the AMD appointment ID. If this comes back with `status: "booked"`, the appointment is booked.
+- `patientName`, `providerName`, `locationName`, `startDatetime`, `duration`, and `appointmentTypeName` — booking receipt details for confirmation and reporting.
 
 **If the booking fails:** Try once more. If it still fails, tell the caller: "I'm having a little trouble getting that booked on my end. Want me to try a different time, or I can get someone to help?" Never just say "please try again" and leave it at that.
 

@@ -321,6 +321,7 @@ Books an appointment in AdvancedMD. Handles appointment type → color mapping, 
 ```json
 {
   "patientId": "17604634",
+  "patientName": "Jane Smith",
   "columnId": 1513,
   "profileId": 620,
   "startDatetime": "2026-03-20T09:00",
@@ -329,7 +330,7 @@ Books an appointment in AdvancedMD. Handles appointment type → color mapping, 
 }
 ```
 
-All fields are required. `columnId`, `profileId`, `startDatetime`, and `duration` come directly from the `get_availability` response. `appointmentTypeId` is determined by the LLM based on patient age and visit type:
+All fields except `patientName` are required. `patientName` is supplied by the verified agent session when available. `columnId`, `profileId`, `startDatetime`, and `duration` come directly from the `get_availability` response. `appointmentTypeId` is determined by the LLM based on patient age and visit type:
 
 | Type ID | Name | When |
 |---------|------|------|
@@ -351,6 +352,14 @@ All fields are required. `columnId`, `profileId`, `startDatetime`, and `duration
 {
   "status": "booked",
   "appointmentId": 9570300,
+  "patientId": "17604634",
+  "patientName": "Jane Smith",
+  "providerName": "Dr. Austin Bach",
+  "locationName": "Spring Hill",
+  "startDatetime": "2026-03-20T09:00",
+  "duration": 30,
+  "appointmentTypeId": 1006,
+  "appointmentTypeName": "New Adult Medical",
   "message": "Appointment booked successfully"
 }
 ```
