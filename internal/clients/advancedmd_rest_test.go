@@ -140,6 +140,71 @@ func TestGetBlockHoldsForColumns_Concurrent(t *testing.T) {
 	}
 }
 
+func TestGetBlockHolds_RecurringUsesOccurrenceDuration(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{
+			"id": 655774,
+			"startdatetime": "2026-05-05T12:15:00",
+			"enddatetime": "2027-12-31T13:15:00",
+			"duration": 60,
+			"columnid": null,
+			"reason": "LUNCH",
+			"recurrence": {
+				"recurrencetype": 1,
+				"interval": 0,
+				"daysofweek": null
+			}
+		}`))
+	})
+
+	client, tokenData, cleanup := newTestRestClient(t, handler)
+	defer cleanup()
+
+	holds, err := client.GetBlockHolds(context.Background(), tokenData, "1600", "2026-05-05")
+	if err != nil {
+		t.Fatalf("GetBlockHolds failed: %v", err)
+	}
+	if len(holds) != 1 {
+		t.Fatalf("Expected 1 hold, got %d", len(holds))
+	}
+
+	wantEnd := time.Date(2026, 5, 5, 13, 15, 0, 0, time.UTC)
+	if !holds[0].EndDateTime.Equal(wantEnd) {
+		t.Fatalf("Expected recurring hold end %s, got %s", wantEnd, holds[0].EndDateTime)
+	}
+}
+
+func TestGetBlockHolds_NonRecurringUsesEndDateTime(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{
+			"id": 655775,
+			"startdatetime": "2026-05-05T08:00:00",
+			"enddatetime": "2026-05-08T17:00:00",
+			"duration": 540,
+			"columnid": 1600,
+			"reason": "OUT OF THE OFFICE"
+		}`))
+	})
+
+	client, tokenData, cleanup := newTestRestClient(t, handler)
+	defer cleanup()
+
+	holds, err := client.GetBlockHolds(context.Background(), tokenData, "1600", "2026-05-05")
+	if err != nil {
+		t.Fatalf("GetBlockHolds failed: %v", err)
+	}
+	if len(holds) != 1 {
+		t.Fatalf("Expected 1 hold, got %d", len(holds))
+	}
+
+	wantEnd := time.Date(2026, 5, 8, 17, 0, 0, 0, time.UTC)
+	if !holds[0].EndDateTime.Equal(wantEnd) {
+		t.Fatalf("Expected non-recurring hold end %s, got %s", wantEnd, holds[0].EndDateTime)
+	}
+}
+
 func TestGetAppointmentsForColumns_PartialFailure(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		colID := r.URL.Query().Get("columnId")
