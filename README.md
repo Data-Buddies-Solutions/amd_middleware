@@ -178,7 +178,7 @@ Creates a new patient and attaches insurance. Two sequential XMLRPC calls: `addp
 
 Names are automatically stripped of diacritical marks (e.g., "López" → "Lopez") before being sent to AMD.
 
-**Request (all fields required except aptSuite and email):**
+**Request (all fields required except aptSuite, email, and coverageType):**
 ```json
 {
   "firstName": "John",
@@ -193,10 +193,13 @@ Names are automatically stripped of diacritical marks (e.g., "López" → "Lopez
   "zip": "34609",
   "sex": "male",
   "insurance": "Humana Medicare",
+  "coverageType": "medical",
   "subscriberName": "John Smith",
   "subscriberNum": "H12345678"
 }
 ```
+
+`coverageType` is optional. Omit it or send `"medical"` for normal ophthalmology coverage. Send `"routine_vision"` only for Spring Hill routine-vision registration when the agent has already confirmed an accepted vision plan; this uses the separate vision carrier map and returns `routing: "optical_only"`.
 
 **Responses:**
 
@@ -223,7 +226,7 @@ Returns available appointment slots. Fetches appointments and block holds concur
 }
 ```
 
-Only `date` is required. `routing` comes from verify/add-patient response. When `preauthRequired` is `true`, the server enforces a 14-day minimum lead time — if the requested date is less than 14 days out, it auto-advances to the earliest allowed date.
+Only `date` is required. `routing` comes from verify/add-patient response for medical visits. Empty routing defaults to medical `all_three`; Spring Hill routine-vision availability must pass `routing: "optical_only"` to return the optometry column. When `preauthRequired` is `true`, the server enforces a 14-day minimum lead time — if the requested date is less than 14 days out, it auto-advances to the earliest allowed date.
 
 **Response:**
 ```json
@@ -326,11 +329,12 @@ Books an appointment in AdvancedMD. Handles appointment type → color mapping, 
   "profileId": 620,
   "startDatetime": "2026-03-20T09:00",
   "duration": 30,
-  "appointmentTypeId": 1006
+  "appointmentTypeId": 1006,
+  "routing": "all_three"
 }
 ```
 
-All fields except `patientName` are required. `patientName` is supplied by the verified agent session when available. `columnId`, `profileId`, `startDatetime`, and `duration` come directly from the `get_availability` response. `appointmentTypeId` is determined by the LLM based on patient age and visit type:
+All fields except `patientName` and `routing` are required. `patientName` is supplied by the verified agent session when available. `columnId`, `profileId`, `startDatetime`, and `duration` come directly from the `get_availability` response. `routing` should match the availability request; routine-vision bookings require `optical_only`. `appointmentTypeId` is determined by the LLM based on patient age and visit type:
 
 | Type ID | Name | When |
 |---------|------|------|
@@ -339,6 +343,13 @@ All fields except `patientName` are required. `patientName` is supplied by the v
 | 1007 | Established Adult Medical | Follow-up, 18+ |
 | 1005 | Established Pediatric Medical | Follow-up, under 18 |
 | 1008 | Post Op | Post-op visit, any age |
+| 1010 | New Adult Vision | Routine vision, new patient, 18+ |
+| 3364 | Established Adult Vision | Routine vision, existing patient, 18+ |
+| 4244 | New Pediatric Vision | Routine vision, new patient, under 18 |
+| 4245 | Established Pediatric Vision | Routine vision, existing patient, under 18 |
+| 6167 | Crystal River New Patient | Crystal River new patient |
+| 6169 | Crystal River Established Patient | Crystal River established patient |
+| 6168 | Crystal River Post Op | Crystal River post-op |
 
 **Responses:**
 
@@ -365,10 +376,12 @@ All fields except `patientName` are required. `patientName` is supplied by the v
 ```
 
 **Server-side handling:**
-- Maps `appointmentTypeId` → color (1006→RED, 1004→GREEN, 1007→ORANGE, 1005→PINK, 1008→BLUE)
-- Sets `facilityId: 1568` (Spring Hill) and `episodeId: 1` automatically
+- Maps `appointmentTypeId` → color for medical, routine vision, and Crystal River-specific types
+- Sets `facilityId` from the office config and `episodeId: 1` automatically
 - Wraps type as `[{id: X}]` for AMD's expected format
 - Validates `columnId` against the office's allowed columns
+- Validates `columnId` against the requested routing lane, so Spring Hill medical bookings cannot use the routine-vision column
+- Validates appointment-type lane: `optical_only` must use a vision type, vision types require `optical_only`, and Crystal River types require the Crystal River office
 - AMD 409 conflicts return a clear "slot no longer available" message
 
 ### POST /api/appointment/cancel
@@ -416,7 +429,7 @@ Hour 20: Background refresh → 2-step AMD login → Update Redis + memory
 
 ### Insurance Routing
 
-71 insurance plans consolidated to 22 carrier IDs across 4 routing tiers. 8 major networks (iCare, UHC, Envolve, Humana, FL Blue, Cigna, Aetna, Tricare) cover 56 plans; 14 standalone carriers cover the rest. `LookupInsurance()` includes an alias map for common shorthand (e.g., "Oscar" → "Oscar Health", "Humana" → "Humana PPO"). See `INSURANCE_CROSSWALK.md`.
+71 insurance plans consolidated to 22 carrier IDs across 4 medical routing tiers, plus a separate `optical_only` scheduling lane for Spring Hill routine vision. 8 major networks (iCare, UHC, Envolve, Humana, FL Blue, Cigna, Aetna, Tricare) cover 56 plans; 14 standalone carriers cover the rest. `LookupInsurance()` includes an alias map for common shorthand (e.g., "Oscar" → "Oscar Health", "Humana" → "Humana PPO"). See `INSURANCE_CROSSWALK.md`.
 
 | Routing | Providers |
 |---------|-----------|
@@ -424,8 +437,9 @@ Hour 20: Background refresh → 2-step AMD login → Update Redis + memory
 | `bach_only` | Dr. Bach |
 | `bach_licht` | Dr. Bach + Dr. Licht |
 | `all_three` | All 3 providers |
+| `optical_only` | Spring Hill routine vision column |
 
-**Pediatric override:** Patients under 18 are automatically routed to `bach_only` (Dr. Bach is the only provider who sees pediatrics). Applied server-side in `verify-patient` and `add-patient` after insurance routing. Does not override `not_accepted`.
+**Pediatric override:** Medical patients under 18 are automatically routed to `bach_only` (Dr. Bach is the only medical provider who sees pediatrics). Applied server-side in `verify-patient` and medical `add-patient` after insurance routing. Does not override `not_accepted` or the Spring Hill routine-vision lane.
 
 ## Development
 

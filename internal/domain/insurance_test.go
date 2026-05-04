@@ -57,6 +57,7 @@ func TestColumnsForRouting(t *testing.T) {
 		{"bach only returns 1513,1598", RoutingBachOnly, 2, []string{"1513", "1598"}},
 		{"bach+licht returns 1513,1598,1551", RoutingBachLicht, 3, []string{"1513", "1598", "1551"}},
 		{"all returns all", RoutingAll, 4, []string{"1513", "1598", "1551", "1550"}},
+		{"optical only returns routine vision", RoutingOpticalOnly, 1, []string{"1600"}},
 	}
 
 	for _, tt := range tests {
@@ -92,6 +93,7 @@ func TestProvidersForRouting(t *testing.T) {
 		{"bach only", RoutingBachOnly, []string{"Dr. Bach", "Dr. Bach"}},
 		{"bach+licht", RoutingBachLicht, []string{"Dr. Bach", "Dr. Bach", "Dr. Licht"}},
 		{"all", RoutingAll, []string{"Dr. Bach", "Dr. Bach", "Dr. Licht", "Dr. Noel"}},
+		{"optical only", RoutingOpticalOnly, []string{"Routine Vision"}},
 	}
 
 	for _, tt := range tests {
@@ -124,6 +126,7 @@ func TestParseRoutingRule(t *testing.T) {
 		{"bach_only", RoutingBachOnly},
 		{"bach_licht", RoutingBachLicht},
 		{"all_three", RoutingAll},
+		{"optical_only", RoutingOpticalOnly},
 		{"", RoutingAll},          // default
 		{"invalid", RoutingAll},   // default
 		{"BACH_ONLY", RoutingAll}, // case sensitive, doesn't match

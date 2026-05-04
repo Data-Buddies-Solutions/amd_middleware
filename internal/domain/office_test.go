@@ -4,10 +4,10 @@ import "testing"
 
 func TestLookupOffice(t *testing.T) {
 	tests := []struct {
-		name    string
-		input   string
-		wantID  string
-		wantOK  bool
+		name   string
+		input  string
+		wantID string
+		wantOK bool
 	}{
 		{"spring hill", "+17275919997", "spring_hill", true},
 		{"crystal river", "+13523202007", "crystal_river", true},
@@ -53,6 +53,7 @@ func TestOfficeConfig_IsAllowedColumn(t *testing.T) {
 		{"1598", true},
 		{"1551", true},
 		{"1550", true},
+		{"1600", true},
 		{"9999", false},
 		{"", false},
 	}
@@ -71,8 +72,8 @@ func TestOfficeConfig_AllowedColumnIDs(t *testing.T) {
 	office := DefaultOffice()
 	ids := office.AllowedColumnIDs()
 
-	if len(ids) != 4 {
-		t.Fatalf("AllowedColumnIDs() len = %d, want 4", len(ids))
+	if len(ids) != 5 {
+		t.Fatalf("AllowedColumnIDs() len = %d, want 5", len(ids))
 	}
 
 	// Check all expected IDs are present
@@ -80,7 +81,7 @@ func TestOfficeConfig_AllowedColumnIDs(t *testing.T) {
 	for _, id := range ids {
 		idSet[id] = true
 	}
-	for _, want := range []string{"1513", "1598", "1551", "1550"} {
+	for _, want := range []string{"1513", "1598", "1551", "1550", "1600"} {
 		if !idSet[want] {
 			t.Errorf("AllowedColumnIDs() missing %q", want)
 		}
@@ -97,6 +98,7 @@ func TestOfficeConfig_ProviderDisplayName(t *testing.T) {
 		{"620", "Dr. Austin Bach"},
 		{"2064", "Dr. J. Licht"},
 		{"2076", "Dr. D. Noel"},
+		{"1983", "Routine Vision - Dr. Melissa Otero"},
 		{"9999", ""},
 	}
 
@@ -125,6 +127,7 @@ func TestOfficeConfig_FriendlyProviderName(t *testing.T) {
 		{"BACH, AUSTIN", []string{"Dr. Austin Bach", "Dr. Austin Bach (Overflow)"}},
 		{"LICHT, JONATHAN", []string{"Dr. J. Licht"}},
 		{"NOEL, DON HERSHELSON", []string{"Dr. D. Noel"}},
+		{"OTERO, MELISSA", []string{"Routine Vision - Dr. Melissa Otero"}},
 		{"UNKNOWN", []string{"UNKNOWN"}},
 		{"", []string{""}},
 	}
@@ -157,6 +160,40 @@ func TestOfficeConfig_AppointmentColor(t *testing.T) {
 	_, ok = office.AppointmentColor(9999)
 	if ok {
 		t.Error("AppointmentColor(9999) should return false")
+	}
+}
+
+func TestOfficeConfig_AllowsAppointmentType(t *testing.T) {
+	springHill := prodOffices["+17275919997"]
+	crystalRiver := prodOffices["+13523202007"]
+
+	tests := []struct {
+		name    string
+		office  *OfficeConfig
+		typeID  int
+		routing RoutingRule
+		want    bool
+	}{
+		{"spring hill medical accepts medical type", springHill, 1006, RoutingAll, true},
+		{"spring hill optical accepts vision type", springHill, 1010, RoutingOpticalOnly, true},
+		{"spring hill optical rejects medical type", springHill, 1006, RoutingOpticalOnly, false},
+		{"spring hill medical rejects vision type", springHill, 1010, RoutingAll, false},
+		{"spring hill rejects crystal river new patient type", springHill, 6167, RoutingAll, false},
+		{"crystal river accepts cr new patient type", crystalRiver, 6167, RoutingAll, true},
+		{"crystal river accepts cr post op type", crystalRiver, 6168, RoutingAll, true},
+		{"crystal river accepts cr established type", crystalRiver, 6169, RoutingAll, true},
+		{"crystal river rejects spring hill medical type", crystalRiver, 1006, RoutingAll, false},
+		{"crystal river rejects optical routing", crystalRiver, 1010, RoutingOpticalOnly, false},
+		{"unknown type rejected", springHill, 9999, RoutingAll, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.office.AllowsAppointmentType(tt.typeID, tt.routing)
+			if got != tt.want {
+				t.Errorf("AllowsAppointmentType(%d, %q) = %v, want %v", tt.typeID, tt.routing, got, tt.want)
+			}
+		})
 	}
 }
 
@@ -204,6 +241,9 @@ func TestInitRegistry(t *testing.T) {
 	if !office.IsAllowedColumn("1513") {
 		t.Error("prod registry should have column 1513 (Bach)")
 	}
+	if !office.IsAllowedColumn("1600") {
+		t.Error("prod registry should have column 1600 (Routine Vision)")
+	}
 	if office.IsAllowedColumn("1716") {
 		t.Error("prod registry should NOT have dev column 1716")
 	}
@@ -215,4 +255,3 @@ func TestInitRegistry(t *testing.T) {
 		t.Errorf("default FacilityID = %q, want %q", office.FacilityID, "1568")
 	}
 }
-

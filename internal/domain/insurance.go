@@ -1,5 +1,7 @@
 package domain
 
+import "strings"
+
 // RoutingRule determines which providers a patient can see based on their insurance.
 type RoutingRule string
 
@@ -8,13 +10,14 @@ const (
 	RoutingBachOnly    RoutingRule = "bach_only"
 	RoutingBachLicht   RoutingRule = "bach_licht"
 	RoutingAll         RoutingRule = "all_three"
+	RoutingOpticalOnly RoutingRule = "optical_only"
 )
 
 // InsuranceEntry maps an insurance name to its AMD carrier ID and routing rule.
 type InsuranceEntry struct {
-	CarrierID        string
-	Routing          RoutingRule
-	PreauthRequired  bool
+	CarrierID       string
+	Routing         RoutingRule
+	PreauthRequired bool
 }
 
 // InsuranceNameMap maps LLM-provided insurance names to carrier ID + routing.
@@ -39,43 +42,43 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 	"doctors health medicare":        {CarrierID: "car40907", Routing: RoutingNotAccepted},
 
 	// ── United Healthcare — car40923 (12 plans) ─────────────────────────
-	"united healthcare":                    {CarrierID: "car40923", Routing: RoutingAll},
-	"united healthcare aarp medicare":      {CarrierID: "car40923", Routing: RoutingAll},
-	"united healthcare all savers":         {CarrierID: "car40923", Routing: RoutingAll},
-	"united healthcare golden rule":        {CarrierID: "car40923", Routing: RoutingAll},
-	"united healthcare nhp":                {CarrierID: "car40923", Routing: RoutingAll},
-	"united healthcare shared services":    {CarrierID: "car40923", Routing: RoutingAll},
-	"united healthcare student resources":  {CarrierID: "car40923", Routing: RoutingAll},
-	"united healthcare hmo":                {CarrierID: "car40923", Routing: RoutingAll, PreauthRequired: true},
-	"united healthcare surest":             {CarrierID: "car40923", Routing: RoutingAll},
-	"umr":                                  {CarrierID: "car40923", Routing: RoutingAll},
+	"united healthcare":                     {CarrierID: "car40923", Routing: RoutingAll},
+	"united healthcare aarp medicare":       {CarrierID: "car40923", Routing: RoutingAll},
+	"united healthcare all savers":          {CarrierID: "car40923", Routing: RoutingAll},
+	"united healthcare golden rule":         {CarrierID: "car40923", Routing: RoutingAll},
+	"united healthcare nhp":                 {CarrierID: "car40923", Routing: RoutingAll},
+	"united healthcare shared services":     {CarrierID: "car40923", Routing: RoutingAll},
+	"united healthcare student resources":   {CarrierID: "car40923", Routing: RoutingAll},
+	"united healthcare hmo":                 {CarrierID: "car40923", Routing: RoutingAll, PreauthRequired: true},
+	"united healthcare surest":              {CarrierID: "car40923", Routing: RoutingAll},
+	"umr":                                   {CarrierID: "car40923", Routing: RoutingAll},
 	"united healthcare choice":              {CarrierID: "car40923", Routing: RoutingAll},
 	"united healthcare dual complete":       {CarrierID: "car40923", Routing: RoutingAll},
 	"united healthcare individual exchange": {CarrierID: "car40923", Routing: RoutingBachLicht},
-	"preferred care partners":              {CarrierID: "car40923", Routing: RoutingNotAccepted},
+	"preferred care partners":               {CarrierID: "car40923", Routing: RoutingNotAccepted},
 
 	// ── Envolve Network — car281245 (8 plans) ───────────────────────────
-	"ambetter":                {CarrierID: "car281245", Routing: RoutingAll},
-	"ambetter premier":        {CarrierID: "car281245", Routing: RoutingAll},
-	"ambetter select":         {CarrierID: "car281245", Routing: RoutingAll},
-	"ambetter value":          {CarrierID: "car281245", Routing: RoutingAll},
+	"ambetter":                   {CarrierID: "car281245", Routing: RoutingAll},
+	"ambetter premier":           {CarrierID: "car281245", Routing: RoutingAll},
+	"ambetter select":            {CarrierID: "car281245", Routing: RoutingAll},
+	"ambetter value":             {CarrierID: "car281245", Routing: RoutingAll},
 	"childrens medical services": {CarrierID: "car281245", Routing: RoutingAll},
-	"envolve vision":          {CarrierID: "car281245", Routing: RoutingAll},
-	"staywell medicare":       {CarrierID: "car281245", Routing: RoutingAll},
-	"sunshine medicaid":       {CarrierID: "car281245", Routing: RoutingAll},
-	"wellcare":                {CarrierID: "car281245", Routing: RoutingAll},
+	"envolve vision":             {CarrierID: "car281245", Routing: RoutingAll},
+	"staywell medicare":          {CarrierID: "car281245", Routing: RoutingAll},
+	"sunshine medicaid":          {CarrierID: "car281245", Routing: RoutingAll},
+	"wellcare":                   {CarrierID: "car281245", Routing: RoutingAll},
 
 	// ── Humana Consolidated — car308175 (8 plans) ───────────────────────
-	"humana gold plus":        {CarrierID: "car308175", Routing: RoutingBachOnly, PreauthRequired: true},
-	"humana medicaid":         {CarrierID: "car308175", Routing: RoutingBachOnly, PreauthRequired: true},
-	"humana medicare":         {CarrierID: "car308175", Routing: RoutingBachOnly},
-	"humana ppo":              {CarrierID: "car308175", Routing: RoutingBachOnly},
+	"humana gold plus":         {CarrierID: "car308175", Routing: RoutingBachOnly, PreauthRequired: true},
+	"humana medicaid":          {CarrierID: "car308175", Routing: RoutingBachOnly, PreauthRequired: true},
+	"humana medicare":          {CarrierID: "car308175", Routing: RoutingBachOnly},
+	"humana ppo":               {CarrierID: "car308175", Routing: RoutingBachOnly},
 	"humana healthy horizons":  {CarrierID: "car308175", Routing: RoutingBachOnly},
-	"humana premier hmo":      {CarrierID: "car308175", Routing: RoutingNotAccepted},
-	"humana hmo":              {CarrierID: "car308175", Routing: RoutingNotAccepted},
-	"molina medicare":         {CarrierID: "car308175", Routing: RoutingBachOnly},
+	"humana premier hmo":       {CarrierID: "car308175", Routing: RoutingNotAccepted},
+	"humana hmo":               {CarrierID: "car308175", Routing: RoutingNotAccepted},
+	"molina medicare":          {CarrierID: "car308175", Routing: RoutingBachOnly},
 	"cigna medicare advantage": {CarrierID: "car308175", Routing: RoutingBachLicht},
-	"molina marketplace":      {CarrierID: "car308175", Routing: RoutingNotAccepted},
+	"molina marketplace":       {CarrierID: "car308175", Routing: RoutingNotAccepted},
 
 	// ── Florida Blue — car40897 (7 plans) ───────────────────────────────
 	"florida blue":                      {CarrierID: "car40897", Routing: RoutingAll},
@@ -94,21 +97,21 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 	"cigna local plus":                {CarrierID: "car301345", Routing: RoutingBachOnly},
 
 	// ── Aetna — car40887 (4 plans) ──────────────────────────────────────
-	"aetna":                              {CarrierID: "car40887", Routing: RoutingAll},
-	"aetna medicare signature ppo":       {CarrierID: "car40887", Routing: RoutingAll},
-	"aetna qhp individual exchange":      {CarrierID: "car40887", Routing: RoutingAll},
+	"aetna":                         {CarrierID: "car40887", Routing: RoutingAll},
+	"aetna medicare signature ppo":  {CarrierID: "car40887", Routing: RoutingAll},
+	"aetna qhp individual exchange": {CarrierID: "car40887", Routing: RoutingAll},
 	"aetna epo north broward":       {CarrierID: "car40887", Routing: RoutingBachOnly},
 	"aetna epo university of miami": {CarrierID: "car40887", Routing: RoutingNotAccepted},
 
 	// ── Tricare — car40921 (4 plans) ────────────────────────────────────
-	"tricare prime":       {CarrierID: "car40921", Routing: RoutingBachLicht, PreauthRequired: true},
-	"tricare select":      {CarrierID: "car40921", Routing: RoutingBachLicht},
-	"tricare for life":    {CarrierID: "car40921", Routing: RoutingBachLicht},
-	"tricare forever":     {CarrierID: "car40921", Routing: RoutingBachLicht, PreauthRequired: true},
+	"tricare prime":    {CarrierID: "car40921", Routing: RoutingBachLicht, PreauthRequired: true},
+	"tricare select":   {CarrierID: "car40921", Routing: RoutingBachLicht},
+	"tricare for life": {CarrierID: "car40921", Routing: RoutingBachLicht},
+	"tricare forever":  {CarrierID: "car40921", Routing: RoutingBachLicht, PreauthRequired: true},
 
 	// ── Standalone Carriers (1 plan each) ───────────────────────────────
-	"avmed medicare advantage": {CarrierID: "car301737", Routing: RoutingNotAccepted},  // EMI
-	"florida blue hmo":         {CarrierID: "car280750", Routing: RoutingNotAccepted},  // EMI
+	"avmed medicare advantage": {CarrierID: "car301737", Routing: RoutingNotAccepted}, // EMI
+	"florida blue hmo":         {CarrierID: "car280750", Routing: RoutingNotAccepted}, // EMI
 	"eye america aao":          {CarrierID: "car308627", Routing: RoutingBachOnly},
 	"meritain health":          {CarrierID: "car301578", Routing: RoutingBachOnly},
 	"avmed":                    {CarrierID: "car40890", Routing: RoutingBachLicht},
@@ -170,65 +173,175 @@ var AmbiguousCarriers = map[string]bool{
 // Do NOT alias ambiguous parent names (e.g., "molina" spans 3 routing tiers).
 var InsuranceAliases = map[string]string{
 	// Parent company shorthand → safest canonical name
-	"oscar":          "oscar health",
-	"oscar insurance": "oscar health",
-	"humana":         "humana ppo",
-	"tricare":        "tricare select",
-	"united":         "united healthcare",
-	"uhc":            "united healthcare",
-	"uhc medicare":   "united healthcare aarp medicare",
-	"cigna":          "cigna ppo",
-	"blue cross":     "florida blue",
-	"bcbs":               "florida blue",
-	"bcbs medicare hmo":  "florida blue medicare hmo",
-	"medicare":       "florida medicare",
-	"sunshine":       "sunshine medicaid",
-	"sunshine health": "sunshine medicaid",
-	"staywell":       "staywell medicare",
-	"simply":         "simply medicaid",
-	"simply healthcare": "simply medicaid",
-	"simply health":     "simply medicaid",
-	"simply health plans": "simply medicaid",
-	"multiplan":      "multiplan phcs",
-	"phcs":           "multiplan phcs",
-	"imagine":        "imagine health",
-	"envolve":        "envolve vision",
-	"meritain":       "meritain health",
-	"eye america":    "eye america aao",
-	"preferred care": "preferred care partners",
-	"community care": "community care plan",
-	"doctors health": "doctors health medicare",
-	"miami childrens": "miami childrens health plan",
-	"childrens medical": "childrens medical services",
-	"sun health":          "sunhealth",
-	"duocomplete":         "united healthcare dual complete",
-	"duo complete":        "united healthcare dual complete",
-	"uhc dual complete":   "united healthcare dual complete",
-	"uhc choice":          "united healthcare choice",
+	"oscar":                  "oscar health",
+	"oscar insurance":        "oscar health",
+	"humana":                 "humana ppo",
+	"tricare":                "tricare select",
+	"united":                 "united healthcare",
+	"uhc":                    "united healthcare",
+	"uhc medicare":           "united healthcare aarp medicare",
+	"cigna":                  "cigna ppo",
+	"blue cross":             "florida blue",
+	"bcbs":                   "florida blue",
+	"bcbs medicare hmo":      "florida blue medicare hmo",
+	"medicare":               "florida medicare",
+	"sunshine":               "sunshine medicaid",
+	"sunshine health":        "sunshine medicaid",
+	"staywell":               "staywell medicare",
+	"simply":                 "simply medicaid",
+	"simply healthcare":      "simply medicaid",
+	"simply health":          "simply medicaid",
+	"simply health plans":    "simply medicaid",
+	"multiplan":              "multiplan phcs",
+	"phcs":                   "multiplan phcs",
+	"imagine":                "imagine health",
+	"envolve":                "envolve vision",
+	"meritain":               "meritain health",
+	"eye america":            "eye america aao",
+	"preferred care":         "preferred care partners",
+	"community care":         "community care plan",
+	"doctors health":         "doctors health medicare",
+	"miami childrens":        "miami childrens health plan",
+	"childrens medical":      "childrens medical services",
+	"sun health":             "sunhealth",
+	"duocomplete":            "united healthcare dual complete",
+	"duo complete":           "united healthcare dual complete",
+	"uhc dual complete":      "united healthcare dual complete",
+	"uhc choice":             "united healthcare choice",
 	"icare health solutions": "icare",
-	"eye care health":     "eye care health solutions",
-	"optimum":             "optimum healthcare",
-	"care health":         "care health plus",
+	"eye care health":        "eye care health solutions",
+	"optimum":                "optimum healthcare",
+	"care health":            "care health plus",
+}
+
+// VisionInsuranceNameMap maps accepted routine-vision insurance buckets to AMD carrier IDs.
+// It is used only when a request explicitly asks for routine-vision coverage.
+var VisionInsuranceNameMap = map[string]InsuranceEntry{
+	"vsp":                     {CarrierID: "car280695", Routing: RoutingOpticalOnly},
+	"eyemed":                  {CarrierID: "car280684", Routing: RoutingOpticalOnly},
+	"nva":                     {CarrierID: "car308794", Routing: RoutingOpticalOnly},
+	"davis":                   {CarrierID: "car280612", Routing: RoutingOpticalOnly},
+	"spectera":                {CarrierID: "car308790", Routing: RoutingOpticalOnly},
+	"solstice":                {CarrierID: "car301652", Routing: RoutingOpticalOnly},
+	"icare":                   {CarrierID: "car40907", Routing: RoutingOpticalOnly},
+	"guardian":                {CarrierID: "car308792", Routing: RoutingOpticalOnly},
+	"alivi":                   {CarrierID: "car308796", Routing: RoutingOpticalOnly},
+	"premier":                 {CarrierID: "car281317", Routing: RoutingOpticalOnly},
+	"envolve":                 {CarrierID: "car281245", Routing: RoutingOpticalOnly},
+	"sunhealth":               {CarrierID: "car308791", Routing: RoutingOpticalOnly},
+	"sunhealth discount plan": {CarrierID: "car308791", Routing: RoutingOpticalOnly},
+}
+
+// VisionInsuranceAliases maps patient-facing routine-vision plan names to the
+// billing buckets above, based on the vision insurance workbook.
+var VisionInsuranceAliases = map[string]string{
+	"eye med":                        "eyemed",
+	"eye med vision":                 "eyemed",
+	"eye med vision care":            "eyemed",
+	"national vision":                "nva",
+	"national vision administrators": "nva",
+	"davis vision":                   "davis",
+	"spectera vision":                "spectera",
+	"soltice":                        "solstice",
+	"solstice vision":                "solstice",
+	"guardian vision":                "guardian",
+	"alivi health":                   "alivi",
+	"envolve vision":                 "envolve",
+	"sun health":                     "sunhealth",
+	"sunhealth vision":               "sunhealth",
+
+	// VSP
+	"metlife":           "vsp",
+	"liberty financial": "vsp",
+	"lincoln financial": "vsp",
+	"lincoln finacial":  "vsp",
+
+	// EyeMed
+	"humana": "eyemed",
+	"aetna":  "eyemed",
+	"unum":   "eyemed",
+	"cigna":  "eyemed",
+
+	// Davis
+	"superior":     "davis",
+	"florida blue": "davis",
+	"blueview":     "davis",
+	"blue view":    "davis",
+	"versant":      "davis",
+
+	// Spectera
+	"united healthcare":  "spectera",
+	"united health care": "spectera",
+	"united vision":      "spectera",
+
+	// iCare
+	"humana gold plus":    "icare",
+	"simply medicare":     "icare",
+	"simply medicaid":     "icare",
+	"simply medcaid":      "icare",
+	"freedom":             "icare",
+	"optimum":             "icare",
+	"optimum healthcare":  "icare",
+	"aetna better health": "icare",
+	"avmed":               "icare",
+
+	// Envolve
+	"ambetter":                      "envolve",
+	"ambetter from sunshine health": "envolve",
+	"sunshine":                      "envolve",
+
+	// Premier
+	"amerihealth": "premier",
+	"devoted":     "premier",
+
+	// Alivi
+	"careplus":  "alivi",
+	"care plus": "alivi",
+}
+
+func lookupInsuranceFromMaps(name string, entries map[string]InsuranceEntry, aliases map[string]string) (InsuranceEntry, bool) {
+	normalized := NormalizeForLookup(name)
+
+	if entry, ok := entries[normalized]; ok {
+		return entry, ok
+	}
+
+	if canonical, ok := aliases[normalized]; ok {
+		entry, ok := entries[canonical]
+		return entry, ok
+	}
+
+	return InsuranceEntry{}, false
 }
 
 // LookupInsurance looks up an insurance name and returns its entry.
 // First tries exact match in InsuranceNameMap, then checks InsuranceAliases.
 // Uses NormalizeForLookup for tolerance of punctuation, casing, and spacing.
 func LookupInsurance(name string) (InsuranceEntry, bool) {
-	normalized := NormalizeForLookup(name)
+	return lookupInsuranceFromMaps(name, InsuranceNameMap, InsuranceAliases)
+}
 
-	// Exact match
-	if entry, ok := InsuranceNameMap[normalized]; ok {
-		return entry, ok
+// LookupInsuranceForCoverage chooses the medical or routine-vision crosswalk.
+func LookupInsuranceForCoverage(name string, mode InsuranceMode) (InsuranceEntry, bool) {
+	if mode == InsuranceModeVision {
+		return lookupInsuranceFromMaps(name, VisionInsuranceNameMap, VisionInsuranceAliases)
+	}
+	return LookupInsurance(name)
+}
+
+// InsuranceModeForCoverage converts an agent-supplied coverage type to a middleware insurance mode.
+func InsuranceModeForCoverage(coverageType string) InsuranceMode {
+	switch strings.ToLower(strings.TrimSpace(coverageType)) {
+	case "routine_vision", "optical_only":
+		return InsuranceModeVision
 	}
 
-	// Alias match
-	if canonical, ok := InsuranceAliases[normalized]; ok {
-		entry, ok := InsuranceNameMap[canonical]
-		return entry, ok
+	switch NormalizeForLookup(coverageType) {
+	case "routine vision", "vision", "optical", "optical only":
+		return InsuranceModeVision
+	default:
+		return InsuranceModeMedical
 	}
-
-	return InsuranceEntry{}, false
 }
 
 // RoutingForCarrierID returns the routing rule for a carrier ID from demographics.
@@ -257,6 +370,8 @@ func ParseRoutingRule(s string) RoutingRule {
 		return RoutingBachLicht
 	case RoutingAll:
 		return RoutingAll
+	case RoutingOpticalOnly:
+		return RoutingOpticalOnly
 	default:
 		return RoutingAll
 	}

@@ -108,21 +108,19 @@ func availabilityCmd() *cobra.Command {
 				allowedColumns = append(allowedColumns, col)
 			}
 
-			// Routing filter
-			if routing != "" {
-				rule := domain.ParseRoutingRule(routing)
-				routingColumns := officeConfig.ColumnsForRouting(rule)
-				if routingColumns != nil {
-					var filtered []domain.SchedulerColumn
-					for _, col := range allowedColumns {
-						if routingColumns[col.ID] {
-							filtered = append(filtered, col)
-						}
+			// Routing filter. Empty/unknown routing defaults to RoutingAll,
+			// which excludes Spring Hill routine-vision columns.
+			routingColumns := officeConfig.ColumnsForRouting(domain.ParseRoutingRule(routing))
+			if routingColumns != nil {
+				var filtered []domain.SchedulerColumn
+				for _, col := range allowedColumns {
+					if routingColumns[col.ID] {
+						filtered = append(filtered, col)
 					}
-					allowedColumns = filtered
-				} else {
-					allowedColumns = nil
 				}
+				allowedColumns = filtered
+			} else {
+				allowedColumns = nil
 			}
 
 			// Location name
@@ -274,7 +272,7 @@ func availabilityCmd() *cobra.Command {
 	cmd.Flags().StringVar(&date, "date", "", "Date to check (YYYY-MM-DD, required)")
 	cmd.Flags().StringVar(&provider, "provider", "", "Filter by provider name")
 	cmd.Flags().StringVar(&office, "office", "", "Office name (e.g., spring_hill)")
-	cmd.Flags().StringVar(&routing, "routing", "", "Routing rule: bach_only, bach_licht, all_three")
+	cmd.Flags().StringVar(&routing, "routing", "", "Routing rule: bach_only, bach_licht, all_three, optical_only")
 	cmd.Flags().BoolVar(&preauthRequired, "preauth", false, "Enforce 14-day minimum lead time")
 
 	return cmd
