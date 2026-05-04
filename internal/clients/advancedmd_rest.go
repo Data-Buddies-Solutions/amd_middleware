@@ -35,7 +35,6 @@ func ParseDateTime(s string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("unable to parse datetime %q", s)
 }
 
-
 // AdvancedMDRestClient handles REST API calls to AdvancedMD.
 type AdvancedMDRestClient struct {
 	httpClient *http.Client
@@ -48,19 +47,19 @@ func NewAdvancedMDRestClient(httpClient *http.Client) *AdvancedMDRestClient {
 
 // AMDAppointmentResponse represents a single appointment from the REST API.
 type AMDAppointmentResponse struct {
-	ID               int    `json:"id"`
-	StartDateTime    string `json:"startdatetime"`
-	Duration         int    `json:"duration"`
-	ColumnID         int    `json:"columnid"`
-	ProfileID        int    `json:"profileid"`
-	Provider         string `json:"provider"`
-	Heading          string `json:"heading"`
-	Facility         string `json:"facility"`
-	FacilityID       int    `json:"facilityid"`
-	AppointmentTypes []int  `json:"appointmenttypeids"`
-	PatientID        int    `json:"patientid"`
-	FirstName        string `json:"firstname"`
-	LastName         string `json:"lastname"`
+	ID               int     `json:"id"`
+	StartDateTime    string  `json:"startdatetime"`
+	Duration         int     `json:"duration"`
+	ColumnID         int     `json:"columnid"`
+	ProfileID        int     `json:"profileid"`
+	Provider         string  `json:"provider"`
+	Heading          string  `json:"heading"`
+	Facility         string  `json:"facility"`
+	FacilityID       int     `json:"facilityid"`
+	AppointmentTypes []int   `json:"appointmenttypeids"`
+	PatientID        int     `json:"patientid"`
+	FirstName        string  `json:"firstname"`
+	LastName         string  `json:"lastname"`
 	ConfirmDate      *string `json:"confirmdate"`
 	ConfirmMethod    *string `json:"confirmmethod"`
 }
@@ -161,6 +160,9 @@ type AMDBlockHoldResponse struct {
 	Duration      int    `json:"duration"`
 	ColumnID      int    `json:"columnid"`
 	Note          string `json:"note"`
+	Recurrence    struct {
+		RecurrenceType int `json:"recurrencetype"`
+	} `json:"recurrence"`
 }
 
 // GetBlockHolds fetches block holds for a column within a date range.
@@ -213,6 +215,11 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 
 		endTime, err := ParseDateTime(h.EndDateTime)
 		if err != nil {
+			endTime = startTime.Add(time.Duration(h.Duration) * time.Minute)
+		}
+		// For recurring holds, AMD's enddatetime is the recurrence series end,
+		// not the end of this day's occurrence.
+		if h.Recurrence.RecurrenceType > 0 && h.Duration > 0 {
 			endTime = startTime.Add(time.Duration(h.Duration) * time.Minute)
 		}
 
@@ -295,11 +302,11 @@ func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, token
 
 // BookAppointmentParams holds the parameters for booking an appointment.
 type BookAppointmentParams struct {
-	PatientID      int    `json:"patientid"`
-	ColumnID       int    `json:"columnid"`
-	ProfileID      int    `json:"profileid"`
-	StartDatetime  string `json:"startdatetime"`
-	Duration       int    `json:"duration"`
+	PatientID       int    `json:"patientid"`
+	ColumnID        int    `json:"columnid"`
+	ProfileID       int    `json:"profileid"`
+	StartDatetime   string `json:"startdatetime"`
+	Duration        int    `json:"duration"`
 	AppointmentType []struct {
 		ID int `json:"id"`
 	} `json:"type"`
@@ -392,4 +399,3 @@ func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData 
 
 	return nil
 }
-

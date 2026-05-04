@@ -259,7 +259,7 @@ Max 5 slots per provider. `totalAvailable` gives the full count.
 A slot is available only if it passes all four checks in order:
 
 1. **Same-day block** — If date is today (Eastern time), the request is rejected with a 400 error. Same-day appointments are not available.
-2. **Block holds** — Slot is not inside any block hold (lunch, out of office, etc.)
+2. **Block holds** — Slot is not inside any block hold (lunch, out of office, etc.). Recurring holds use the day's `startdatetime + duration`; non-recurring multi-day holds use AMD's `enddatetime`.
 3. **Duration overlap (AMD 4101)** — The slot's full booking range `[slotStart, slotStart+slotDuration)` must not overlap any existing appointment's range `[apptStart, apptStart+apptDuration)`. This is a bidirectional check: a 30-min booking at 8:30 is blocked by an appointment at 8:45, and a slot at 9:15 is blocked by a 30-min appointment starting at 9:00. This is a hard block — `maxApptsPerSlot` does not override it.
 4. **Same-start capacity (AMD 4186)** — The number of appointments starting at this exact time is less than `maxApptsPerSlot` (0 = unlimited, skip this check)
 

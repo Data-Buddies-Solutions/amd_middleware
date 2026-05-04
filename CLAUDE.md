@@ -229,7 +229,7 @@ Insurance-based provider routing is enforced server-side. See `INSURANCE_CROSSWA
 
 7. **Scheduler setup prefixes**: Column, profile, and facility IDs have prefixes (`col`, `prof`, `fac`) that must be stripped
 
-8. **Block hold `duration` is unreliable for multi-day holds**: For multi-day block holds (e.g., "OUT OF THE OFFICE" spanning Feb 17-20), AMD returns a `duration` that doesn't always cover the full day. Use the `enddatetime` field instead of computing end from `startdatetime + duration`. See `IsBlockedByHold` in `domain/scheduler.go`.
+8. **Block hold end times depend on recurrence**: For non-recurring multi-day block holds (e.g., "OUT OF THE OFFICE" spanning Feb 17-20), AMD returns a `duration` that doesn't always cover the full day, so use `enddatetime`. For recurring holds, AMD's `enddatetime` is the recurrence series end; use `startdatetime + duration` for the day's occurrence. See `GetBlockHolds` in `advancedmd_rest.go` and `IsBlockedByHold` in `domain/scheduler.go`.
 
 9. **AMD single-vs-array responses**: AMD returns a single JSON object when there's one result, but an array when there are multiple. All parsing code must handle both formats (see `AMDLookupResponse` vs `AMDLookupResponseSingle` pattern in `advancedmd_xmlrpc.go`).
 
