@@ -39,7 +39,7 @@ type ErrorResponse struct {
 
 // ElevenLabsWebhookResponse is the response format for ElevenLabs conversation initiation webhook.
 type ElevenLabsWebhookResponse struct {
-	Type             string            `json:"type"`
+	Type             string                 `json:"type"`
 	DynamicVariables map[string]interface{} `json:"dynamic_variables"`
 }
 
@@ -181,6 +181,7 @@ type AddPatientRequest struct {
 	Zip            string `json:"zip"`
 	Sex            string `json:"sex"`
 	Insurance      string `json:"insurance"`
+	CoverageType   string `json:"coverageType,omitempty"`
 	SubscriberName string `json:"subscriberName"`
 	SubscriberNum  string `json:"subscriberNum"`
 	Office         string `json:"office,omitempty"`
@@ -221,8 +222,10 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("add-patient: received request: firstName=%q lastName=%q dob=%q phone=%q email=%q street=%q aptSuite=%q city=%q state=%q zip=%q sex=%q insurance=%q subscriberName=%q subscriberNum=%q office=%q",
-		req.FirstName, req.LastName, req.DOB, req.Phone, req.Email, req.Street, req.AptSuite, req.City, req.State, req.Zip, req.Sex, req.Insurance, req.SubscriberName, req.SubscriberNum, office.ID)
+	insuranceMode := domain.InsuranceModeForCoverage(req.CoverageType)
+
+	log.Printf("add-patient: received request: firstName=%q lastName=%q dob=%q phone=%q email=%q street=%q aptSuite=%q city=%q state=%q zip=%q sex=%q insurance=%q coverageType=%q subscriberName=%q subscriberNum=%q office=%q",
+		req.FirstName, req.LastName, req.DOB, req.Phone, req.Email, req.Street, req.AptSuite, req.City, req.State, req.Zip, req.Sex, req.Insurance, req.CoverageType, req.SubscriberName, req.SubscriberNum, office.ID)
 
 	// Validate required fields (aptSuite and email are optional)
 	missing := addPatientMissingFields(req)
@@ -230,6 +233,13 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(AddPatientResponse{
 			Status:  "error",
 			Message: fmt.Sprintf("Missing required fields: %s", strings.Join(missing, ", ")),
+		})
+		return
+	}
+	if insuranceMode == domain.InsuranceModeVision && !officeSupportsRouting(office, domain.RoutingOpticalOnly) {
+		json.NewEncoder(w).Encode(AddPatientResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Routine vision coverage is not supported at %s. Route the patient to Spring Hill routine vision scheduling.", office.DisplayName),
 		})
 		return
 	}
@@ -286,7 +296,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 	strippedID := domain.StripPatientPrefix(rawPatientID)
 
 	// Look up insurance entry from name
-	insEntry, ok := domain.LookupInsurance(req.Insurance)
+	insEntry, ok := domain.LookupInsuranceForCoverage(req.Insurance, insuranceMode)
 	if !ok {
 		json.NewEncoder(w).Encode(AddPatientResponse{
 			Status:    "partial",
@@ -324,7 +334,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 
 	// Pediatric override: under-18 patients → office pediatric routing
 	routing := insEntry.Routing
-	if domain.IsMinor(normalizedDOB) && routing != domain.RoutingNotAccepted {
+	if insuranceMode == domain.InsuranceModeMedical && domain.IsMinor(normalizedDOB) && routing != domain.RoutingNotAccepted {
 		routing = office.PediatricRouting
 	}
 
@@ -625,13 +635,13 @@ type PatientApptResponse struct {
 
 // PatientApptDetail is a single appointment formatted for LLM consumption.
 type PatientApptDetail struct {
-	ID        int    `json:"id"`                  // AMD appointment ID — for cancel_appt
-	Date      string `json:"date"`                // Human-readable (e.g., "Wednesday, March 18, 2026")
-	Time      string `json:"time"`                // e.g., "12:00 PM"
-	Provider  string `json:"provider,omitempty"`   // e.g., "Dr. Austin Bach"
-	Type      string `json:"type,omitempty"`       // e.g., "New Adult Medical"
-	Facility  string `json:"facility,omitempty"`   // e.g., "Abita Eye Group Spring Hill"
-	Confirmed bool   `json:"confirmed"`            // Whether the appointment has been confirmed
+	ID        int    `json:"id"`                 // AMD appointment ID — for cancel_appt
+	Date      string `json:"date"`               // Human-readable (e.g., "Wednesday, March 18, 2026")
+	Time      string `json:"time"`               // e.g., "12:00 PM"
+	Provider  string `json:"provider,omitempty"` // e.g., "Dr. Austin Bach"
+	Type      string `json:"type,omitempty"`     // e.g., "New Adult Medical"
+	Facility  string `json:"facility,omitempty"` // e.g., "Abita Eye Group Spring Hill"
+	Confirmed bool   `json:"confirmed"`          // Whether the appointment has been confirmed
 }
 
 // HandleGetPatientAppointments retrieves appointments for a verified patient.
@@ -721,19 +731,19 @@ type PatientLookupRequest struct {
 
 // PatientLookupResponse is the combined response with identity + appointments.
 type PatientLookupResponse struct {
-	Status             string            `json:"status"`
-	PatientID          string            `json:"patientId,omitempty"`
-	Name               string            `json:"name,omitempty"`
-	DOB                string            `json:"dob,omitempty"`
-	Phone              string            `json:"phone,omitempty"`
-	InsuranceCarrier   string            `json:"insuranceCarrier,omitempty"`
-	InsuranceCarrierID string            `json:"insuranceCarrierId,omitempty"`
-	Routing            string            `json:"routing,omitempty"`
-	AllowedProviders   []string          `json:"allowedProviders,omitempty"`
-	RoutingAmbiguous   bool              `json:"routingAmbiguous,omitempty"`
+	Status             string              `json:"status"`
+	PatientID          string              `json:"patientId,omitempty"`
+	Name               string              `json:"name,omitempty"`
+	DOB                string              `json:"dob,omitempty"`
+	Phone              string              `json:"phone,omitempty"`
+	InsuranceCarrier   string              `json:"insuranceCarrier,omitempty"`
+	InsuranceCarrierID string              `json:"insuranceCarrierId,omitempty"`
+	Routing            string              `json:"routing,omitempty"`
+	AllowedProviders   []string            `json:"allowedProviders,omitempty"`
+	RoutingAmbiguous   bool                `json:"routingAmbiguous,omitempty"`
 	Appointments       []PatientApptDetail `json:"appointments,omitempty"`
-	Matches            []PatientMatch    `json:"matches,omitempty"`
-	Message            string            `json:"message,omitempty"`
+	Matches            []PatientMatch      `json:"matches,omitempty"`
+	Message            string              `json:"message,omitempty"`
 }
 
 // HandlePatientLookup verifies a patient and returns their upcoming appointments in one call.
@@ -1009,6 +1019,7 @@ type BookAppointmentRequest struct {
 	StartDatetime     string `json:"startDatetime"`
 	Duration          int    `json:"duration"`
 	AppointmentTypeID int    `json:"appointmentTypeId"`
+	Routing           string `json:"routing,omitempty"`
 	Office            string `json:"office,omitempty"`
 }
 
@@ -1093,8 +1104,8 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	log.Printf("book-appointment: patientId=%s columnId=%d profileId=%d startDatetime=%s duration=%d typeId=%d office=%s",
-		req.PatientID, req.ColumnID, req.ProfileID, req.StartDatetime, req.Duration, req.AppointmentTypeID, office.ID)
+	log.Printf("book-appointment: patientId=%s columnId=%d profileId=%d startDatetime=%s duration=%d typeId=%d routing=%q office=%s",
+		req.PatientID, req.ColumnID, req.ProfileID, req.StartDatetime, req.Duration, req.AppointmentTypeID, req.Routing, office.ID)
 
 	// Validate required fields
 	if req.PatientID == "" {
@@ -1131,13 +1142,40 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		})
 		return
 	}
+	column := office.Columns[colIDStr]
+	if column.ProfileID != strconv.Itoa(req.ProfileID) {
+		json.NewEncoder(w).Encode(BookAppointmentResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Profile %d is not valid for column %d at %s", req.ProfileID, req.ColumnID, office.DisplayName),
+		})
+		return
+	}
+
+	// A Spring Hill routine-vision column is part of the office, but not part of
+	// normal medical routing. Require the same routing lane used for availability.
+	routingRule := domain.ParseRoutingRule(req.Routing)
+	routingColumns := office.ColumnsForRouting(routingRule)
+	if routingColumns == nil {
+		json.NewEncoder(w).Encode(BookAppointmentResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Cannot book appointment with routing %q at %s", routingRule, office.DisplayName),
+		})
+		return
+	}
+	if !routingColumns[colIDStr] {
+		json.NewEncoder(w).Encode(BookAppointmentResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Column %d is not valid for routing %q at %s", req.ColumnID, routingRule, office.DisplayName),
+		})
+		return
+	}
 
 	// Resolve appointment type ID for current environment (prod IDs → env IDs)
 	envTypeID, ok := domain.ResolveAppointmentTypeID(req.AppointmentTypeID)
 	if !ok {
 		json.NewEncoder(w).Encode(BookAppointmentResponse{
 			Status:  "error",
-			Message: fmt.Sprintf("Invalid appointment type ID: %d. Valid types: 1004 (New Pediatric), 1005 (Established Pediatric), 1006 (New Adult), 1007 (Established Adult), 1008 (Post Op)", req.AppointmentTypeID),
+			Message: fmt.Sprintf("Invalid appointment type ID: %d. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169", req.AppointmentTypeID),
 		})
 		return
 	}
@@ -1148,6 +1186,13 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		json.NewEncoder(w).Encode(BookAppointmentResponse{
 			Status:  "error",
 			Message: fmt.Sprintf("Invalid appointment type ID: %d", req.AppointmentTypeID),
+		})
+		return
+	}
+	if !office.AllowsAppointmentType(req.AppointmentTypeID, routingRule) {
+		json.NewEncoder(w).Encode(BookAppointmentResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Appointment type %d is not valid for routing %q at %s", req.AppointmentTypeID, routingRule, office.DisplayName),
 		})
 		return
 	}
@@ -1223,6 +1268,25 @@ type AvailabilityRequest struct {
 	PreauthRequired bool   `json:"preauthRequired"` // Optional: if true, enforces 14-day minimum lead time
 }
 
+func filterColumnsForRouting(columns []domain.SchedulerColumn, office *domain.OfficeConfig, routing domain.RoutingRule) []domain.SchedulerColumn {
+	routingColumns := office.ColumnsForRouting(routing)
+	if routingColumns == nil {
+		return nil
+	}
+
+	filtered := make([]domain.SchedulerColumn, 0, len(columns))
+	for _, col := range columns {
+		if routingColumns[col.ID] {
+			filtered = append(filtered, col)
+		}
+	}
+	return filtered
+}
+
+func officeSupportsRouting(office *domain.OfficeConfig, routing domain.RoutingRule) bool {
+	return len(office.ColumnsForRouting(routing)) > 0
+}
+
 // HandleGetAvailability returns available appointment slots for providers.
 func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -1270,7 +1334,9 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	log.Printf("availability: date=%s provider=%q office=%s routing=%q preauthRequired=%v", req.Date, req.Provider, office.ID, req.Routing, req.PreauthRequired)
+	effectiveRouting := domain.ParseRoutingRule(req.Routing)
+
+	log.Printf("availability: date=%s provider=%q office=%s routing=%q effectiveRouting=%q preauthRequired=%v", req.Date, req.Provider, office.ID, req.Routing, effectiveRouting, req.PreauthRequired)
 
 	// Get auth token
 	tokenData, err := h.tokenManager.GetToken(r.Context())
@@ -1326,23 +1392,9 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 		allowedColumns = append(allowedColumns, col)
 	}
 
-	// Apply routing filter (insurance-based provider restriction)
-	if req.Routing != "" {
-		rule := domain.ParseRoutingRule(req.Routing)
-		routingColumns := office.ColumnsForRouting(rule)
-		if routingColumns != nil {
-			var filtered []domain.SchedulerColumn
-			for _, col := range allowedColumns {
-				if routingColumns[col.ID] {
-					filtered = append(filtered, col)
-				}
-			}
-			allowedColumns = filtered
-		} else {
-			// RoutingNotAccepted — no columns allowed
-			allowedColumns = nil
-		}
-	}
+	// Apply routing filter. Empty/unknown routing defaults to RoutingAll,
+	// which deliberately excludes Spring Hill's routine-vision column.
+	allowedColumns = filterColumnsForRouting(allowedColumns, office, effectiveRouting)
 
 	// Determine location name for response
 	locationName := office.DisplayName
@@ -1355,7 +1407,7 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 	if len(allowedColumns) == 0 {
 		if req.Provider != "" {
 			json.NewEncoder(w).Encode(ErrorResponse{
-				Status:  "error",
+				Status: "error",
 				Message: fmt.Sprintf("No provider found matching %q. Valid providers: %s",
 					req.Provider, strings.Join(office.ValidProviderNames(), ", ")),
 			})
@@ -1613,6 +1665,7 @@ type UpdateInsuranceRequest struct {
 	RespPartyID    string `json:"respPartyId"`
 	OldInsurance   string `json:"oldInsurance"`
 	Insurance      string `json:"insurance"`
+	CoverageType   string `json:"coverageType,omitempty"`
 	SubscriberName string `json:"subscriberName"`
 	SubscriberNum  string `json:"subscriberNum"`
 	Office         string `json:"office,omitempty"`
@@ -1661,9 +1714,17 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 		})
 		return
 	}
+	insuranceMode := domain.InsuranceModeForCoverage(req.CoverageType)
+	if insuranceMode == domain.InsuranceModeVision && !officeSupportsRouting(office, domain.RoutingOpticalOnly) {
+		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Routine vision coverage is not supported at %s. Route the patient to Spring Hill routine vision scheduling.", office.DisplayName),
+		})
+		return
+	}
 
 	// Look up new insurance
-	insEntry, found := domain.LookupInsurance(req.Insurance)
+	insEntry, found := domain.LookupInsuranceForCoverage(req.Insurance, insuranceMode)
 	if !found {
 		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
 			Status:  "error",

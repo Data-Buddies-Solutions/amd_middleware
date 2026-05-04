@@ -1,6 +1,6 @@
 # TOOLS.md - Your Tools
 
-You have eight tools: `verify_patient`, `add_patient`, `get_availability`, `book_appt`, `confirm_appt`, `cancel_appt`, `transfer_to_number`, and `language_detection`.
+You have nine tools: `verify_patient`, `add_patient`, `update_insurance`, `get_availability`, `book_appt`, `confirm_appt`, `cancel_appt`, `transfer_to_number`, and `language_detection`.
 
 Each tool has prerequisites — check its section before calling it. Never call a tool without what it needs. **The most important one: you must verify or register a patient before you can check availability or book.** No patient ID, no scheduling.
 
@@ -121,7 +121,8 @@ After all fields are collected, **read back the key details before you submit** 
 - `state` (string, required) — 2-letter abbreviation
 - `zip` (string, required)
 - `sex` (string, required) — `male` or `female`
-- `insurance` (string, required) — the insurance plan name. Must be one of the accepted names below.
+- `insurance` (string, required) — the insurance plan name. For medical visits, use one of the accepted names below. For routine vision, use the accepted vision plan name you checked.
+- `coverageType` (string, optional) — send `routine_vision` only when registering a patient for a routine eye exam/glasses/contact lens prescription using accepted vision insurance. Otherwise omit it.
 - `subscriberName` (string, required)
 - `subscriberNum` (string, required)
 
@@ -196,16 +197,31 @@ Humana Gold Plus, Humana Medicaid, United Healthcare HMO, Aetna HMO, Florida Blu
 
 Once you have a verified patient, ask when they'd like to come in.
 
+**Routine vision lane:** Before choosing availability, determine whether this is a routine eye exam for glasses or contacts using vision insurance. If yes, ask for the vision insurance yourself. If it is accepted for routine vision, use `routing: "optical_only"` for availability and booking. Do not call `update_insurance` just to schedule a routine vision visit.
+
 ### Determine Appointment Type (before calling this tool)
 
 Figure out the appointment type — this is a decision you make, not a tool call. You already have the DOB, so calculate the patient's age silently. Never ask "are you over 18?" — do the math yourself.
 
-**New patient** (came from `add_patient`): The type is automatic — no question needed.
+**Routine vision** (glasses/contacts exam using accepted vision insurance): Use a vision appointment type. Do not ask the medical follow-up/post-op question for routine vision.
+
+- New patient + 18 or older → type id `1010` (New Adult Vision)
+- Existing patient + 18 or older → type id `3364` (Established Adult Vision)
+- New patient + under 18 → type id `4244` (New Pediatric Vision)
+- Existing patient + under 18 → type id `4245` (Established Pediatric Vision)
+
+**Crystal River**: Use Crystal River-specific appointment types.
+
+- New patient → type id `6167` (Crystal River New Patient)
+- Established/follow-up patient → type id `6169` (Crystal River Established Patient)
+- Post-op patient → type id `6168` (Crystal River Post Op)
+
+**Spring Hill medical new patient** (came from `add_patient`): The type is automatic — no question needed.
 
 - 18 or older → type id `1006` (New Adult Medical)
 - Under 18 → type id `1004` (New Pediatric Medical)
 
-**Existing patient** (came from `verify_patient`): Ask one question — "is this a follow-up visit or a post-op visit?"
+**Spring Hill medical existing patient** (came from `verify_patient`): Ask one question — "is this a follow-up visit or a post-op visit?"
 
 - Follow-up + 18 or older → type id `1007` (Established Adult Medical)
 - Follow-up + under 18 → type id `1005` (Established Pediatric Medical)
@@ -216,8 +232,8 @@ Hold onto the type id — you'll need it for `book_appt`.
 **What you send:**
 
 - `date` (string, required) — YYYY-MM-DD format
-- `office` (string) — always `spring hill`. Don't ask the caller for this.
-- `routing` (string) — the routing rule from `verify_patient` or `add_patient` response. Pass it through exactly as received (e.g., `bach_only`, `bach_licht`, `all_three`). The server uses this to filter which doctors' slots are returned. If you don't have a routing value, omit it and all providers will be returned.
+- `office` (string) — the current office for this call, such as `spring hill` or `crystal river`. Don't ask the caller for this.
+- `routing` (string) — for medical visits, pass the routing rule from `verify_patient` or `add_patient` response exactly as received (e.g., `bach_only`, `bach_licht`, `all_three`). For routine vision visits, pass `optical_only`. If omitted, the server defaults to medical routing and will not return the routine vision column.
 - `preauthRequired` (boolean) — pass `true` if `add_patient` returned `preauthRequired: true`. The server will automatically ensure the search date is at least 14 days out. If not applicable, omit it.
 
 **If `routing` is `not_accepted`**: Do NOT call this tool. The patient's insurance isn't accepted — tell them immediately and offer self-pay or a transfer.
@@ -257,8 +273,9 @@ The finish line. Only call this after the caller confirms the details.
 - `columnid` (integer) — from the provider's `columnId` in the availability response
 - `profileid` (integer) — from the provider's `profileId`
 - `startdatetime` (string) — from `availableSlots[].datetime`, formatted `YYYY-MM-DDTHH:MM`
-- `duration` (integer) — from `slotDuration` of the selected provider (15 or 30 minutes)
-- `type` (array) — `[{ "id": TYPE_ID }]` where TYPE_ID is the appointment type from the Determine Appointment Type step (1004, 1005, 1006, 1007, or 1008)
+- `duration` (integer) — from `slotDuration` of the selected provider
+- `appointmentTypeId` (integer) — the appointment type from the Determine Appointment Type step
+- `routing` (string) — use the same routing used for `get_availability`; routine vision bookings must send `optical_only`
 - `episodeid` (integer) — always `1`
 
 **What comes back:**

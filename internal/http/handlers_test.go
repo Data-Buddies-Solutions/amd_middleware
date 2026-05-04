@@ -86,6 +86,95 @@ func TestBuildBookAppointmentReceipt(t *testing.T) {
 	}
 }
 
+func TestFilterColumnsForRouting_RoutineVisionLane(t *testing.T) {
+	office := domain.DefaultOffice()
+	columns := []domain.SchedulerColumn{
+		{ID: "1513"},
+		{ID: "1598"},
+		{ID: "1551"},
+		{ID: "1550"},
+		{ID: "1600"},
+	}
+
+	medical := filterColumnsForRouting(columns, office, domain.ParseRoutingRule(""))
+	if len(medical) != 4 {
+		t.Fatalf("default medical routing returned %d columns, want 4", len(medical))
+	}
+	for _, col := range medical {
+		if col.ID == "1600" {
+			t.Fatal("default medical routing should not include routine vision column 1600")
+		}
+	}
+
+	optical := filterColumnsForRouting(columns, office, domain.ParseRoutingRule("optical_only"))
+	if len(optical) != 1 {
+		t.Fatalf("optical_only routing returned %d columns, want 1", len(optical))
+	}
+	if optical[0].ID != "1600" {
+		t.Fatalf("optical_only routing returned column %s, want 1600", optical[0].ID)
+	}
+}
+
+func TestHandleBookAppointment_RoutingGuard(t *testing.T) {
+	handlers := &Handlers{}
+
+	tests := []struct {
+		name        string
+		body        string
+		expectedMsg string
+	}{
+		{
+			name:        "routine vision column requires optical routing",
+			body:        `{"patientId":"123","columnId":1600,"profileId":1983,"startDatetime":"2026-05-12T10:00","duration":45,"appointmentTypeId":1007}`,
+			expectedMsg: `Column 1600 is not valid for routing "all_three" at Spring Hill`,
+		},
+		{
+			name:        "medical column rejected for optical routing",
+			body:        `{"patientId":"123","columnId":1513,"profileId":620,"startDatetime":"2026-05-12T10:00","duration":30,"appointmentTypeId":1007,"routing":"optical_only"}`,
+			expectedMsg: `Column 1513 is not valid for routing "optical_only" at Spring Hill`,
+		},
+		{
+			name:        "routine vision column rejects mismatched profile",
+			body:        `{"patientId":"123","columnId":1600,"profileId":620,"startDatetime":"2026-05-12T10:00","duration":45,"appointmentTypeId":1010,"routing":"optical_only"}`,
+			expectedMsg: `Profile 620 is not valid for column 1600 at Spring Hill`,
+		},
+		{
+			name:        "routine vision routing requires vision appointment type",
+			body:        `{"patientId":"123","columnId":1600,"profileId":1983,"startDatetime":"2026-05-12T10:00","duration":45,"appointmentTypeId":1007,"routing":"optical_only"}`,
+			expectedMsg: `Appointment type 1007 is not valid for routing "optical_only" at Spring Hill`,
+		},
+		{
+			name:        "vision appointment type rejected for medical routing",
+			body:        `{"patientId":"123","columnId":1513,"profileId":620,"startDatetime":"2026-05-12T10:00","duration":30,"appointmentTypeId":1010}`,
+			expectedMsg: `Appointment type 1010 is not valid for routing "all_three" at Spring Hill`,
+		},
+		{
+			name:        "crystal river type rejected at spring hill",
+			body:        `{"patientId":"123","columnId":1513,"profileId":620,"startDatetime":"2026-05-12T10:00","duration":30,"appointmentTypeId":6169}`,
+			expectedMsg: `Appointment type 6169 is not valid for routing "all_three" at Spring Hill`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest("POST", "/api/appointment/book", bytes.NewBufferString(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			handlers.HandleBookAppointment(w, req)
+
+			var body BookAppointmentResponse
+			json.NewDecoder(w.Result().Body).Decode(&body)
+			if body.Status != "error" {
+				t.Fatalf("expected status error, got %q", body.Status)
+			}
+			if body.Message != tt.expectedMsg {
+				t.Fatalf("expected message %q, got %q", tt.expectedMsg, body.Message)
+			}
+		})
+	}
+}
+
 func TestHandleVerifyPatient_ValidationErrors(t *testing.T) {
 	handlers := &Handlers{}
 
@@ -175,6 +264,40 @@ func TestAddPatientMissingFields_EmailOptional(t *testing.T) {
 				t.Fatalf("Expected no missing fields when email is %s, got %v", tt.name, missing)
 			}
 		})
+	}
+}
+
+func TestHandleAddPatient_RoutineVisionRequiresOpticalOffice(t *testing.T) {
+	handlers := &Handlers{}
+	req := httptest.NewRequest("POST", "/api/add-patient", bytes.NewBufferString(`{
+		"firstName":"Jane",
+		"lastName":"Doe",
+		"dob":"01/01/1980",
+		"phone":"5551234567",
+		"street":"123 Main St",
+		"city":"Crystal River",
+		"state":"FL",
+		"zip":"34429",
+		"sex":"female",
+		"insurance":"VSP",
+		"coverageType":"routine_vision",
+		"subscriberName":"Jane Doe",
+		"subscriberNum":"ABC123",
+		"office":"+13523202007"
+	}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandleAddPatient(w, req)
+
+	var body AddPatientResponse
+	json.NewDecoder(w.Result().Body).Decode(&body)
+	if body.Status != "error" {
+		t.Fatalf("expected status error, got %q", body.Status)
+	}
+	expected := "Routine vision coverage is not supported at Crystal River. Route the patient to Spring Hill routine vision scheduling."
+	if body.Message != expected {
+		t.Fatalf("expected message %q, got %q", expected, body.Message)
 	}
 }
 
@@ -309,7 +432,7 @@ func TestCalculateAvailableSlots_AllBookedAtMax(t *testing.T) {
 		StartTime:       "09:00",
 		EndTime:         "10:00",
 		Interval:        15,
-		MaxApptsPerSlot: 2, // Max 2 per slot
+		MaxApptsPerSlot: 2,  // Max 2 per slot
 		Workweek:        24, // Wed-Thu
 	}
 
@@ -404,8 +527,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected:     false,
 		},
 		{
-			name:     "30-min appt ends exactly at slot — no overlap",
-			slotTime: time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
+			name:         "30-min appt ends exactly at slot — no overlap",
+			slotTime:     time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 30},
@@ -413,8 +536,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: false, // 9:00+30min=9:30, [9:30,10:00) does not overlap [9:00,9:30)
 		},
 		{
-			name:     "60-min appt overlaps into next slot — blocked (4101)",
-			slotTime: time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
+			name:         "60-min appt overlaps into next slot — blocked (4101)",
+			slotTime:     time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 60},
@@ -422,8 +545,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: true, // [9:30,10:00) overlaps [9:00,10:00)
 		},
 		{
-			name:     "60-min appt does not overlap past its end",
-			slotTime: time.Date(2026, 3, 6, 10, 0, 0, 0, eastern),
+			name:         "60-min appt does not overlap past its end",
+			slotTime:     time.Date(2026, 3, 6, 10, 0, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 60},
@@ -431,8 +554,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: false, // [10:00,10:30) does not overlap [9:00,10:00)
 		},
 		{
-			name:     "same-start-time appt is blocked — no double booking",
-			slotTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern),
+			name:         "same-start-time appt is blocked — no double booking",
+			slotTime:     time.Date(2026, 3, 6, 9, 0, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 30},
@@ -440,8 +563,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: true, // [9:00,9:30) overlaps [9:00,9:30)
 		},
 		{
-			name:     "Licht 12:15 scenario — Bourque at 12:00 with 30-min duration blocks 12:15",
-			slotTime: time.Date(2026, 3, 10, 12, 15, 0, 0, eastern),
+			name:         "Licht 12:15 scenario — Bourque at 12:00 with 30-min duration blocks 12:15",
+			slotTime:     time.Date(2026, 3, 10, 12, 15, 0, 0, eastern),
 			slotDuration: 15 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 3, 10, 12, 0, 0, 0, eastern), Duration: 30}, // Bourque 12:00-12:30
@@ -449,8 +572,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: true, // [12:15,12:30) overlaps [12:00,12:30) — AMD 4101
 		},
 		{
-			name:     "overlap from earlier appt even with same-start appt present",
-			slotTime: time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
+			name:         "overlap from earlier appt even with same-start appt present",
+			slotTime:     time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 60},  // overlaps into 9:30
@@ -459,8 +582,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: true, // the 9:00 appt overlaps — hard block regardless of the 9:30 same-start
 		},
 		{
-			name:     "off-grid appt at 8:45 blocks 30-min booking at 8:30",
-			slotTime: time.Date(2026, 5, 13, 8, 30, 0, 0, eastern),
+			name:         "off-grid appt at 8:45 blocks 30-min booking at 8:30",
+			slotTime:     time.Date(2026, 5, 13, 8, 30, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 5, 13, 8, 45, 0, 0, eastern), Duration: 15},
@@ -468,8 +591,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: true, // [8:30,9:00) overlaps [8:45,9:00) — the bug this fix addresses
 		},
 		{
-			name:     "off-grid appt at 9:15 blocks 30-min booking at 9:00",
-			slotTime: time.Date(2026, 5, 13, 9, 0, 0, 0, eastern),
+			name:         "off-grid appt at 9:15 blocks 30-min booking at 9:00",
+			slotTime:     time.Date(2026, 5, 13, 9, 0, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 5, 13, 9, 15, 0, 0, eastern), Duration: 15},
@@ -477,8 +600,8 @@ func TestHasOverlappingAppointment(t *testing.T) {
 			expected: true, // [9:00,9:30) overlaps [9:15,9:30)
 		},
 		{
-			name:     "off-grid appt at 8:45 does NOT block 8:00 slot",
-			slotTime: time.Date(2026, 5, 13, 8, 0, 0, 0, eastern),
+			name:         "off-grid appt at 8:45 does NOT block 8:00 slot",
+			slotTime:     time.Date(2026, 5, 13, 8, 0, 0, 0, eastern),
 			slotDuration: 30 * time.Minute,
 			appointments: []domain.Appointment{
 				{StartDateTime: time.Date(2026, 5, 13, 8, 45, 0, 0, eastern), Duration: 15},
@@ -634,39 +757,39 @@ func TestEnforcePreauthMinDate(t *testing.T) {
 	now := time.Date(2026, 3, 10, 14, 0, 0, 0, eastern) // March 10, 2026
 
 	tests := []struct {
-		name         string
-		requestDate  time.Time
-		expectedDate string
+		name          string
+		requestDate   time.Time
+		expectedDate  string
 		shouldAdvance bool
 	}{
 		{
-			name:         "date tomorrow — advances to 14 days out",
-			requestDate:  time.Date(2026, 3, 11, 0, 0, 0, 0, eastern),
-			expectedDate: "2026-03-24",
+			name:          "date tomorrow — advances to 14 days out",
+			requestDate:   time.Date(2026, 3, 11, 0, 0, 0, 0, eastern),
+			expectedDate:  "2026-03-24",
 			shouldAdvance: true,
 		},
 		{
-			name:         "date 7 days out — advances to 14 days out",
-			requestDate:  time.Date(2026, 3, 17, 0, 0, 0, 0, eastern),
-			expectedDate: "2026-03-24",
+			name:          "date 7 days out — advances to 14 days out",
+			requestDate:   time.Date(2026, 3, 17, 0, 0, 0, 0, eastern),
+			expectedDate:  "2026-03-24",
 			shouldAdvance: true,
 		},
 		{
-			name:         "date 13 days out — still advances to 14 days out",
-			requestDate:  time.Date(2026, 3, 23, 0, 0, 0, 0, eastern),
-			expectedDate: "2026-03-24",
+			name:          "date 13 days out — still advances to 14 days out",
+			requestDate:   time.Date(2026, 3, 23, 0, 0, 0, 0, eastern),
+			expectedDate:  "2026-03-24",
 			shouldAdvance: true,
 		},
 		{
-			name:         "date exactly 14 days out — no change",
-			requestDate:  time.Date(2026, 3, 24, 0, 0, 0, 0, eastern),
-			expectedDate: "2026-03-24",
+			name:          "date exactly 14 days out — no change",
+			requestDate:   time.Date(2026, 3, 24, 0, 0, 0, 0, eastern),
+			expectedDate:  "2026-03-24",
 			shouldAdvance: false,
 		},
 		{
-			name:         "date 30 days out — no change",
-			requestDate:  time.Date(2026, 4, 9, 0, 0, 0, 0, eastern),
-			expectedDate: "2026-04-09",
+			name:          "date 30 days out — no change",
+			requestDate:   time.Date(2026, 4, 9, 0, 0, 0, 0, eastern),
+			expectedDate:  "2026-04-09",
 			shouldAdvance: false,
 		},
 	}
@@ -798,6 +921,13 @@ func TestAppointmentTypeNames(t *testing.T) {
 		{1007, "Established Adult Medical (Follow Up)", true},
 		{1005, "Established Pediatric Medical (Follow Up)", true},
 		{1008, "Post Op", true},
+		{1010, "New Adult Vision", true},
+		{3364, "Established Adult Vision", true},
+		{4244, "New Pediatric Vision", true},
+		{4245, "Established Pediatric Vision", true},
+		{6167, "Crystal River New Patient", true},
+		{6168, "Crystal River Post Op", true},
+		{6169, "Crystal River Established Patient", true},
 		{9999, "", false},
 	}
 
@@ -960,6 +1090,11 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 			name:        "insurance not recognized",
 			body:        `{"patientId":"pat123","insurance":"FakeInsurance","subscriberNum":"ABC123"}`,
 			expectedMsg: `Insurance not recognized: "FakeInsurance". Please use an insurance name from the accepted list.`,
+		},
+		{
+			name:        "routine vision requires optical office",
+			body:        `{"patientId":"pat123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13523202007"}`,
+			expectedMsg: "Routine vision coverage is not supported at Crystal River. Route the patient to Spring Hill routine vision scheduling.",
 		},
 	}
 

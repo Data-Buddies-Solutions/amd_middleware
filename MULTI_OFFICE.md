@@ -24,7 +24,7 @@ All office configuration is in **one file**: `internal/domain/office.go`
 
 | Office | ID | Facility | Phone | Providers |
 |--------|----|----------|-------|-----------|
-| Spring Hill | `spring_hill` | 1568 | +1 (727) 591-9997 | Dr. Bach, Dr. Licht, Dr. Noel |
+| Spring Hill | `spring_hill` | 1568 | +1 (727) 591-9997 | Dr. Bach, Dr. Licht, Dr. Noel, Routine Vision |
 
 ## Adding a New Office
 

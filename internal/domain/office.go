@@ -12,7 +12,7 @@ type OfficeConfig struct {
 	FacilityID       string                   // "1568"
 	DefaultProfileID string                   // "620" (for addpatient XMLRPC)
 	Columns          map[string]OfficeColumn  // column ID → config
-	RoutingTiers     map[RoutingRule][]string  // routing rule → column IDs
+	RoutingTiers     map[RoutingRule][]string // routing rule → column IDs
 	PediatricRouting RoutingRule              // routing override for under-18
 }
 
@@ -23,6 +23,14 @@ type OfficeColumn struct {
 	ShortName   string // "Dr. Bach"
 	MatchKey    string // "BACH" — uppercase fragment for matching AMD names
 }
+
+// InsuranceMode selects which insurance crosswalk should be used.
+type InsuranceMode string
+
+const (
+	InsuranceModeMedical InsuranceMode = "medical"
+	InsuranceModeVision  InsuranceMode = "vision"
+)
 
 // IsAllowedColumn checks if a column ID belongs to this office.
 func (o *OfficeConfig) IsAllowedColumn(columnID string) bool {
@@ -47,6 +55,9 @@ func (o *OfficeConfig) ColumnsForRouting(rule RoutingRule) map[string]bool {
 
 	colIDs, ok := o.RoutingTiers[rule]
 	if !ok {
+		if rule == RoutingOpticalOnly {
+			return map[string]bool{}
+		}
 		// Fall back to all columns for this office
 		colIDs = o.RoutingTiers[RoutingAll]
 	}
@@ -66,6 +77,9 @@ func (o *OfficeConfig) ProvidersForRouting(rule RoutingRule) []string {
 
 	colIDs, ok := o.RoutingTiers[rule]
 	if !ok {
+		if rule == RoutingOpticalOnly {
+			return []string{}
+		}
 		colIDs = o.RoutingTiers[RoutingAll]
 	}
 
@@ -100,10 +114,18 @@ func (o *OfficeConfig) ProviderDisplayName(profileID string) string {
 // FriendlyProviderName maps an AMD provider name to a friendly display name.
 func (o *OfficeConfig) FriendlyProviderName(amdName string) string {
 	upper := strings.ToUpper(amdName)
+	match := ""
 	for _, col := range o.Columns {
 		if col.MatchKey != "" && strings.Contains(upper, col.MatchKey) {
-			return col.DisplayName
+			if match == "" ||
+				(strings.Contains(match, "Overflow") && !strings.Contains(col.DisplayName, "Overflow")) ||
+				len(col.DisplayName) < len(match) {
+				match = col.DisplayName
+			}
 		}
+	}
+	if match != "" {
+		return match
 	}
 	return amdName
 }
@@ -127,6 +149,13 @@ var DefaultAppointmentTypeColors = map[int]string{
 	1007: "ORANGE", // Established Adult Medical (Follow Up)
 	1005: "PINK",   // Established Pediatric Medical (Follow Up)
 	1008: "BLUE",   // Post Op
+	1010: "TEAL",   // New Adult Vision
+	3364: "ROSE",   // Established Adult Vision
+	4244: "BROWN",  // New Pediatric Vision
+	4245: "GRAY",   // Established Pediatric Vision
+	6167: "ORANGE", // Crystal River New Patient
+	6168: "TEAL",   // Crystal River Post Op
+	6169: "RED",    // Crystal River Established Patient
 }
 
 // DefaultAppointmentTypeNames maps AMD appointment type IDs to friendly names.
@@ -136,6 +165,26 @@ var DefaultAppointmentTypeNames = map[int]string{
 	1007: "Established Adult Medical (Follow Up)",
 	1005: "Established Pediatric Medical (Follow Up)",
 	1008: "Post Op",
+	1010: "New Adult Vision",
+	3364: "Established Adult Vision",
+	4244: "New Pediatric Vision",
+	4245: "Established Pediatric Vision",
+	6167: "Crystal River New Patient",
+	6168: "Crystal River Post Op",
+	6169: "Crystal River Established Patient",
+}
+
+var opticalAppointmentTypes = map[int]bool{
+	1010: true,
+	3364: true,
+	4244: true,
+	4245: true,
+}
+
+var crystalRiverAppointmentTypes = map[int]bool{
+	6167: true,
+	6168: true,
+	6169: true,
 }
 
 // devAppointmentTypes maps prod type IDs to dev type IDs.
@@ -146,6 +195,13 @@ var devAppointmentTypes = map[int]int{
 	1007: 18,   // Established Adult Medical (Follow Up)
 	1005: 8,    // Established Pediatric Medical (Follow Up)
 	1008: 1627, // Post Op
+	1010: 1010, // New Adult Vision (no separate dev ID configured)
+	3364: 3364, // Established Adult Vision (no separate dev ID configured)
+	4244: 4244, // New Pediatric Vision (no separate dev ID configured)
+	4245: 4245, // Established Pediatric Vision (no separate dev ID configured)
+	6167: 6167, // Crystal River New Patient (prod IDs used in dev CR placeholder)
+	6168: 6168, // Crystal River Post Op (prod IDs used in dev CR placeholder)
+	6169: 6169, // Crystal River Established Patient (prod IDs used in dev CR placeholder)
 }
 
 // isDevEnv tracks whether we're running in dev mode. Set by InitRegistry.
@@ -164,6 +220,28 @@ func ResolveAppointmentTypeID(typeID int) (int, bool) {
 	return typeID, true
 }
 
+// AllowsAppointmentType reports whether an appointment type can be booked for this office/routing lane.
+func (o *OfficeConfig) AllowsAppointmentType(typeID int, routing RoutingRule) bool {
+	if _, ok := DefaultAppointmentTypeColors[typeID]; !ok {
+		return false
+	}
+
+	if routing == RoutingOpticalOnly {
+		return o.ID == "spring_hill" && opticalAppointmentTypes[typeID]
+	}
+	if o.ID == "crystal_river" {
+		return crystalRiverAppointmentTypes[typeID]
+	}
+	if opticalAppointmentTypes[typeID] {
+		return false
+	}
+	if crystalRiverAppointmentTypes[typeID] {
+		return false
+	}
+
+	return true
+}
+
 // prodOffices contains office configs keyed by SIP trunk phone number (E.164).
 var prodOffices = map[string]*OfficeConfig{
 	"+17275919997": {
@@ -176,11 +254,13 @@ var prodOffices = map[string]*OfficeConfig{
 			"1598": {ProfileID: "620", DisplayName: "Dr. Austin Bach (Overflow)", ShortName: "Dr. Bach", MatchKey: "BACH"},
 			"1551": {ProfileID: "2064", DisplayName: "Dr. J. Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"},
 			"1550": {ProfileID: "2076", DisplayName: "Dr. D. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL"},
+			"1600": {ProfileID: "1983", DisplayName: "Routine Vision - Dr. Melissa Otero", ShortName: "Routine Vision", MatchKey: "OTERO"},
 		},
 		RoutingTiers: map[RoutingRule][]string{
-			RoutingBachOnly:  {"1513", "1598"},
-			RoutingBachLicht: {"1513", "1598", "1551"},
-			RoutingAll:       {"1513", "1598", "1551", "1550"},
+			RoutingBachOnly:    {"1513", "1598"},
+			RoutingBachLicht:   {"1513", "1598", "1551"},
+			RoutingAll:         {"1513", "1598", "1551", "1550"},
+			RoutingOpticalOnly: {"1600"},
 		},
 		PediatricRouting: RoutingBachOnly,
 	},
@@ -324,5 +404,3 @@ func ValidOfficeNames() []string {
 	}
 	return names
 }
-
-

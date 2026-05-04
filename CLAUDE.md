@@ -185,6 +185,13 @@ Spring Hill facility ID: **1568**
 | Established Adult Medical (Follow Up) | 1007 | ESTABLISH ADULT MEDICAL |
 | Established Pediatric Medical (Follow Up) | 1005 | ESTABLISH PEDIATRIC MED |
 | Post Op | 1008 | POST OP |
+| New Adult Vision | 1010 | NEW ADULT VISION |
+| Established Adult Vision | 3364 | ESTABLISH ADULT VISION |
+| New Pediatric Vision | 4244 | NEW PEDIATRIC VISION |
+| Established Pediatric Vision | 4245 | ESTABLISH PEDIATRIC VISION |
+| Crystal River New Patient | 6167 | CR NEW PATIENT |
+| Crystal River Established Patient | 6169 | CR ESTABLISHED PT |
+| Crystal River Post Op | 6168 | CR POST OP |
 
 ### Insurance Routing
 
@@ -197,7 +204,7 @@ Insurance-based provider routing is enforced server-side. See `INSURANCE_CROSSWA
 - **New patients**: `add-patient` receives insurance name from LLM → `LookupInsurance()` returns carrier ID + routing
 - **Scheduling**: `get_availability` accepts optional `routing` param → `ColumnsForRouting()` filters columns before any AMD API calls
 - 5 ambiguous carrier IDs (Aetna, FL Blue, Molina, UHC, Cigna HMO) default to `all_three` with `routingAmbiguous: true` flag so the agent can ask a clarifying question
-- **Pediatric override**: Patients under 18 (via `IsMinor()` in `patient.go`) are automatically routed to `bach_only` regardless of insurance routing. Applied server-side in both `verify-patient` and `add-patient` handlers after insurance routing is determined. Does not override `not_accepted` insurance.
+- **Pediatric override**: Medical patients under 18 (via `IsMinor()` in `patient.go`) are automatically routed to `bach_only` regardless of medical insurance routing. Applied server-side in both `verify-patient` and medical `add-patient` handlers after insurance routing is determined. Does not override `not_accepted` insurance or the Spring Hill routine-vision lane.
 
 **Key files:**
 - `internal/domain/insurance.go` — `InsuranceNameMap`, `CarrierRoutingMap`, `AmbiguousCarriers`, routing functions

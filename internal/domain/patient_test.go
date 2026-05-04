@@ -36,7 +36,7 @@ func TestStripPatientPrefix(t *testing.T) {
 	}{
 		{"pat123", "123"},
 		{"pat45", "45"},
-		{"123", "123"},      // No prefix
+		{"123", "123"},        // No prefix
 		{"patient1", "ient1"}, // Only strips "pat"
 		{"", ""},
 	}
@@ -136,6 +136,64 @@ func TestLookupInsurance(t *testing.T) {
 				if entry.Routing != tt.wantRouting {
 					t.Errorf("LookupInsurance(%q) routing = %q, want %q", tt.input, entry.Routing, tt.wantRouting)
 				}
+			}
+		})
+	}
+}
+
+func TestLookupInsuranceForCoverage_RoutineVision(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		wantID    string
+		wantFound bool
+	}{
+		{"top level VSP", "VSP", "car280695", true},
+		{"misspelled Solstice", "Soltice", "car301652", true},
+		{"VSP alias", "Lincoln Finacial", "car280695", true},
+		{"EyeMed alias", "Humana", "car280684", true},
+		{"Davis alias", "Florida Blue", "car280612", true},
+		{"Spectera alias", "United Health Care", "car308790", true},
+		{"iCare alias", "Simply Medcaid", "car40907", true},
+		{"Alivi alias", "CarePlus", "car308796", true},
+		{"medical not accepted becomes vision bucket", "Optimum", "car40907", true},
+		{"unknown carrier", "unknown", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			entry, gotFound := LookupInsuranceForCoverage(tt.input, InsuranceModeVision)
+			if gotFound != tt.wantFound {
+				t.Errorf("LookupInsuranceForCoverage(%q, vision) found = %v, want %v", tt.input, gotFound, tt.wantFound)
+			}
+			if gotFound {
+				if entry.CarrierID != tt.wantID {
+					t.Errorf("LookupInsuranceForCoverage(%q, vision) carrierID = %q, want %q", tt.input, entry.CarrierID, tt.wantID)
+				}
+				if entry.Routing != RoutingOpticalOnly {
+					t.Errorf("LookupInsuranceForCoverage(%q, vision) routing = %q, want %q", tt.input, entry.Routing, RoutingOpticalOnly)
+				}
+			}
+		})
+	}
+}
+
+func TestInsuranceModeForCoverage(t *testing.T) {
+	tests := []struct {
+		input string
+		want  InsuranceMode
+	}{
+		{"routine_vision", InsuranceModeVision},
+		{"routine vision", InsuranceModeVision},
+		{"optical_only", InsuranceModeVision},
+		{"", InsuranceModeMedical},
+		{"medical", InsuranceModeMedical},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			if got := InsuranceModeForCoverage(tt.input); got != tt.want {
+				t.Errorf("InsuranceModeForCoverage(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
