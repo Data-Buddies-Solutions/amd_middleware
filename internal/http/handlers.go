@@ -296,7 +296,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 	strippedID := domain.StripPatientPrefix(rawPatientID)
 
 	// Look up insurance entry from name
-	insEntry, ok := domain.LookupInsuranceForCoverage(req.Insurance, insuranceMode)
+	insEntry, ok := domain.LookupInsuranceForCoverageAtOffice(req.Insurance, insuranceMode, office)
 	if !ok {
 		json.NewEncoder(w).Encode(AddPatientResponse{
 			Status:    "partial",
@@ -529,7 +529,7 @@ func (h *Handlers) HandleVerifyPatient(w http.ResponseWriter, r *http.Request) {
 
 			if demoResult.CarrierID != "" {
 				resp.InsuranceCarrierID = demoResult.CarrierID
-				routing, ambiguous := domain.RoutingForCarrierID(demoResult.CarrierID)
+				routing, ambiguous := domain.RoutingForDemographicInsurance(demoResult.CarrierID, demoResult.CarrierName, office)
 				resp.Routing = string(routing)
 				resp.AllowedProviders = office.ProvidersForRouting(routing)
 				resp.RoutingAmbiguous = ambiguous
@@ -581,7 +581,7 @@ func (h *Handlers) HandleVerifyPatient(w http.ResponseWriter, r *http.Request) {
 
 						if demoResult.CarrierID != "" {
 							resp.InsuranceCarrierID = demoResult.CarrierID
-							routing, ambiguous := domain.RoutingForCarrierID(demoResult.CarrierID)
+							routing, ambiguous := domain.RoutingForDemographicInsurance(demoResult.CarrierID, demoResult.CarrierName, office)
 							resp.Routing = string(routing)
 							resp.AllowedProviders = office.ProvidersForRouting(routing)
 							resp.RoutingAmbiguous = ambiguous
@@ -836,7 +836,7 @@ func (h *Handlers) HandlePatientLookup(w http.ResponseWriter, r *http.Request) {
 		}
 		if demoResult.CarrierID != "" {
 			resp.InsuranceCarrierID = demoResult.CarrierID
-			routing, ambiguous := domain.RoutingForCarrierID(demoResult.CarrierID)
+			routing, ambiguous := domain.RoutingForDemographicInsurance(demoResult.CarrierID, demoResult.CarrierName, office)
 			resp.Routing = string(routing)
 			resp.AllowedProviders = office.ProvidersForRouting(routing)
 			resp.RoutingAmbiguous = ambiguous
@@ -1724,7 +1724,7 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Look up new insurance
-	insEntry, found := domain.LookupInsuranceForCoverage(req.Insurance, insuranceMode)
+	insEntry, found := domain.LookupInsuranceForCoverageAtOffice(req.Insurance, insuranceMode, office)
 	if !found {
 		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
 			Status:  "error",
@@ -1772,7 +1772,7 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 	}
 
 	routing := insEntry.Routing
-	_, ambiguous := domain.RoutingForCarrierID(insEntry.CarrierID)
+	_, ambiguous := domain.RoutingForDemographicInsurance(insEntry.CarrierID, req.Insurance, office)
 
 	json.NewEncoder(w).Encode(UpdateInsuranceResponse{
 		Status:           "updated",

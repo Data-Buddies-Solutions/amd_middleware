@@ -18,13 +18,16 @@ func TestRoutingForCarrierID(t *testing.T) {
 		{"bach+licht - AvMed", "car40890", RoutingBachLicht, false},
 		{"bach+licht - Tricare East", "car284327", RoutingBachLicht, false},
 		{"bach+licht - Oscar", "car284233", RoutingBachLicht, false},
+		{"not accepted - Eye America", "car308627", RoutingNotAccepted, false},
 
 		// Ambiguous carriers — default to RoutingAll with ambiguous flag
 		{"ambiguous - Aetna", "car40887", RoutingAll, true},
 		{"ambiguous - FL Blue", "car40897", RoutingAll, true},
+		{"ambiguous - iCare", "car40907", RoutingAll, true},
 		{"ambiguous - Molina", "car40912", RoutingAll, true},
 		{"ambiguous - UHC", "car40923", RoutingAll, true},
 		{"ambiguous - Cigna HMO", "car301345", RoutingAll, true},
+		{"ambiguous - Humana consolidated", "car308175", RoutingAll, true},
 
 		// Unknown carrier — defaults to RoutingAll, not ambiguous
 		{"unknown carrier defaults to all", "car99999", RoutingAll, false},
@@ -39,6 +42,127 @@ func TestRoutingForCarrierID(t *testing.T) {
 			}
 			if ambiguous != tt.wantAmbiguous {
 				t.Errorf("RoutingForCarrierID(%q) ambiguous = %v, want %v", tt.carrierID, ambiguous, tt.wantAmbiguous)
+			}
+		})
+	}
+}
+
+func TestLookupInsurance_SpringHillRejectedMedicalPlans(t *testing.T) {
+	office := &OfficeConfig{ID: "spring_hill", DisplayName: "Spring Hill"}
+	tests := []string{
+		"Aetna EPO",
+		"Humana Gold Plus",
+		"Miami Children's",
+		"Humana Medicaid",
+		"Fl Blue Select",
+		"Cigna",
+		"Miami Dade Doctors Health",
+		"Av Med Medicare Advantage",
+		"Cigna Local Plus",
+		"Eye America",
+		"Fl Blue HMO",
+		"Fl Blue Steward",
+	}
+
+	for _, input := range tests {
+		t.Run(input, func(t *testing.T) {
+			entry, found := LookupInsuranceForCoverageAtOffice(input, InsuranceModeMedical, office)
+			if !found {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) found = false, want true", input)
+			}
+			if entry.Routing != RoutingNotAccepted {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) routing = %q, want %q", input, entry.Routing, RoutingNotAccepted)
+			}
+		})
+	}
+}
+
+func TestLookupInsurance_CrystalRiverRejectedMedicalPlans(t *testing.T) {
+	office := &OfficeConfig{ID: "crystal_river", DisplayName: "Crystal River"}
+	tests := []string{
+		"Medicaid",
+		"Florida Medicaid",
+		"Molina Medicaid",
+		"Aetna Better Health",
+		"Staywell",
+		"Sunshine",
+		"Ambetter",
+		"Ambetter Select",
+		"Simply Medicaid",
+	}
+
+	for _, input := range tests {
+		t.Run(input, func(t *testing.T) {
+			entry, found := LookupInsuranceForCoverageAtOffice(input, InsuranceModeMedical, office)
+			if !found {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) found = false, want true", input)
+			}
+			if entry.Routing != RoutingNotAccepted {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) routing = %q, want %q", input, entry.Routing, RoutingNotAccepted)
+			}
+		})
+	}
+}
+
+func TestLookupInsurance_CrystalRiverExtrasRemainAcceptedAtSpringHill(t *testing.T) {
+	office := &OfficeConfig{ID: "spring_hill", DisplayName: "Spring Hill"}
+	tests := []string{
+		"Medicaid",
+		"Ambetter",
+		"Simply Medicaid",
+	}
+
+	for _, input := range tests {
+		t.Run(input, func(t *testing.T) {
+			entry, found := LookupInsuranceForCoverageAtOffice(input, InsuranceModeMedical, office)
+			if !found {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) found = false, want true", input)
+			}
+			if entry.Routing == RoutingNotAccepted {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) routing = %q, want accepted routing", input, entry.Routing)
+			}
+		})
+	}
+}
+
+func TestRoutingForCarrierIDAtOffice_CrystalRiverRejectedCarriers(t *testing.T) {
+	crystalRiver := &OfficeConfig{ID: "crystal_river", DisplayName: "Crystal River"}
+	springHill := &OfficeConfig{ID: "spring_hill", DisplayName: "Spring Hill"}
+
+	routing, ambiguous := RoutingForCarrierIDAtOffice("car281245", crystalRiver)
+	if routing != RoutingNotAccepted || ambiguous {
+		t.Fatalf("RoutingForCarrierIDAtOffice(car281245, Crystal River) = %q, %v; want %q, false", routing, ambiguous, RoutingNotAccepted)
+	}
+
+	routing, ambiguous = RoutingForCarrierIDAtOffice("car281245", springHill)
+	if routing != RoutingAll || ambiguous {
+		t.Fatalf("RoutingForCarrierIDAtOffice(car281245, Spring Hill) = %q, %v; want %q, false", routing, ambiguous, RoutingAll)
+	}
+}
+
+func TestRoutingForDemographicInsurance_UsesCarrierNameBeforeCarrierFallback(t *testing.T) {
+	crystalRiver := &OfficeConfig{ID: "crystal_river", DisplayName: "Crystal River"}
+
+	tests := []struct {
+		name          string
+		carrierID     string
+		carrierName   string
+		wantRouting   RoutingRule
+		wantAmbiguous bool
+	}{
+		{"crystal river rejects exact sunshine name", "car281245", "Sunshine Medicaid", RoutingNotAccepted, false},
+		{"crystal river accepts exact wellcare name", "car281245", "Wellcare", RoutingAll, false},
+		{"crystal river rejects shared carrier fallback", "car281245", "", RoutingNotAccepted, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			routing, ambiguous := RoutingForDemographicInsurance(tt.carrierID, tt.carrierName, crystalRiver)
+			if routing != tt.wantRouting {
+				t.Fatalf("RoutingForDemographicInsurance(%q, %q) routing = %q, want %q", tt.carrierID, tt.carrierName, routing, tt.wantRouting)
+			}
+			if ambiguous != tt.wantAmbiguous {
+				t.Fatalf("RoutingForDemographicInsurance(%q, %q) ambiguous = %v, want %v", tt.carrierID, tt.carrierName, ambiguous, tt.wantAmbiguous)
 			}
 		})
 	}

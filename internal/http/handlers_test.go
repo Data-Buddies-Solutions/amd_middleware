@@ -1092,6 +1092,16 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 			expectedMsg: `Insurance not recognized: "FakeInsurance". Please use an insurance name from the accepted list.`,
 		},
 		{
+			name:        "spring hill rejected medical plan",
+			body:        `{"patientId":"pat123","insurance":"Cigna Local Plus","subscriberNum":"ABC123"}`,
+			expectedMsg: "Cigna Local Plus is not accepted at Spring Hill.",
+		},
+		{
+			name:        "crystal river rejected medical plan",
+			body:        `{"patientId":"pat123","insurance":"Ambetter","subscriberNum":"ABC123","office":"+13523202007"}`,
+			expectedMsg: "Ambetter is not accepted at Crystal River.",
+		},
+		{
 			name:        "routine vision requires optical office",
 			body:        `{"patientId":"pat123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13523202007"}`,
 			expectedMsg: "Routine vision coverage is not supported at Crystal River. Route the patient to Spring Hill routine vision scheduling.",

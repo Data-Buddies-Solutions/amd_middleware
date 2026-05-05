@@ -1,4 +1,4 @@
-# Insurance Crosswalk — Spring Hill Location
+# Insurance Crosswalk — Medical Insurance
 
 Source: Abita Insurance List - SpringHill Location rev 9.4.2025
 Source of truth: `internal/domain/insurance.go`
@@ -24,7 +24,7 @@ The LLM has a fixed list of insurance names in its TOOLS prompt. When a patient 
 
 ## Carrier ID Groupings
 
-85 insurance names consolidate down to **22 carrier IDs**. The 8 major networks cover 68 plans; 14 standalone carriers cover 1 plan each; 3 additional plans are hard-rejected with no carrier ID.
+Insurance names consolidate to AMD carrier IDs where accepted. Some rejected plans still have carrier IDs so the middleware can recognize and block them before scheduling.
 
 ---
 
@@ -42,7 +42,7 @@ The LLM has a fixed list of insurance names in its TOOLS prompt. When a patient 
 | Florida Community Care | All 3 |
 | Florida Complete Care | All 3 |
 | iCare | All 3 |
-| Miami Children's Health Plan | All 3 |
+| Miami Children's Health Plan | **Not Accepted** |
 | Simply Medicaid | All 3 |
 | Vivida | All 3 |
 | Doctors Health Medicare | **Not Accepted** |
@@ -90,9 +90,9 @@ The LLM has a fixed list of insurance names in its TOOLS prompt. When a patient 
 
 | Insurance Name | Routing |
 |---------------|---------|
-| Humana Gold Plus | Bach Only |
+| Humana Gold Plus | **Not Accepted** |
 | Humana Healthy Horizons | Bach Only |
-| Humana Medicaid | Bach Only |
+| Humana Medicaid | **Not Accepted** |
 | Humana Medicare | Bach Only |
 | Humana PPO | Bach Only |
 | Molina Medicare | Bach Only |
@@ -112,31 +112,38 @@ The LLM has a fixed list of insurance names in its TOOLS prompt. When a patient 
 | Florida Blue Medicare PPO | All 3 |
 | Florida Blue PPO Federal Employee | All 3 |
 | Florida Blue PPO Out of State | All 3 |
-| Florida Blue Steward Tier 1 | Bach Only |
+| Florida Blue Steward Tier 1 | **Not Accepted** |
 | Florida BlueSelect | **Not Accepted** |
 
 ---
 
-### Cigna — car301345 (5 plans)
+### Cigna — car301345
 
 | Insurance Name | Routing |
 |---------------|---------|
+| Cigna | **Not Accepted** |
 | Cigna HMO | All 3 |
-| Cigna Miami-Dade Public Schools | All 3 |
+| Cigna Miami-Dade Public Schools | **Not Accepted** |
 | Cigna Open Access | All 3 |
 | Cigna PPO | All 3 |
-| Cigna Local Plus | Bach Only |
+| Cigna Local Plus | **Not Accepted** |
 
 ---
 
-### Aetna — car40887 (5 plans)
+### Aetna — car40887
 
 | Insurance Name | Routing |
 |---------------|---------|
 | Aetna | All 3 |
+| Aetna Commercial | All 3 |
+| Aetna Commercial PPO | All 3 |
+| Aetna Managed Choice | All 3 |
+| Aetna Medicare PPO | All 3 |
 | Aetna Medicare Signature PPO | All 3 |
+| Aetna PPO | All 3 |
 | Aetna QHP Individual Exchange | All 3 |
-| Aetna EPO North Broward | Bach Only |
+| Aetna EPO | **Not Accepted** |
+| Aetna EPO North Broward | **Not Accepted** |
 | Aetna EPO University of Miami | **Not Accepted** |
 
 ---
@@ -158,7 +165,7 @@ The LLM has a fixed list of insurance names in its TOOLS prompt. When a patient 
 |---------------|-----------|---------|
 | AvMed Medicare Advantage | car301737 | **Not Accepted** |
 | Florida Blue HMO | car280750 | **Not Accepted** |
-| Eye America AAO | car308627 | Bach Only |
+| Eye America AAO | car308627 | **Not Accepted** |
 | Meritain Health | car301578 | Bach Only |
 | AvMed | car40890 | Bach + Licht |
 | Oscar Health | car284233 | Bach + Licht |
@@ -185,16 +192,37 @@ Hard-rejected by name before any AMD lookup. No carrier ID is stored because the
 
 ---
 
+## Crystal River Medical Overrides
+
+Crystal River medical uses the Spring Hill rejection list above, plus these additional plan/family blocks:
+
+| Insurance Name / Family | Routing |
+|-------------------------|---------|
+| All Medicaid plans | **Not Accepted** |
+| Ambetter | **Not Accepted** |
+| Ambetter Premier | **Not Accepted** |
+| Ambetter Select | **Not Accepted** |
+| Ambetter Value | **Not Accepted** |
+| Staywell Medicare | **Not Accepted** |
+| Sunshine Medicaid | **Not Accepted** |
+| Simply Medicaid | **Not Accepted** |
+
+For existing-patient demographics at Crystal River, these carrier IDs are rejected because AMD may only return the family-level carrier ID: `car281245`, `car303033`, `car40899`, `car40907`, `car40912`.
+
+---
+
 ## Ambiguous Carriers (Existing Patients)
 
-These 5 carrier IDs appear across multiple routing tiers in the name map. When we get one from an existing patient's demographics, we can't determine the specific plan — so we default to **All 3** and set `routingAmbiguous: true` so the agent asks a clarifying question.
+These carrier IDs appear across multiple routing tiers in the name map. When we get one from an existing patient's demographics, we can't determine the specific plan — so we default to **All 3** and set `routingAmbiguous: true` so the agent asks a clarifying question.
 
 | Carrier ID | Label | Plans Spanning |
 |-----------|-------|---------------|
-| car40887 | AETNA | Not Accepted + Bach Only + All 3 |
-| car40897 | FLORIDA BLUE SHIELD | Not Accepted + Bach Only + All 3 |
+| car40887 | AETNA | Not Accepted + All 3 |
+| car40897 | FLORIDA BLUE SHIELD | Not Accepted + All 3 |
+| car40907 | ICARE / MEDICAID FAMILY | Not Accepted + All 3 |
 | car40923 | UNITED HEALTHCARE | Not Accepted + Bach + Licht + All 3 |
-| car301345 | CIGNA HMO | Bach Only + All 3 |
+| car301345 | CIGNA HMO | Not Accepted + All 3 |
+| car308175 | HUMANA CONSOLIDATED | Not Accepted + Bach Only + Bach + Licht |
 | car40912 | MOLINA HEALTHCARE OF FLORIDA | All 3 (ambiguous historically) |
 
 ---
@@ -210,11 +238,10 @@ For existing patients, these unambiguous carrier IDs map to a fixed routing rule
 | car301737 | EYE MANAGEMENT INC (AvMed Medicare) | Not Accepted |
 | car280750 | EYE MANAGEMENT INC (FL Blue HMO) | Not Accepted |
 | car303061 | HUMANA PREMIER HMO | Not Accepted |
+| car308627 | EYECARE AMERICA AAO | Not Accepted |
 | car303033 | HUMANA MEDICAID | Bach Only |
 | car40906 | HUMANA MEDICARE | Bach Only |
 | car303062 | HUMANA PPO POS | Bach Only |
-| car308175 | HUMANA GOLD PLUS | Bach Only |
-| car308627 | EYECARE AMERICA AAO | Bach Only |
 | car301578 | MERITAIN HEALTH | Bach Only |
 | car40890 | AVMED | Bach + Licht |
 | car302890 | CIGNA MEDICARE ADVTG HEALTHSPRING | Bach + Licht |
@@ -240,6 +267,9 @@ See `internal/domain/insurance.go` for:
 - `InsuranceNameMap` — name → carrier ID + routing (new patients)
 - `CarrierRoutingMap` — carrier ID → routing (existing patients)
 - `AmbiguousCarriers` — carrier IDs that span multiple tiers
+- `LookupInsuranceForCoverageAtOffice()` — applies office-specific medical acceptance rules
+- `RoutingForCarrierIDAtOffice()` — applies Crystal River demographics carrier blocks
+- `RoutingForDemographicInsurance()` — prefers AMD's carrier name before carrier-ID fallback
 - `ColumnsForRouting()` — routing rule → scheduler column IDs
 - `ProvidersForRouting()` — routing rule → display names
 - `LookupInsurance()` — normalized name lookup
