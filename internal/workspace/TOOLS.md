@@ -141,7 +141,7 @@ Ambetter, Ambetter Select, Ambetter Value, Children's Medical Services, Envolve 
 
 **Cigna:**
 Cigna HMO, Cigna Open Access, Cigna PPO
-→ If patient says just "Cigna," send "Cigna" and let the server reject it; do not assume PPO.
+→ If patient says just "Cigna," ask which Cigna plan is on the card before deciding. Do not assume PPO.
 
 **Cigna / Humana:**
 Cigna Medicare Advantage, Humana Medicare, Humana PPO, Molina Medicare
@@ -173,7 +173,7 @@ United Healthcare, United Healthcare AARP Medicare, United Healthcare All Savers
 AvMed, Florida Medicaid, Florida Medicare, Imagine Health, Medicaid, Meritain Health, Multiplan PHCS, SunHealth, United Healthcare Global
 
 **Do not accept at Spring Hill medical:**
-Aetna EPO, Humana Gold Plus, Miami Children's Health Plan, Humana Medicaid, Florida BlueSelect, Cigna, Cigna Miami-Dade Public Schools, Doctors Health Medicare, AvMed Medicare Advantage, Cigna Local Plus, Eye America AAO, Florida Blue HMO, Florida Blue Steward Tier 1, Preferred Care Partners, Humana HMO, Humana Premier HMO, Molina Marketplace
+Aetna EPO, Humana Gold Plus, Miami Children's Health Plan, Humana Medicaid, Florida BlueSelect, Cigna Miami-Dade Public Schools, Doctors Health Medicare, AvMed Medicare Advantage, Cigna Local Plus, Eye America AAO, Florida Blue HMO, Florida Blue Steward Tier 1, Preferred Care Partners, Humana HMO, Humana Premier HMO, Molina Marketplace
 
 **Additional do not accept at Crystal River medical:**
 All Medicaid plans, Ambetter, Ambetter Select, Ambetter Value, Ambetter Premier, Staywell Medicare, Sunshine Medicaid, Simply Medicaid

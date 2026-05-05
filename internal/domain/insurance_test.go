@@ -1,6 +1,9 @@
 package domain
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestRoutingForCarrierID(t *testing.T) {
 	tests := []struct {
@@ -153,11 +156,19 @@ func TestRoutingForDemographicInsurance_UsesCarrierNameBeforeCarrierFallback(t *
 		{"crystal river rejects exact sunshine name", "car281245", "Sunshine Medicaid", RoutingNotAccepted, false},
 		{"crystal river accepts exact wellcare name", "car281245", "Wellcare", RoutingAll, false},
 		{"crystal river rejects shared carrier fallback", "car281245", "", RoutingNotAccepted, false},
+		{"spring hill preserves generic aetna ambiguity", "car40887", "Aetna", RoutingAll, true},
+		{"spring hill preserves generic cigna ambiguity", "car301345", "Cigna", RoutingAll, true},
+		{"spring hill uses exact aetna epo rejection", "car40887", "Aetna EPO", RoutingNotAccepted, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			routing, ambiguous := RoutingForDemographicInsurance(tt.carrierID, tt.carrierName, crystalRiver)
+			office := crystalRiver
+			if strings.HasPrefix(tt.name, "spring hill") {
+				office = &OfficeConfig{ID: "spring_hill", DisplayName: "Spring Hill"}
+			}
+
+			routing, ambiguous := RoutingForDemographicInsurance(tt.carrierID, tt.carrierName, office)
 			if routing != tt.wantRouting {
 				t.Fatalf("RoutingForDemographicInsurance(%q, %q) routing = %q, want %q", tt.carrierID, tt.carrierName, routing, tt.wantRouting)
 			}

@@ -102,6 +102,7 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 	"aetna commercial":              {CarrierID: "car40887", Routing: RoutingAll},
 	"aetna commercial ppo":          {CarrierID: "car40887", Routing: RoutingAll},
 	"aetna managed choice":          {CarrierID: "car40887", Routing: RoutingAll},
+	"aetna medicare":                {CarrierID: "car40887", Routing: RoutingAll},
 	"aetna medicare ppo":            {CarrierID: "car40887", Routing: RoutingAll},
 	"aetna medicare signature ppo":  {CarrierID: "car40887", Routing: RoutingAll},
 	"aetna ppo":                     {CarrierID: "car40887", Routing: RoutingAll},
@@ -389,6 +390,21 @@ var crystalRiverRejectedCarrierIDs = map[string]bool{
 	"car40912":  true, // Molina Medicaid
 }
 
+var ambiguousDemographicCarrierNames = map[string]bool{
+	"aetna":                  true,
+	"bcbs":                   true,
+	"blue cross":             true,
+	"blue cross blue shield": true,
+	"cigna":                  true,
+	"florida blue":           true,
+	"humana":                 true,
+	"molina":                 true,
+	"uhc":                    true,
+	"united":                 true,
+	"united health care":     true,
+	"united healthcare":      true,
+}
+
 func applyOfficeMedicalInsurancePolicy(entry InsuranceEntry, canonicalName string, office *OfficeConfig) InsuranceEntry {
 	if office == nil || office.ID != "crystal_river" {
 		return entry
@@ -457,6 +473,9 @@ func RoutingForCarrierIDAtOffice(carrierID string, office *OfficeConfig) (Routin
 // falls back to carrier ID. Carrier IDs can represent mixed accepted/rejected plans.
 func RoutingForDemographicInsurance(carrierID, carrierName string, office *OfficeConfig) (RoutingRule, bool) {
 	if entry, canonicalName, ok := lookupInsuranceEntry(carrierName, InsuranceNameMap, InsuranceAliases); ok {
+		if AmbiguousCarriers[carrierID] && ambiguousDemographicCarrierNames[NormalizeForLookup(carrierName)] {
+			return RoutingForCarrierIDAtOffice(carrierID, office)
+		}
 		entry = applyOfficeMedicalInsurancePolicy(entry, canonicalName, office)
 		return entry.Routing, false
 	}

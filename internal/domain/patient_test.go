@@ -150,6 +150,7 @@ func TestLookupInsurance_AgentCanonicalAcceptedPlans(t *testing.T) {
 		{"Aetna Commercial", "car40887"},
 		{"Aetna PPO", "car40887"},
 		{"Aetna Managed Choice", "car40887"},
+		{"Aetna Medicare", "car40887"},
 		{"Aetna Medicare PPO", "car40887"},
 	}
 

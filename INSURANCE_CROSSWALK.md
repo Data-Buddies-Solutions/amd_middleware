@@ -121,7 +121,7 @@ Insurance names consolidate to AMD carrier IDs where accepted. Some rejected pla
 
 | Insurance Name | Routing |
 |---------------|---------|
-| Cigna | **Not Accepted** |
+| Cigna (generic/unresolved) | **Not Accepted** |
 | Cigna HMO | All 3 |
 | Cigna Miami-Dade Public Schools | **Not Accepted** |
 | Cigna Open Access | All 3 |
@@ -138,6 +138,7 @@ Insurance names consolidate to AMD carrier IDs where accepted. Some rejected pla
 | Aetna Commercial | All 3 |
 | Aetna Commercial PPO | All 3 |
 | Aetna Managed Choice | All 3 |
+| Aetna Medicare | All 3 |
 | Aetna Medicare PPO | All 3 |
 | Aetna Medicare Signature PPO | All 3 |
 | Aetna PPO | All 3 |
