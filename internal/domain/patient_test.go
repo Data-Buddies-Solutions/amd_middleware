@@ -141,6 +141,35 @@ func TestLookupInsurance(t *testing.T) {
 	}
 }
 
+func TestLookupInsurance_AgentCanonicalAcceptedPlans(t *testing.T) {
+	tests := []struct {
+		input  string
+		wantID string
+	}{
+		{"Children's Medical Services", "car281245"},
+		{"Aetna Commercial", "car40887"},
+		{"Aetna PPO", "car40887"},
+		{"Aetna Managed Choice", "car40887"},
+		{"Aetna Medicare", "car40887"},
+		{"Aetna Medicare PPO", "car40887"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			entry, found := LookupInsuranceForCoverageAtOffice(tt.input, InsuranceModeMedical, &OfficeConfig{ID: "crystal_river"})
+			if !found {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) found = false, want true", tt.input)
+			}
+			if entry.CarrierID != tt.wantID {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) carrierID = %q, want %q", tt.input, entry.CarrierID, tt.wantID)
+			}
+			if entry.Routing == RoutingNotAccepted {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) routing = %q, want accepted routing", tt.input, entry.Routing)
+			}
+		})
+	}
+}
+
 func TestLookupInsuranceForCoverage_RoutineVision(t *testing.T) {
 	tests := []struct {
 		name      string

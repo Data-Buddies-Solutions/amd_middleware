@@ -209,7 +209,7 @@ Names are automatically stripped of diacritical marks (e.g., "López" → "Lopez
 | `partial` | Patient created but insurance failed/rejected |
 | `error` | Validation or AMD failure |
 
-Response includes `preauthRequired: true` when the patient's insurance requires preauthorization (Humana Gold Plus, Humana Medicaid, United Healthcare HMO, Aetna HMO, Florida Blue Medicare HMO, Cigna HMO, Tricare Prime, Tricare Forever).
+Response includes `preauthRequired: true` when the patient's insurance requires preauthorization (United Healthcare HMO, Aetna HMO, Florida Blue Medicare HMO, Cigna HMO, Tricare Prime, Tricare Forever).
 
 ### POST /api/scheduler/availability
 

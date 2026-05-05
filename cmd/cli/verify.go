@@ -149,7 +149,7 @@ func printVerifiedPatient(ctx context.Context, p domain.Patient, officeConfig *d
 
 		if demoResult.CarrierID != "" {
 			resp["insuranceCarrierId"] = demoResult.CarrierID
-			routing, ambiguous := domain.RoutingForCarrierID(demoResult.CarrierID)
+			routing, ambiguous := domain.RoutingForDemographicInsurance(demoResult.CarrierID, demoResult.CarrierName, officeConfig)
 			resp["routing"] = string(routing)
 			resp["allowedProviders"] = officeConfig.ProvidersForRouting(routing)
 			resp["routingAmbiguous"] = ambiguous

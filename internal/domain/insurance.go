@@ -34,7 +34,7 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 	"community care plan":            {CarrierID: "car40907", Routing: RoutingAll},
 	"florida community care":         {CarrierID: "car40907", Routing: RoutingAll},
 	"florida complete care":          {CarrierID: "car40907", Routing: RoutingAll},
-	"miami childrens health plan":    {CarrierID: "car40907", Routing: RoutingAll},
+	"miami childrens health plan":    {CarrierID: "car40907", Routing: RoutingNotAccepted},
 	"simply medicaid":                {CarrierID: "car40907", Routing: RoutingAll},
 	"vivida":                         {CarrierID: "car40907", Routing: RoutingAll},
 	"eye care health solutions":      {CarrierID: "car40907", Routing: RoutingAll},
@@ -69,8 +69,8 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 	"wellcare":                   {CarrierID: "car281245", Routing: RoutingAll},
 
 	// ── Humana Consolidated — car308175 (8 plans) ───────────────────────
-	"humana gold plus":         {CarrierID: "car308175", Routing: RoutingBachOnly, PreauthRequired: true},
-	"humana medicaid":          {CarrierID: "car308175", Routing: RoutingBachOnly, PreauthRequired: true},
+	"humana gold plus":         {CarrierID: "car308175", Routing: RoutingNotAccepted},
+	"humana medicaid":          {CarrierID: "car308175", Routing: RoutingNotAccepted},
 	"humana medicare":          {CarrierID: "car308175", Routing: RoutingBachOnly},
 	"humana ppo":               {CarrierID: "car308175", Routing: RoutingBachOnly},
 	"humana healthy horizons":  {CarrierID: "car308175", Routing: RoutingBachOnly},
@@ -86,21 +86,29 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 	"florida blue ppo federal employee": {CarrierID: "car40897", Routing: RoutingAll},
 	"florida blue medicare hmo":         {CarrierID: "car40897", Routing: RoutingAll, PreauthRequired: true},
 	"florida blue ppo out of state":     {CarrierID: "car40897", Routing: RoutingAll},
-	"florida blue steward tier 1":       {CarrierID: "car40897", Routing: RoutingBachOnly},
+	"florida blue steward tier 1":       {CarrierID: "car40897", Routing: RoutingNotAccepted},
 	"florida blueselect":                {CarrierID: "car40897", Routing: RoutingNotAccepted},
 
 	// ── Cigna — car301345 (5 plans) ─────────────────────────────────────
+	"cigna":                           {CarrierID: "car301345", Routing: RoutingNotAccepted},
 	"cigna hmo":                       {CarrierID: "car301345", Routing: RoutingAll, PreauthRequired: true},
-	"cigna miami dade public schools": {CarrierID: "car301345", Routing: RoutingAll},
+	"cigna miami dade public schools": {CarrierID: "car301345", Routing: RoutingNotAccepted},
 	"cigna open access":               {CarrierID: "car301345", Routing: RoutingAll},
 	"cigna ppo":                       {CarrierID: "car301345", Routing: RoutingAll},
-	"cigna local plus":                {CarrierID: "car301345", Routing: RoutingBachOnly},
+	"cigna local plus":                {CarrierID: "car301345", Routing: RoutingNotAccepted},
 
-	// ── Aetna — car40887 (4 plans) ──────────────────────────────────────
+	// ── Aetna — car40887 ────────────────────────────────────────────────
 	"aetna":                         {CarrierID: "car40887", Routing: RoutingAll},
+	"aetna commercial":              {CarrierID: "car40887", Routing: RoutingAll},
+	"aetna commercial ppo":          {CarrierID: "car40887", Routing: RoutingAll},
+	"aetna managed choice":          {CarrierID: "car40887", Routing: RoutingAll},
+	"aetna medicare":                {CarrierID: "car40887", Routing: RoutingAll},
+	"aetna medicare ppo":            {CarrierID: "car40887", Routing: RoutingAll},
 	"aetna medicare signature ppo":  {CarrierID: "car40887", Routing: RoutingAll},
+	"aetna ppo":                     {CarrierID: "car40887", Routing: RoutingAll},
 	"aetna qhp individual exchange": {CarrierID: "car40887", Routing: RoutingAll},
-	"aetna epo north broward":       {CarrierID: "car40887", Routing: RoutingBachOnly},
+	"aetna epo":                     {CarrierID: "car40887", Routing: RoutingNotAccepted},
+	"aetna epo north broward":       {CarrierID: "car40887", Routing: RoutingNotAccepted},
 	"aetna epo university of miami": {CarrierID: "car40887", Routing: RoutingNotAccepted},
 
 	// ── Tricare — car40921 (4 plans) ────────────────────────────────────
@@ -112,7 +120,7 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 	// ── Standalone Carriers (1 plan each) ───────────────────────────────
 	"avmed medicare advantage": {CarrierID: "car301737", Routing: RoutingNotAccepted}, // EMI
 	"florida blue hmo":         {CarrierID: "car280750", Routing: RoutingNotAccepted}, // EMI
-	"eye america aao":          {CarrierID: "car308627", Routing: RoutingBachOnly},
+	"eye america aao":          {CarrierID: "car308627", Routing: RoutingNotAccepted},
 	"meritain health":          {CarrierID: "car301578", Routing: RoutingBachOnly},
 	"avmed":                    {CarrierID: "car40890", Routing: RoutingBachLicht},
 	"oscar health":             {CarrierID: "car284233", Routing: RoutingBachLicht},
@@ -133,7 +141,7 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 
 // CarrierRoutingMap maps AMD carrier IDs to routing rules for existing patients.
 // Used when we get the carrier ID from demographics.
-// For the 5 ambiguous carriers, we default to RoutingAll (most permissive).
+// Ambiguous carriers default to RoutingAll (most permissive).
 var CarrierRoutingMap = map[string]RoutingRule{
 	// NOT ACCEPTED (unambiguous carriers only)
 	"car281648": RoutingNotAccepted, // DOCTORS HEALTHCARE PLANS INC
@@ -141,12 +149,11 @@ var CarrierRoutingMap = map[string]RoutingRule{
 	"car301737": RoutingNotAccepted, // EYE MANAGEMENT INC (AvMed Medicare via EMI)
 	"car280750": RoutingNotAccepted, // EYE MANAGEMENT INC (FL Blue HMO via EMI)
 	"car303061": RoutingNotAccepted, // HUMANA PREMIER HMO
+	"car308627": RoutingNotAccepted, // EYECARE AMERICA AAO
 	// BACH ONLY
 	"car303033": RoutingBachOnly, // HUMANA MEDICAID
 	"car40906":  RoutingBachOnly, // HUMANA MEDICARE
 	"car303062": RoutingBachOnly, // HUMANA PPO POS
-	"car308175": RoutingBachOnly, // HUMANA GOLD PLUS
-	"car308627": RoutingBachOnly, // EYECARE AMERICA AAO
 	"car301578": RoutingBachOnly, // MERITAIN HEALTH
 	// BACH + LICHT
 	"car40890":  RoutingBachLicht, // AVMED
@@ -162,9 +169,11 @@ var CarrierRoutingMap = map[string]RoutingRule{
 var AmbiguousCarriers = map[string]bool{
 	"car40887":  true, // AETNA
 	"car40897":  true, // FLORIDA BLUE SHIELD
+	"car40907":  true, // ICARE / MEDICAID FAMILY
 	"car40912":  true, // MOLINA HEALTHCARE OF FLORIDA
 	"car40923":  true, // UNITED HEALTHCARE
 	"car301345": true, // CIGNA HMO
+	"car308175": true, // HUMANA CONSOLIDATED
 }
 
 // InsuranceAliases maps common shorthand names to canonical InsuranceNameMap keys.
@@ -173,45 +182,61 @@ var AmbiguousCarriers = map[string]bool{
 // Do NOT alias ambiguous parent names (e.g., "molina" spans 3 routing tiers).
 var InsuranceAliases = map[string]string{
 	// Parent company shorthand → safest canonical name
-	"oscar":                  "oscar health",
-	"oscar insurance":        "oscar health",
-	"humana":                 "humana ppo",
-	"tricare":                "tricare select",
-	"united":                 "united healthcare",
-	"uhc":                    "united healthcare",
-	"uhc medicare":           "united healthcare aarp medicare",
-	"cigna":                  "cigna ppo",
-	"blue cross":             "florida blue",
-	"bcbs":                   "florida blue",
-	"bcbs medicare hmo":      "florida blue medicare hmo",
-	"medicare":               "florida medicare",
-	"sunshine":               "sunshine medicaid",
-	"sunshine health":        "sunshine medicaid",
-	"staywell":               "staywell medicare",
-	"simply":                 "simply medicaid",
-	"simply healthcare":      "simply medicaid",
-	"simply health":          "simply medicaid",
-	"simply health plans":    "simply medicaid",
-	"multiplan":              "multiplan phcs",
-	"phcs":                   "multiplan phcs",
-	"imagine":                "imagine health",
-	"envolve":                "envolve vision",
-	"meritain":               "meritain health",
-	"eye america":            "eye america aao",
-	"preferred care":         "preferred care partners",
-	"community care":         "community care plan",
-	"doctors health":         "doctors health medicare",
-	"miami childrens":        "miami childrens health plan",
-	"childrens medical":      "childrens medical services",
-	"sun health":             "sunhealth",
-	"duocomplete":            "united healthcare dual complete",
-	"duo complete":           "united healthcare dual complete",
-	"uhc dual complete":      "united healthcare dual complete",
-	"uhc choice":             "united healthcare choice",
-	"icare health solutions": "icare",
-	"eye care health":        "eye care health solutions",
-	"optimum":                "optimum healthcare",
-	"care health":            "care health plus",
+	"oscar":                         "oscar health",
+	"oscar insurance":               "oscar health",
+	"humana":                        "humana ppo",
+	"tricare":                       "tricare select",
+	"united":                        "united healthcare",
+	"uhc":                           "united healthcare",
+	"uhc medicare":                  "united healthcare aarp medicare",
+	"cigna miami dade":              "cigna miami dade public schools",
+	"miami dade public schools":     "cigna miami dade public schools",
+	"blue cross":                    "florida blue",
+	"bcbs":                          "florida blue",
+	"bcbs medicare hmo":             "florida blue medicare hmo",
+	"fl blue hmo":                   "florida blue hmo",
+	"fl blue select":                "florida blueselect",
+	"fl blue steward":               "florida blue steward tier 1",
+	"florida blue select":           "florida blueselect",
+	"florida blue steward":          "florida blue steward tier 1",
+	"medicare":                      "florida medicare",
+	"sunshine":                      "sunshine medicaid",
+	"sunshine health":               "sunshine medicaid",
+	"staywell":                      "staywell medicare",
+	"simply":                        "simply medicaid",
+	"simply healthcare":             "simply medicaid",
+	"simply health":                 "simply medicaid",
+	"simply health plans":           "simply medicaid",
+	"multiplan":                     "multiplan phcs",
+	"phcs":                          "multiplan phcs",
+	"imagine":                       "imagine health",
+	"envolve":                       "envolve vision",
+	"meritain":                      "meritain health",
+	"eye america":                   "eye america aao",
+	"preferred care":                "preferred care partners",
+	"community care":                "community care plan",
+	"doctors health":                "doctors health medicare",
+	"miami dade doctors health":     "doctors health medicare",
+	"miami dade doctors healthcare": "doctors health medicare",
+	"miami dade ddoctors health":    "doctors health medicare",
+	"miami childrens":               "miami childrens health plan",
+	"miami children's":              "miami childrens health plan",
+	"miami children's health plan":  "miami childrens health plan",
+	"miami children":                "miami childrens health plan",
+	"childrens medical":             "childrens medical services",
+	"children's medical":            "childrens medical services",
+	"children's medical services":   "childrens medical services",
+	"sun health":                    "sunhealth",
+	"duocomplete":                   "united healthcare dual complete",
+	"duo complete":                  "united healthcare dual complete",
+	"uhc dual complete":             "united healthcare dual complete",
+	"uhc choice":                    "united healthcare choice",
+	"icare health solutions":        "icare",
+	"eye care health":               "eye care health solutions",
+	"optimum":                       "optimum healthcare",
+	"care health":                   "care health plus",
+	"av med medicare":               "avmed medicare advantage",
+	"av med medicare advantage":     "avmed medicare advantage",
 }
 
 // VisionInsuranceNameMap maps accepted routine-vision insurance buckets to AMD carrier IDs.
@@ -299,19 +324,24 @@ var VisionInsuranceAliases = map[string]string{
 	"care plus": "alivi",
 }
 
-func lookupInsuranceFromMaps(name string, entries map[string]InsuranceEntry, aliases map[string]string) (InsuranceEntry, bool) {
+func lookupInsuranceEntry(name string, entries map[string]InsuranceEntry, aliases map[string]string) (InsuranceEntry, string, bool) {
 	normalized := NormalizeForLookup(name)
 
 	if entry, ok := entries[normalized]; ok {
-		return entry, ok
+		return entry, normalized, ok
 	}
 
 	if canonical, ok := aliases[normalized]; ok {
 		entry, ok := entries[canonical]
-		return entry, ok
+		return entry, canonical, ok
 	}
 
-	return InsuranceEntry{}, false
+	return InsuranceEntry{}, "", false
+}
+
+func lookupInsuranceFromMaps(name string, entries map[string]InsuranceEntry, aliases map[string]string) (InsuranceEntry, bool) {
+	entry, _, ok := lookupInsuranceEntry(name, entries, aliases)
+	return entry, ok
 }
 
 // LookupInsurance looks up an insurance name and returns its entry.
@@ -327,6 +357,78 @@ func LookupInsuranceForCoverage(name string, mode InsuranceMode) (InsuranceEntry
 		return lookupInsuranceFromMaps(name, VisionInsuranceNameMap, VisionInsuranceAliases)
 	}
 	return LookupInsurance(name)
+}
+
+var crystalRiverRejectedMedicalPlans = map[string]bool{
+	// Crystal River inherits the Spring Hill medical rejection list from
+	// InsuranceNameMap and adds the plans/families below.
+	"aetna better health":            true,
+	"aetna better health of florida": true,
+	"aetna healthy kids":             true,
+	"ambetter":                       true,
+	"ambetter premier":               true,
+	"ambetter select":                true,
+	"ambetter value":                 true,
+	"community care plan":            true,
+	"florida community care":         true,
+	"florida complete care":          true,
+	"florida medicaid":               true,
+	"humana healthy horizons":        true,
+	"medicaid":                       true,
+	"molina medicaid":                true,
+	"simply medicaid":                true,
+	"staywell medicare":              true,
+	"sunshine medicaid":              true,
+	"vivida":                         true,
+}
+
+var crystalRiverRejectedCarrierIDs = map[string]bool{
+	"car281245": true, // Ambetter / Staywell / Sunshine family
+	"car303033": true, // Medicaid / Humana Medicaid legacy bucket
+	"car40899":  true, // Florida Medicaid
+	"car40907":  true, // iCare / Medicaid family
+	"car40912":  true, // Molina Medicaid
+}
+
+var ambiguousDemographicCarrierNames = map[string]bool{
+	"aetna":                  true,
+	"bcbs":                   true,
+	"blue cross":             true,
+	"blue cross blue shield": true,
+	"cigna":                  true,
+	"florida blue":           true,
+	"humana":                 true,
+	"molina":                 true,
+	"uhc":                    true,
+	"united":                 true,
+	"united health care":     true,
+	"united healthcare":      true,
+}
+
+func applyOfficeMedicalInsurancePolicy(entry InsuranceEntry, canonicalName string, office *OfficeConfig) InsuranceEntry {
+	if office == nil || office.ID != "crystal_river" {
+		return entry
+	}
+	if crystalRiverRejectedMedicalPlans[canonicalName] {
+		entry.Routing = RoutingNotAccepted
+		entry.PreauthRequired = false
+	}
+	return entry
+}
+
+// LookupInsuranceForCoverageAtOffice chooses the medical or routine-vision
+// crosswalk and applies office-specific medical acceptance rules.
+func LookupInsuranceForCoverageAtOffice(name string, mode InsuranceMode, office *OfficeConfig) (InsuranceEntry, bool) {
+	if mode == InsuranceModeVision {
+		return lookupInsuranceFromMaps(name, VisionInsuranceNameMap, VisionInsuranceAliases)
+	}
+
+	entry, canonicalName, ok := lookupInsuranceEntry(name, InsuranceNameMap, InsuranceAliases)
+	if !ok {
+		return InsuranceEntry{}, false
+	}
+
+	return applyOfficeMedicalInsurancePolicy(entry, canonicalName, office), true
 }
 
 // InsuranceModeForCoverage converts an agent-supplied coverage type to a middleware insurance mode.
@@ -356,6 +458,29 @@ func RoutingForCarrierID(carrierID string) (RoutingRule, bool) {
 
 	// Unknown or ambiguous carriers default to all three
 	return RoutingAll, ambiguous
+}
+
+// RoutingForCarrierIDAtOffice applies office-specific medical acceptance rules
+// to the demographics carrier-ID fallback used for existing patients.
+func RoutingForCarrierIDAtOffice(carrierID string, office *OfficeConfig) (RoutingRule, bool) {
+	if office != nil && office.ID == "crystal_river" && crystalRiverRejectedCarrierIDs[carrierID] {
+		return RoutingNotAccepted, false
+	}
+	return RoutingForCarrierID(carrierID)
+}
+
+// RoutingForDemographicInsurance prefers AMD's carrier name when available, then
+// falls back to carrier ID. Carrier IDs can represent mixed accepted/rejected plans.
+func RoutingForDemographicInsurance(carrierID, carrierName string, office *OfficeConfig) (RoutingRule, bool) {
+	if entry, canonicalName, ok := lookupInsuranceEntry(carrierName, InsuranceNameMap, InsuranceAliases); ok {
+		if AmbiguousCarriers[carrierID] && ambiguousDemographicCarrierNames[NormalizeForLookup(carrierName)] {
+			return RoutingForCarrierIDAtOffice(carrierID, office)
+		}
+		entry = applyOfficeMedicalInsurancePolicy(entry, canonicalName, office)
+		return entry.Routing, false
+	}
+
+	return RoutingForCarrierIDAtOffice(carrierID, office)
 }
 
 // ParseRoutingRule converts a string back to a typed RoutingRule.
