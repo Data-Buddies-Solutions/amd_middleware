@@ -37,6 +37,8 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
+const maxPatientNoteLength = 1000
+
 // ElevenLabsWebhookResponse is the response format for ElevenLabs conversation initiation webhook.
 type ElevenLabsWebhookResponse struct {
 	Type             string                 `json:"type"`
@@ -1785,4 +1787,108 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 		PreauthRequired:  insEntry.PreauthRequired,
 		Message:          "Insurance updated successfully",
 	})
+}
+
+// AddPatientNoteRequest is the expected JSON body for adding a patient note.
+type AddPatientNoteRequest struct {
+	PatientID string `json:"patientId"`
+	Note      string `json:"note"`
+	Office    string `json:"office,omitempty"`
+}
+
+// AddPatientNoteResponse is returned after saving a patient note.
+type AddPatientNoteResponse struct {
+	Status    string `json:"status"`
+	PatientID string `json:"patientId,omitempty"`
+	NoteID    string `json:"noteId,omitempty"`
+	Message   string `json:"message,omitempty"`
+}
+
+// HandleAddPatientNote saves a communication/phone note on an existing patient.
+func (h *Handlers) HandleAddPatientNote(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var req AddPatientNoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		json.NewEncoder(w).Encode(AddPatientNoteResponse{
+			Status:  "error",
+			Message: "Invalid JSON body",
+		})
+		return
+	}
+
+	patientID := domain.StripPatientPrefix(strings.TrimSpace(req.PatientID))
+	note := normalizePatientNote(req.Note)
+	if patientID == "" {
+		json.NewEncoder(w).Encode(AddPatientNoteResponse{
+			Status:  "error",
+			Message: "patientId is required",
+		})
+		return
+	}
+	if _, err := strconv.Atoi(patientID); err != nil {
+		json.NewEncoder(w).Encode(AddPatientNoteResponse{
+			Status:  "error",
+			Message: "patientId must be numeric",
+		})
+		return
+	}
+	if note == "" {
+		json.NewEncoder(w).Encode(AddPatientNoteResponse{
+			Status:  "error",
+			Message: "note is required",
+		})
+		return
+	}
+	if len([]rune(note)) > maxPatientNoteLength {
+		json.NewEncoder(w).Encode(AddPatientNoteResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("note must be %d characters or fewer", maxPatientNoteLength),
+		})
+		return
+	}
+
+	office, err := resolveOffice(req.Office)
+	if err != nil {
+		json.NewEncoder(w).Encode(AddPatientNoteResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	tokenData, err := h.tokenManager.GetToken(r.Context())
+	if err != nil {
+		json.NewEncoder(w).Encode(AddPatientNoteResponse{
+			Status:  "error",
+			Message: "Failed to get authentication token: " + err.Error(),
+		})
+		return
+	}
+
+	noteID, err := h.amdClient.SavePatientNote(r.Context(), tokenData, clients.SavePatientNoteParams{
+		PatientID:   patientID,
+		ProfileID:   office.DefaultProfileID,
+		NoteTypeFID: clients.DefaultPatientNoteTypeFID,
+		Note:        note,
+	})
+	if err != nil {
+		json.NewEncoder(w).Encode(AddPatientNoteResponse{
+			Status:    "error",
+			PatientID: patientID,
+			Message:   "Failed to save patient note: " + err.Error(),
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(AddPatientNoteResponse{
+		Status:    "saved",
+		PatientID: patientID,
+		NoteID:    noteID,
+		Message:   "Patient note saved",
+	})
+}
+
+func normalizePatientNote(note string) string {
+	return strings.TrimSpace(note)
 }

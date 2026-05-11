@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"advancedmd-token-management/internal/domain"
@@ -68,6 +69,10 @@ type AMDPatient struct {
 type AdvancedMDClient struct {
 	httpClient *http.Client
 }
+
+// DefaultPatientNoteTypeFID is the AdvancedMD note type for communication/phone notes.
+// Verified against lookupnotetypes as code CN ("COMMUNICATON NOTES / PHONE").
+const DefaultPatientNoteTypeFID = "559"
 
 // NewAdvancedMDClient creates a new AdvancedMD XMLRPC client.
 func NewAdvancedMDClient(httpClient *http.Client) *AdvancedMDClient {
@@ -298,14 +303,14 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.T
 				"@changed": "1",
 				"insplanlist": map[string]interface{}{
 					"insplan": map[string]interface{}{
-						"@id":                 "",
-						"@carrier":            carrierID,
-						"@subscriber":         respPartyID,
-						"@subscribernum":      subscriberNum,
-						"@hipaarelationship":  "18",
-						"@relationship":       "1",
-						"@copay":              "0.00",
-						"@coverage":           "1",
+						"@id":                "",
+						"@carrier":           carrierID,
+						"@subscriber":        respPartyID,
+						"@subscribernum":     subscriberNum,
+						"@hipaarelationship": "18",
+						"@relationship":      "1",
+						"@copay":             "0.00",
+						"@coverage":          "1",
 					},
 				},
 			},
@@ -317,7 +322,7 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.T
 		return fmt.Errorf("addinsurance request failed: %w", err)
 	}
 
-	if err := checkInsuranceError(body, "addinsurance"); err != nil {
+	if err := checkXMLRPCError(body, "addinsurance"); err != nil {
 		return err
 	}
 
@@ -353,16 +358,76 @@ func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *doma
 		return fmt.Errorf("enddate insurance request failed: %w", err)
 	}
 
-	if err := checkInsuranceError(body, "enddate insurance"); err != nil {
+	if err := checkXMLRPCError(body, "enddate insurance"); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// checkInsuranceError parses AMD insurance response body for errors.
+// SavePatientNoteParams holds parameters for adding a patient note in AdvancedMD.
+type SavePatientNoteParams struct {
+	PatientID   string
+	ProfileID   string
+	NoteTypeFID string
+	Note        string
+}
+
+// SavePatientNote adds a communication note to an existing patient in AdvancedMD.
+// Returns the newly created note ID from PPMDResults.@newid.
+func (c *AdvancedMDClient) SavePatientNote(ctx context.Context, tokenData *domain.TokenData, params SavePatientNoteParams) (string, error) {
+	msgTime := time.Now().Format("01/02/2006 03:04:05 PM")
+	patientID := domain.StripPatientPrefix(strings.TrimSpace(params.PatientID))
+	noteTypeFID := strings.TrimPrefix(strings.TrimSpace(params.NoteTypeFID), "notetype")
+	if noteTypeFID == "" {
+		noteTypeFID = DefaultPatientNoteTypeFID
+	}
+
+	payload := map[string]interface{}{
+		"ppmdmsg": map[string]interface{}{
+			"@action":        "savepatientnotes",
+			"@class":         "api",
+			"@msgtime":       msgTime,
+			"@id":            patientID,
+			"@useclienttime": "1",
+			"masterfile": map[string]interface{}{
+				"@uid":         "",
+				"@patientfid":  patientID,
+				"@profilefid":  params.ProfileID,
+				"@notetypefid": noteTypeFID,
+				"@note":        params.Note,
+			},
+		},
+	}
+
+	body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
+	if err != nil {
+		return "", fmt.Errorf("save patient note request failed: %w", err)
+	}
+
+	if err := checkXMLRPCError(body, "save patient note"); err != nil {
+		return "", err
+	}
+
+	var resp struct {
+		PPMDResults struct {
+			NewID string      `json:"@newid"`
+			Error interface{} `json:"Error"`
+		} `json:"PPMDResults"`
+	}
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return "", fmt.Errorf("failed to parse save patient note response: %w", err)
+	}
+	if resp.PPMDResults.NewID == "" {
+		return "", fmt.Errorf("save patient note returned unexpected response: %s", string(body))
+	}
+
+	return resp.PPMDResults.NewID, nil
+}
+
+// checkXMLRPCError parses AMD XMLRPC response body for errors.
 // AMD returns errors as either a plain string or a nested Fault structure.
-func checkInsuranceError(body []byte, operation string) error {
+func checkXMLRPCError(body []byte, operation string) error {
 	var errResp struct {
 		PPMDResults struct {
 			Error interface{} `json:"Error"`
