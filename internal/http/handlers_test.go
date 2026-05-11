@@ -3,8 +3,10 @@ package http
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -1125,5 +1127,92 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 				t.Errorf("Expected message %q, got %q", tt.expectedMsg, body.Message)
 			}
 		})
+	}
+}
+
+func TestHandleAddPatientNote_ValidationErrors(t *testing.T) {
+	handlers := &Handlers{}
+	longNote := strings.Repeat("x", maxPatientNoteLength+1)
+
+	tests := []struct {
+		name        string
+		body        string
+		expectedMsg string
+	}{
+		{
+			name:        "invalid JSON",
+			body:        "not json",
+			expectedMsg: "Invalid JSON body",
+		},
+		{
+			name:        "missing patientId",
+			body:        `{"note":"Patient called to reschedule."}`,
+			expectedMsg: "patientId is required",
+		},
+		{
+			name:        "missing note",
+			body:        `{"patientId":"123"}`,
+			expectedMsg: "note is required",
+		},
+		{
+			name:        "non-numeric patientId",
+			body:        `{"patientId":"abc123","note":"Patient called."}`,
+			expectedMsg: "patientId must be numeric",
+		},
+		{
+			name:        "blank note",
+			body:        `{"patientId":"123","note":"   "}`,
+			expectedMsg: "note is required",
+		},
+		{
+			name:        "note too long",
+			body:        fmt.Sprintf(`{"patientId":"123","note":%q}`, longNote),
+			expectedMsg: "note must be 1000 characters or fewer",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest("POST", "/api/patient/notes", bytes.NewBufferString(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			handlers.HandleAddPatientNote(w, req)
+
+			var body AddPatientNoteResponse
+			json.NewDecoder(w.Result().Body).Decode(&body)
+			if body.Status != "error" {
+				t.Errorf("Expected status 'error', got %q", body.Status)
+			}
+			if body.Message != tt.expectedMsg {
+				t.Errorf("Expected message %q, got %q", tt.expectedMsg, body.Message)
+			}
+		})
+	}
+}
+
+func TestSanitizeLoggedRequestBody_RedactsPatientNote(t *testing.T) {
+	body := `{"patientId":"123","note":"Patient shared private details.","office":"+17275919997"}`
+
+	got := sanitizeLoggedRequestBody("/api/patient/notes", body)
+
+	if strings.Contains(got, "Patient shared private details") {
+		t.Fatalf("expected patient note to be redacted, got %s", got)
+	}
+	if !strings.Contains(got, `"[REDACTED]"`) {
+		t.Fatalf("expected redaction marker, got %s", got)
+	}
+	if !strings.Contains(got, `"patientId":"123"`) {
+		t.Fatalf("expected non-note fields to remain, got %s", got)
+	}
+}
+
+func TestSanitizeLoggedRequestBody_LeavesOtherRoutesUnchanged(t *testing.T) {
+	body := `{"note":"not a patient note route"}`
+
+	got := sanitizeLoggedRequestBody("/api/add-patient", body)
+
+	if got != body {
+		t.Fatalf("expected body unchanged, got %s", got)
 	}
 }

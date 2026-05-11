@@ -30,6 +30,7 @@ A Go microservice that handles AdvancedMD's 2-step authentication flow and serve
 │  │  • POST /api/add-patient     (auth req) │                    │
 │  │  • POST /api/scheduler/availability     │                    │
 │  │  • POST /api/patient/appointments      │                    │
+│  │  • POST /api/patient/notes             │                    │
 │  │  • POST /api/appointment/book          │                    │
 │  │  • POST /api/appointment/cancel        │                    │
 │  └─────────────────────────────────────────┘                    │
@@ -315,6 +316,31 @@ Retrieves appointments for a verified patient. Queries all allowed provider colu
 ```
 
 Appointment type IDs are mapped to friendly names (1006 → "New Adult Medical", etc.). Provider names are mapped to display names. Facility names are title-cased. Past appointments are filtered out. The `confirmed` field reflects whether AMD has a `confirmdate` set.
+
+### POST /api/patient/notes
+
+Adds a communication/phone note to an existing AdvancedMD patient. The middleware owns AdvancedMD defaults: note type `CN` / `notetype559`, `useclienttime: 1`, empty `uid`, and `profilefid` from the resolved office config. Callers only send the verified patient ID and note text.
+
+**Request:**
+```json
+{
+  "patientId": "17604634",
+  "note": "Patient called to reschedule. Appointment updated.",
+  "office": "+17275919997"
+}
+```
+
+`office` is optional for direct callers but is normally injected by the voice agent wrapper. It controls which office default profile ID is used.
+
+**Response:**
+```json
+{
+  "status": "saved",
+  "patientId": "17604634",
+  "noteId": "3135521",
+  "message": "Patient note saved"
+}
+```
 
 ### POST /api/appointment/book
 
