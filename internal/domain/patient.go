@@ -108,11 +108,34 @@ func NormalizeSex(sex string) string {
 
 // IsMinor returns true if the patient's DOB (MM/DD/YYYY) indicates they are under 18.
 func IsMinor(dob string) bool {
-	t, err := time.Parse("01/02/2006", dob)
-	if err != nil {
+	age, ok := AgeYears(dob)
+	if !ok {
 		return false
 	}
-	return time.Now().AddDate(-18, 0, 0).Before(t)
+	return age < 18
+}
+
+// AgeYears returns the patient's age in full years as of today.
+func AgeYears(dob string) (int, bool) {
+	return AgeYearsOn(dob, time.Now())
+}
+
+// AgeYearsOn returns the patient's age in full years on a specific date.
+func AgeYearsOn(dob string, asOf time.Time) (int, bool) {
+	t, err := time.Parse("01/02/2006", NormalizeDOB(dob))
+	if err != nil {
+		return 0, false
+	}
+
+	age := asOf.Year() - t.Year()
+	birthdayThisYear := time.Date(asOf.Year(), t.Month(), t.Day(), 0, 0, 0, 0, asOf.Location())
+	if asOf.Before(birthdayThisYear) {
+		age--
+	}
+	if age < 0 {
+		return 0, false
+	}
+	return age, true
 }
 
 // ParseFirstName extracts the first name from AMD's "LASTNAME,FIRSTNAME" format.

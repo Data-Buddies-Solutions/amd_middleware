@@ -106,6 +106,26 @@ func resolveOffice(officeName string) (*domain.OfficeConfig, error) {
 	return office, nil
 }
 
+func validateOptionalDOB(dob string) error {
+	if dob == "" {
+		return nil
+	}
+	if _, ok := domain.AgeYears(dob); !ok {
+		return fmt.Errorf("dob must be a valid date")
+	}
+	return nil
+}
+
+func effectiveRoutingForDOB(office *domain.OfficeConfig, routing domain.RoutingRule, dob string) domain.RoutingRule {
+	if routing == domain.RoutingNotAccepted || routing == domain.RoutingOpticalOnly {
+		return routing
+	}
+	if domain.IsMinor(dob) {
+		return office.PediatricRouting
+	}
+	return routing
+}
+
 // HandleHealth returns a simple health check response.
 func (h *Handlers) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -346,7 +366,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		Name:             patientName,
 		DOB:              normalizedDOB,
 		Routing:          string(routing),
-		AllowedProviders: office.ProvidersForRouting(routing),
+		AllowedProviders: office.ProvidersForRoutingAndDOB(routing, normalizedDOB),
 		PreauthRequired:  insEntry.PreauthRequired,
 		Message:          "Patient created and insurance attached successfully",
 	})
@@ -533,7 +553,7 @@ func (h *Handlers) HandleVerifyPatient(w http.ResponseWriter, r *http.Request) {
 				resp.InsuranceCarrierID = demoResult.CarrierID
 				routing, ambiguous := domain.RoutingForDemographicInsurance(demoResult.CarrierID, demoResult.CarrierName, office)
 				resp.Routing = string(routing)
-				resp.AllowedProviders = office.ProvidersForRouting(routing)
+				resp.AllowedProviders = office.ProvidersForRoutingAndDOB(routing, p.DOB)
 				resp.RoutingAmbiguous = ambiguous
 			}
 		}
@@ -541,7 +561,7 @@ func (h *Handlers) HandleVerifyPatient(w http.ResponseWriter, r *http.Request) {
 		// Pediatric override: under-18 patients → office pediatric routing
 		if domain.IsMinor(p.DOB) && resp.Routing != "" && resp.Routing != string(domain.RoutingNotAccepted) {
 			resp.Routing = string(office.PediatricRouting)
-			resp.AllowedProviders = office.ProvidersForRouting(office.PediatricRouting)
+			resp.AllowedProviders = office.ProvidersForRoutingAndDOB(office.PediatricRouting, p.DOB)
 			resp.RoutingAmbiguous = false
 		}
 
@@ -585,7 +605,7 @@ func (h *Handlers) HandleVerifyPatient(w http.ResponseWriter, r *http.Request) {
 							resp.InsuranceCarrierID = demoResult.CarrierID
 							routing, ambiguous := domain.RoutingForDemographicInsurance(demoResult.CarrierID, demoResult.CarrierName, office)
 							resp.Routing = string(routing)
-							resp.AllowedProviders = office.ProvidersForRouting(routing)
+							resp.AllowedProviders = office.ProvidersForRoutingAndDOB(routing, p.DOB)
 							resp.RoutingAmbiguous = ambiguous
 						}
 					}
@@ -593,7 +613,7 @@ func (h *Handlers) HandleVerifyPatient(w http.ResponseWriter, r *http.Request) {
 					// Pediatric override: under-18 patients → office pediatric routing
 					if domain.IsMinor(p.DOB) && resp.Routing != "" && resp.Routing != string(domain.RoutingNotAccepted) {
 						resp.Routing = string(office.PediatricRouting)
-						resp.AllowedProviders = office.ProvidersForRouting(office.PediatricRouting)
+						resp.AllowedProviders = office.ProvidersForRoutingAndDOB(office.PediatricRouting, p.DOB)
 						resp.RoutingAmbiguous = false
 					}
 
@@ -840,7 +860,7 @@ func (h *Handlers) HandlePatientLookup(w http.ResponseWriter, r *http.Request) {
 			resp.InsuranceCarrierID = demoResult.CarrierID
 			routing, ambiguous := domain.RoutingForDemographicInsurance(demoResult.CarrierID, demoResult.CarrierName, office)
 			resp.Routing = string(routing)
-			resp.AllowedProviders = office.ProvidersForRouting(routing)
+			resp.AllowedProviders = office.ProvidersForRoutingAndDOB(routing, patient.DOB)
 			resp.RoutingAmbiguous = ambiguous
 		}
 	}
@@ -848,7 +868,7 @@ func (h *Handlers) HandlePatientLookup(w http.ResponseWriter, r *http.Request) {
 	// Pediatric override
 	if domain.IsMinor(patient.DOB) && resp.Routing != "" && resp.Routing != string(domain.RoutingNotAccepted) {
 		resp.Routing = string(office.PediatricRouting)
-		resp.AllowedProviders = office.ProvidersForRouting(office.PediatricRouting)
+		resp.AllowedProviders = office.ProvidersForRoutingAndDOB(office.PediatricRouting, patient.DOB)
 		resp.RoutingAmbiguous = false
 	}
 
@@ -1016,6 +1036,7 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 type BookAppointmentRequest struct {
 	PatientID         string `json:"patientId"`
 	PatientName       string `json:"patientName,omitempty"`
+	DOB               string `json:"dob,omitempty"`
 	ColumnID          int    `json:"columnId"`
 	ProfileID         int    `json:"profileId"`
 	StartDatetime     string `json:"startDatetime"`
@@ -1134,6 +1155,10 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: "appointmentTypeId is required"})
 		return
 	}
+	if err := validateOptionalDOB(req.DOB); err != nil {
+		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: err.Error()})
+		return
+	}
 
 	// Validate columnId is allowed for this office
 	colIDStr := strconv.Itoa(req.ColumnID)
@@ -1156,6 +1181,7 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 	// A Spring Hill routine-vision column is part of the office, but not part of
 	// normal medical routing. Require the same routing lane used for availability.
 	routingRule := domain.ParseRoutingRule(req.Routing)
+	routingRule = effectiveRoutingForDOB(office, routingRule, req.DOB)
 	routingColumns := office.ColumnsForRouting(routingRule)
 	if routingColumns == nil {
 		json.NewEncoder(w).Encode(BookAppointmentResponse{
@@ -1171,7 +1197,6 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		})
 		return
 	}
-
 	// Resolve appointment type ID for current environment (prod IDs → env IDs)
 	envTypeID, ok := domain.ResolveAppointmentTypeID(req.AppointmentTypeID)
 	if !ok {
@@ -1195,6 +1220,17 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		json.NewEncoder(w).Encode(BookAppointmentResponse{
 			Status:  "error",
 			Message: fmt.Sprintf("Appointment type %d is not valid for routing %q at %s", req.AppointmentTypeID, routingRule, office.DisplayName),
+		})
+		return
+	}
+	if !office.ColumnAllowsDOB(colIDStr, req.DOB) {
+		message := fmt.Sprintf("%s requires patient age %d or older", column.ShortName, column.MinAgeYears)
+		if req.DOB == "" {
+			message = fmt.Sprintf("%s requires patient DOB to verify age %d or older", column.ShortName, column.MinAgeYears)
+		}
+		json.NewEncoder(w).Encode(BookAppointmentResponse{
+			Status:  "error",
+			Message: message,
 		})
 		return
 	}
@@ -1267,6 +1303,7 @@ type AvailabilityRequest struct {
 	Provider        string `json:"provider"`        // Optional: filter by provider name
 	Office          string `json:"office"`          // Optional: filter by office name (e.g., "Spring Hill", "Hollywood")
 	Routing         string `json:"routing"`         // Optional: routing rule from verify/add-patient (e.g., "bach_only")
+	DOB             string `json:"dob,omitempty"`   // Optional: patient DOB for provider age rules
 	PreauthRequired bool   `json:"preauthRequired"` // Optional: if true, enforces 14-day minimum lead time
 }
 
@@ -1279,6 +1316,16 @@ func filterColumnsForRouting(columns []domain.SchedulerColumn, office *domain.Of
 	filtered := make([]domain.SchedulerColumn, 0, len(columns))
 	for _, col := range columns {
 		if routingColumns[col.ID] {
+			filtered = append(filtered, col)
+		}
+	}
+	return filtered
+}
+
+func filterColumnsForDOB(columns []domain.SchedulerColumn, office *domain.OfficeConfig, dob string) []domain.SchedulerColumn {
+	filtered := make([]domain.SchedulerColumn, 0, len(columns))
+	for _, col := range columns {
+		if office.ColumnAllowsDOB(col.ID, dob) {
 			filtered = append(filtered, col)
 		}
 	}
@@ -1312,6 +1359,10 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: "Invalid date format. Use YYYY-MM-DD."})
 		return
 	}
+	if err := validateOptionalDOB(req.DOB); err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: err.Error()})
+		return
+	}
 
 	// Reject same-day or past date searches
 	todayEastern := time.Now().In(eastern)
@@ -1337,6 +1388,7 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 	}
 
 	effectiveRouting := domain.ParseRoutingRule(req.Routing)
+	effectiveRouting = effectiveRoutingForDOB(office, effectiveRouting, req.DOB)
 
 	log.Printf("availability: date=%s provider=%q office=%s routing=%q effectiveRouting=%q preauthRequired=%v", req.Date, req.Provider, office.ID, req.Routing, effectiveRouting, req.PreauthRequired)
 
@@ -1397,6 +1449,7 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 	// Apply routing filter. Empty/unknown routing defaults to RoutingAll,
 	// which deliberately excludes Spring Hill's routine-vision column.
 	allowedColumns = filterColumnsForRouting(allowedColumns, office, effectiveRouting)
+	allowedColumns = filterColumnsForDOB(allowedColumns, office, req.DOB)
 
 	// Determine location name for response
 	locationName := office.DisplayName
@@ -1474,7 +1527,13 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 			profile := profileMap[col.ProfileID]
 			facility := facilityMap[col.FacilityID]
 
-			displayName := office.ProviderDisplayName(col.ProfileID)
+			displayName := ""
+			if officeCol, ok := office.Columns[col.ID]; ok {
+				displayName = officeCol.DisplayName
+			}
+			if displayName == "" {
+				displayName = office.ProviderDisplayName(col.ProfileID)
+			}
 			if displayName == "" {
 				displayName = profile.Name
 			}
@@ -1663,6 +1722,7 @@ func enforcePreauthMinDate(requestedDate time.Time, now time.Time) (time.Time, s
 // UpdateInsuranceRequest is the expected JSON body for insurance updates.
 type UpdateInsuranceRequest struct {
 	PatientID      string `json:"patientId"`
+	DOB            string `json:"dob,omitempty"`
 	InsPlanID      string `json:"insPlanId"`
 	RespPartyID    string `json:"respPartyId"`
 	OldInsurance   string `json:"oldInsurance"`
@@ -1705,6 +1765,10 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 			Status:  "error",
 			Message: "patientId, insurance, and subscriberNum are required",
 		})
+		return
+	}
+	if err := validateOptionalDOB(req.DOB); err != nil {
+		json.NewEncoder(w).Encode(UpdateInsuranceResponse{Status: "error", Message: err.Error()})
 		return
 	}
 
@@ -1774,6 +1838,7 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 	}
 
 	routing := insEntry.Routing
+	routing = effectiveRoutingForDOB(office, routing, req.DOB)
 	_, ambiguous := domain.RoutingForDemographicInsurance(insEntry.CarrierID, req.Insurance, office)
 
 	json.NewEncoder(w).Encode(UpdateInsuranceResponse{
@@ -1782,7 +1847,7 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 		OldInsurance:     req.OldInsurance,
 		NewInsurance:     req.Insurance,
 		Routing:          string(routing),
-		AllowedProviders: office.ProvidersForRouting(routing),
+		AllowedProviders: office.ProvidersForRoutingAndDOB(routing, req.DOB),
 		RoutingAmbiguous: ambiguous,
 		PreauthRequired:  insEntry.PreauthRequired,
 		Message:          "Insurance updated successfully",

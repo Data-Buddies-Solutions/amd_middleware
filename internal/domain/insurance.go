@@ -239,6 +239,236 @@ var InsuranceAliases = map[string]string{
 	"av med medicare advantage":     "avmed medicare advantage",
 }
 
+func medicalBachOnly(carrierID string) InsuranceEntry {
+	return InsuranceEntry{CarrierID: carrierID, Routing: RoutingBachOnly}
+}
+
+func medicalBachOnlyPreauth(carrierID string) InsuranceEntry {
+	return InsuranceEntry{CarrierID: carrierID, Routing: RoutingBachOnly, PreauthRequired: true}
+}
+
+// hollywoodSweetwaterMedicalInsuranceNameMap is sourced from the Abita Eye Group
+// 5/4/2026 insurance list using the A.Bach medical column. These offices only
+// schedule medical visits on Dr. Austin Bach's columns.
+var hollywoodSweetwaterMedicalInsuranceNameMap = map[string]InsuranceEntry{
+	// Aetna / Availity
+	"aetna":                         medicalBachOnly("car40887"),
+	"aetna commercial":              medicalBachOnly("car40887"),
+	"aetna commercial hmo":          medicalBachOnly("car40887"),
+	"aetna commercial ppo":          medicalBachOnly("car40887"),
+	"aetna epo":                     medicalBachOnly("car40887"),
+	"aetna epo north broward":       medicalBachOnly("car40887"),
+	"aetna epo university of miami": medicalBachOnly("car40887"),
+	"aetna managed choice":          medicalBachOnly("car40887"),
+	"aetna ppo":                     medicalBachOnly("car40887"),
+	"aetna qhp individual exchange": medicalBachOnly("car40887"),
+
+	// Aetna Medicare / Medicaid plans administered through iCare on this list.
+	"aetna better health":            medicalBachOnly("car40907"),
+	"aetna better health of florida": medicalBachOnly("car40907"),
+	"aetna healthy kids":             medicalBachOnly("car40907"),
+	"aetna hmo":                      medicalBachOnlyPreauth("car40907"),
+	"aetna medicare":                 medicalBachOnly("car40907"),
+	"aetna medicare hmo":             medicalBachOnly("car40907"),
+	"aetna medicare ppo":             medicalBachOnly("car40907"),
+
+	// Envolve
+	"ambetter":                   medicalBachOnly("car281245"),
+	"ambetter premier":           medicalBachOnly("car281245"),
+	"ambetter select":            medicalBachOnly("car281245"),
+	"ambetter value":             medicalBachOnly("car281245"),
+	"childrens medical services": medicalBachOnly("car281245"),
+	"staywell medicare":          medicalBachOnly("car281245"),
+	"sunshine medicaid":          medicalBachOnly("car281245"),
+	"wellcare":                   medicalBachOnly("car281245"),
+	"wellcare medicaid":          medicalBachOnly("car281245"),
+
+	// AvMed / Availity
+	"avmed":        medicalBachOnly("car40890"),
+	"avmed select": medicalBachOnly("car40890"),
+
+	// Premier Eye Care medical plans
+	"careplus medicare medical": medicalBachOnlyPreauth("car281317"),
+	"devoted medicare hmo":      medicalBachOnly("car281317"),
+	"devoted medicare ppo":      medicalBachOnly("car281317"),
+	"solis medicare":            medicalBachOnlyPreauth("car281317"),
+	"wellcare medicare lppo":    medicalBachOnlyPreauth("car281317"),
+
+	// Cigna
+	"cigna hmo":                       medicalBachOnlyPreauth("car301345"),
+	"cigna miami dade public schools": medicalBachOnly("car301345"),
+	"cigna open access":               medicalBachOnly("car301345"),
+	"cigna ppo":                       medicalBachOnly("car301345"),
+
+	// iCare
+	"community care plan":       medicalBachOnly("car40907"),
+	"doctors health medicare":   medicalBachOnly("car40907"),
+	"florida community care":    medicalBachOnly("car40907"),
+	"florida complete care":     medicalBachOnly("car40907"),
+	"freedom health medicare":   medicalBachOnly("car40907"),
+	"optimum healthcare":        medicalBachOnly("car40907"),
+	"simply medicaid":           medicalBachOnly("car40907"),
+	"simply medicare":           medicalBachOnly("car40907"),
+	"eye care health solutions": medicalBachOnly("car40907"),
+	"icare":                     medicalBachOnly("car40907"),
+
+	// Florida Blue / EMI
+	"florida blue":                      medicalBachOnly("car40897"),
+	"florida blue hmo":                  medicalBachOnlyPreauth("car280750"),
+	"florida blue medicare hmo":         medicalBachOnlyPreauth("car40897"),
+	"florida blue medicare ppo":         medicalBachOnly("car40897"),
+	"florida blue ppo federal employee": medicalBachOnly("car40897"),
+	"florida blue ppo out of state":     medicalBachOnly("car40897"),
+	"florida blue steward tier 1":       medicalBachOnly("car40897"),
+
+	// Humana / Availity / iCare
+	"humana hmo":          medicalBachOnly("car308175"),
+	"humana medicaid":     medicalBachOnlyPreauth("car308175"),
+	"humana medicare":     medicalBachOnly("car308175"),
+	"humana medicare hmo": medicalBachOnly("car40907"),
+	"humana medicare ppo": medicalBachOnly("car308175"),
+	"humana ppo":          medicalBachOnly("car308175"),
+	"humana ppo pos":      medicalBachOnly("car308175"),
+	"humana premier hmo":  medicalBachOnly("car308175"),
+
+	// Standalone / other medical networks already known to AMD.
+	"eye america aao":                  medicalBachOnly("car308627"),
+	"florida medicaid":                 medicalBachOnly("car40899"),
+	"florida medicare":                 medicalBachOnly("car40900"),
+	"imagine health":                   medicalBachOnly("car308142"),
+	"medicaid":                         medicalBachOnly("car303033"),
+	"medicare":                         medicalBachOnly("car40900"),
+	"meritain health":                  medicalBachOnly("car301578"),
+	"molina medicaid":                  medicalBachOnly("car40912"),
+	"molina medicare":                  medicalBachOnly("car308175"),
+	"multiplan phcs":                   medicalBachOnly("car301648"),
+	"oscar health":                     medicalBachOnly("car284233"),
+	"partners direct health":           medicalBachOnly("car308142"),
+	"preferred care partners":          medicalBachOnly("car40923"),
+	"preferred care network":           medicalBachOnly("car40923"),
+	"sunhealth":                        medicalBachOnly("car308086"),
+	"united healthcare global":         medicalBachOnly("car284971"),
+	"united healthcare global medical": medicalBachOnly("car284971"),
+
+	// Tricare
+	"tricare prime":    medicalBachOnlyPreauth("car40921"),
+	"tricare select":   medicalBachOnly("car40921"),
+	"tricare for life": medicalBachOnly("car40921"),
+	"tricare forever":  medicalBachOnlyPreauth("car40921"),
+
+	// United Healthcare
+	"preferred care partners medical":       medicalBachOnly("car40923"),
+	"umr":                                   medicalBachOnly("car40923"),
+	"united healthcare":                     medicalBachOnly("car40923"),
+	"united healthcare aarp medicare":       medicalBachOnly("car40923"),
+	"united healthcare all savers":          medicalBachOnly("car40923"),
+	"united healthcare golden rule":         medicalBachOnly("car40923"),
+	"united healthcare hmo":                 medicalBachOnlyPreauth("car40923"),
+	"united healthcare individual exchange": medicalBachOnly("car40923"),
+	"united healthcare nhp":                 medicalBachOnly("car40923"),
+	"united healthcare nhp hmo access":      medicalBachOnly("car40923"),
+	"united healthcare nhp hmo only":        medicalBachOnly("car40923"),
+	"united healthcare oxford":              medicalBachOnly("car40923"),
+	"united healthcare shared services":     medicalBachOnly("car40923"),
+	"united healthcare student resources":   medicalBachOnly("car40923"),
+	"united healthcare surest":              medicalBachOnly("car40923"),
+	"us health group":                       medicalBachOnly("car40923"),
+}
+
+var hollywoodSweetwaterMedicalInsuranceAliases = map[string]string{
+	"aetna commercial hmo and ppo":         "aetna commercial",
+	"aetna commercial hmo ppo":             "aetna commercial",
+	"aetna epo plan north broward":         "aetna epo north broward",
+	"aetna epo plan university miami":      "aetna epo university of miami",
+	"aetna epo plan university of miami":   "aetna epo university of miami",
+	"aetna healthy kids kid care":          "aetna healthy kids",
+	"aetna medicare ppo medical":           "aetna medicare ppo",
+	"aetna qhp":                            "aetna qhp individual exchange",
+	"aetna qhp individual exchange plan":   "aetna qhp individual exchange",
+	"ambetter medical":                     "ambetter",
+	"av med":                               "avmed",
+	"care plus":                            "careplus medicare medical",
+	"careplus":                             "careplus medicare medical",
+	"childrens medical":                    "childrens medical services",
+	"children's medical":                   "childrens medical services",
+	"children's medical services":          "childrens medical services",
+	"cigna miami-dade public schools":      "cigna miami dade public schools",
+	"devoted":                              "devoted medicare hmo",
+	"doctors health":                       "doctors health medicare",
+	"fl blue hmo":                          "florida blue hmo",
+	"fl blue steward":                      "florida blue steward tier 1",
+	"florida blue steward":                 "florida blue steward tier 1",
+	"freedom":                              "freedom health medicare",
+	"freedom health":                       "freedom health medicare",
+	"humana":                               "humana ppo",
+	"humana premier hmo access":            "humana premier hmo",
+	"medicare part b":                      "medicare",
+	"meritain":                             "meritain health",
+	"multiplan":                            "multiplan phcs",
+	"optimum":                              "optimum healthcare",
+	"optimum healthplan":                   "optimum healthcare",
+	"optimum healthplan medicare":          "optimum healthcare",
+	"oscar":                                "oscar health",
+	"oscar health plans":                   "oscar health",
+	"partners direct":                      "partners direct health",
+	"phcs":                                 "multiplan phcs",
+	"preferred care":                       "preferred care partners",
+	"preferred care partners medical":      "preferred care partners",
+	"simply":                               "simply medicaid",
+	"simply healthcare":                    "simply medicaid",
+	"simply medicare medical":              "simply medicare",
+	"solis":                                "solis medicare",
+	"straight medicaid":                    "medicaid",
+	"tricare":                              "tricare select",
+	"uhc":                                  "united healthcare",
+	"uhc medicare":                         "united healthcare aarp medicare",
+	"united":                               "united healthcare",
+	"united aarp medicare complete":        "united healthcare aarp medicare",
+	"united healthcare medicare advantage": "united healthcare aarp medicare",
+	"united healthcare student resources medical": "united healthcare student resources",
+	"united health one":                           "umr",
+	"ushealth":                                    "us health group",
+	"ushealth group":                              "us health group",
+	"wellcare medicaid medical":                   "wellcare medicaid",
+	"wellcare medicare":                           "wellcare medicare lppo",
+	"wellcare medicare lppo medical":              "wellcare medicare lppo",
+}
+
+var hollywoodSweetwaterAcceptedMedicalCarrierIDs = map[string]bool{
+	"car280750": true, // Florida Blue HMO via EMI
+	"car281245": true, // Envolve
+	"car281317": true, // Premier Eye Care
+	"car284233": true, // Oscar
+	"car284327": true, // Tricare East
+	"car284971": true, // UHC Global
+	"car301345": true, // Cigna
+	"car301578": true, // Meritain
+	"car301648": true, // MultiPlan / PHCS
+	"car302890": true, // Cigna Medicare Advantage HealthSpring
+	"car303033": true, // Medicaid / Humana Medicaid legacy bucket
+	"car303062": true, // Humana PPO/POS
+	"car308086": true, // SunHealth
+	"car308142": true, // Imagine Health
+	"car308175": true, // Humana consolidated
+	"car308627": true, // Eye America AAO
+	"car40887":  true, // Aetna
+	"car40890":  true, // AvMed
+	"car40897":  true, // Florida Blue
+	"car40899":  true, // Florida Medicaid
+	"car40900":  true, // Medicare
+	"car40906":  true, // Humana Medicare
+	"car40907":  true, // iCare
+	"car40912":  true, // Molina Medicaid
+	"car40916":  true, // Preferred Care Partners legacy carrier
+	"car40921":  true, // Tricare
+	"car40922":  true, // Tricare North/South
+	"car40923":  true, // United Healthcare
+}
+
+func isHollywoodSweetwaterMedicalOffice(office *OfficeConfig) bool {
+	return office != nil && (office.ID == "hollywood" || office.ID == "sweetwater")
+}
+
 // VisionInsuranceNameMap maps accepted routine-vision insurance buckets to AMD carrier IDs.
 // It is used only when a request explicitly asks for routine-vision coverage.
 var VisionInsuranceNameMap = map[string]InsuranceEntry{
@@ -406,12 +636,15 @@ var ambiguousDemographicCarrierNames = map[string]bool{
 }
 
 func applyOfficeMedicalInsurancePolicy(entry InsuranceEntry, canonicalName string, office *OfficeConfig) InsuranceEntry {
-	if office == nil || office.ID != "crystal_river" {
+	if office == nil {
 		return entry
 	}
-	if crystalRiverRejectedMedicalPlans[canonicalName] {
-		entry.Routing = RoutingNotAccepted
-		entry.PreauthRequired = false
+	if office.ID == "crystal_river" {
+		if crystalRiverRejectedMedicalPlans[canonicalName] {
+			entry.Routing = RoutingNotAccepted
+			entry.PreauthRequired = false
+		}
+		return entry
 	}
 	return entry
 }
@@ -421,6 +654,26 @@ func applyOfficeMedicalInsurancePolicy(entry InsuranceEntry, canonicalName strin
 func LookupInsuranceForCoverageAtOffice(name string, mode InsuranceMode, office *OfficeConfig) (InsuranceEntry, bool) {
 	if mode == InsuranceModeVision {
 		return lookupInsuranceFromMaps(name, VisionInsuranceNameMap, VisionInsuranceAliases)
+	}
+
+	if isHollywoodSweetwaterMedicalOffice(office) {
+		if entry, _, ok := lookupInsuranceEntry(name, hollywoodSweetwaterMedicalInsuranceNameMap, hollywoodSweetwaterMedicalInsuranceAliases); ok {
+			return entry, true
+		}
+		entry, canonicalName, ok := lookupInsuranceEntry(name, InsuranceNameMap, InsuranceAliases)
+		if !ok {
+			return InsuranceEntry{}, false
+		}
+		if officeEntry, ok := hollywoodSweetwaterMedicalInsuranceNameMap[canonicalName]; ok {
+			return officeEntry, true
+		}
+		if ambiguousDemographicCarrierNames[NormalizeForLookup(name)] || ambiguousDemographicCarrierNames[canonicalName] {
+			return InsuranceEntry{}, false
+		}
+		if entry.Routing == RoutingNotAccepted {
+			return entry, true
+		}
+		return InsuranceEntry{}, false
 	}
 
 	entry, canonicalName, ok := lookupInsuranceEntry(name, InsuranceNameMap, InsuranceAliases)
@@ -466,12 +719,37 @@ func RoutingForCarrierIDAtOffice(carrierID string, office *OfficeConfig) (Routin
 	if office != nil && office.ID == "crystal_river" && crystalRiverRejectedCarrierIDs[carrierID] {
 		return RoutingNotAccepted, false
 	}
+	if isHollywoodSweetwaterMedicalOffice(office) {
+		if hollywoodSweetwaterAcceptedMedicalCarrierIDs[carrierID] {
+			return RoutingBachOnly, AmbiguousCarriers[carrierID]
+		}
+		return RoutingNotAccepted, false
+	}
 	return RoutingForCarrierID(carrierID)
 }
 
 // RoutingForDemographicInsurance prefers AMD's carrier name when available, then
 // falls back to carrier ID. Carrier IDs can represent mixed accepted/rejected plans.
 func RoutingForDemographicInsurance(carrierID, carrierName string, office *OfficeConfig) (RoutingRule, bool) {
+	if isHollywoodSweetwaterMedicalOffice(office) {
+		if entry, _, ok := lookupInsuranceEntry(carrierName, hollywoodSweetwaterMedicalInsuranceNameMap, hollywoodSweetwaterMedicalInsuranceAliases); ok {
+			return entry.Routing, false
+		}
+		if entry, canonicalName, ok := lookupInsuranceEntry(carrierName, InsuranceNameMap, InsuranceAliases); ok {
+			if officeEntry, ok := hollywoodSweetwaterMedicalInsuranceNameMap[canonicalName]; ok {
+				return officeEntry.Routing, false
+			}
+			if ambiguousDemographicCarrierNames[NormalizeForLookup(carrierName)] || ambiguousDemographicCarrierNames[canonicalName] {
+				return RoutingForCarrierIDAtOffice(carrierID, office)
+			}
+			if entry.Routing == RoutingNotAccepted {
+				return RoutingNotAccepted, false
+			}
+			return RoutingNotAccepted, false
+		}
+		return RoutingForCarrierIDAtOffice(carrierID, office)
+	}
+
 	if entry, canonicalName, ok := lookupInsuranceEntry(carrierName, InsuranceNameMap, InsuranceAliases); ok {
 		if AmbiguousCarriers[carrierID] && ambiguousDemographicCarrierNames[NormalizeForLookup(carrierName)] {
 			return RoutingForCarrierIDAtOffice(carrierID, office)

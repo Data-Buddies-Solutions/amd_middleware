@@ -311,6 +311,32 @@ func TestIsMinor(t *testing.T) {
 	}
 }
 
+func TestAgeYearsOn(t *testing.T) {
+	asOf := time.Date(2026, 5, 14, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name string
+		dob  string
+		age  int
+		ok   bool
+	}{
+		{"birthday already passed", "05/13/2019", 7, true},
+		{"birthday today", "05/14/2019", 7, true},
+		{"birthday tomorrow", "05/15/2019", 6, true},
+		{"iso date is normalized", "2019-05-14", 7, true},
+		{"invalid", "not-a-date", 0, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			age, ok := AgeYearsOn(tt.dob, asOf)
+			if ok != tt.ok || age != tt.age {
+				t.Fatalf("AgeYearsOn(%q) = %d, %v; want %d, %v", tt.dob, age, ok, tt.age, tt.ok)
+			}
+		})
+	}
+}
+
 func TestParseFirstName(t *testing.T) {
 	tests := []struct {
 		input    string

@@ -1,90 +1,138 @@
 # Multi-Office Support
 
-## How Office Routing Works
+The middleware is the source of truth for office routing. The voice agent should
+send the current office value when it knows it, usually from the inbound trunk
+phone number returned by `/api/token`. Direct callers can also pass an office
+name.
 
-Each ElevenLabs/LiveKit agent serves one office. When a call comes in, the middleware automatically determines which office it's for using the **phone number the caller dialed** (the SIP trunk number).
+## Lookup Inputs
 
-### Call Flow
+Every endpoint with an `office` field calls `domain.LookupOffice()`.
 
-1. Call arrives → LiveKit extracts `sip.trunkPhoneNumber` (e.g., `+17275919997`)
-2. `main.ts` calls `setOffice(trunkPhone)` once at call start
-3. Every tool call automatically includes `"office": "+17275919997"` in the request body
-4. Middleware's `LookupOffice()` strips to digits → `17275919997` → looks up `PhoneToOffice` map → resolves to `spring_hill`
-5. The resolved `OfficeConfig` determines: facility ID, allowed providers, routing tiers, pediatric routing, appointment colors, and profile ID for new patients
+Accepted values:
 
-### Where Office Config Lives
+- E.164 trunk number: `+19542872010`
+- 11-digit US number: `19542872010`
+- 10-digit US number: `9542872010`
+- Formatted US number: `(954) 287-2010`
+- Office ID: `hollywood`
+- Display name: `Hollywood`
 
-All office configuration is in **one file**: `internal/domain/office.go`
+If `office` is empty, prod defaults to Spring Hill.
 
-- `OfficeRegistry` — the full config for each office (facility, columns, providers, routing)
-- `OfficeAliases` — name-based aliases (`"sh"` → `"spring_hill"`)
-- `PhoneToOffice` — phone number → office mapping (what the agent uses)
+## Current Production Registry
 
-### Current Offices
+| Phone key | Office | Facility | Default profile |
+| --- | --- | ---: | ---: |
+| `+17275919997` | Spring Hill | `1568` | `620` |
+| `+13523202007` | Crystal River | `1576` | `2064` |
+| `+16182265883` | Crystal River placeholder | `1576` | `2064` |
+| `+19542872010` | Hollywood | `1480` | `620` |
+| `+17864657475` | Sweetwater | `670` | `620` |
+| `+17864654845` | Sweetwater | `670` | `620` |
+| `+17866134310` | Sweetwater | `670` | `620` |
+| `+17864657479` | Sweetwater | `670` | `620` |
+| `+17864654836` | Sweetwater | `670` | `620` |
+| `+17864654882` | Sweetwater | `670` | `620` |
 
-| Office | ID | Facility | Phone | Providers |
-|--------|----|----------|-------|-----------|
-| Spring Hill | `spring_hill` | 1568 | +1 (727) 591-9997 | Dr. Bach, Dr. Licht, Dr. Noel, Routine Vision |
+## Current Scheduler Configuration
 
-## Adding a New Office
+### Spring Hill
 
-### Step 1: Get the AMD data
+| Lane | Column | Profile | Provider |
+| --- | ---: | ---: | --- |
+| Medical | `1513` | `620` | Dr. Bach |
+| Medical | `1598` | `620` | Dr. Bach Overflow |
+| Medical | `1551` | `2064` | Dr. Licht |
+| Medical | `1550` | `2076` | Dr. Noel |
+| Routine vision | `1600` | `1983` | Routine Vision Dr. Otero |
 
-You need these from the live AMD system for the new office:
+Routing:
 
-- **Facility ID** — from `getschedulersetup` response (strip `fac` prefix)
-- **Column IDs** — one per provider at that location (strip `col` prefix)
-- **Profile IDs** — one per provider (strip `prof` prefix)
-- **Default profile ID** — the profile to use when creating new patients (usually the lead provider)
-- **Work hours, intervals, workweek** — from `columnsetting` in the setup response
-- **Routing tiers** — which providers accept which insurance tiers
+- `bach_only`: `1513`, `1598`
+- `bach_licht`: `1513`, `1598`, `1551`
+- `all_three`: `1513`, `1598`, `1551`, `1550`
+- `optical_only`: `1600`
 
-### Step 2: Add the office config in `office.go`
+### Crystal River
 
-Add an entry to `OfficeRegistry`:
+| Lane | Column | Profile | Provider |
+| --- | ---: | ---: | --- |
+| Medical | `1593` | `2064` | Dr. Licht |
 
-```go
-"crystal_river": {
-    ID:               "crystal_river",
-    DisplayName:      "Crystal River",
-    FacilityID:       "1033",
-    DefaultProfileID: "XXX",  // lead provider's profile ID
-    Columns: map[string]OfficeColumn{
-        "COLID1": {ProfileID: "PROFID1", DisplayName: "Dr. Full Name", ShortName: "Dr. Last", MatchKey: "LAST"},
-        "COLID2": {ProfileID: "PROFID2", DisplayName: "Dr. Full Name", ShortName: "Dr. Last", MatchKey: "LAST"},
-    },
-    RoutingTiers: map[RoutingRule][]string{
-        RoutingBachOnly:  {"COLID1"},           // adjust tier names if needed
-        RoutingBachLicht: {"COLID1", "COLID2"},
-        RoutingAll:       {"COLID1", "COLID2"},
-    },
-    PediatricRouting: RoutingBachOnly,
-},
-```
+Routing:
 
-### Step 3: Add aliases and phone mapping
+- `bach_only`: `1593`
+- `bach_licht`: `1593`
+- `all_three`: `1593`
 
-```go
-// In OfficeAliases
-"crystal_river":  "crystal_river",
-"crystalriver":   "crystal_river",
-"crystal river":  "crystal_river",
-"crystal":        "crystal_river",
-"cr":             "crystal_river",
+Crystal River does not have a routine-vision lane in middleware.
 
-// In PhoneToOffice
-"1XXXXXXXXXX": "crystal_river",  // 11 digits with country code
-"XXXXXXXXXX":  "crystal_river",  // 10 digits without
-```
+### Hollywood
 
-### Step 4: Deploy
+| Lane | Column | Profile | Provider | Minimum age |
+| --- | ---: | ---: | --- | ---: |
+| Medical | `1268` | `620` | Dr. Bach | 0 |
+| Medical | `1478` | `620` | Dr. Bach HW Overflow | 0 |
+| Routine vision | `1555` | `2075` | Dr. Farnan | 5 |
+| Routine vision | `1510` | `2057` | Dr. Vidal | 7 |
+| Routine vision | `1305` | `1993` | Dr. Calero | 4 |
 
-1. `go test ./...` — verify tests pass
-2. Deploy middleware to Railway
-3. No changes needed in the LiveKit agent — it already sends the trunk phone number, and the middleware resolves it automatically
+Routing:
 
-### Backward Compatibility
+- `bach_only`: `1268`, `1478`
+- `bach_licht`: `1268`, `1478`
+- `all_three`: `1268`, `1478`
+- `optical_only`: `1555`, `1510`, `1305`
 
-- If `office` is empty or missing in a request, the middleware defaults to Spring Hill
-- The CLI accepts `--office` flag; omitting it defaults to Spring Hill
-- Existing ElevenLabs agents that don't send `office` continue to work unchanged
+### Sweetwater
+
+| Lane | Column | Profile | Provider | Minimum age |
+| --- | ---: | ---: | --- | ---: |
+| Medical | `682` | `620` | Dr. Bach | 0 |
+| Medical | `1307` | `620` | Dr. Bach Overflow | 0 |
+| Routine vision | `1296` | `1996` | Dr. Casas | 7 |
+| Routine vision | `1554` | `2075` | Dr. Farnan | 5 |
+| Routine vision | `1210` | `1993` | Dr. Calero | 4 |
+
+Routing:
+
+- `bach_only`: `682`, `1307`
+- `bach_licht`: `682`, `1307`
+- `all_three`: `682`, `1307`
+- `optical_only`: `1296`, `1554`, `1210`
+
+## Dev Registry
+
+`AMD_ENV=dev` switches the active registry to:
+
+| Phone key | Office | Facility | Default profile |
+| --- | --- | ---: | ---: |
+| `+14843989071` | Spring Hill dev | `1032` | `1135` |
+| `+16182265883` | Crystal River placeholder | `1576` | `2064` |
+
+Appointment type IDs are resolved through `ResolveAppointmentTypeID()`. Prod
+IDs pass through unchanged; dev maps the known medical type IDs to dev IDs.
+
+## Adding Or Changing An Office
+
+1. Pull live AMD scheduler setup.
+2. Record the facility ID, column IDs, profile IDs, column names, intervals,
+   workweek, and max appointments per slot.
+3. Add or update the `OfficeConfig` in `internal/domain/office.go`.
+4. Add each trunk phone to `prodOffices` or `devOffices`.
+5. Add routing tier tests in `internal/domain/office_test.go`.
+6. Add endpoint-level tests for user-visible behavior in
+   `internal/http/handlers_test.go`.
+7. Run `go test ./...`.
+
+## Contract Rules
+
+- Do not hard-code office-specific scheduler IDs in the voice agent.
+- The agent passes office context; middleware resolves office config.
+- Medical availability defaults to `all_three`.
+- Routine vision must pass `routing: "optical_only"`.
+- DOB should be passed to availability and booking whenever known. Missing DOB
+  excludes age-restricted columns from availability and blocks booking into
+  those columns. Under-18 DOBs also apply the office's pediatric routing for
+  medical availability and booking.
