@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased] - 2026-05-14
+
+### Hollywood and Sweetwater Scheduler Support
+
+- Added Hollywood and Sweetwater office configs, phone mappings, scheduler
+  columns, routine-vision lanes, and provider age rules.
+- Added Hollywood and Sweetwater medical insurance routing from the 5/4/2026
+  Abita list's A.Bach column, mapping accepted plans to existing network carrier
+  IDs and routing them through `bach_only`.
+- Added office lookup support for E.164, 11-digit US, 10-digit US, formatted
+  phone numbers, office IDs, and office display names.
+- Extended routine-vision appointment type validation to any office with an
+  `optical_only` routing lane.
+- Added DOB-aware provider filtering for availability and booking.
+- Removed the old local CLI experiment and its Cobra dependencies; the repo now
+  ships only the HTTP API binary from `cmd/api`.
+- Bumped Go module dependencies `golang.org/x/net` to `v0.54.0` and
+  `golang.org/x/text` to `v0.37.0`.
+- Rewrote README, multi-office docs, and AdvancedMD API notes to match the
+  current middleware state.
+
 ## [Unreleased] - 2026-03-23
 
 ### Availability Audit — Bug Fixes, Performance, and Patient Lookup
@@ -21,8 +42,7 @@ Comprehensive audit of the availability endpoint uncovered multiple bugs causing
 - **`LookupPatientByPhone`** (`clients/advancedmd_xmlrpc.go`) — New XMLRPC method using AMD's `@phone` parameter. Extracted `parseLookupResponse` as shared helper for both name and phone lookups.
 - **`POST /api/patient-lookup`** — Combined endpoint: phone → patient identity + insurance routing + upcoming appointments in one call. Designed for precall/early-call agent use.
 - **Phone support on `POST /api/verify-patient`** — Accepts optional `phone` field as alternative to `lastName`.
-- **CLI `--phone` flag** on `amd verify` command.
-- **`StripToDigits` exported** (`domain/office.go`) — Previously unexported, now available to CLI and handlers.
+- **`StripToDigits` exported** (`domain/office.go`) — Previously unexported, now available to handlers.
 
 #### Improved
 

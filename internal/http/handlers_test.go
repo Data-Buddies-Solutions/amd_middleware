@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"advancedmd-token-management/internal/auth"
 	"advancedmd-token-management/internal/clients"
 	"advancedmd-token-management/internal/domain"
 )
@@ -117,6 +119,35 @@ func TestFilterColumnsForRouting_RoutineVisionLane(t *testing.T) {
 	}
 }
 
+func TestFilterColumnsForDOB_RoutineAgeRules(t *testing.T) {
+	office, ok := domain.LookupOffice("+19542872010")
+	if !ok {
+		t.Fatal("expected Hollywood office")
+	}
+	columns := []domain.SchedulerColumn{
+		{ID: "1555"},
+		{ID: "1510"},
+		{ID: "1305"},
+	}
+
+	if filtered := filterColumnsForDOB(columns, office, ""); len(filtered) != 0 {
+		t.Fatalf("missing DOB filtered columns = %v, want none", filtered)
+	}
+	if filtered := filterColumnsForDOB(columns, office, "not-a-date"); len(filtered) != 0 {
+		t.Fatalf("invalid DOB filtered columns = %v, want none", filtered)
+	}
+
+	dob := time.Now().AddDate(-4, 0, 0).Format("01/02/2006")
+
+	filtered := filterColumnsForDOB(columns, office, dob)
+	if len(filtered) != 1 {
+		t.Fatalf("filtered columns = %v, want only Calero", filtered)
+	}
+	if filtered[0].ID != "1305" {
+		t.Fatalf("filtered column = %s, want 1305", filtered[0].ID)
+	}
+}
+
 func TestHandleBookAppointment_RoutingGuard(t *testing.T) {
 	handlers := &Handlers{}
 
@@ -155,6 +186,26 @@ func TestHandleBookAppointment_RoutingGuard(t *testing.T) {
 			body:        `{"patientId":"123","columnId":1513,"profileId":620,"startDatetime":"2026-05-12T10:00","duration":30,"appointmentTypeId":6169}`,
 			expectedMsg: `Appointment type 6169 is not valid for routing "all_three" at Spring Hill`,
 		},
+		{
+			name:        "hollywood routine rejects medical type",
+			body:        `{"patientId":"123","columnId":1555,"profileId":2075,"startDatetime":"2026-05-12T10:00","duration":30,"appointmentTypeId":1007,"routing":"optical_only","office":"+19542872010"}`,
+			expectedMsg: `Appointment type 1007 is not valid for routing "optical_only" at Hollywood`,
+		},
+		{
+			name:        "hollywood medical rejects vision type",
+			body:        `{"patientId":"123","columnId":1268,"profileId":620,"startDatetime":"2026-05-12T10:00","duration":30,"appointmentTypeId":1010,"office":"+19542872010"}`,
+			expectedMsg: `Appointment type 1010 is not valid for routing "all_three" at Hollywood`,
+		},
+		{
+			name:        "invalid DOB rejected before AMD call",
+			body:        `{"patientId":"123","columnId":1513,"profileId":620,"startDatetime":"2026-05-12T10:00","duration":30,"appointmentTypeId":1007,"dob":"not-a-date"}`,
+			expectedMsg: `dob must be a valid date`,
+		},
+		{
+			name:        "minor medical booking uses pediatric routing",
+			body:        fmt.Sprintf(`{"patientId":"123","columnId":1551,"profileId":2064,"startDatetime":"2026-05-12T10:00","duration":30,"appointmentTypeId":1007,"dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
+			expectedMsg: `Column 1551 is not valid for routing "bach_only" at Spring Hill`,
+		},
 	}
 
 	for _, tt := range tests {
@@ -174,6 +225,89 @@ func TestHandleBookAppointment_RoutingGuard(t *testing.T) {
 				t.Fatalf("expected message %q, got %q", tt.expectedMsg, body.Message)
 			}
 		})
+	}
+}
+
+func TestHandleBookAppointment_AgeGuard(t *testing.T) {
+	handlers := &Handlers{}
+
+	underageDOB := time.Now().AddDate(-6, 0, 0).Format("01/02/2006")
+	tests := []struct {
+		name        string
+		dobFragment string
+		expectedMsg string
+	}{
+		{
+			name:        "under minimum age",
+			dobFragment: fmt.Sprintf(`,"dob":%q`, underageDOB),
+			expectedMsg: "Dr. Vidal requires patient age 7 or older",
+		},
+		{
+			name:        "missing DOB",
+			dobFragment: "",
+			expectedMsg: "Dr. Vidal requires patient DOB to verify age 7 or older",
+		},
+		{
+			name:        "invalid DOB",
+			dobFragment: `,"dob":"not-a-date"`,
+			expectedMsg: "dob must be a valid date",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body := fmt.Sprintf(`{"patientId":"123","columnId":1510,"profileId":2057,"startDatetime":"2026-05-12T10:00","duration":30,"appointmentTypeId":1010,"routing":"optical_only","office":"+19542872010"%s}`, tt.dobFragment)
+			req := httptest.NewRequest("POST", "/api/appointment/book", bytes.NewBufferString(body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			handlers.HandleBookAppointment(w, req)
+
+			var resp BookAppointmentResponse
+			json.NewDecoder(w.Result().Body).Decode(&resp)
+			if resp.Status != "error" {
+				t.Fatalf("expected status error, got %q", resp.Status)
+			}
+			if resp.Message != tt.expectedMsg {
+				t.Fatalf("expected message %q, got %q", tt.expectedMsg, resp.Message)
+			}
+		})
+	}
+}
+
+func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
+	handlers := &Handlers{}
+	date := time.Now().AddDate(0, 0, 2).Format("2006-01-02")
+	body := fmt.Sprintf(`{"date":%q,"office":"Hollywood","routing":"optical_only","dob":"not-a-date"}`, date)
+	req := httptest.NewRequest("POST", "/api/scheduler/availability", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandleGetAvailability(w, req)
+
+	var resp ErrorResponse
+	json.NewDecoder(w.Result().Body).Decode(&resp)
+	if resp.Status != "error" {
+		t.Fatalf("expected status error, got %q", resp.Status)
+	}
+	if resp.Message != "dob must be a valid date" {
+		t.Fatalf("expected invalid DOB message, got %q", resp.Message)
+	}
+}
+
+func TestEffectiveRoutingForDOB(t *testing.T) {
+	office := domain.DefaultOffice()
+	minorDOB := time.Now().AddDate(-10, 0, 0).Format("01/02/2006")
+	adultDOB := time.Now().AddDate(-30, 0, 0).Format("01/02/2006")
+
+	if got := effectiveRoutingForDOB(office, domain.RoutingAll, minorDOB); got != domain.RoutingBachOnly {
+		t.Fatalf("minor medical routing = %q, want %q", got, domain.RoutingBachOnly)
+	}
+	if got := effectiveRoutingForDOB(office, domain.RoutingAll, adultDOB); got != domain.RoutingAll {
+		t.Fatalf("adult medical routing = %q, want %q", got, domain.RoutingAll)
+	}
+	if got := effectiveRoutingForDOB(office, domain.RoutingOpticalOnly, minorDOB); got != domain.RoutingOpticalOnly {
+		t.Fatalf("routine vision routing = %q, want %q", got, domain.RoutingOpticalOnly)
 	}
 }
 
@@ -1108,6 +1242,11 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 			body:        `{"patientId":"pat123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13523202007"}`,
 			expectedMsg: "Routine vision coverage is not supported at Crystal River. Route the patient to Spring Hill routine vision scheduling.",
 		},
+		{
+			name:        "invalid DOB",
+			body:        `{"patientId":"pat123","insurance":"Aetna","subscriberNum":"ABC123","dob":"not-a-date"}`,
+			expectedMsg: "dob must be a valid date",
+		},
 	}
 
 	for _, tt := range tests {
@@ -1128,6 +1267,111 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
+	tests := []struct {
+		name             string
+		body             string
+		wantRouting      string
+		wantProviders    []string
+		wantXMLRPCWrites int
+	}{
+		{
+			name:             "routine vision filters age-restricted providers",
+			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-6, 0, 0).Format("01/02/2006")),
+			wantRouting:      string(domain.RoutingOpticalOnly),
+			wantProviders:    []string{"Dr. Farnan", "Dr. Calero"},
+			wantXMLRPCWrites: 1,
+		},
+		{
+			name:             "medical minor uses pediatric routing",
+			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insPlanId":"ins123","oldInsurance":"Old","insurance":"Aetna","subscriberNum":"ABC123","office":"Spring Hill","dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
+			wantRouting:      string(domain.RoutingBachOnly),
+			wantProviders:    []string{"Dr. Bach"},
+			wantXMLRPCWrites: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handlers, writes := newUpdateInsuranceTestHandlers(t)
+			req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			handlers.HandleUpdateInsurance(w, req)
+
+			var resp UpdateInsuranceResponse
+			json.NewDecoder(w.Result().Body).Decode(&resp)
+			if resp.Status != "updated" {
+				t.Fatalf("expected updated response, got %#v", resp)
+			}
+			if resp.Routing != tt.wantRouting {
+				t.Fatalf("routing = %q, want %q", resp.Routing, tt.wantRouting)
+			}
+			if len(resp.AllowedProviders) != len(tt.wantProviders) {
+				t.Fatalf("allowedProviders = %v, want %v", resp.AllowedProviders, tt.wantProviders)
+			}
+			for i, want := range tt.wantProviders {
+				if resp.AllowedProviders[i] != want {
+					t.Fatalf("allowedProviders = %v, want %v", resp.AllowedProviders, tt.wantProviders)
+				}
+			}
+			if len(*writes) != tt.wantXMLRPCWrites {
+				t.Fatalf("XMLRPC writes = %d, want %d", len(*writes), tt.wantXMLRPCWrites)
+			}
+		})
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
+}
+
+func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {
+	t.Helper()
+	writes := []string{}
+	httpClient := &http.Client{
+		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			body, _ := io.ReadAll(r.Body)
+			contentType := r.Header.Get("Content-Type")
+
+			var response string
+			switch {
+			case strings.Contains(contentType, "application/xml") && strings.Contains(r.URL.Host, "partnerlogin"):
+				response = `<PPMDResults><Results><usercontext webserver="https://mock.advancedmd.test/processrequest/api-801/APP"></usercontext></Results></PPMDResults>`
+			case strings.Contains(contentType, "application/xml"):
+				response = `<PPMDResults><Results success="1"><usercontext>test-token</usercontext></Results></PPMDResults>`
+			default:
+				writes = append(writes, string(body))
+				response = `{"PPMDResults":{"Results":{}}}`
+			}
+
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader(response)),
+				Request:    r,
+			}, nil
+		}),
+	}
+
+	authenticator := auth.NewAuthenticator(auth.Credentials{
+		Username:  "user",
+		Password:  "pass",
+		OfficeKey: "office",
+		AppName:   "app",
+	}, httpClient)
+	tokenManager := auth.NewTokenManager(authenticator)
+
+	return NewHandlers(
+		tokenManager,
+		clients.NewAdvancedMDClient(httpClient),
+		clients.NewAdvancedMDRestClient(httpClient),
+	), &writes
 }
 
 func TestHandleAddPatientNote_ValidationErrors(t *testing.T) {

@@ -212,6 +212,22 @@ For existing-patient demographics at Crystal River, these carrier IDs are reject
 
 ---
 
+## Hollywood and Sweetwater Medical Overrides
+
+Hollywood and Sweetwater medical routing uses the Abita Eye Group Insurance List
+dated 5/4/2026 and the `A.Bach` column only. Accepted medical plans route to
+`bach_only` because those offices only expose Dr. Austin Bach medical columns.
+The override preserves Spring Hill and Crystal River behavior and maps accepted
+plans to the existing network carrier IDs such as Aetna `car40887`, iCare
+`car40907`, Envolve `car281245`, Cigna `car301345`, Florida Blue `car40897`,
+United Healthcare `car40923`, Premier Eye Care `car281317`, and EMI
+`car280750`.
+
+Plans marked `NO` or `PENDING` for A.Bach in the PDF continue to reject or stay
+unrecognized unless they have an explicit accepted A.Bach medical row.
+
+---
+
 ## Ambiguous Carriers (Existing Patients)
 
 These carrier IDs appear across multiple routing tiers in the name map. When we get one from an existing patient's demographics, we can't determine the specific plan — so we default to **All 3** and set `routingAmbiguous: true` so the agent asks a clarifying question.

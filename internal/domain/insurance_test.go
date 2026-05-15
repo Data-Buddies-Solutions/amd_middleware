@@ -128,6 +128,109 @@ func TestLookupInsurance_CrystalRiverExtrasRemainAcceptedAtSpringHill(t *testing
 	}
 }
 
+func TestLookupInsurance_HollywoodSweetwaterMedicalABachOverrides(t *testing.T) {
+	hollywood := &OfficeConfig{ID: "hollywood", DisplayName: "Hollywood"}
+	sweetwater := &OfficeConfig{ID: "sweetwater", DisplayName: "Sweetwater"}
+
+	tests := []struct {
+		name          string
+		office        *OfficeConfig
+		input         string
+		wantCarrierID string
+		wantPreauth   bool
+	}{
+		{"hollywood accepts aetna epo university", hollywood, "Aetna EPO University of Miami", "car40887", false},
+		{"hollywood accepts florida blue hmo via emi", hollywood, "Florida Blue HMO", "car280750", true},
+		{"hollywood accepts careplus medical through premier", hollywood, "CarePlus", "car281317", true},
+		{"hollywood accepts preferred care partners through uhc", hollywood, "Preferred Care Partners", "car40923", false},
+		{"hollywood accepts global alias only when canonical is in abach map", hollywood, "Blue Cross", "car40897", false},
+		{"sweetwater maps aetna medicare ppo to icare", sweetwater, "Aetna Medicare PPO", "car40907", false},
+		{"sweetwater accepts doctors health medicare", sweetwater, "Doctors Health Medicare", "car40907", false},
+		{"sweetwater accepts devoted through premier", sweetwater, "Devoted", "car281317", false},
+		{"sweetwater accepts solis with preauth", sweetwater, "Solis Medicare", "car281317", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			entry, found := LookupInsuranceForCoverageAtOffice(tt.input, InsuranceModeMedical, tt.office)
+			if !found {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) found = false, want true", tt.input)
+			}
+			if entry.CarrierID != tt.wantCarrierID {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) carrierID = %q, want %q", tt.input, entry.CarrierID, tt.wantCarrierID)
+			}
+			if entry.Routing != RoutingBachOnly {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) routing = %q, want %q", tt.input, entry.Routing, RoutingBachOnly)
+			}
+			if entry.PreauthRequired != tt.wantPreauth {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) preauth = %v, want %v", tt.input, entry.PreauthRequired, tt.wantPreauth)
+			}
+		})
+	}
+}
+
+func TestLookupInsurance_HollywoodSweetwaterDoNotChangeSpringHillMedical(t *testing.T) {
+	springHill := &OfficeConfig{ID: "spring_hill", DisplayName: "Spring Hill"}
+
+	tests := []string{
+		"Aetna EPO University of Miami",
+		"Doctors Health Medicare",
+		"Florida Blue HMO",
+	}
+
+	for _, input := range tests {
+		t.Run(input, func(t *testing.T) {
+			entry, found := LookupInsuranceForCoverageAtOffice(input, InsuranceModeMedical, springHill)
+			if !found {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) found = false, want true", input)
+			}
+			if entry.Routing != RoutingNotAccepted {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) routing = %q, want %q", input, entry.Routing, RoutingNotAccepted)
+			}
+		})
+	}
+}
+
+func TestLookupInsurance_HollywoodSweetwaterRejectsNonABachFallbacks(t *testing.T) {
+	office := &OfficeConfig{ID: "hollywood", DisplayName: "Hollywood"}
+
+	tests := []string{
+		"Cigna",
+		"Molina",
+		"United Healthcare Choice",
+	}
+
+	for _, input := range tests {
+		t.Run(input, func(t *testing.T) {
+			if entry, found := LookupInsuranceForCoverageAtOffice(input, InsuranceModeMedical, office); found {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) = %+v, true; want not found", input, entry)
+			}
+		})
+	}
+}
+
+func TestLookupInsurance_HollywoodSweetwaterRejectedMedicalStillRejected(t *testing.T) {
+	office := &OfficeConfig{ID: "hollywood", DisplayName: "Hollywood"}
+
+	tests := []string{
+		"Cigna Local Plus",
+		"Molina Marketplace",
+		"Florida BlueSelect",
+	}
+
+	for _, input := range tests {
+		t.Run(input, func(t *testing.T) {
+			entry, found := LookupInsuranceForCoverageAtOffice(input, InsuranceModeMedical, office)
+			if !found {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) found = false, want true", input)
+			}
+			if entry.Routing != RoutingNotAccepted {
+				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) routing = %q, want %q", input, entry.Routing, RoutingNotAccepted)
+			}
+		})
+	}
+}
+
 func TestRoutingForCarrierIDAtOffice_CrystalRiverRejectedCarriers(t *testing.T) {
 	crystalRiver := &OfficeConfig{ID: "crystal_river", DisplayName: "Crystal River"}
 	springHill := &OfficeConfig{ID: "spring_hill", DisplayName: "Spring Hill"}
@@ -140,6 +243,31 @@ func TestRoutingForCarrierIDAtOffice_CrystalRiverRejectedCarriers(t *testing.T) 
 	routing, ambiguous = RoutingForCarrierIDAtOffice("car281245", springHill)
 	if routing != RoutingAll || ambiguous {
 		t.Fatalf("RoutingForCarrierIDAtOffice(car281245, Spring Hill) = %q, %v; want %q, false", routing, ambiguous, RoutingAll)
+	}
+}
+
+func TestRoutingForCarrierIDAtOffice_HollywoodSweetwaterAcceptedCarriers(t *testing.T) {
+	hollywood := &OfficeConfig{ID: "hollywood", DisplayName: "Hollywood"}
+	springHill := &OfficeConfig{ID: "spring_hill", DisplayName: "Spring Hill"}
+
+	routing, ambiguous := RoutingForCarrierIDAtOffice("car280750", hollywood)
+	if routing != RoutingBachOnly || ambiguous {
+		t.Fatalf("RoutingForCarrierIDAtOffice(car280750, Hollywood) = %q, %v; want %q, false", routing, ambiguous, RoutingBachOnly)
+	}
+
+	routing, ambiguous = RoutingForCarrierIDAtOffice("car40923", hollywood)
+	if routing != RoutingBachOnly || !ambiguous {
+		t.Fatalf("RoutingForCarrierIDAtOffice(car40923, Hollywood) = %q, %v; want %q, true", routing, ambiguous, RoutingBachOnly)
+	}
+
+	routing, ambiguous = RoutingForCarrierIDAtOffice("car280750", springHill)
+	if routing != RoutingNotAccepted || ambiguous {
+		t.Fatalf("RoutingForCarrierIDAtOffice(car280750, Spring Hill) = %q, %v; want %q, false", routing, ambiguous, RoutingNotAccepted)
+	}
+
+	routing, ambiguous = RoutingForCarrierIDAtOffice("car99999", hollywood)
+	if routing != RoutingNotAccepted || ambiguous {
+		t.Fatalf("RoutingForCarrierIDAtOffice(car99999, Hollywood) = %q, %v; want %q, false", routing, ambiguous, RoutingNotAccepted)
 	}
 }
 
@@ -169,6 +297,35 @@ func TestRoutingForDemographicInsurance_UsesCarrierNameBeforeCarrierFallback(t *
 			}
 
 			routing, ambiguous := RoutingForDemographicInsurance(tt.carrierID, tt.carrierName, office)
+			if routing != tt.wantRouting {
+				t.Fatalf("RoutingForDemographicInsurance(%q, %q) routing = %q, want %q", tt.carrierID, tt.carrierName, routing, tt.wantRouting)
+			}
+			if ambiguous != tt.wantAmbiguous {
+				t.Fatalf("RoutingForDemographicInsurance(%q, %q) ambiguous = %v, want %v", tt.carrierID, tt.carrierName, ambiguous, tt.wantAmbiguous)
+			}
+		})
+	}
+}
+
+func TestRoutingForDemographicInsurance_HollywoodSweetwaterABachPolicy(t *testing.T) {
+	hollywood := &OfficeConfig{ID: "hollywood", DisplayName: "Hollywood"}
+
+	tests := []struct {
+		name          string
+		carrierID     string
+		carrierName   string
+		wantRouting   RoutingRule
+		wantAmbiguous bool
+	}{
+		{"exact carrier name accepted even if globally rejected", "car301345", "Cigna Miami-Dade Public Schools", RoutingBachOnly, false},
+		{"generic cigna carrier falls back to accepted carrier id", "car301345", "Cigna", RoutingBachOnly, true},
+		{"non abach exact plan does not fall back to accepted carrier id", "car40923", "United Healthcare Choice", RoutingNotAccepted, false},
+		{"preferred care legacy carrier accepted by id", "car40916", "", RoutingBachOnly, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			routing, ambiguous := RoutingForDemographicInsurance(tt.carrierID, tt.carrierName, hollywood)
 			if routing != tt.wantRouting {
 				t.Fatalf("RoutingForDemographicInsurance(%q, %q) routing = %q, want %q", tt.carrierID, tt.carrierName, routing, tt.wantRouting)
 			}
@@ -225,9 +382,9 @@ func TestProvidersForRouting(t *testing.T) {
 		wantNames []string
 	}{
 		{"not accepted returns nil", RoutingNotAccepted, nil},
-		{"bach only", RoutingBachOnly, []string{"Dr. Bach", "Dr. Bach"}},
-		{"bach+licht", RoutingBachLicht, []string{"Dr. Bach", "Dr. Bach", "Dr. Licht"}},
-		{"all", RoutingAll, []string{"Dr. Bach", "Dr. Bach", "Dr. Licht", "Dr. Noel"}},
+		{"bach only", RoutingBachOnly, []string{"Dr. Bach"}},
+		{"bach+licht", RoutingBachLicht, []string{"Dr. Bach", "Dr. Licht"}},
+		{"all", RoutingAll, []string{"Dr. Bach", "Dr. Licht", "Dr. Noel"}},
 		{"optical only", RoutingOpticalOnly, []string{"Routine Vision"}},
 	}
 

@@ -2,6 +2,7 @@ package domain
 
 import (
 	"log"
+	"sort"
 	"strings"
 )
 
@@ -22,6 +23,7 @@ type OfficeColumn struct {
 	DisplayName string // "Dr. Austin Bach"
 	ShortName   string // "Dr. Bach"
 	MatchKey    string // "BACH" — uppercase fragment for matching AMD names
+	MinAgeYears int    // Minimum patient age in years; 0 means newborn and up
 }
 
 // InsuranceMode selects which insurance crosswalk should be used.
@@ -49,17 +51,9 @@ func (o *OfficeConfig) AllowedColumnIDs() []string {
 
 // ColumnsForRouting returns the allowed column IDs for a routing rule at this office.
 func (o *OfficeConfig) ColumnsForRouting(rule RoutingRule) map[string]bool {
-	if rule == RoutingNotAccepted {
-		return nil
-	}
-
-	colIDs, ok := o.RoutingTiers[rule]
+	colIDs, ok := o.columnIDsForRouting(rule)
 	if !ok {
-		if rule == RoutingOpticalOnly {
-			return map[string]bool{}
-		}
-		// Fall back to all columns for this office
-		colIDs = o.RoutingTiers[RoutingAll]
+		return nil
 	}
 
 	result := make(map[string]bool, len(colIDs))
@@ -69,33 +63,99 @@ func (o *OfficeConfig) ColumnsForRouting(rule RoutingRule) map[string]bool {
 	return result
 }
 
+// ColumnsForRoutingAndDOB returns routing columns filtered by provider age rules when DOB is known.
+func (o *OfficeConfig) ColumnsForRoutingAndDOB(rule RoutingRule, dob string) map[string]bool {
+	cols := o.ColumnsForRouting(rule)
+	if cols == nil {
+		return cols
+	}
+
+	filtered := make(map[string]bool, len(cols))
+	for id := range cols {
+		if o.ColumnAllowsDOB(id, dob) {
+			filtered[id] = true
+		}
+	}
+	return filtered
+}
+
 // ProvidersForRouting returns the display names for a routing rule at this office.
 func (o *OfficeConfig) ProvidersForRouting(rule RoutingRule) []string {
-	if rule == RoutingNotAccepted {
+	colIDs, ok := o.columnIDsForRouting(rule)
+	if !ok {
 		return nil
 	}
 
-	colIDs, ok := o.RoutingTiers[rule]
-	if !ok {
-		if rule == RoutingOpticalOnly {
-			return []string{}
-		}
-		colIDs = o.RoutingTiers[RoutingAll]
-	}
+	return o.providerNamesForColumnIDs(colIDs, nil)
+}
 
-	names := make([]string, 0, len(colIDs))
-	for _, id := range colIDs {
-		if col, ok := o.Columns[id]; ok {
-			names = append(names, col.ShortName)
-		}
+// ProvidersForRoutingAndDOB returns allowed provider names after age filtering.
+func (o *OfficeConfig) ProvidersForRoutingAndDOB(rule RoutingRule, dob string) []string {
+	colIDs, ok := o.columnIDsForRouting(rule)
+	if !ok {
+		return nil
 	}
-	return names
+	colMap := o.ColumnsForRoutingAndDOB(rule, dob)
+	return o.providerNamesForColumnIDs(colIDs, colMap)
 }
 
 // ValidProviderNames returns all provider short names for this office.
 func (o *OfficeConfig) ValidProviderNames() []string {
 	names := make([]string, 0, len(o.Columns))
+	seen := make(map[string]bool)
 	for _, col := range o.Columns {
+		if seen[col.ShortName] {
+			continue
+		}
+		seen[col.ShortName] = true
+		names = append(names, col.ShortName)
+	}
+	return names
+}
+
+// ColumnAllowsDOB reports whether a provider column can see a patient with the supplied DOB.
+func (o *OfficeConfig) ColumnAllowsDOB(columnID, dob string) bool {
+	col, ok := o.Columns[columnID]
+	if !ok {
+		return false
+	}
+	if col.MinAgeYears == 0 {
+		return true
+	}
+	age, ok := AgeYears(dob)
+	if !ok {
+		return false
+	}
+	return age >= col.MinAgeYears
+}
+
+func (o *OfficeConfig) columnIDsForRouting(rule RoutingRule) ([]string, bool) {
+	if rule == RoutingNotAccepted {
+		return nil, false
+	}
+
+	colIDs, ok := o.RoutingTiers[rule]
+	if ok {
+		return colIDs, true
+	}
+	if rule == RoutingOpticalOnly {
+		return []string{}, true
+	}
+	return o.RoutingTiers[RoutingAll], true
+}
+
+func (o *OfficeConfig) providerNamesForColumnIDs(colIDs []string, allowed map[string]bool) []string {
+	names := make([]string, 0, len(colIDs))
+	seen := make(map[string]bool)
+	for _, id := range colIDs {
+		if allowed != nil && !allowed[id] {
+			continue
+		}
+		col, ok := o.Columns[id]
+		if !ok || seen[col.ShortName] {
+			continue
+		}
+		seen[col.ShortName] = true
 		names = append(names, col.ShortName)
 	}
 	return names
@@ -227,7 +287,7 @@ func (o *OfficeConfig) AllowsAppointmentType(typeID int, routing RoutingRule) bo
 	}
 
 	if routing == RoutingOpticalOnly {
-		return o.ID == "spring_hill" && opticalAppointmentTypes[typeID]
+		return len(o.RoutingTiers[RoutingOpticalOnly]) > 0 && opticalAppointmentTypes[typeID]
 	}
 	if o.ID == "crystal_river" {
 		return crystalRiverAppointmentTypes[typeID]
@@ -242,96 +302,123 @@ func (o *OfficeConfig) AllowsAppointmentType(typeID int, routing RoutingRule) bo
 	return true
 }
 
+var springHillOffice = &OfficeConfig{
+	ID:               "spring_hill",
+	DisplayName:      "Spring Hill",
+	FacilityID:       "1568",
+	DefaultProfileID: "620",
+	Columns: map[string]OfficeColumn{
+		"1513": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH"},
+		"1598": {ProfileID: "620", DisplayName: "Dr. Austin Bach (Overflow)", ShortName: "Dr. Bach", MatchKey: "BACH"},
+		"1551": {ProfileID: "2064", DisplayName: "Dr. J. Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"},
+		"1550": {ProfileID: "2076", DisplayName: "Dr. D. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL"},
+		"1600": {ProfileID: "1983", DisplayName: "Routine Vision - Dr. Melissa Otero", ShortName: "Routine Vision", MatchKey: "OTERO"},
+	},
+	RoutingTiers: map[RoutingRule][]string{
+		RoutingBachOnly:    {"1513", "1598"},
+		RoutingBachLicht:   {"1513", "1598", "1551"},
+		RoutingAll:         {"1513", "1598", "1551", "1550"},
+		RoutingOpticalOnly: {"1600"},
+	},
+	PediatricRouting: RoutingBachOnly,
+}
+
+var crystalRiverOffice = &OfficeConfig{
+	ID:               "crystal_river",
+	DisplayName:      "Crystal River",
+	FacilityID:       "1576",
+	DefaultProfileID: "2064",
+	Columns: map[string]OfficeColumn{
+		"1593": {ProfileID: "2064", DisplayName: "Dr. J. Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"},
+	},
+	RoutingTiers: map[RoutingRule][]string{
+		RoutingBachOnly:  {"1593"},
+		RoutingBachLicht: {"1593"},
+		RoutingAll:       {"1593"},
+	},
+	PediatricRouting: RoutingNotAccepted,
+}
+
+var sweetwaterOffice = &OfficeConfig{
+	ID:               "sweetwater",
+	DisplayName:      "Sweetwater",
+	FacilityID:       "670",
+	DefaultProfileID: "620",
+	Columns: map[string]OfficeColumn{
+		"682":  {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH"},
+		"1307": {ProfileID: "620", DisplayName: "Dr. Austin Bach (Overflow)", ShortName: "Dr. Bach", MatchKey: "BACH"},
+		"1296": {ProfileID: "1996", DisplayName: "Dr. Maria Casas", ShortName: "Dr. Casas", MatchKey: "CASAS", MinAgeYears: 7},
+		"1554": {ProfileID: "2075", DisplayName: "Dr. Kyler Farnan", ShortName: "Dr. Farnan", MatchKey: "FARNAN", MinAgeYears: 5},
+		"1210": {ProfileID: "1993", DisplayName: "Dr. Gisselle Calero", ShortName: "Dr. Calero", MatchKey: "CALERO", MinAgeYears: 4},
+	},
+	RoutingTiers: map[RoutingRule][]string{
+		RoutingBachOnly:    {"682", "1307"},
+		RoutingBachLicht:   {"682", "1307"},
+		RoutingAll:         {"682", "1307"},
+		RoutingOpticalOnly: {"1296", "1554", "1210"},
+	},
+	PediatricRouting: RoutingBachOnly,
+}
+
+var hollywoodOffice = &OfficeConfig{
+	ID:               "hollywood",
+	DisplayName:      "Hollywood",
+	FacilityID:       "1480",
+	DefaultProfileID: "620",
+	Columns: map[string]OfficeColumn{
+		"1268": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH"},
+		"1478": {ProfileID: "620", DisplayName: "Dr. Austin Bach (Overflow)", ShortName: "Dr. Bach", MatchKey: "BACH"},
+		"1555": {ProfileID: "2075", DisplayName: "Dr. Kyler Farnan", ShortName: "Dr. Farnan", MatchKey: "FARNAN", MinAgeYears: 5},
+		"1510": {ProfileID: "2057", DisplayName: "Dr. Lisbet Vidal", ShortName: "Dr. Vidal", MatchKey: "VIDAL", MinAgeYears: 7},
+		"1305": {ProfileID: "1993", DisplayName: "Dr. Gisselle Calero", ShortName: "Dr. Calero", MatchKey: "CALERO", MinAgeYears: 4},
+	},
+	RoutingTiers: map[RoutingRule][]string{
+		RoutingBachOnly:    {"1268", "1478"},
+		RoutingBachLicht:   {"1268", "1478"},
+		RoutingAll:         {"1268", "1478"},
+		RoutingOpticalOnly: {"1555", "1510", "1305"},
+	},
+	PediatricRouting: RoutingBachOnly,
+}
+
+var devSpringHillOffice = &OfficeConfig{
+	ID:               "spring_hill",
+	DisplayName:      "Spring Hill",
+	FacilityID:       "1032",
+	DefaultProfileID: "1135",
+	Columns: map[string]OfficeColumn{
+		"1716": {ProfileID: "1135", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH"},
+		"1723": {ProfileID: "1141", DisplayName: "Dr. J. Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"},
+		"1726": {ProfileID: "1137", DisplayName: "Dr. D. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL"},
+	},
+	RoutingTiers: map[RoutingRule][]string{
+		RoutingBachOnly:  {"1716"},
+		RoutingBachLicht: {"1716", "1723"},
+		RoutingAll:       {"1716", "1723", "1726"},
+	},
+	PediatricRouting: RoutingBachOnly,
+}
+
 // prodOffices contains office configs keyed by SIP trunk phone number (E.164).
 var prodOffices = map[string]*OfficeConfig{
-	"+17275919997": {
-		ID:               "spring_hill",
-		DisplayName:      "Spring Hill",
-		FacilityID:       "1568",
-		DefaultProfileID: "620",
-		Columns: map[string]OfficeColumn{
-			"1513": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH"},
-			"1598": {ProfileID: "620", DisplayName: "Dr. Austin Bach (Overflow)", ShortName: "Dr. Bach", MatchKey: "BACH"},
-			"1551": {ProfileID: "2064", DisplayName: "Dr. J. Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"},
-			"1550": {ProfileID: "2076", DisplayName: "Dr. D. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL"},
-			"1600": {ProfileID: "1983", DisplayName: "Routine Vision - Dr. Melissa Otero", ShortName: "Routine Vision", MatchKey: "OTERO"},
-		},
-		RoutingTiers: map[RoutingRule][]string{
-			RoutingBachOnly:    {"1513", "1598"},
-			RoutingBachLicht:   {"1513", "1598", "1551"},
-			RoutingAll:         {"1513", "1598", "1551", "1550"},
-			RoutingOpticalOnly: {"1600"},
-		},
-		PediatricRouting: RoutingBachOnly,
-	},
-	"+13523202007": {
-		ID:               "crystal_river",
-		DisplayName:      "Crystal River",
-		FacilityID:       "1576",
-		DefaultProfileID: "2064",
-		Columns: map[string]OfficeColumn{
-			"1593": {ProfileID: "2064", DisplayName: "Dr. J. Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"},
-		},
-		RoutingTiers: map[RoutingRule][]string{
-			RoutingBachOnly:  {"1593"},
-			RoutingBachLicht: {"1593"},
-			RoutingAll:       {"1593"},
-		},
-		PediatricRouting: RoutingNotAccepted,
-	},
+	"+17275919997": springHillOffice,
+	"+13523202007": crystalRiverOffice,
 	// TODO: clean up — placeholder number for Crystal River, duplicates config above
-	"+16182265883": {
-		ID:               "crystal_river",
-		DisplayName:      "Crystal River",
-		FacilityID:       "1576",
-		DefaultProfileID: "2064",
-		Columns: map[string]OfficeColumn{
-			"1593": {ProfileID: "2064", DisplayName: "Dr. J. Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"},
-		},
-		RoutingTiers: map[RoutingRule][]string{
-			RoutingBachOnly:  {"1593"},
-			RoutingBachLicht: {"1593"},
-			RoutingAll:       {"1593"},
-		},
-		PediatricRouting: RoutingNotAccepted,
-	},
+	"+16182265883": crystalRiverOffice,
+	"+19542872010": hollywoodOffice,
+	"+17864657475": sweetwaterOffice,
+	"+17864654845": sweetwaterOffice,
+	"+17866134310": sweetwaterOffice,
+	"+17864657479": sweetwaterOffice,
+	"+17864654836": sweetwaterOffice,
+	"+17864654882": sweetwaterOffice,
 }
 
 // devOffices contains office configs keyed by SIP trunk phone number (E.164).
 var devOffices = map[string]*OfficeConfig{
-	"+14843989071": {
-		ID:               "spring_hill",
-		DisplayName:      "Spring Hill",
-		FacilityID:       "1032",
-		DefaultProfileID: "1135",
-		Columns: map[string]OfficeColumn{
-			"1716": {ProfileID: "1135", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH"},
-			"1723": {ProfileID: "1141", DisplayName: "Dr. J. Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"},
-			"1726": {ProfileID: "1137", DisplayName: "Dr. D. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL"},
-		},
-		RoutingTiers: map[RoutingRule][]string{
-			RoutingBachOnly:  {"1716"},
-			RoutingBachLicht: {"1716", "1723"},
-			RoutingAll:       {"1716", "1723", "1726"},
-		},
-		PediatricRouting: RoutingBachOnly,
-	},
+	"+14843989071": devSpringHillOffice,
 	// TODO: clean up — placeholder number for Crystal River, uses prod IDs
-	"+16182265883": {
-		ID:               "crystal_river",
-		DisplayName:      "Crystal River",
-		FacilityID:       "1576",
-		DefaultProfileID: "2064",
-		Columns: map[string]OfficeColumn{
-			"1593": {ProfileID: "2064", DisplayName: "Dr. J. Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"},
-		},
-		RoutingTiers: map[RoutingRule][]string{
-			RoutingBachOnly:  {"1593"},
-			RoutingBachLicht: {"1593"},
-			RoutingAll:       {"1593"},
-		},
-		PediatricRouting: RoutingNotAccepted,
-	},
+	"+16182265883": crystalRiverOffice,
 }
 
 // OfficeRegistry maps SIP trunk phone numbers (E.164) to office configurations.
@@ -381,14 +468,48 @@ func NormalizePhoneDigits(s string) string {
 	return digits
 }
 
-// LookupOffice resolves a SIP trunk phone number (E.164) to its office config.
-// Accepts with or without the "+" prefix (e.g. "14843989071" or "+14843989071").
+// LookupOffice resolves a SIP trunk phone number or office name to its office config.
+// Phone lookup accepts E.164, 11-digit US, 10-digit US, and formatted US numbers.
 func LookupOffice(phone string) (*OfficeConfig, bool) {
-	office, ok := OfficeRegistry[phone]
-	if !ok && len(phone) > 0 && phone[0] != '+' {
-		office, ok = OfficeRegistry["+"+phone]
+	phone = strings.TrimSpace(phone)
+	for _, key := range officePhoneLookupKeys(phone) {
+		if office, ok := OfficeRegistry[key]; ok {
+			return office, true
+		}
 	}
-	return office, ok
+
+	lookup := normalizeOfficeLookup(phone)
+	compactLookup := strings.ReplaceAll(lookup, " ", "")
+	for _, office := range OfficeRegistry {
+		for _, candidate := range []string{office.ID, office.DisplayName} {
+			normalized := normalizeOfficeLookup(candidate)
+			if lookup == normalized || compactLookup == strings.ReplaceAll(normalized, " ", "") {
+				return office, true
+			}
+		}
+	}
+	return nil, false
+}
+
+func officePhoneLookupKeys(phone string) []string {
+	if phone == "" {
+		return nil
+	}
+
+	keys := []string{phone}
+	if phone[0] != '+' {
+		keys = append(keys, "+"+phone)
+	}
+
+	digits := StripToDigits(phone)
+	switch {
+	case len(digits) == 10:
+		keys = append(keys, "+1"+digits)
+	case len(digits) == 11 && digits[0] == '1':
+		keys = append(keys, "+"+digits)
+	}
+
+	return keys
 }
 
 // DefaultOffice returns the fallback office config (Spring Hill).
@@ -398,9 +519,21 @@ func DefaultOffice() *OfficeConfig {
 
 // ValidOfficeNames returns the list of recognized office display names.
 func ValidOfficeNames() []string {
+	seen := make(map[string]bool)
 	names := make([]string, 0, len(OfficeRegistry))
 	for _, office := range OfficeRegistry {
-		names = append(names, office.DisplayName)
+		if !seen[office.DisplayName] {
+			seen[office.DisplayName] = true
+			names = append(names, office.DisplayName)
+		}
 	}
+	sort.Strings(names)
 	return names
+}
+
+func normalizeOfficeLookup(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = strings.ReplaceAll(s, "_", " ")
+	s = strings.ReplaceAll(s, "-", " ")
+	return strings.Join(strings.Fields(s), " ")
 }

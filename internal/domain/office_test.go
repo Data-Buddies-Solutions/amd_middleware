@@ -1,6 +1,9 @@
 package domain
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestLookupOffice(t *testing.T) {
 	tests := []struct {
@@ -11,6 +14,15 @@ func TestLookupOffice(t *testing.T) {
 	}{
 		{"spring hill", "+17275919997", "spring_hill", true},
 		{"crystal river", "+13523202007", "crystal_river", true},
+		{"hollywood phone", "+19542872010", "hollywood", true},
+		{"hollywood phone without plus", "19542872010", "hollywood", true},
+		{"hollywood ten digit phone", "9542872010", "hollywood", true},
+		{"hollywood formatted phone", "(954) 287-2010", "hollywood", true},
+		{"hollywood name", "Hollywood", "hollywood", true},
+		{"sweetwater phone", "+17864657475", "sweetwater", true},
+		{"sweetwater ten digit phone", "7864657475", "sweetwater", true},
+		{"sweetwater alternate phone", "+17864654882", "sweetwater", true},
+		{"sweetwater name", "sweetwater", "sweetwater", true},
 		{"unknown phone", "+15551234567", "", false},
 		{"empty string", "", "", false},
 	}
@@ -26,6 +38,22 @@ func TestLookupOffice(t *testing.T) {
 				t.Errorf("LookupOffice(%q).ID = %q, want %q", tt.input, office.ID, tt.wantID)
 			}
 		})
+	}
+}
+
+func TestValidOfficeNamesUnique(t *testing.T) {
+	names := ValidOfficeNames()
+	seen := make(map[string]bool)
+	for _, name := range names {
+		if seen[name] {
+			t.Fatalf("ValidOfficeNames returned duplicate %q in %v", name, names)
+		}
+		seen[name] = true
+	}
+	for _, want := range []string{"Spring Hill", "Crystal River", "Hollywood", "Sweetwater"} {
+		if !seen[want] {
+			t.Fatalf("ValidOfficeNames missing %q in %v", want, names)
+		}
 	}
 }
 
@@ -166,6 +194,8 @@ func TestOfficeConfig_AppointmentColor(t *testing.T) {
 func TestOfficeConfig_AllowsAppointmentType(t *testing.T) {
 	springHill := prodOffices["+17275919997"]
 	crystalRiver := prodOffices["+13523202007"]
+	hollywood := prodOffices["+19542872010"]
+	sweetwater := prodOffices["+17864657475"]
 
 	tests := []struct {
 		name    string
@@ -184,6 +214,11 @@ func TestOfficeConfig_AllowsAppointmentType(t *testing.T) {
 		{"crystal river accepts cr established type", crystalRiver, 6169, RoutingAll, true},
 		{"crystal river rejects spring hill medical type", crystalRiver, 1006, RoutingAll, false},
 		{"crystal river rejects optical routing", crystalRiver, 1010, RoutingOpticalOnly, false},
+		{"hollywood medical accepts spring hill medical type", hollywood, 1006, RoutingAll, true},
+		{"hollywood routine accepts vision type", hollywood, 1010, RoutingOpticalOnly, true},
+		{"hollywood medical rejects vision type", hollywood, 1010, RoutingAll, false},
+		{"sweetwater routine accepts vision type", sweetwater, 3364, RoutingOpticalOnly, true},
+		{"sweetwater medical rejects crystal river type", sweetwater, 6167, RoutingAll, false},
 		{"unknown type rejected", springHill, 9999, RoutingAll, false},
 	}
 
@@ -192,6 +227,94 @@ func TestOfficeConfig_AllowsAppointmentType(t *testing.T) {
 			got := tt.office.AllowsAppointmentType(tt.typeID, tt.routing)
 			if got != tt.want {
 				t.Errorf("AllowsAppointmentType(%d, %q) = %v, want %v", tt.typeID, tt.routing, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOfficeConfig_HollywoodAndSweetwaterColumns(t *testing.T) {
+	tests := []struct {
+		name       string
+		office     *OfficeConfig
+		facilityID string
+		columns    []string
+		optical    []string
+	}{
+		{
+			name:       "hollywood",
+			office:     prodOffices["+19542872010"],
+			facilityID: "1480",
+			columns:    []string{"1268", "1478", "1555", "1510", "1305"},
+			optical:    []string{"1555", "1510", "1305"},
+		},
+		{
+			name:       "sweetwater",
+			office:     prodOffices["+17864657475"],
+			facilityID: "670",
+			columns:    []string{"682", "1307", "1296", "1554", "1210"},
+			optical:    []string{"1296", "1554", "1210"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.office.FacilityID != tt.facilityID {
+				t.Fatalf("FacilityID = %q, want %q", tt.office.FacilityID, tt.facilityID)
+			}
+			for _, columnID := range tt.columns {
+				if !tt.office.IsAllowedColumn(columnID) {
+					t.Fatalf("expected column %s to be allowed", columnID)
+				}
+			}
+			optical := tt.office.ColumnsForRouting(RoutingOpticalOnly)
+			for _, columnID := range tt.optical {
+				if !optical[columnID] {
+					t.Fatalf("expected optical routing to include column %s", columnID)
+				}
+			}
+		})
+	}
+}
+
+func TestOfficeConfig_RoutineAgeRules(t *testing.T) {
+	office := prodOffices["+17864657475"]
+	now := time.Now()
+
+	if got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, ""); len(got) != 0 {
+		t.Fatalf("missing DOB routine providers = %v, want none", got)
+	}
+	if got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, "not-a-date"); len(got) != 0 {
+		t.Fatalf("invalid DOB routine providers = %v, want none", got)
+	}
+	if !office.ColumnAllowsDOB("682", "") {
+		t.Fatal("Bach column should allow missing DOB because it has no minimum age")
+	}
+	if office.ColumnAllowsDOB("1296", "") {
+		t.Fatal("Casas column should require DOB because it has a minimum age")
+	}
+
+	tests := []struct {
+		name      string
+		age       int
+		wantNames []string
+	}{
+		{"age 3 has no routine providers", 3, []string{}},
+		{"age 4 can see Calero", 4, []string{"Dr. Calero"}},
+		{"age 5 can see Farnan and Calero", 5, []string{"Dr. Farnan", "Dr. Calero"}},
+		{"age 7 can see all routine providers", 7, []string{"Dr. Casas", "Dr. Farnan", "Dr. Calero"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dob := now.AddDate(-tt.age, 0, 0).Format("01/02/2006")
+			got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, dob)
+			if len(got) != len(tt.wantNames) {
+				t.Fatalf("got %v, want %v", got, tt.wantNames)
+			}
+			for i, want := range tt.wantNames {
+				if got[i] != want {
+					t.Fatalf("got %v, want %v", got, tt.wantNames)
+				}
 			}
 		})
 	}
