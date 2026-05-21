@@ -2,6 +2,17 @@
 
 ## [Unreleased] - 2026-05-21
 
+### Slot Booking Tokens
+
+- Added signed `bookingToken` values to availability slots so callers can book
+  the selected slot without exposing raw AMD `columnId`, `profileId`,
+  `startDatetime`, or `duration` to the model.
+- Extended appointment booking to accept `bookingToken`, verify the token's
+  signature, expiry, and office, then expand the slot details server-side before
+  the existing booking validations.
+- Added `BOOKING_TOKEN_SECRET` with fallback to `API_SECRET` for deployments
+  that do not need a separate slot-token secret yet.
+
 ### Bach Same-Start Double Booking
 
 - Added per-column Dr. Bach same-start capacity of 2. Availability now keeps a

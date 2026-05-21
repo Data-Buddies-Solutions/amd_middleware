@@ -15,7 +15,8 @@ type Config struct {
 	AdvancedMDAppName   string
 
 	// API authentication
-	APISecret string
+	APISecret          string
+	BookingTokenSecret string
 
 	// Server settings
 	Port string
@@ -29,6 +30,7 @@ func Load() (*Config, error) {
 		AdvancedMDOfficeKey: os.Getenv("ADVANCEDMD_OFFICE_KEY"),
 		AdvancedMDAppName:   os.Getenv("ADVANCEDMD_APP_NAME"),
 		APISecret:           os.Getenv("API_SECRET"),
+		BookingTokenSecret:  os.Getenv("BOOKING_TOKEN_SECRET"),
 		Port:                os.Getenv("PORT"),
 	}
 
@@ -52,6 +54,9 @@ func Load() (*Config, error) {
 	}
 	if cfg.APISecret == "" {
 		return nil, fmt.Errorf("API_SECRET is required")
+	}
+	if cfg.BookingTokenSecret == "" {
+		cfg.BookingTokenSecret = cfg.APISecret
 	}
 
 	return cfg, nil

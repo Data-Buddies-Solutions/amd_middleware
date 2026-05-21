@@ -781,6 +781,131 @@ func TestFlattenAvailabilitySlots(t *testing.T) {
 	}
 }
 
+func TestBookingTokenRoundTrip(t *testing.T) {
+	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	payload := bookingTokenPayload{
+		OfficeID:      "spring_hill",
+		Routing:       string(domain.RoutingAll),
+		ColumnID:      1513,
+		ProfileID:     620,
+		StartDatetime: "2026-06-02T09:00",
+		Duration:      15,
+		Provider:      "Dr. Austin Bach",
+		IssuedAt:      now.Unix(),
+		ExpiresAt:     now.Add(bookingTokenTTL).Unix(),
+	}
+
+	token, err := signBookingToken("test-booking-secret", payload)
+	if err != nil {
+		t.Fatalf("signBookingToken error = %v", err)
+	}
+
+	got, err := verifyBookingToken("test-booking-secret", token, now.Add(time.Minute))
+	if err != nil {
+		t.Fatalf("verifyBookingToken error = %v", err)
+	}
+	if got.OfficeID != payload.OfficeID ||
+		got.Routing != payload.Routing ||
+		got.ColumnID != payload.ColumnID ||
+		got.ProfileID != payload.ProfileID ||
+		got.StartDatetime != payload.StartDatetime ||
+		got.Duration != payload.Duration {
+		t.Fatalf("decoded payload = %+v, want %+v", got, payload)
+	}
+}
+
+func TestBookingTokenRejectsTamperedExpiredAndWrongOffice(t *testing.T) {
+	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	payload := bookingTokenPayload{
+		OfficeID:      "spring_hill",
+		Routing:       string(domain.RoutingAll),
+		ColumnID:      1513,
+		ProfileID:     620,
+		StartDatetime: "2026-06-02T09:00",
+		Duration:      15,
+		IssuedAt:      now.Unix(),
+		ExpiresAt:     now.Add(bookingTokenTTL).Unix(),
+	}
+	token, err := signBookingToken("test-booking-secret", payload)
+	if err != nil {
+		t.Fatalf("signBookingToken error = %v", err)
+	}
+
+	if _, err := verifyBookingToken("wrong-secret", token, now); err == nil {
+		t.Fatal("wrong secret should reject token")
+	}
+	if _, err := verifyBookingToken("test-booking-secret", token+"x", now); err == nil {
+		t.Fatal("tampered token should be rejected")
+	}
+	if _, err := verifyBookingToken("test-booking-secret", token, now.Add(bookingTokenTTL)); err == nil {
+		t.Fatal("expired token should be rejected")
+	}
+
+	oversizedTTL := payload
+	oversizedTTL.ExpiresAt = now.Add(bookingTokenTTL + time.Second).Unix()
+	oversizedToken, err := signBookingToken("test-booking-secret", oversizedTTL)
+	if err != nil {
+		t.Fatalf("sign oversized TTL token: %v", err)
+	}
+	if _, err := verifyBookingToken("test-booking-secret", oversizedToken, now); err == nil {
+		t.Fatal("token with oversized TTL should be rejected")
+	}
+
+	futureIssued := payload
+	futureIssued.IssuedAt = now.Add(bookingTokenClockSkew + time.Second).Unix()
+	futureIssued.ExpiresAt = now.Add(bookingTokenClockSkew + time.Minute).Unix()
+	futureToken, err := signBookingToken("test-booking-secret", futureIssued)
+	if err != nil {
+		t.Fatalf("sign future issued token: %v", err)
+	}
+	if _, err := verifyBookingToken("test-booking-secret", futureToken, now); err == nil {
+		t.Fatal("future-issued token should be rejected")
+	}
+
+	req := BookAppointmentRequest{BookingToken: token}
+	handlers := NewHandlers(nil, nil, nil, "test-booking-secret")
+	office, _ := domain.LookupOffice("Hollywood")
+	if err := handlers.applyBookingToken(&req, office, now); err == nil {
+		t.Fatal("token for a different office should be rejected")
+	}
+}
+
+func TestAddBookingTokensAndApplyBookingToken(t *testing.T) {
+	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	handlers := NewHandlers(nil, nil, nil, "test-booking-secret")
+	office := domain.DefaultOffice()
+	slots := []domain.AvailabilitySlotOption{
+		{
+			Provider:  "Dr. Austin Bach",
+			Time:      "9:00 AM",
+			DateTime:  "2026-06-02T09:00",
+			ColumnID:  1513,
+			ProfileID: 620,
+			Duration:  15,
+		},
+	}
+
+	slots, err := handlers.addBookingTokens(slots, office, domain.RoutingBachOnly, now)
+	if err != nil {
+		t.Fatalf("addBookingTokens error = %v", err)
+	}
+	if slots[0].BookingToken == "" {
+		t.Fatal("expected booking token")
+	}
+
+	req := BookAppointmentRequest{BookingToken: slots[0].BookingToken}
+	if err := handlers.applyBookingToken(&req, office, now); err != nil {
+		t.Fatalf("applyBookingToken error = %v", err)
+	}
+	if req.ColumnID != 1513 ||
+		req.ProfileID != 620 ||
+		req.StartDatetime != "2026-06-02T09:00" ||
+		req.Duration != 15 ||
+		req.Routing != string(domain.RoutingBachOnly) {
+		t.Fatalf("request populated from token = %+v", req)
+	}
+}
+
 func TestHasDifferentStartOverlappingAppointment(t *testing.T) {
 	eastern, _ := time.LoadLocation("America/New_York")
 
