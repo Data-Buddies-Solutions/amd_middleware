@@ -1380,6 +1380,46 @@ type AvailabilityRequest struct {
 	PreauthRequired bool   `json:"preauthRequired"` // Optional: if true, enforces 14-day minimum lead time
 }
 
+const availabilitySearchForwardDays = 14
+
+func availabilityDateShifted(requestedDate, searchStartDate, actualDate string) bool {
+	if actualDate != "" {
+		return actualDate != requestedDate
+	}
+	return searchStartDate != requestedDate
+}
+
+func noAvailabilityMessage(searchStartDate, searchEndDate string) string {
+	return fmt.Sprintf("No availability was found from %s through %s. Do not search this same window again unless the patient changes date, provider, office, or appointment type.", searchStartDate, searchEndDate)
+}
+
+func incompleteAvailabilityMessage(searchStartDate, searchEndDate string, unavailableDataChecks int) string {
+	return fmt.Sprintf("Availability could not be fully checked from %s through %s because appointment data was unavailable for %d provider-date checks. Retry once; if it still cannot be checked, ask for different preferences.", searchStartDate, searchEndDate, unavailableDataChecks)
+}
+
+func flattenAvailabilitySlots(providers []domain.ProviderAvailability) []domain.AvailabilitySlotOption {
+	var slots []domain.AvailabilitySlotOption
+	for _, provider := range providers {
+		if provider.TotalAvailable == 0 {
+			continue
+		}
+		for _, slot := range provider.Slots {
+			slots = append(slots, domain.AvailabilitySlotOption{
+				Provider:          provider.Name,
+				Time:              slot.Time,
+				DateTime:          slot.DateTime,
+				ColumnID:          provider.ColumnID,
+				ProfileID:         provider.ProfileID,
+				Duration:          provider.SlotDuration,
+				SameStartBooked:   slot.SameStartBooked,
+				SameStartCapacity: slot.SameStartCapacity,
+				RequiresForce:     slot.RequiresForce,
+			})
+		}
+	}
+	return slots
+}
+
 func filterColumnsForRouting(columns []domain.SchedulerColumn, office *domain.OfficeConfig, routing domain.RoutingRule) []domain.SchedulerColumn {
 	routingColumns := office.ColumnsForRouting(routing)
 	if routingColumns == nil {
@@ -1470,6 +1510,7 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: "date is required (YYYY-MM-DD format)"})
 		return
 	}
+	originalRequestedDate := req.Date
 
 	// Parse start date
 	startDate, err := time.Parse("2006-01-02", req.Date)
@@ -1494,6 +1535,9 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 	if req.PreauthRequired {
 		startDate, req.Date = enforcePreauthMinDate(startDate, time.Now().In(eastern))
 	}
+	searchStartDate := startDate.Format("2006-01-02")
+	maxDate := startDate.AddDate(0, 0, availabilitySearchForwardDays)
+	searchEndDate := maxDate.Format("2006-01-02")
 
 	// Resolve office config
 	office, err := resolveOffice(req.Office)
@@ -1569,14 +1613,6 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 	allowedColumns = filterColumnsForRouting(allowedColumns, office, effectiveRouting)
 	allowedColumns = filterColumnsForDOB(allowedColumns, office, req.DOB)
 
-	// Determine location name for response
-	locationName := office.DisplayName
-	if len(allowedColumns) > 0 {
-		if fac, ok := facilityMap[allowedColumns[0].FacilityID]; ok {
-			locationName = fac.Name
-		}
-	}
-
 	if len(allowedColumns) == 0 {
 		if req.Provider != "" {
 			json.NewEncoder(w).Encode(ErrorResponse{
@@ -1587,10 +1623,14 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		json.NewEncoder(w).Encode(domain.AvailabilityResponse{
-			SearchedDate: req.Date,
-			Date:         startDate.Format("Monday, January 2, 2006"),
-			Location:     locationName,
-			Providers:    []domain.ProviderAvailability{},
+			Status:                domain.AvailabilityStatusSuccess,
+			Outcome:               domain.AvailabilityOutcomeNoEligibleProviders,
+			AvailabilityFound:     false,
+			RequestedDate:         originalRequestedDate,
+			ShouldRetrySameSearch: false,
+			NextAction:            domain.AvailabilityNextActionAskDifferentPreferences,
+			Message:               "No eligible providers found for this office, routing, provider, and DOB.",
+			Slots:                 []domain.AvailabilitySlotOption{},
 		})
 		return
 	}
@@ -1600,16 +1640,19 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 	// Try the requested date first, then auto-search forward up to 14 days
 	searchDate := startDate
 	var providers []domain.ProviderAvailability
+	searchIncomplete := false
+	unavailableDataChecks := 0
 
-	maxDate := startDate.AddDate(0, 0, 14)
 	for !searchDate.After(maxDate) {
 		dateStr := searchDate.Format("2006-01-02")
 
 		// Only fetch columns that work this weekday — skip non-working providers
 		var workingColumnIDs []string
+		workingColumnSet := make(map[string]bool)
 		for _, col := range allowedColumns {
 			if col.WorksOnDay(searchDate.Weekday()) {
 				workingColumnIDs = append(workingColumnIDs, col.ID)
+				workingColumnSet[col.ID] = true
 			}
 		}
 		if len(workingColumnIDs) == 0 {
@@ -1636,9 +1679,14 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 		// Calculate availability for each provider
 		providers = nil
 		for _, col := range allowedColumns {
+			if !workingColumnSet[col.ID] {
+				continue
+			}
 			// Skip columns where appointment data couldn't be fetched —
 			// safer to omit than to show all slots as available
 			if _, ok := appointmentsByColumn[col.ID]; !ok {
+				searchIncomplete = true
+				unavailableDataChecks++
 				log.Printf("availability: skipping column %s — appointment data unavailable", col.ID)
 				continue
 			}
@@ -1713,21 +1761,48 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 	}
 
 	if !hasAnyAvailability {
+		if searchIncomplete {
+			json.NewEncoder(w).Encode(domain.AvailabilityResponse{
+				Status:                domain.AvailabilityStatusError,
+				Outcome:               domain.AvailabilityOutcomeSearchIncomplete,
+				AvailabilityFound:     false,
+				RequestedDate:         originalRequestedDate,
+				ShouldRetrySameSearch: true,
+				NextAction:            domain.AvailabilityNextActionRetryOnceThenAskPreferences,
+				SearchedFrom:          searchStartDate,
+				SearchedThrough:       searchEndDate,
+				Message:               incompleteAvailabilityMessage(searchStartDate, searchEndDate, unavailableDataChecks),
+				Slots:                 []domain.AvailabilitySlotOption{},
+			})
+			return
+		}
+
 		json.NewEncoder(w).Encode(domain.AvailabilityResponse{
-			SearchedDate: req.Date,
-			Date:         "",
-			Location:     locationName,
-			Message:      "No availability found within 14 days of requested date",
-			Providers:    []domain.ProviderAvailability{},
+			Status:                domain.AvailabilityStatusSuccess,
+			Outcome:               domain.AvailabilityOutcomeNoAvailability,
+			AvailabilityFound:     false,
+			RequestedDate:         originalRequestedDate,
+			ShouldRetrySameSearch: false,
+			NextAction:            domain.AvailabilityNextActionAskDifferentPreferences,
+			SearchedFrom:          searchStartDate,
+			SearchedThrough:       searchEndDate,
+			Message:               noAvailabilityMessage(searchStartDate, searchEndDate),
+			Slots:                 []domain.AvailabilitySlotOption{},
 		})
 		return
 	}
 
+	actualDate := searchDate.Format("2006-01-02")
 	json.NewEncoder(w).Encode(domain.AvailabilityResponse{
-		SearchedDate: req.Date,
-		Date:         searchDate.Format("Monday, January 2, 2006"),
-		Location:     locationName,
-		Providers:    providers,
+		Status:                domain.AvailabilityStatusSuccess,
+		Outcome:               domain.AvailabilityOutcomeFound,
+		AvailabilityFound:     true,
+		RequestedDate:         originalRequestedDate,
+		ShouldRetrySameSearch: false,
+		NextAction:            domain.AvailabilityNextActionOfferSlots,
+		ActualDate:            actualDate,
+		DateShifted:           availabilityDateShifted(originalRequestedDate, searchStartDate, actualDate),
+		Slots:                 flattenAvailabilitySlots(providers),
 	})
 }
 

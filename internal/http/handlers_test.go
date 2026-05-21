@@ -595,13 +595,18 @@ func TestCalculateAvailableSlots_AllBookedAtMax(t *testing.T) {
 	}
 }
 
-func TestNoAvailabilityResponse_HasMessageAndEmptyProviders(t *testing.T) {
+func TestNoAvailabilityResponse_HasExplicitNoRetryContract(t *testing.T) {
 	resp := domain.AvailabilityResponse{
-		SearchedDate: "2026-05-15",
-		Date:         "",
-		Location:     "ABITA EYE GROUP SPRING HILL",
-		Message:      "No availability found within 14 days of requested date",
-		Providers:    []domain.ProviderAvailability{},
+		Status:                domain.AvailabilityStatusSuccess,
+		Outcome:               domain.AvailabilityOutcomeNoAvailability,
+		AvailabilityFound:     false,
+		RequestedDate:         "2026-05-15",
+		ShouldRetrySameSearch: false,
+		NextAction:            domain.AvailabilityNextActionAskDifferentPreferences,
+		SearchedFrom:          "2026-05-15",
+		SearchedThrough:       "2026-05-29",
+		Message:               noAvailabilityMessage("2026-05-15", "2026-05-29"),
+		Slots:                 []domain.AvailabilitySlotOption{},
 	}
 
 	data, err := json.Marshal(resp)
@@ -612,24 +617,56 @@ func TestNoAvailabilityResponse_HasMessageAndEmptyProviders(t *testing.T) {
 	var decoded map[string]interface{}
 	json.Unmarshal(data, &decoded)
 
-	if decoded["date"] != "" {
-		t.Errorf("Expected empty date, got %q", decoded["date"])
+	if decoded["status"] != domain.AvailabilityStatusSuccess {
+		t.Errorf("Expected success status, got %q", decoded["status"])
 	}
-	if decoded["message"] != "No availability found within 14 days of requested date" {
+	if decoded["outcome"] != domain.AvailabilityOutcomeNoAvailability {
+		t.Errorf("Expected no-availability outcome, got %q", decoded["outcome"])
+	}
+	if decoded["availabilityFound"] != false {
+		t.Errorf("Expected availabilityFound false, got %v", decoded["availabilityFound"])
+	}
+	if decoded["shouldRetrySameSearch"] != false {
+		t.Errorf("Expected shouldRetrySameSearch false, got %v", decoded["shouldRetrySameSearch"])
+	}
+	if decoded["nextAction"] != domain.AvailabilityNextActionAskDifferentPreferences {
+		t.Errorf("Expected ask-preferences next action, got %q", decoded["nextAction"])
+	}
+	if decoded["searchedFrom"] != "2026-05-15" {
+		t.Errorf("Expected searchedFrom 2026-05-15, got %q", decoded["searchedFrom"])
+	}
+	if decoded["searchedThrough"] != "2026-05-29" {
+		t.Errorf("Expected searchedThrough 2026-05-29, got %q", decoded["searchedThrough"])
+	}
+	if !strings.Contains(decoded["message"].(string), "2026-05-15 through 2026-05-29") {
 		t.Errorf("Expected no-availability message, got %q", decoded["message"])
 	}
-	providers := decoded["providers"].([]interface{})
-	if len(providers) != 0 {
-		t.Errorf("Expected empty providers array, got %d", len(providers))
+	slots := decoded["slots"].([]interface{})
+	if len(slots) != 0 {
+		t.Errorf("Expected empty slots array, got %d", len(slots))
 	}
 }
 
-func TestAvailabilityResponse_OmitsMessageWhenEmpty(t *testing.T) {
+func TestAvailabilityResponse_HasFoundContractAndOmitsMessageWhenEmpty(t *testing.T) {
 	resp := domain.AvailabilityResponse{
-		SearchedDate: "2026-05-15",
-		Date:         "Monday, June 1, 2026",
-		Location:     "ABITA EYE GROUP SPRING HILL",
-		Providers:    []domain.ProviderAvailability{},
+		Status:                domain.AvailabilityStatusSuccess,
+		Outcome:               domain.AvailabilityOutcomeFound,
+		AvailabilityFound:     true,
+		RequestedDate:         "2026-05-18",
+		ShouldRetrySameSearch: false,
+		NextAction:            domain.AvailabilityNextActionOfferSlots,
+		ActualDate:            "2026-06-01",
+		DateShifted:           true,
+		Slots: []domain.AvailabilitySlotOption{
+			{
+				Provider:  "Dr. Kyler Farnan",
+				Time:      "8:30 AM",
+				DateTime:  "2026-06-01T08:30",
+				ColumnID:  1555,
+				ProfileID: 2075,
+				Duration:  15,
+			},
+		},
 	}
 
 	data, err := json.Marshal(resp)
@@ -640,8 +677,107 @@ func TestAvailabilityResponse_OmitsMessageWhenEmpty(t *testing.T) {
 	var decoded map[string]interface{}
 	json.Unmarshal(data, &decoded)
 
+	if decoded["status"] != domain.AvailabilityStatusSuccess {
+		t.Errorf("Expected success status, got %q", decoded["status"])
+	}
+	if decoded["outcome"] != domain.AvailabilityOutcomeFound {
+		t.Errorf("Expected availability-found outcome, got %q", decoded["outcome"])
+	}
+	if decoded["availabilityFound"] != true {
+		t.Errorf("Expected availabilityFound true, got %v", decoded["availabilityFound"])
+	}
+	if decoded["nextAction"] != domain.AvailabilityNextActionOfferSlots {
+		t.Errorf("Expected offer-slots next action, got %q", decoded["nextAction"])
+	}
+	if decoded["actualDate"] != "2026-06-01" {
+		t.Errorf("Expected actualDate 2026-06-01, got %q", decoded["actualDate"])
+	}
+	if decoded["dateShifted"] != true {
+		t.Errorf("Expected dateShifted true, got %v", decoded["dateShifted"])
+	}
+	if decoded["shouldRetrySameSearch"] != false {
+		t.Errorf("Expected shouldRetrySameSearch false, got %v", decoded["shouldRetrySameSearch"])
+	}
+	slots := decoded["slots"].([]interface{})
+	if len(slots) != 1 {
+		t.Fatalf("Expected one slot, got %d", len(slots))
+	}
+	slot := slots[0].(map[string]interface{})
+	if slot["provider"] != "Dr. Kyler Farnan" || slot["datetime"] != "2026-06-01T08:30" {
+		t.Errorf("Unexpected slot payload: %v", slot)
+	}
 	if _, exists := decoded["message"]; exists {
 		t.Error("Expected message field to be omitted when empty")
+	}
+}
+
+func TestIncompleteAvailabilityResponse_AllowsRetry(t *testing.T) {
+	resp := domain.AvailabilityResponse{
+		Status:                domain.AvailabilityStatusError,
+		Outcome:               domain.AvailabilityOutcomeSearchIncomplete,
+		AvailabilityFound:     false,
+		RequestedDate:         "2026-05-15",
+		ShouldRetrySameSearch: true,
+		NextAction:            domain.AvailabilityNextActionRetryOnceThenAskPreferences,
+		SearchedFrom:          "2026-05-15",
+		SearchedThrough:       "2026-05-29",
+		Message:               incompleteAvailabilityMessage("2026-05-15", "2026-05-29", 3),
+		Slots:                 []domain.AvailabilitySlotOption{},
+	}
+
+	data, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatalf("Failed to marshal response: %v", err)
+	}
+
+	var decoded map[string]interface{}
+	json.Unmarshal(data, &decoded)
+
+	if decoded["status"] != domain.AvailabilityStatusError {
+		t.Errorf("Expected error status, got %q", decoded["status"])
+	}
+	if decoded["outcome"] != domain.AvailabilityOutcomeSearchIncomplete {
+		t.Errorf("Expected search-incomplete outcome, got %q", decoded["outcome"])
+	}
+	if decoded["shouldRetrySameSearch"] != true {
+		t.Errorf("Expected shouldRetrySameSearch true, got %v", decoded["shouldRetrySameSearch"])
+	}
+	if decoded["nextAction"] != domain.AvailabilityNextActionRetryOnceThenAskPreferences {
+		t.Errorf("Expected retry-then-ask-preferences next action, got %q", decoded["nextAction"])
+	}
+	if !strings.Contains(decoded["message"].(string), "ask for different preferences") {
+		t.Errorf("Expected incomplete-search message, got %q", decoded["message"])
+	}
+}
+
+func TestFlattenAvailabilitySlots(t *testing.T) {
+	providers := []domain.ProviderAvailability{
+		{
+			Name:         "Dr. Kyler Farnan",
+			ColumnID:     1555,
+			ProfileID:    2075,
+			SlotDuration: 15,
+			Slots: []domain.AvailableSlot{
+				{Time: "8:30 AM", DateTime: "2026-06-01T08:30", SameStartBooked: 1, SameStartCapacity: 2, RequiresForce: true},
+				{Time: "8:45 AM", DateTime: "2026-06-01T08:45"},
+			},
+			TotalAvailable: 2,
+		},
+	}
+
+	slots := flattenAvailabilitySlots(providers)
+	if len(slots) != 2 {
+		t.Fatalf("slots = %d, want 2", len(slots))
+	}
+	if slots[0].Provider != "Dr. Kyler Farnan" ||
+		slots[0].DateTime != "2026-06-01T08:30" ||
+		slots[0].ColumnID != 1555 ||
+		slots[0].ProfileID != 2075 ||
+		slots[0].Duration != 15 ||
+		slots[0].SameStartBooked != 1 ||
+		slots[0].SameStartCapacity != 2 ||
+		!slots[0].RequiresForce {
+		t.Fatalf("unexpected flattened slot: %+v", slots[0])
 	}
 }
 

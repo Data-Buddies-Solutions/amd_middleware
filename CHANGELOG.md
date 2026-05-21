@@ -19,6 +19,17 @@
 
 ### Hollywood and Sweetwater Scheduler Support
 
+- Added a compact agent-facing availability response for
+  `/api/scheduler/availability`: `status`, `outcome`, `availabilityFound`,
+  `shouldRetrySameSearch`, `nextAction`, and flat bookable `slots`.
+- The exhausted 14-day no-availability result now returns
+  `outcome: "no_availability"`, `searchedFrom`, `searchedThrough`, and
+  no-retry guidance, so the agent should stop re-calling `get_availability` for
+  the same window.
+- If appointment data is unavailable during the search, the endpoint now returns
+  `outcome: "availability_search_incomplete"` and `shouldRetrySameSearch: true`;
+  after one retry, the agent should ask for different preferences instead of
+  treating the window as exhausted no-availability.
 - Added Hollywood and Sweetwater office configs, phone mappings, scheduler
   columns, routine-vision lanes, and provider age rules.
 - Added Hollywood and Sweetwater medical insurance routing from the 5/4/2026
