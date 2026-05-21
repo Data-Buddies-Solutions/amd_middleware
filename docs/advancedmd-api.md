@@ -140,8 +140,8 @@ Important fields:
 
 | Field | Middleware use |
 | --- | --- |
-| `column.@id` | Scheduler `columnId` returned to the agent and used for booking |
-| `column.@profile` | Provider `profileId` returned to the agent and used for booking |
+| `column.@id` | Scheduler `columnId` encoded into signed booking tokens and retained for legacy raw-slot booking |
+| `column.@profile` | Provider `profileId` encoded into signed booking tokens and retained for legacy raw-slot booking |
 | `column.@facility` | Filter columns to the resolved office's facility |
 | `columnsetting.@start` | Start of provider work day |
 | `columnsetting.@end` | End of provider work day |
@@ -165,11 +165,13 @@ For availability, the middleware queries appointments by column and day, then
 blocks candidate slots whose full duration overlaps existing appointments.
 Availability responses include machine-readable outcome fields
 (`outcome`, `availabilityFound`, `shouldRetrySameSearch`, and `nextAction`) so
-the agent does not infer scheduling state from free-form message text. A fully
-exhausted search window returns `outcome: "no_availability"` with `slots: []`
-and `shouldRetrySameSearch: false`. If appointment data is unavailable during
-the search and no slots are found from the remaining data, the middleware
-returns `outcome: "availability_search_incomplete"` with
+the agent does not infer scheduling state from free-form message text. Each
+returned slot includes a signed `bookingToken` that binds office, routing,
+column ID, profile ID, start datetime, and duration for the later booking call.
+A fully exhausted search window returns `outcome: "no_availability"` with
+`slots: []` and `shouldRetrySameSearch: false`. If appointment data is
+unavailable during the search and no slots are found from the remaining data,
+the middleware returns `outcome: "availability_search_incomplete"` with
 `shouldRetrySameSearch: true` instead of calling it no availability; after one
 retry, the agent should ask for different preferences.
 
@@ -187,8 +189,12 @@ duration. The recurrence end date is not treated as the end of a same-day hold.
 
 Used by `POST /api/appointment/book`.
 
-The middleware builds AMD's request body from the agent's selected availability
-slot plus server-owned defaults:
+The middleware builds AMD's request body from the selected availability slot
+plus server-owned defaults. The preferred app-facing booking request passes
+`bookingToken`; the middleware verifies the token and expands it to AMD's
+`columnId`, `profileId`, `startDatetime`, `duration`, and routing lane before
+running the same validation path. Legacy callers may still send those raw slot
+fields directly.
 
 - `facilityid` from the resolved office.
 - `episodeid: 1`.
@@ -202,6 +208,7 @@ slot plus server-owned defaults:
 Validation before sending to AMD:
 
 - patient ID is numeric.
+- signed booking tokens are unexpired and belong to the resolved office.
 - column ID belongs to the office.
 - column ID is valid for the requested routing lane.
 - appointment type is valid for the office and routing lane.

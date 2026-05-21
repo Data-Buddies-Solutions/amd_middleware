@@ -25,6 +25,7 @@ func setEnvVars(t *testing.T) func() {
 			os.Unsetenv(k)
 		}
 		os.Unsetenv("PORT")
+		os.Unsetenv("BOOKING_TOKEN_SECRET")
 	}
 }
 
@@ -51,6 +52,24 @@ func TestLoad_Success(t *testing.T) {
 	}
 	if cfg.APISecret != "test-secret" {
 		t.Errorf("APISecret = %q, want 'test-secret'", cfg.APISecret)
+	}
+	if cfg.BookingTokenSecret != "test-secret" {
+		t.Errorf("BookingTokenSecret = %q, want API secret fallback", cfg.BookingTokenSecret)
+	}
+}
+
+func TestLoad_CustomBookingTokenSecret(t *testing.T) {
+	cleanup := setEnvVars(t)
+	defer cleanup()
+	os.Setenv("BOOKING_TOKEN_SECRET", "booking-secret")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() failed: %v", err)
+	}
+
+	if cfg.BookingTokenSecret != "booking-secret" {
+		t.Errorf("BookingTokenSecret = %q, want 'booking-secret'", cfg.BookingTokenSecret)
 	}
 }
 

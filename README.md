@@ -83,6 +83,7 @@ advancedmd-token-management/
 | `ADVANCEDMD_APP_NAME` | Yes | Registered AdvancedMD app name |
 | `REDIS_URL` | Yes | Redis URL for token cache |
 | `API_SECRET` | Yes | Bearer token required by `/api/*` endpoints |
+| `BOOKING_TOKEN_SECRET` | No | HMAC secret for signed availability slot booking tokens; defaults to `API_SECRET` |
 | `PORT` | No | Server port, default `8080` |
 | `AMD_ENV` | No | `dev` uses dev office IDs; anything else uses prod |
 
@@ -415,6 +416,7 @@ Response:
       "provider": "Dr. Kyler Farnan",
       "time": "8:30 AM",
       "datetime": "2026-05-18T08:30",
+      "bookingToken": "signed-slot-token",
       "columnId": 1555,
       "profileId": 2075,
       "duration": 15
@@ -451,10 +453,25 @@ ask for different preferences.
 
 ### POST /api/appointment/book
 
-Books an appointment in AdvancedMD. The middleware supplies facility ID,
-appointment color, episode ID, and AMD type wrapping.
+Books an appointment in AdvancedMD. The preferred path is to pass the signed
+`bookingToken` from the selected availability slot. The middleware expands that
+token into the raw AMD slot identifiers, then supplies facility ID, appointment
+color, episode ID, and AMD type wrapping.
 
 Request:
+
+```json
+{
+  "patientId": "17604634",
+  "patientName": "Jane Smith",
+  "dob": "01/15/2019",
+  "bookingToken": "signed-slot-token",
+  "appointmentTypeId": 4245,
+  "office": "Hollywood"
+}
+```
+
+Legacy raw-slot request, kept for compatibility:
 
 ```json
 {
@@ -471,16 +488,21 @@ Request:
 }
 ```
 
-Required fields: `patientId`, `columnId`, `profileId`, `startDatetime`,
-`duration`, `appointmentTypeId`.
+Required fields: `patientId`, `appointmentTypeId`, and either `bookingToken`
+or the legacy raw slot fields `columnId`, `profileId`, `startDatetime`, and
+`duration`.
 
 Optional fields: `patientName`, `dob`, `routing`, `office`. `dob` is required
 when booking an age-restricted provider column, and under-18 DOBs apply the
-office's pediatric routing for medical bookings.
+office's pediatric routing for medical bookings. When `bookingToken` is used,
+the token owns the selected `columnId`, `profileId`, `startDatetime`,
+`duration`, and routing lane.
 
 Booking validation:
 
 - `patientId` must be numeric.
+- `bookingToken`, when present, must be signed, unexpired, and issued for the
+  resolved office.
 - `columnId` must belong to the resolved office.
 - `columnId` must be valid for the requested routing lane.
 - `appointmentTypeId` must be valid for the office and routing lane.

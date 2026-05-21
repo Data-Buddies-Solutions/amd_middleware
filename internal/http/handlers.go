@@ -81,17 +81,23 @@ type PatientMatch struct {
 
 // Handlers holds the dependencies for HTTP handlers.
 type Handlers struct {
-	tokenManager  *auth.TokenManager
-	amdClient     *clients.AdvancedMDClient
-	amdRestClient *clients.AdvancedMDRestClient
+	tokenManager       *auth.TokenManager
+	amdClient          *clients.AdvancedMDClient
+	amdRestClient      *clients.AdvancedMDRestClient
+	bookingTokenSecret string
 }
 
 // NewHandlers creates a new Handlers instance.
-func NewHandlers(tm *auth.TokenManager, amdClient *clients.AdvancedMDClient, amdRestClient *clients.AdvancedMDRestClient) *Handlers {
+func NewHandlers(tm *auth.TokenManager, amdClient *clients.AdvancedMDClient, amdRestClient *clients.AdvancedMDRestClient, bookingTokenSecret ...string) *Handlers {
+	secret := ""
+	if len(bookingTokenSecret) > 0 {
+		secret = bookingTokenSecret[0]
+	}
 	return &Handlers{
-		tokenManager:  tm,
-		amdClient:     amdClient,
-		amdRestClient: amdRestClient,
+		tokenManager:       tm,
+		amdClient:          amdClient,
+		amdRestClient:      amdRestClient,
+		bookingTokenSecret: secret,
 	}
 }
 
@@ -1039,6 +1045,7 @@ type BookAppointmentRequest struct {
 	PatientID         string `json:"patientId"`
 	PatientName       string `json:"patientName,omitempty"`
 	DOB               string `json:"dob,omitempty"`
+	BookingToken      string `json:"bookingToken,omitempty"`
 	ColumnID          int    `json:"columnId"`
 	ProfileID         int    `json:"profileId"`
 	StartDatetime     string `json:"startDatetime"`
@@ -1051,6 +1058,7 @@ type BookAppointmentRequest struct {
 // BookAppointmentResponse is returned after booking an appointment.
 type BookAppointmentResponse struct {
 	Status              string `json:"status"`
+	Outcome             string `json:"outcome,omitempty"`
 	AppointmentID       int    `json:"appointmentId,omitempty"`
 	PatientID           string `json:"patientId,omitempty"`
 	PatientName         string `json:"patientName,omitempty"`
@@ -1127,6 +1135,17 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 			Message: err.Error(),
 		})
 		return
+	}
+
+	if req.BookingToken != "" {
+		if err := h.applyBookingToken(&req, office, time.Now().UTC()); err != nil {
+			json.NewEncoder(w).Encode(BookAppointmentResponse{
+				Status:  "error",
+				Outcome: "invalid_booking_token",
+				Message: "Invalid or expired booking token. Please check availability again and choose a slot.",
+			})
+			return
+		}
 	}
 
 	log.Printf("book-appointment: patientId=%s columnId=%d profileId=%d startDatetime=%s duration=%d typeId=%d routing=%q office=%s",
@@ -1301,6 +1320,7 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		if err != nil {
 			json.NewEncoder(w).Encode(BookAppointmentResponse{
 				Status:  "error",
+				Outcome: "slot_unavailable",
 				Message: err.Error(),
 			})
 			return
@@ -1330,6 +1350,7 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		if strings.Contains(errStr, "conflict") {
 			json.NewEncoder(w).Encode(BookAppointmentResponse{
 				Status:  "error",
+				Outcome: "slot_unavailable",
 				Message: "This time slot is no longer available. Please check availability again and choose a different slot.",
 			})
 			return
@@ -1361,6 +1382,7 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 			log.Printf("book-appointment: canceled over-capacity forced Bach appointmentId=%d columnId=%s startDatetime=%s", apptID, colIDStr, req.StartDatetime)
 			json.NewEncoder(w).Encode(BookAppointmentResponse{
 				Status:  "error",
+				Outcome: "slot_unavailable",
 				Message: "This time slot is no longer available. Please check availability again and choose a different slot.",
 			})
 			return
@@ -1793,6 +1815,14 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 	}
 
 	actualDate := searchDate.Format("2006-01-02")
+	slots, err := h.addBookingTokens(flattenAvailabilitySlots(providers), office, effectiveRouting, time.Now().UTC())
+	if err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			Status:  "error",
+			Message: "Failed to create booking tokens: " + err.Error(),
+		})
+		return
+	}
 	json.NewEncoder(w).Encode(domain.AvailabilityResponse{
 		Status:                domain.AvailabilityStatusSuccess,
 		Outcome:               domain.AvailabilityOutcomeFound,
@@ -1802,7 +1832,7 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 		NextAction:            domain.AvailabilityNextActionOfferSlots,
 		ActualDate:            actualDate,
 		DateShifted:           availabilityDateShifted(originalRequestedDate, searchStartDate, actualDate),
-		Slots:                 flattenAvailabilitySlots(providers),
+		Slots:                 slots,
 	})
 }
 

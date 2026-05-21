@@ -100,6 +100,7 @@ type AvailabilitySlotOption struct {
 	Provider          string `json:"provider"`
 	Time              string `json:"time"`
 	DateTime          string `json:"datetime"`
+	BookingToken      string `json:"bookingToken,omitempty"`
 	ColumnID          int    `json:"columnId"`
 	ProfileID         int    `json:"profileId"`
 	Duration          int    `json:"duration"`
