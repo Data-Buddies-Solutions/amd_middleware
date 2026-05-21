@@ -65,7 +65,21 @@ type AvailableSlot struct {
 	DateTime string `json:"datetime"` // ISO format for booking (e.g., "2026-02-03T09:00")
 }
 
-// ProviderAvailability represents a provider's availability response.
+const (
+	AvailabilityStatusSuccess = "success"
+	AvailabilityStatusError   = "error"
+
+	AvailabilityOutcomeFound               = "availability_found"
+	AvailabilityOutcomeNoAvailability      = "no_availability"
+	AvailabilityOutcomeNoEligibleProviders = "no_eligible_providers"
+	AvailabilityOutcomeSearchIncomplete    = "availability_search_incomplete"
+
+	AvailabilityNextActionOfferSlots                  = "offer_slots"
+	AvailabilityNextActionAskDifferentPreferences     = "ask_for_different_preferences"
+	AvailabilityNextActionRetryOnceThenAskPreferences = "retry_once_then_ask_preferences"
+)
+
+// ProviderAvailability represents an internal provider-level availability result.
 type ProviderAvailability struct {
 	Name           string          `json:"name"`
 	ColumnID       int             `json:"columnId"`
@@ -78,13 +92,30 @@ type ProviderAvailability struct {
 	Slots          []AvailableSlot `json:"slots"`
 }
 
+// AvailabilitySlotOption is a single bookable slot returned to the agent.
+type AvailabilitySlotOption struct {
+	Provider  string `json:"provider"`
+	Time      string `json:"time"`
+	DateTime  string `json:"datetime"`
+	ColumnID  int    `json:"columnId"`
+	ProfileID int    `json:"profileId"`
+	Duration  int    `json:"duration"`
+}
+
 // AvailabilityResponse is the response structure for the availability endpoint.
 type AvailabilityResponse struct {
-	SearchedDate string                 `json:"searchedDate"`
-	Date         string                 `json:"date"`
-	Location     string                 `json:"location"`
-	Message      string                 `json:"message,omitempty"`
-	Providers    []ProviderAvailability `json:"providers"`
+	Status                string                   `json:"status"`
+	Outcome               string                   `json:"outcome"`
+	AvailabilityFound     bool                     `json:"availabilityFound"`
+	RequestedDate         string                   `json:"requestedDate,omitempty"`
+	ActualDate            string                   `json:"actualDate,omitempty"`
+	DateShifted           bool                     `json:"dateShifted,omitempty"`
+	SearchedFrom          string                   `json:"searchedFrom,omitempty"`
+	SearchedThrough       string                   `json:"searchedThrough,omitempty"`
+	ShouldRetrySameSearch bool                     `json:"shouldRetrySameSearch"`
+	NextAction            string                   `json:"nextAction"`
+	Message               string                   `json:"message,omitempty"`
+	Slots                 []AvailabilitySlotOption `json:"slots"`
 }
 
 // WorksOnDay checks if the column works on a given weekday.
@@ -139,4 +170,3 @@ func IsBlockedByHold(slotTime time.Time, slotDuration time.Duration, holds []Blo
 	}
 	return false
 }
-

@@ -163,6 +163,15 @@ Used by:
 
 For availability, the middleware queries appointments by column and day, then
 blocks candidate slots whose full duration overlaps existing appointments.
+Availability responses include machine-readable outcome fields
+(`outcome`, `availabilityFound`, `shouldRetrySameSearch`, and `nextAction`) so
+the agent does not infer scheduling state from free-form message text. A fully
+exhausted search window returns `outcome: "no_availability"` with `slots: []`
+and `shouldRetrySameSearch: false`. If appointment data is unavailable during
+the search and no slots are found from the remaining data, the middleware
+returns `outcome: "availability_search_incomplete"` with
+`shouldRetrySameSearch: true` instead of calling it no availability; after one
+retry, the agent should ask for different preferences.
 
 For patient appointments, the middleware queries all allowed office columns
 across seven months, then filters by patient ID.

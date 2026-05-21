@@ -401,26 +401,51 @@ Response:
 
 ```json
 {
-  "searchedDate": "2026-05-18",
-  "date": "Monday, May 18, 2026",
-  "location": "ABITA EYE GROUP HOLLYWOOD",
-  "providers": [
+  "status": "success",
+  "outcome": "availability_found",
+  "availabilityFound": true,
+  "requestedDate": "2026-05-18",
+  "shouldRetrySameSearch": false,
+  "nextAction": "offer_slots",
+  "actualDate": "2026-05-18",
+  "slots": [
     {
-      "name": "Dr. Kyler Farnan",
+      "provider": "Dr. Kyler Farnan",
+      "time": "8:30 AM",
+      "datetime": "2026-05-18T08:30",
       "columnId": 1555,
       "profileId": 2075,
-      "facility": "ABITA EYE GROUP HOLLYWOOD",
-      "slotDuration": 15,
-      "totalAvailable": 12,
-      "firstAvailable": "8:30 AM",
-      "lastAvailable": "4:15 PM",
-      "slots": [
-        {"time": "8:30 AM", "datetime": "2026-05-18T08:30"}
-      ]
+      "duration": 15
     }
   ]
 }
 ```
+
+When no slots exist in the full search window, the endpoint returns a completed
+tool result, not an execution error. The agent should treat
+`outcome: "no_availability"` and `shouldRetrySameSearch: false`
+as the control fields:
+
+```json
+{
+  "status": "success",
+  "outcome": "no_availability",
+  "availabilityFound": false,
+  "requestedDate": "2026-05-18",
+  "shouldRetrySameSearch": false,
+  "nextAction": "ask_for_different_preferences",
+  "searchedFrom": "2026-05-18",
+  "searchedThrough": "2026-06-01",
+  "message": "No availability was found from 2026-05-18 through 2026-06-01. Do not search this same window again unless the patient changes date, provider, office, or appointment type.",
+  "slots": []
+}
+```
+
+If AMD appointment data is unavailable for any searched provider/date and no
+slots are found from the remaining data, the response is
+`outcome: "availability_search_incomplete"` with `shouldRetrySameSearch: true`.
+The agent should retry once; if it still cannot check availability, it should
+ask for different preferences.
 
 ### POST /api/appointment/book
 
