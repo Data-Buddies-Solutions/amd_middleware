@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased] - 2026-05-21
+
+### Bach Same-Start Double Booking
+
+- Added per-column Dr. Bach same-start capacity of 2. Availability now keeps a
+  Bach slot visible when exactly one appointment already starts at that time,
+  while still blocking different-start duration overlaps and block holds.
+- Added `sameStartBooked`, `sameStartCapacity`, and `requiresForce` metadata on
+  partially booked availability slots.
+- Added server-owned AMD `force: 1` booking support for Bach slots after
+  re-checking the selected column's appointments and block holds.
+- Bach booking now serializes each office/column/start within a process and
+  post-verifies forced bookings, canceling the new appointment if capacity was
+  exceeded by a concurrent force-book.
+
 ## [Unreleased] - 2026-05-14
 
 ### Hollywood and Sweetwater Scheduler Support

@@ -61,8 +61,11 @@ type BlockHold struct {
 
 // AvailableSlot represents a single available time slot.
 type AvailableSlot struct {
-	Time     string `json:"time"`     // Human-readable time (e.g., "9:00 AM")
-	DateTime string `json:"datetime"` // ISO format for booking (e.g., "2026-02-03T09:00")
+	Time              string `json:"time"`                        // Human-readable time (e.g., "9:00 AM")
+	DateTime          string `json:"datetime"`                    // ISO format for booking (e.g., "2026-02-03T09:00")
+	SameStartBooked   int    `json:"sameStartBooked,omitempty"`   // Existing appointments at this exact start time
+	SameStartCapacity int    `json:"sameStartCapacity,omitempty"` // Per-column same-start capacity when partially booked
+	RequiresForce     bool   `json:"requiresForce,omitempty"`     // Booking should send AMD force=1
 }
 
 const (
@@ -94,12 +97,15 @@ type ProviderAvailability struct {
 
 // AvailabilitySlotOption is a single bookable slot returned to the agent.
 type AvailabilitySlotOption struct {
-	Provider  string `json:"provider"`
-	Time      string `json:"time"`
-	DateTime  string `json:"datetime"`
-	ColumnID  int    `json:"columnId"`
-	ProfileID int    `json:"profileId"`
-	Duration  int    `json:"duration"`
+	Provider          string `json:"provider"`
+	Time              string `json:"time"`
+	DateTime          string `json:"datetime"`
+	ColumnID          int    `json:"columnId"`
+	ProfileID         int    `json:"profileId"`
+	Duration          int    `json:"duration"`
+	SameStartBooked   int    `json:"sameStartBooked,omitempty"`
+	SameStartCapacity int    `json:"sameStartCapacity,omitempty"`
+	RequiresForce     bool   `json:"requiresForce,omitempty"`
 }
 
 // AvailabilityResponse is the response structure for the availability endpoint.
