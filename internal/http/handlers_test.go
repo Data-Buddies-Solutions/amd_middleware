@@ -1042,7 +1042,8 @@ func TestCalculateAvailableSlots_MultiSlotAppointment(t *testing.T) {
 	date := time.Date(2026, 3, 6, 0, 0, 0, 0, eastern)
 	nowEastern := time.Date(2026, 3, 5, 10, 0, 0, 0, eastern) // day before
 
-	// Dr. Noel: 30-min intervals, max 2 per slot, 8:30-16:30
+	// Dr. Noel: 30-min intervals. Non-Bach columns are single-booked even if
+	// AMD reports max > 1.
 	col := domain.SchedulerColumn{
 		ID:              "1550",
 		Name:            "DR. NOEL",
@@ -1072,26 +1073,17 @@ func TestCalculateAvailableSlots_MultiSlotAppointment(t *testing.T) {
 	slots := calculateAvailableSlots(domain.DefaultOffice(), col, appointments, blockHolds, date, nowEastern)
 
 	// 8:30 — blocked by hold
-	// 9:00 — one same-start appt and max=2 → available
+	// 9:00 — one same-start appt on non-Bach column → blocked
 	// 9:30 — Vargas (9:00, 60min) overlaps into 9:30 → blocked
 	// 10:00 — 0 appts → available
 
-	if len(slots) != 2 {
-		t.Errorf("Expected 2 available slots, got %d: %v", len(slots), slots)
+	if len(slots) != 1 {
+		t.Errorf("Expected 1 available slot, got %d: %v", len(slots), slots)
 		return
 	}
 
-	if slots[0].Time != "9:00 AM" {
-		t.Errorf("Expected 9:00 AM, got %s", slots[0].Time)
-	}
-	if slots[0].SameStartBooked != 1 || slots[0].SameStartCapacity != 2 {
-		t.Errorf("Expected 9:00 AM same-start metadata 1/2, got %d/%d", slots[0].SameStartBooked, slots[0].SameStartCapacity)
-	}
-	if slots[0].RequiresForce {
-		t.Error("Expected non-Bach same-start slot not to require force")
-	}
-	if slots[1].Time != "10:00 AM" {
-		t.Errorf("Expected 10:00 AM, got %s", slots[1].Time)
+	if slots[0].Time != "10:00 AM" {
+		t.Errorf("Expected 10:00 AM, got %s", slots[0].Time)
 	}
 }
 
@@ -1184,7 +1176,7 @@ func TestCalculateAvailableSlots_NonBachMaxZeroBlocksSameStart(t *testing.T) {
 	}
 }
 
-func TestCalculateAvailableSlots_MaxTwoSingleSameStartAvailable(t *testing.T) {
+func TestCalculateAvailableSlots_NonBachMaxTwoBlocksSingleSameStart(t *testing.T) {
 	eastern, _ := time.LoadLocation("America/New_York")
 	date := time.Date(2026, 6, 1, 0, 0, 0, 0, eastern) // Monday
 	nowEastern := time.Date(2026, 5, 31, 10, 0, 0, 0, eastern)
@@ -1203,14 +1195,8 @@ func TestCalculateAvailableSlots_MaxTwoSingleSameStartAvailable(t *testing.T) {
 	}
 
 	slots := calculateAvailableSlots(domain.DefaultOffice(), col, appointments, nil, date, nowEastern)
-	if len(slots) != 1 {
-		t.Fatalf("Expected one same-start slot below max capacity, got %d: %v", len(slots), slots)
-	}
-	if slots[0].SameStartBooked != 1 || slots[0].SameStartCapacity != 2 {
-		t.Fatalf("slot metadata = booked %d capacity %d, want 1/2", slots[0].SameStartBooked, slots[0].SameStartCapacity)
-	}
-	if slots[0].RequiresForce {
-		t.Fatal("non-Bach max-capacity slot should not require AMD force")
+	if len(slots) != 0 {
+		t.Fatalf("Expected non-Bach max=2 same-start slot to be blocked, got %d: %v", len(slots), slots)
 	}
 }
 
