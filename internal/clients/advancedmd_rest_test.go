@@ -382,6 +382,52 @@ func TestGetAppointmentsByMonth_ServerError(t *testing.T) {
 	}
 }
 
+func TestBookAppointment_IncludesForceWhenSet(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("Expected POST method, got %s", r.Method)
+		}
+		if !strings.Contains(r.URL.Path, "/scheduler/Appointments") {
+			t.Errorf("Expected scheduler appointments path, got %s", r.URL.Path)
+		}
+
+		var payload map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("failed to decode request body: %v", err)
+		}
+		if payload["force"] != float64(1) {
+			t.Fatalf("force = %v, want 1 in payload %#v", payload["force"], payload)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(BookAppointmentResponse{ID: 98765})
+	})
+
+	client, tokenData, cleanup := newTestRestClient(t, handler)
+	defer cleanup()
+
+	apptID, err := client.BookAppointment(context.Background(), tokenData, BookAppointmentParams{
+		PatientID:     12345,
+		ColumnID:      1513,
+		ProfileID:     620,
+		StartDatetime: "2026-06-01T09:00",
+		Duration:      15,
+		AppointmentType: []struct {
+			ID int `json:"id"`
+		}{{ID: 1007}},
+		EpisodeID:  1,
+		FacilityID: 1568,
+		Color:      "#FF0000",
+		Force:      1,
+	})
+	if err != nil {
+		t.Fatalf("BookAppointment failed: %v", err)
+	}
+	if apptID != 98765 {
+		t.Fatalf("appointment ID = %d, want 98765", apptID)
+	}
+}
+
 func TestCancelAppointment_Success(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify PUT method
