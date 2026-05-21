@@ -1483,9 +1483,6 @@ func sameStartCapacityForColumn(office *domain.OfficeConfig, col domain.Schedule
 	if isBachColumn(office, col.ID) {
 		return bachSameStartCapacity
 	}
-	if col.MaxApptsPerSlot > 0 {
-		return col.MaxApptsPerSlot
-	}
 	return 1
 }
 

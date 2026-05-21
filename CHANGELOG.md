@@ -25,6 +25,8 @@
 - Bach booking now serializes each office/column/start within a process and
   post-verifies forced bookings, canceling the new appointment if capacity was
   exceeded by a concurrent force-book.
+- Non-Bach columns now remain single-booked even when AMD reports
+  `maxApptsPerSlot > 1`; only Bach columns can show a second same-start slot.
 
 ## [Unreleased] - 2026-05-14
 
