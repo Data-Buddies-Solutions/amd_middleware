@@ -394,8 +394,10 @@ Availability rules:
 4. Routing controls which medical or routine-vision columns are considered.
 5. DOB applies medical pediatric routing and filters provider age rules.
 6. Recurring block holds use the daily hold window, not the recurrence end date.
-7. Existing appointments block overlapping appointment durations.
-8. `maxApptsPerSlot` is respected for same-start capacity.
+7. Different-start appointments block overlapping appointment durations.
+8. Same-start appointment count is checked against per-column capacity.
+9. Dr. Bach columns allow one existing same-start appointment per column; those
+   slots include `sameStartBooked`, `sameStartCapacity`, and `requiresForce`.
 
 Response:
 
@@ -459,6 +461,11 @@ Booking validation:
 - `appointmentTypeId` must be valid for the office and routing lane.
 - DOB must be valid and satisfy provider age rules for age-restricted columns.
 - DOB applies medical pediatric routing when the patient is under 18.
+- Bach slots are re-checked against appointments and block holds before booking;
+  the middleware sends AMD `force: 1` only when one same-start Bach appointment
+  already exists on the selected column. Forced Bach bookings are post-verified;
+  if a concurrent force-book pushes the slot over capacity, the new appointment
+  is canceled and the caller is asked to choose another slot.
 - AMD 409 conflicts return a clear slot-no-longer-available message.
 
 Response statuses: `booked`, `error`.

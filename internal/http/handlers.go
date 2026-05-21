@@ -21,6 +21,7 @@ import (
 
 // eastern is the America/New_York timezone, loaded once at startup.
 var eastern *time.Location
+var bachBookingLocks sync.Map
 
 func init() {
 	var err error
@@ -38,6 +39,7 @@ type ErrorResponse struct {
 }
 
 const maxPatientNoteLength = 1000
+const bachSameStartCapacity = 2
 
 // ElevenLabsWebhookResponse is the response format for ElevenLabs conversation initiation webhook.
 type ElevenLabsWebhookResponse struct {
@@ -1258,6 +1260,53 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 	// Resolve facility ID from office config
 	facilityIDInt, _ := strconv.Atoi(office.FacilityID)
 
+	force := 0
+	bachColumn := isBachColumn(office, colIDStr)
+	var bachSlotTime time.Time
+	var bachDateStr string
+	if bachColumn {
+		var err error
+		bachSlotTime, err = clients.ParseDateTime(req.StartDatetime)
+		if err != nil {
+			json.NewEncoder(w).Encode(BookAppointmentResponse{
+				Status:  "error",
+				Message: "Invalid startDatetime format. Use YYYY-MM-DDTHH:MM.",
+			})
+			return
+		}
+
+		lock := bachBookingLock(office.ID, colIDStr, domain.FormatSlotDateTime(bachSlotTime))
+		lock.Lock()
+		defer lock.Unlock()
+
+		bachDateStr = bachSlotTime.Format("2006-01-02")
+		appointments, err := h.amdRestClient.GetAppointments(r.Context(), tokenData, colIDStr, bachDateStr)
+		if err != nil {
+			json.NewEncoder(w).Encode(BookAppointmentResponse{
+				Status:  "error",
+				Message: "Failed to verify Bach slot availability: " + err.Error(),
+			})
+			return
+		}
+		blockHolds, err := h.amdRestClient.GetBlockHolds(r.Context(), tokenData, colIDStr, bachDateStr)
+		if err != nil {
+			json.NewEncoder(w).Encode(BookAppointmentResponse{
+				Status:  "error",
+				Message: "Failed to verify Bach block holds: " + err.Error(),
+			})
+			return
+		}
+
+		force, err = forceForBachBooking(office, colIDStr, bachSlotTime, time.Duration(req.Duration)*time.Minute, appointments, blockHolds)
+		if err != nil {
+			json.NewEncoder(w).Encode(BookAppointmentResponse{
+				Status:  "error",
+				Message: err.Error(),
+			})
+			return
+		}
+	}
+
 	// Book via AMD REST API
 	apptID, err := h.amdRestClient.BookAppointment(r.Context(), tokenData, clients.BookAppointmentParams{
 		PatientID:     patientIDInt,
@@ -1271,6 +1320,7 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		EpisodeID:  1,
 		FacilityID: facilityIDInt,
 		Color:      color,
+		Force:      force,
 	})
 	if err != nil {
 		log.Printf("book-appointment: AMD error: %v", err)
@@ -1293,6 +1343,29 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 	}
 
 	log.Printf("book-appointment: success appointmentId=%d", apptID)
+
+	if bachColumn && force == 1 {
+		appointments, err := h.amdRestClient.GetAppointments(r.Context(), tokenData, colIDStr, bachDateStr)
+		if err != nil {
+			log.Printf("WARNING: failed to post-verify forced Bach booking appointmentId=%d columnId=%s startDatetime=%s: %v", apptID, colIDStr, req.StartDatetime, err)
+		} else if countSameStartAppointments(bachSlotTime, appointments) > bachSameStartCapacity {
+			cancelErr := h.amdRestClient.CancelAppointment(r.Context(), tokenData, apptID)
+			if cancelErr != nil {
+				log.Printf("ERROR: forced Bach booking exceeded capacity and cancellation failed appointmentId=%d columnId=%s startDatetime=%s: %v", apptID, colIDStr, req.StartDatetime, cancelErr)
+				json.NewEncoder(w).Encode(BookAppointmentResponse{
+					Status:  "error",
+					Message: "Appointment could not be safely confirmed because the slot exceeded Bach capacity. Please transfer the call to the office.",
+				})
+				return
+			}
+			log.Printf("book-appointment: canceled over-capacity forced Bach appointmentId=%d columnId=%s startDatetime=%s", apptID, colIDStr, req.StartDatetime)
+			json.NewEncoder(w).Encode(BookAppointmentResponse{
+				Status:  "error",
+				Message: "This time slot is no longer available. Please check availability again and choose a different slot.",
+			})
+			return
+		}
+	}
 
 	json.NewEncoder(w).Encode(buildBookAppointmentReceipt(req, office, apptID))
 }
@@ -1334,6 +1407,51 @@ func filterColumnsForDOB(columns []domain.SchedulerColumn, office *domain.Office
 
 func officeSupportsRouting(office *domain.OfficeConfig, routing domain.RoutingRule) bool {
 	return len(office.ColumnsForRouting(routing)) > 0
+}
+
+func isBachColumn(office *domain.OfficeConfig, columnID string) bool {
+	if office == nil {
+		return false
+	}
+	col, ok := office.Columns[columnID]
+	return ok && col.MatchKey == "BACH"
+}
+
+func sameStartCapacityForColumn(office *domain.OfficeConfig, col domain.SchedulerColumn) int {
+	if isBachColumn(office, col.ID) {
+		return bachSameStartCapacity
+	}
+	if col.MaxApptsPerSlot > 0 {
+		return col.MaxApptsPerSlot
+	}
+	return 1
+}
+
+func forceForBachBooking(office *domain.OfficeConfig, columnID string, slotTime time.Time, slotDuration time.Duration, appointments []domain.Appointment, blockHolds []domain.BlockHold) (int, error) {
+	if !isBachColumn(office, columnID) {
+		return 0, nil
+	}
+	if domain.IsBlockedByHold(slotTime, slotDuration, blockHolds) {
+		return 0, fmt.Errorf("This time slot is no longer available. Please check availability again and choose a different slot.")
+	}
+	if hasDifferentStartOverlappingAppointment(slotTime, slotDuration, appointments) {
+		return 0, fmt.Errorf("This time slot is no longer available. Please check availability again and choose a different slot.")
+	}
+
+	sameStartCount := countSameStartAppointments(slotTime, appointments)
+	if sameStartCount >= bachSameStartCapacity {
+		return 0, fmt.Errorf("This time slot is no longer available. Please check availability again and choose a different slot.")
+	}
+	if sameStartCount > 0 {
+		return 1, nil
+	}
+	return 0, nil
+}
+
+func bachBookingLock(officeID, columnID, startDatetime string) *sync.Mutex {
+	key := officeID + "|" + columnID + "|" + startDatetime
+	actual, _ := bachBookingLocks.LoadOrStore(key, &sync.Mutex{})
+	return actual.(*sync.Mutex)
 }
 
 // HandleGetAvailability returns available appointment slots for providers.
@@ -1538,7 +1656,7 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 				displayName = profile.Name
 			}
 
-			allSlots := calculateAvailableSlots(col, appointmentsByColumn[col.ID], blockHoldsByColumn[col.ID], searchDate, nowEastern)
+			allSlots := calculateAvailableSlots(office, col, appointmentsByColumn[col.ID], blockHoldsByColumn[col.ID], searchDate, nowEastern)
 
 			colID, _ := strconv.Atoi(col.ID)
 			profID, _ := strconv.Atoi(col.ProfileID)
@@ -1615,7 +1733,7 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 
 // calculateAvailableSlots generates available time slots for a column on a single day.
 // nowEastern is used to filter out past slots when the date is today.
-func calculateAvailableSlots(col domain.SchedulerColumn, appointments []domain.Appointment, blockHolds []domain.BlockHold, date time.Time, nowEastern time.Time) []domain.AvailableSlot {
+func calculateAvailableSlots(office *domain.OfficeConfig, col domain.SchedulerColumn, appointments []domain.Appointment, blockHolds []domain.BlockHold, date time.Time, nowEastern time.Time) []domain.AvailableSlot {
 	var slots []domain.AvailableSlot
 
 	// Skip if provider doesn't work this day
@@ -1639,7 +1757,7 @@ func calculateAvailableSlots(col domain.SchedulerColumn, appointments []domain.A
 		interval = 15 * time.Minute
 	}
 
-	maxAppts := col.MaxApptsPerSlot
+	sameStartCapacity := sameStartCapacityForColumn(office, col)
 
 	for slotTime := workStart; slotTime.Before(workEnd); slotTime = slotTime.Add(interval) {
 		// Filter past slots
@@ -1655,37 +1773,42 @@ func calculateAvailableSlots(col domain.SchedulerColumn, appointments []domain.A
 			continue
 		}
 
-		// AMD 4101: Block if any existing appointment overlaps this slot's full booking range
-		if hasOverlappingAppointment(slotTime, interval, appointments) {
+		// AMD 4101: Block if any different-start appointment overlaps this slot's full booking range.
+		if hasDifferentStartOverlappingAppointment(slotTime, interval, appointments) {
 			continue
 		}
 
-		// AMD 4186: Check same-start-time appointment count against maxApptsPerSlot
-		if maxAppts > 0 {
-			count := countSameStartAppointments(slotTime, appointments)
-			if count >= maxAppts {
-				continue
-			}
+		// AMD 4186: Check same-start-time appointment count against per-column capacity.
+		sameStartCount := countSameStartAppointments(slotTime, appointments)
+		if sameStartCount >= sameStartCapacity {
+			continue
 		}
 
-		slots = append(slots, domain.AvailableSlot{
+		slot := domain.AvailableSlot{
 			Time:     domain.FormatSlotTime(slotTime),
 			DateTime: domain.FormatSlotDateTime(slotTime),
-		})
+		}
+		if sameStartCount > 0 {
+			slot.SameStartBooked = sameStartCount
+			slot.SameStartCapacity = sameStartCapacity
+			slot.RequiresForce = isBachColumn(office, col.ID)
+		}
+		slots = append(slots, slot)
 	}
 
 	return slots
 }
 
-// hasOverlappingAppointment checks if any existing appointment overlaps with the
-// full booking range [slotTime, slotTime+slotDuration). AMD returns error 4101
-// for ANY overlap between the new appointment's range and an existing appointment,
-// not just when the new start falls inside an existing range. This matters when
-// off-grid appointments exist (e.g., a 15-min appointment at 8:45 from when the
-// column had 15-min intervals blocks a 30-min booking at 8:30).
-func hasOverlappingAppointment(slotTime time.Time, slotDuration time.Duration, appointments []domain.Appointment) bool {
+// hasDifferentStartOverlappingAppointment checks if a different-start appointment
+// overlaps the full booking range [slotTime, slotTime+slotDuration). Same-start
+// appointments are handled separately as per-column capacity because AMD's 4186
+// rule is distinct from 4101 duration-overlap blocking.
+func hasDifferentStartOverlappingAppointment(slotTime time.Time, slotDuration time.Duration, appointments []domain.Appointment) bool {
 	slotEnd := slotTime.Add(slotDuration)
 	for _, appt := range appointments {
+		if appt.StartDateTime.Equal(slotTime) {
+			continue
+		}
 		apptEnd := appt.StartDateTime.Add(time.Duration(appt.Duration) * time.Minute)
 		// Two intervals overlap when each starts before the other ends
 		if slotTime.Before(apptEnd) && appt.StartDateTime.Before(slotEnd) {

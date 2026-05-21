@@ -185,6 +185,10 @@ slot plus server-owned defaults:
 - `episodeid: 1`.
 - `type` wrapped as `[{ "id": <appointmentTypeId> }]`.
 - appointment color from `DefaultAppointmentTypeColors`.
+- `force: 1` only for Dr. Bach slots that already have one same-start
+  appointment on the selected column after a server-side re-check. Forced Bach
+  bookings are post-verified and canceled if a concurrent force-book leaves the
+  selected column/start over capacity.
 
 Validation before sending to AMD:
 
@@ -229,8 +233,10 @@ Candidate slots are filtered in this order:
 2. Preauth requests enforce a 14-day minimum lead time.
 3. Provider must work that weekday.
 4. Slot must be outside block holds.
-5. Slot duration must not overlap an existing appointment.
-6. Same-start appointment count must be below `maxapptsperslot`.
+5. Slot duration must not overlap a different-start existing appointment.
+6. Same-start appointment count must be below per-column capacity.
+7. Dr. Bach columns use capacity 2 per column; partially booked Bach slots
+   return `sameStartBooked`, `sameStartCapacity`, and `requiresForce`.
 
 The response includes at most five displayed slots per provider, while
 `totalAvailable` reports the full count.
