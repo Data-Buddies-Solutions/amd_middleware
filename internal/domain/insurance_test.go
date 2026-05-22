@@ -159,6 +159,8 @@ func TestLookupInsurance_HollywoodSweetwaterMedicalABachOverrides(t *testing.T) 
 		{"sweetwater accepts doctors health medicare", sweetwater, "Doctors Health Medicare", "car40907", false},
 		{"sweetwater accepts devoted through premier", sweetwater, "Devoted", "car281317", false},
 		{"sweetwater accepts solis with preauth", sweetwater, "Solis Medicare", "car281317", true},
+		{"hollywood accepts self pay alias", hollywood, "self-pay", "car301672", false},
+		{"sweetwater accepts cash pay alias", sweetwater, "Cash Pay", "car301672", false},
 	}
 
 	for _, tt := range tests {
@@ -271,6 +273,11 @@ func TestRoutingForCarrierIDAtOffice_HollywoodSweetwaterAcceptedCarriers(t *test
 		t.Fatalf("RoutingForCarrierIDAtOffice(car40923, Hollywood) = %q, %v; want %q, true", routing, ambiguous, RoutingBachOnly)
 	}
 
+	routing, ambiguous = RoutingForCarrierIDAtOffice("car301672", hollywood)
+	if routing != RoutingBachOnly || ambiguous {
+		t.Fatalf("RoutingForCarrierIDAtOffice(car301672, Hollywood) = %q, %v; want %q, false", routing, ambiguous, RoutingBachOnly)
+	}
+
 	routing, ambiguous = RoutingForCarrierIDAtOffice("car280750", springHill)
 	if routing != RoutingNotAccepted || ambiguous {
 		t.Fatalf("RoutingForCarrierIDAtOffice(car280750, Spring Hill) = %q, %v; want %q, false", routing, ambiguous, RoutingNotAccepted)
@@ -332,6 +339,8 @@ func TestRoutingForDemographicInsurance_HollywoodSweetwaterABachPolicy(t *testin
 		{"generic cigna carrier falls back to accepted carrier id", "car301345", "Cigna", RoutingBachOnly, true},
 		{"non abach exact plan does not fall back to accepted carrier id", "car40923", "United Healthcare Choice", RoutingNotAccepted, false},
 		{"preferred care legacy carrier accepted by id", "car40916", "", RoutingBachOnly, false},
+		{"self pay carrier accepted by id", "car301672", "", RoutingBachOnly, false},
+		{"self pay exact name accepted", "car301672", "Self Pay", RoutingBachOnly, false},
 	}
 
 	for _, tt := range tests {
