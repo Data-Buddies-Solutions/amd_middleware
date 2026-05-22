@@ -1762,6 +1762,31 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 	}
 }
 
+
+func TestHandleUpdateInsurance_SelfPayAutoSubscriberNum(t *testing.T) {
+	handlers, writes := newUpdateInsuranceTestHandlers(t)
+	req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(`{"patientId":"123","respPartyId":"resp123","insurance":"self-pay","office":"Spring Hill"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandleUpdateInsurance(w, req)
+
+	var resp UpdateInsuranceResponse
+	json.NewDecoder(w.Result().Body).Decode(&resp)
+	if resp.Status != "updated" {
+		t.Fatalf("expected updated response, got %#v", resp)
+	}
+	if resp.Routing != string(domain.RoutingAll) {
+		t.Fatalf("routing = %q, want %q", resp.Routing, domain.RoutingAll)
+	}
+	if len(*writes) != 1 {
+		t.Fatalf("XMLRPC writes = %d, want 1", len(*writes))
+	}
+	if !strings.Contains((*writes)[0], "car301672") || !strings.Contains((*writes)[0], "self pay") {
+		t.Fatalf("self-pay addinsurance payload = %s", (*writes)[0])
+	}
+}
+
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {

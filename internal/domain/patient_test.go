@@ -178,6 +178,8 @@ func TestLookupInsuranceForCoverage_RoutineVision(t *testing.T) {
 		wantFound bool
 	}{
 		{"top level VSP", "VSP", "car280695", true},
+		{"top level Oscar", "Oscar", "car284233", true},
+		{"top level self pay", "Self Pay", "car301672", true},
 		{"misspelled Solstice", "Soltice", "car301652", true},
 		{"VSP alias", "Lincoln Finacial", "car280695", true},
 		{"EyeMed alias", "Humana", "car280684", true},

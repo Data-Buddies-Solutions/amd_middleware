@@ -21,6 +21,7 @@ func TestRoutingForCarrierID(t *testing.T) {
 		{"bach+licht - AvMed", "car40890", RoutingBachLicht, false},
 		{"bach+licht - Tricare East", "car284327", RoutingBachLicht, false},
 		{"bach+licht - Oscar", "car284233", RoutingBachLicht, false},
+		{"all - Self Pay", "car301672", RoutingAll, false},
 		{"not accepted - Eye America", "car308627", RoutingNotAccepted, false},
 
 		// Ambiguous carriers — default to RoutingAll with ambiguous flag
@@ -47,6 +48,16 @@ func TestRoutingForCarrierID(t *testing.T) {
 				t.Errorf("RoutingForCarrierID(%q) ambiguous = %v, want %v", tt.carrierID, ambiguous, tt.wantAmbiguous)
 			}
 		})
+	}
+}
+
+func TestLookupInsurance_SelfPayMedical(t *testing.T) {
+	entry, found := LookupInsuranceForCoverageAtOffice("self-pay", InsuranceModeMedical, &OfficeConfig{ID: "spring_hill", DisplayName: "Spring Hill"})
+	if !found {
+		t.Fatal("self-pay medical found = false, want true")
+	}
+	if entry.CarrierID != "car301672" || entry.Routing != RoutingAll {
+		t.Fatalf("self-pay medical entry = %#v, want car301672/all", entry)
 	}
 }
 

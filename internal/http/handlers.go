@@ -253,6 +253,9 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 	}
 
 	insuranceMode := domain.InsuranceModeForCoverage(req.CoverageType)
+	if domain.IsSelfPayInsurance(req.Insurance) && strings.TrimSpace(req.SubscriberNum) == "" {
+		req.SubscriberNum = "self pay"
+	}
 
 	log.Printf("add-patient: received request: firstName=%q lastName=%q dob=%q phone=%q email=%q street=%q aptSuite=%q city=%q state=%q zip=%q sex=%q insurance=%q coverageType=%q subscriberName=%q subscriberNum=%q office=%q",
 		req.FirstName, req.LastName, req.DOB, req.Phone, req.Email, req.Street, req.AptSuite, req.City, req.State, req.Zip, req.Sex, req.Insurance, req.CoverageType, req.SubscriberName, req.SubscriberNum, office.ID)
@@ -1985,6 +1988,9 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Validate required fields
+	if domain.IsSelfPayInsurance(req.Insurance) && strings.TrimSpace(req.SubscriberNum) == "" {
+		req.SubscriberNum = "self pay"
+	}
 	if req.PatientID == "" || req.Insurance == "" || req.SubscriberNum == "" {
 		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
 			Status:  "error",
