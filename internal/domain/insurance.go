@@ -132,6 +132,7 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 	"multiplan phcs":           {CarrierID: "car301648", Routing: RoutingAll},
 	"sunhealth":                {CarrierID: "car308086", Routing: RoutingAll},
 	"united healthcare global": {CarrierID: "car284971", Routing: RoutingAll},
+	"self pay":                 {CarrierID: "car301672", Routing: RoutingAll},
 
 	// ── Not Accepted at Spring Hill (Medical) ────────────────────────────
 	"care plus":          {CarrierID: "", Routing: RoutingNotAccepted},
@@ -159,6 +160,7 @@ var CarrierRoutingMap = map[string]RoutingRule{
 	"car40890":  RoutingBachLicht, // AVMED
 	"car302890": RoutingBachLicht, // CIGNA MEDICARE ADVTG HEALTHSPRING
 	"car284233": RoutingBachLicht, // OSCAR INSURANCE COMPANY OF FLORIDA
+	"car301672": RoutingAll,       // SELF PAY
 	"car284327": RoutingBachLicht, // TRICARE EAST
 	"car40921":  RoutingBachLicht, // TRICARE FOR LIFE
 	"car40922":  RoutingBachLicht, // TRICARE NORTH AND SOUTH REGIONS
@@ -237,6 +239,10 @@ var InsuranceAliases = map[string]string{
 	"care health":                   "care health plus",
 	"av med medicare":               "avmed medicare advantage",
 	"av med medicare advantage":     "avmed medicare advantage",
+	"self-pay":                      "self pay",
+	"selfpay":                       "self pay",
+	"cash pay":                      "self pay",
+	"cash":                          "self pay",
 }
 
 func medicalBachOnly(carrierID string) InsuranceEntry {
@@ -346,6 +352,7 @@ var hollywoodSweetwaterMedicalInsuranceNameMap = map[string]InsuranceEntry{
 	"partners direct health":           medicalBachOnly("car308142"),
 	"preferred care partners":          medicalBachOnly("car40923"),
 	"preferred care network":           medicalBachOnly("car40923"),
+	"self pay":                         medicalBachOnly("car301672"),
 	"sunhealth":                        medicalBachOnly("car308086"),
 	"united healthcare global":         medicalBachOnly("car284971"),
 	"united healthcare global medical": medicalBachOnly("car284971"),
@@ -419,6 +426,10 @@ var hollywoodSweetwaterMedicalInsuranceAliases = map[string]string{
 	"simply medicare medical":              "simply medicare",
 	"solis":                                "solis medicare",
 	"straight medicaid":                    "medicaid",
+	"cash":                                 "self pay",
+	"cash pay":                             "self pay",
+	"self-pay":                             "self pay",
+	"selfpay":                              "self pay",
 	"tricare":                              "tricare select",
 	"uhc":                                  "united healthcare",
 	"uhc medicare":                         "united healthcare aarp medicare",
@@ -444,6 +455,7 @@ var hollywoodSweetwaterAcceptedMedicalCarrierIDs = map[string]bool{
 	"car301345": true, // Cigna
 	"car301578": true, // Meritain
 	"car301648": true, // MultiPlan / PHCS
+	"car301672": true, // Self Pay
 	"car302890": true, // Cigna Medicare Advantage HealthSpring
 	"car303033": true, // Medicaid / Humana Medicaid legacy bucket
 	"car303062": true, // Humana PPO/POS
@@ -485,6 +497,8 @@ var VisionInsuranceNameMap = map[string]InsuranceEntry{
 	"envolve":                 {CarrierID: "car281245", Routing: RoutingOpticalOnly},
 	"sunhealth":               {CarrierID: "car308791", Routing: RoutingOpticalOnly},
 	"sunhealth discount plan": {CarrierID: "car308791", Routing: RoutingOpticalOnly},
+	"oscar":                   {CarrierID: "car284233", Routing: RoutingOpticalOnly},
+	"self pay":                {CarrierID: "car301672", Routing: RoutingOpticalOnly},
 }
 
 // VisionInsuranceAliases maps patient-facing routine-vision plan names to the
@@ -504,6 +518,12 @@ var VisionInsuranceAliases = map[string]string{
 	"envolve vision":                 "envolve",
 	"sun health":                     "sunhealth",
 	"sunhealth vision":               "sunhealth",
+	"oscar health":                   "oscar",
+	"oscar insurance":                "oscar",
+	"self-pay":                       "self pay",
+	"selfpay":                        "self pay",
+	"cash pay":                       "self pay",
+	"cash":                           "self pay",
 
 	// VSP
 	"metlife":           "vsp",
@@ -579,6 +599,14 @@ func lookupInsuranceFromMaps(name string, entries map[string]InsuranceEntry, ali
 // Uses NormalizeForLookup for tolerance of punctuation, casing, and spacing.
 func LookupInsurance(name string) (InsuranceEntry, bool) {
 	return lookupInsuranceFromMaps(name, InsuranceNameMap, InsuranceAliases)
+}
+
+// IsSelfPayInsurance reports whether a caller-facing insurance value means self-pay.
+func IsSelfPayInsurance(name string) bool {
+	normalized := NormalizeForLookup(name)
+	return normalized == "self pay" ||
+		InsuranceAliases[normalized] == "self pay" ||
+		VisionInsuranceAliases[normalized] == "self pay"
 }
 
 // LookupInsuranceForCoverage chooses the medical or routine-vision crosswalk.
