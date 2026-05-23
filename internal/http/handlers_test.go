@@ -1605,13 +1605,12 @@ func TestHandleCancelAppointment_ValidationErrors(t *testing.T) {
 
 func TestPatientApptDetail_IncludesID(t *testing.T) {
 	detail := PatientApptDetail{
-		ID:        9570263,
-		Date:      "Wednesday, March 18, 2026",
-		Time:      "12:00 PM",
-		Provider:  "Dr. Austin Bach",
-		Type:      "New Adult Medical",
-		Facility:  "Abita Eye Group Spring Hill",
-		Confirmed: false,
+		ID:       9570263,
+		Date:     "Wednesday, March 18, 2026",
+		Time:     "12:00 PM",
+		Provider: "Dr. Austin Bach",
+		Type:     "New Adult Medical",
+		Facility: "Abita Eye Group Spring Hill",
 	}
 
 	data, err := json.Marshal(detail)
@@ -1628,6 +1627,9 @@ func TestPatientApptDetail_IncludesID(t *testing.T) {
 	}
 	if int(id.(float64)) != 9570263 {
 		t.Errorf("Expected id 9570263, got %v", id)
+	}
+	if _, ok := decoded["confirmed"]; ok {
+		t.Fatal("Did not expect 'confirmed' field in JSON output")
 	}
 }
 
@@ -1761,7 +1763,6 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 		})
 	}
 }
-
 
 func TestHandleUpdateInsurance_SelfPayAutoSubscriberNum(t *testing.T) {
 	handlers, writes := newUpdateInsuranceTestHandlers(t)

@@ -668,13 +668,12 @@ type PatientApptResponse struct {
 
 // PatientApptDetail is a single appointment formatted for LLM consumption.
 type PatientApptDetail struct {
-	ID        int    `json:"id"`                 // AMD appointment ID — for cancel_appt
-	Date      string `json:"date"`               // Human-readable (e.g., "Wednesday, March 18, 2026")
-	Time      string `json:"time"`               // e.g., "12:00 PM"
-	Provider  string `json:"provider,omitempty"` // e.g., "Dr. Austin Bach"
-	Type      string `json:"type,omitempty"`     // e.g., "New Adult Medical"
-	Facility  string `json:"facility,omitempty"` // e.g., "Abita Eye Group Spring Hill"
-	Confirmed bool   `json:"confirmed"`          // Whether the appointment has been confirmed
+	ID       int    `json:"id"`                 // AMD appointment ID — for cancel_appt
+	Date     string `json:"date"`               // Human-readable (e.g., "Wednesday, March 18, 2026")
+	Time     string `json:"time"`               // e.g., "12:00 PM"
+	Provider string `json:"provider,omitempty"` // e.g., "Dr. Austin Bach"
+	Type     string `json:"type,omitempty"`     // e.g., "New Adult Medical"
+	Facility string `json:"facility,omitempty"` // e.g., "Abita Eye Group Spring Hill"
 }
 
 // HandleGetPatientAppointments retrieves appointments for a verified patient.
@@ -960,13 +959,12 @@ func (h *Handlers) fetchUpcomingAppointments(ctx context.Context, tokenData *dom
 		}
 
 		details = append(details, PatientApptDetail{
-			ID:        a.ID,
-			Date:      startTime.Format("Monday, January 2, 2006"),
-			Time:      startTime.Format("3:04 PM"),
-			Provider:  office.FriendlyProviderName(a.Provider),
-			Type:      typeName,
-			Facility:  friendlyFacilityName(a.Facility),
-			Confirmed: a.ConfirmDate != nil,
+			ID:       a.ID,
+			Date:     startTime.Format("Monday, January 2, 2006"),
+			Time:     startTime.Format("3:04 PM"),
+			Provider: office.FriendlyProviderName(a.Provider),
+			Type:     typeName,
+			Facility: friendlyFacilityName(a.Facility),
 		})
 	}
 
