@@ -430,7 +430,7 @@ ask for different preferences.
 Books an appointment in AdvancedMD. The preferred path is to pass the signed
 `bookingToken` from the selected availability slot. The middleware expands that
 token into the raw AMD slot identifiers, then supplies facility ID, appointment
-color, episode ID, and AMD type wrapping.
+color, episode ID, AMD type wrapping, and the numeric AMD appointment type.
 
 Request:
 
@@ -440,13 +440,16 @@ Request:
   "patientName": "Jane Smith",
   "dob": "01/15/2019",
   "bookingToken": "signed-slot-token",
-  "appointmentTypeId": 4245,
+  "visitCategory": "routine_vision",
+  "visitKind": "routine_vision",
+  "patientStatus": "established",
   "office": "Hollywood"
 }
 ```
 
 Legacy raw-slot request, disabled by default and intended only as a temporary
-compatibility escape hatch with `ALLOW_RAW_SLOT_BOOKING=true`:
+compatibility escape hatch with `ALLOW_RAW_SLOT_BOOKING=true`. Legacy callers
+may still send `appointmentTypeId`; otherwise the same intent fields are used:
 
 ```json
 {
@@ -457,21 +460,25 @@ compatibility escape hatch with `ALLOW_RAW_SLOT_BOOKING=true`:
   "profileId": 2075,
   "startDatetime": "2026-05-18T08:30",
   "duration": 15,
-  "appointmentTypeId": 4245,
+  "visitCategory": "routine_vision",
+  "visitKind": "routine_vision",
+  "patientStatus": "established",
   "routing": "optical_only",
   "office": "Hollywood"
 }
 ```
 
-Required fields: `patientId`, `appointmentTypeId`, and either `bookingToken`
-or the legacy raw slot fields `columnId`, `profileId`, `startDatetime`, and
-`duration`.
+Required fields: `patientId`, appointment intent (`visitCategory`/`visitKind`,
+`patientStatus`, and `dob` or `ageBand` when age matters), and either
+`bookingToken` or the legacy raw slot fields `columnId`, `profileId`,
+`startDatetime`, and `duration`. `appointmentTypeId` is accepted only as a
+legacy override; new callers should not send it.
 
-Optional fields: `patientName`, `dob`, `routing`, `office`. `dob` is required
-when booking an age-restricted provider column, and under-18 DOBs apply the
-office's pediatric routing for medical bookings. When `bookingToken` is used,
-the token owns the office, selected `columnId`, `profileId`, `startDatetime`,
-`duration`, and routing lane.
+Optional fields: `patientName`, `dob`, `ageBand`, `routing`, `office`,
+`isPostOp`, and `visitReason`. `dob` is required when booking an age-restricted
+provider column, and under-18 DOBs apply the office's pediatric routing for
+medical bookings. When `bookingToken` is used, the token owns the office,
+selected `columnId`, `profileId`, `startDatetime`, `duration`, and routing lane.
 
 Booking validation:
 
@@ -480,7 +487,10 @@ Booking validation:
   supplied, it must match the token's office.
 - `columnId` must belong to the resolved office.
 - `columnId` must be valid for the requested routing lane.
-- `appointmentTypeId` must be valid for the office and routing lane.
+- Resolved appointment type must be valid for the office and routing lane.
+- If the appointment type cannot be resolved, the response uses
+  `outcome: "appointment_type_unresolved"` with `missing` facts such as
+  `patientStatus`, `dob`, or `routeToSpringHill`.
 - DOB must be valid and satisfy provider age rules for age-restricted columns.
 - DOB applies medical pediatric routing when the patient is under 18.
 - Bach slots are re-checked against appointments and block holds before booking;

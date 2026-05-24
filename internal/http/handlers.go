@@ -1058,22 +1058,29 @@ type BookAppointmentRequest struct {
 	AppointmentTypeID int    `json:"appointmentTypeId"`
 	Routing           string `json:"routing,omitempty"`
 	Office            string `json:"office,omitempty"`
+	VisitCategory     string `json:"visitCategory,omitempty"`
+	VisitKind         string `json:"visitKind,omitempty"`
+	PatientStatus     string `json:"patientStatus,omitempty"`
+	AgeBand           string `json:"ageBand,omitempty"`
+	IsPostOp          bool   `json:"isPostOp,omitempty"`
+	VisitReason       string `json:"visitReason,omitempty"`
 }
 
 // BookAppointmentResponse is returned after booking an appointment.
 type BookAppointmentResponse struct {
-	Status              string `json:"status"`
-	Outcome             string `json:"outcome,omitempty"`
-	AppointmentID       int    `json:"appointmentId,omitempty"`
-	PatientID           string `json:"patientId,omitempty"`
-	PatientName         string `json:"patientName,omitempty"`
-	ProviderName        string `json:"providerName,omitempty"`
-	LocationName        string `json:"locationName,omitempty"`
-	StartDatetime       string `json:"startDatetime,omitempty"`
-	Duration            int    `json:"duration,omitempty"`
-	AppointmentTypeID   int    `json:"appointmentTypeId,omitempty"`
-	AppointmentTypeName string `json:"appointmentTypeName,omitempty"`
-	Message             string `json:"message"`
+	Status              string   `json:"status"`
+	Outcome             string   `json:"outcome,omitempty"`
+	AppointmentID       int      `json:"appointmentId,omitempty"`
+	PatientID           string   `json:"patientId,omitempty"`
+	PatientName         string   `json:"patientName,omitempty"`
+	ProviderName        string   `json:"providerName,omitempty"`
+	LocationName        string   `json:"locationName,omitempty"`
+	StartDatetime       string   `json:"startDatetime,omitempty"`
+	Duration            int      `json:"duration,omitempty"`
+	AppointmentTypeID   int      `json:"appointmentTypeId,omitempty"`
+	AppointmentTypeName string   `json:"appointmentTypeName,omitempty"`
+	Message             string   `json:"message"`
+	Missing             []string `json:"missing,omitempty"`
 }
 
 func buildBookAppointmentReceipt(req BookAppointmentRequest, office *domain.OfficeConfig, appointmentID int) BookAppointmentResponse {
@@ -1182,10 +1189,6 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: "duration is required"})
 		return
 	}
-	if req.AppointmentTypeID == 0 {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: "appointmentTypeId is required"})
-		return
-	}
 	if err := validateOptionalDOB(req.DOB); err != nil {
 		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: err.Error()})
 		return
@@ -1213,6 +1216,33 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 	// normal medical routing. Require the same routing lane used for availability.
 	routingRule := domain.ParseRoutingRule(req.Routing)
 	routingRule = effectiveRoutingForDOB(office, routingRule, req.DOB)
+	if req.AppointmentTypeID == 0 {
+		resolution := domain.ResolveAppointmentTypeForIntent(office, routingRule, domain.AppointmentIntent{
+			VisitCategory: req.VisitCategory,
+			VisitKind:     req.VisitKind,
+			PatientStatus: req.PatientStatus,
+			AgeBand:       req.AgeBand,
+			DOB:           req.DOB,
+			IsPostOp:      req.IsPostOp,
+			VisitReason:   req.VisitReason,
+		})
+		if resolution.AppointmentTypeID == 0 {
+			message := resolution.Message
+			if message == "" {
+				message = "Could not resolve appointment type from booking intent."
+			}
+			json.NewEncoder(w).Encode(BookAppointmentResponse{
+				Status:  "error",
+				Outcome: "appointment_type_unresolved",
+				Message: message,
+				Missing: resolution.Missing,
+			})
+			return
+		}
+		req.AppointmentTypeID = resolution.AppointmentTypeID
+		log.Printf("book-appointment: resolved appointment type office=%s routing=%q typeId=%d typeName=%q",
+			office.ID, routingRule, resolution.AppointmentTypeID, resolution.AppointmentTypeName)
+	}
 	routingColumns := office.ColumnsForRouting(routingRule)
 	if routingColumns == nil {
 		json.NewEncoder(w).Encode(BookAppointmentResponse{

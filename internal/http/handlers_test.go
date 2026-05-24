@@ -298,6 +298,53 @@ func TestHandleBookAppointment_RequiresBookingTokenForRawSlot(t *testing.T) {
 	}
 }
 
+func TestHandleBookAppointment_ResolvesTypeFromIntentBeforeTokenGuard(t *testing.T) {
+	handlers := &Handlers{}
+	req := httptest.NewRequest(
+		"POST",
+		"/api/appointment/book",
+		bytes.NewBufferString(`{"patientId":"123","columnId":1600,"profileId":1983,"startDatetime":"2026-05-12T10:00","duration":45,"routing":"optical_only","visitCategory":"routine_vision","patientStatus":"established","ageBand":"adult"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandleBookAppointment(w, req)
+
+	var body BookAppointmentResponse
+	json.NewDecoder(w.Result().Body).Decode(&body)
+	if body.Status != "error" {
+		t.Fatalf("expected status error, got %q", body.Status)
+	}
+	if body.Outcome != "booking_token_required" {
+		t.Fatalf("expected booking_token_required after intent resolution, got %q (%s)", body.Outcome, body.Message)
+	}
+}
+
+func TestHandleBookAppointment_ReturnsStructuredUnresolvedType(t *testing.T) {
+	handlers := &Handlers{}
+	req := httptest.NewRequest(
+		"POST",
+		"/api/appointment/book",
+		bytes.NewBufferString(`{"patientId":"123","columnId":1513,"profileId":620,"startDatetime":"2026-05-12T10:00","duration":30,"visitCategory":"medical"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandleBookAppointment(w, req)
+
+	var body BookAppointmentResponse
+	json.NewDecoder(w.Result().Body).Decode(&body)
+	if body.Status != "error" {
+		t.Fatalf("expected status error, got %q", body.Status)
+	}
+	if body.Outcome != "appointment_type_unresolved" {
+		t.Fatalf("expected appointment_type_unresolved, got %q", body.Outcome)
+	}
+	if !sameStrings(body.Missing, []string{"patientStatus", "dob"}) {
+		t.Fatalf("expected missing patientStatus and dob, got %v", body.Missing)
+	}
+}
+
 func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
 	handlers := &Handlers{}
 	date := time.Now().AddDate(0, 0, 2).Format("2006-01-02")
@@ -332,6 +379,18 @@ func TestEffectiveRoutingForDOB(t *testing.T) {
 	if got := effectiveRoutingForDOB(office, domain.RoutingOpticalOnly, minorDOB); got != domain.RoutingOpticalOnly {
 		t.Fatalf("routine vision routing = %q, want %q", got, domain.RoutingOpticalOnly)
 	}
+}
+
+func sameStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func TestHandleVerifyPatient_ValidationErrors(t *testing.T) {
