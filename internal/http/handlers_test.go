@@ -872,6 +872,7 @@ func TestBookingTokenRoundTrip(t *testing.T) {
 		ProfileID:     620,
 		StartDatetime: "2026-06-02T09:00",
 		Duration:      15,
+		RequiresForce: true,
 		Provider:      "Dr. Austin Bach",
 		IssuedAt:      now.Unix(),
 		ExpiresAt:     now.Add(bookingTokenTTL).Unix(),
@@ -891,7 +892,8 @@ func TestBookingTokenRoundTrip(t *testing.T) {
 		got.ColumnID != payload.ColumnID ||
 		got.ProfileID != payload.ProfileID ||
 		got.StartDatetime != payload.StartDatetime ||
-		got.Duration != payload.Duration {
+		got.Duration != payload.Duration ||
+		got.RequiresForce != payload.RequiresForce {
 		t.Fatalf("decoded payload = %+v, want %+v", got, payload)
 	}
 }
@@ -1077,12 +1079,13 @@ func TestAddBookingTokensAndApplyBookingToken(t *testing.T) {
 	office := domain.DefaultOffice()
 	slots := []domain.AvailabilitySlotOption{
 		{
-			Provider:  "Dr. Austin Bach",
-			Time:      "9:00 AM",
-			DateTime:  "2026-06-02T09:00",
-			ColumnID:  1513,
-			ProfileID: 620,
-			Duration:  15,
+			Provider:      "Dr. Austin Bach",
+			Time:          "9:00 AM",
+			DateTime:      "2026-06-02T09:00",
+			ColumnID:      1513,
+			ProfileID:     620,
+			Duration:      15,
+			RequiresForce: true,
 		},
 	}
 
@@ -1106,8 +1109,96 @@ func TestAddBookingTokensAndApplyBookingToken(t *testing.T) {
 		req.ProfileID != 620 ||
 		req.StartDatetime != "2026-06-02T09:00" ||
 		req.Duration != 15 ||
-		req.Routing != string(domain.RoutingBachOnly) {
+		req.Routing != string(domain.RoutingBachOnly) ||
+		!req.bookingRequiresForce {
 		t.Fatalf("request populated from token = %+v", req)
+	}
+}
+
+func TestHandleBookAppointment_UsesBookingTokenRequiresForceWithoutBachRecheck(t *testing.T) {
+	now := time.Now().UTC().Add(-time.Minute)
+	token, err := signBookingToken("test-booking-secret", bookingTokenPayload{
+		OfficeID:      "spring_hill",
+		Routing:       string(domain.RoutingBachOnly),
+		ColumnID:      1513,
+		ProfileID:     620,
+		StartDatetime: "2026-06-02T09:00",
+		Duration:      15,
+		RequiresForce: true,
+		IssuedAt:      now.Unix(),
+		ExpiresAt:     now.Add(bookingTokenTTL).Unix(),
+	})
+	if err != nil {
+		t.Fatalf("signBookingToken error = %v", err)
+	}
+
+	var restPaths []string
+	var bookingPayload map[string]any
+	httpClient := &http.Client{
+		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			body, _ := io.ReadAll(r.Body)
+			contentType := r.Header.Get("Content-Type")
+
+			status := http.StatusOK
+			response := ""
+			switch {
+			case strings.Contains(contentType, "application/xml") && strings.Contains(r.URL.Host, "partnerlogin"):
+				response = `<PPMDResults><Results><usercontext webserver="https://mock.advancedmd.test/processrequest/api-801/APP"></usercontext></Results></PPMDResults>`
+			case strings.Contains(contentType, "application/xml"):
+				response = `<PPMDResults><Results success="1"><usercontext>test-token</usercontext></Results></PPMDResults>`
+			default:
+				restPaths = append(restPaths, r.Method+" "+r.URL.Path)
+				if r.Method != http.MethodPost || !strings.Contains(r.URL.Path, "/scheduler/Appointments") {
+					status = http.StatusInternalServerError
+					response = `{"error":"unexpected REST request"}`
+					break
+				}
+				if err := json.Unmarshal(body, &bookingPayload); err != nil {
+					status = http.StatusInternalServerError
+					response = `{"error":"invalid booking payload"}`
+					break
+				}
+				response = `{"id":98765}`
+			}
+
+			return &http.Response{
+				StatusCode: status,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader(response)),
+				Request:    r,
+			}, nil
+		}),
+	}
+	authenticator := auth.NewAuthenticator(auth.Credentials{
+		Username:  "user",
+		Password:  "pass",
+		OfficeKey: "office",
+		AppName:   "app",
+	}, httpClient)
+	handlers := NewHandlers(
+		auth.NewTokenManager(authenticator),
+		nil,
+		clients.NewAdvancedMDRestClient(httpClient),
+		"test-booking-secret",
+	)
+
+	body := fmt.Sprintf(`{"patientId":"123","bookingToken":%q,"appointmentTypeId":1007}`, token)
+	req := httptest.NewRequest("POST", "/api/appointment/book", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandleBookAppointment(w, req)
+
+	var resp BookAppointmentResponse
+	json.NewDecoder(w.Result().Body).Decode(&resp)
+	if resp.Status != "booked" {
+		t.Fatalf("expected booked response, got %#v", resp)
+	}
+	if len(restPaths) != 1 {
+		t.Fatalf("REST requests = %v, want only booking POST", restPaths)
+	}
+	if bookingPayload["force"] != float64(1) {
+		t.Fatalf("force = %v, want 1 in payload %#v", bookingPayload["force"], bookingPayload)
 	}
 }
 
@@ -1271,128 +1362,6 @@ func TestCountSameStartAppointments(t *testing.T) {
 				t.Errorf("Expected %d, got %d", tt.expected, got)
 			}
 		})
-	}
-}
-
-func TestForceForBachBooking(t *testing.T) {
-	eastern, _ := time.LoadLocation("America/New_York")
-	office := domain.DefaultOffice()
-	slotTime := time.Date(2026, 6, 1, 9, 0, 0, 0, eastern)
-	slotDuration := 15 * time.Minute
-
-	tests := []struct {
-		name         string
-		columnID     string
-		appointments []domain.Appointment
-		blockHolds   []domain.BlockHold
-		wantForce    int
-		wantErr      bool
-	}{
-		{
-			name:      "Bach empty slot books normally",
-			columnID:  "1513",
-			wantForce: 0,
-		},
-		{
-			name:     "Bach one same-start appointment requires force",
-			columnID: "1513",
-			appointments: []domain.Appointment{
-				{StartDateTime: slotTime, Duration: 15},
-			},
-			wantForce: 1,
-		},
-		{
-			name:     "Bach full same-start capacity errors",
-			columnID: "1513",
-			appointments: []domain.Appointment{
-				{StartDateTime: slotTime, Duration: 15},
-				{StartDateTime: slotTime, Duration: 15},
-			},
-			wantErr: true,
-		},
-		{
-			name:     "Bach different-start overlap errors",
-			columnID: "1513",
-			appointments: []domain.Appointment{
-				{StartDateTime: slotTime.Add(-15 * time.Minute), Duration: 30},
-			},
-			wantErr: true,
-		},
-		{
-			name:     "Bach block hold errors",
-			columnID: "1513",
-			blockHolds: []domain.BlockHold{
-				{StartDateTime: slotTime, EndDateTime: slotTime.Add(15 * time.Minute)},
-			},
-			wantErr: true,
-		},
-		{
-			name:     "non-Bach column does not use force",
-			columnID: "1551",
-			appointments: []domain.Appointment{
-				{StartDateTime: slotTime, Duration: 15},
-			},
-			wantForce: 0,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotForce, err := forceForBachBooking(office, tt.columnID, slotTime, slotDuration, tt.appointments, tt.blockHolds)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("forceForBachBooking error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if gotForce != tt.wantForce {
-				t.Fatalf("force = %d, want %d", gotForce, tt.wantForce)
-			}
-		})
-	}
-}
-
-func TestBachBookingLock(t *testing.T) {
-	bachBookingLocksMu.Lock()
-	bachBookingLocks = make(map[string]*refCountedMutex)
-	bachBookingLocksMu.Unlock()
-	t.Cleanup(func() {
-		bachBookingLocksMu.Lock()
-		bachBookingLocks = make(map[string]*refCountedMutex)
-		bachBookingLocksMu.Unlock()
-	})
-
-	unlock := acquireBachBookingLock("spring_hill", "1513", "2026-06-01T09:00")
-	if got := bachBookingLockCount(); got != 1 {
-		t.Fatalf("lock count = %d, want 1", got)
-	}
-
-	acquired := make(chan struct{})
-	released := make(chan struct{})
-	go func() {
-		unlockSame := acquireBachBookingLock("spring_hill", "1513", "2026-06-01T09:00")
-		close(acquired)
-		unlockSame()
-		close(released)
-	}()
-
-	select {
-	case <-acquired:
-		t.Fatal("same Bach office/column/start should block until the first lock releases")
-	case <-time.After(20 * time.Millisecond):
-	}
-
-	unlockOther := acquireBachBookingLock("spring_hill", "1598", "2026-06-01T09:00")
-	if got := bachBookingLockCount(); got != 2 {
-		t.Fatalf("lock count with another column = %d, want 2", got)
-	}
-	unlockOther()
-
-	unlock()
-	select {
-	case <-released:
-	case <-time.After(time.Second):
-		t.Fatal("same Bach lock did not unblock after release")
-	}
-	if got := bachBookingLockCount(); got != 0 {
-		t.Fatalf("lock count after release = %d, want 0", got)
 	}
 }
 

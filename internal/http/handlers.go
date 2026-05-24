@@ -22,16 +22,6 @@ import (
 // eastern is the America/New_York timezone, loaded once at startup.
 var eastern *time.Location
 
-type refCountedMutex struct {
-	mu   sync.Mutex
-	refs int
-}
-
-var (
-	bachBookingLocksMu sync.Mutex
-	bachBookingLocks   = make(map[string]*refCountedMutex)
-)
-
 func init() {
 	var err error
 	eastern, err = time.LoadLocation("America/New_York")
@@ -1073,6 +1063,8 @@ type BookAppointmentRequest struct {
 	AgeBand           string `json:"ageBand,omitempty"`
 	IsPostOp          bool   `json:"isPostOp,omitempty"`
 	VisitReason       string `json:"visitReason,omitempty"`
+
+	bookingRequiresForce bool
 }
 
 // BookAppointmentResponse is returned after booking an appointment.
@@ -1337,50 +1329,8 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 	facilityIDInt, _ := strconv.Atoi(office.FacilityID)
 
 	force := 0
-	bachColumn := isBachColumn(office, colIDStr)
-	var bachSlotTime time.Time
-	var bachDateStr string
-	if bachColumn {
-		var err error
-		bachSlotTime, err = clients.ParseDateTime(req.StartDatetime)
-		if err != nil {
-			json.NewEncoder(w).Encode(BookAppointmentResponse{
-				Status:  "error",
-				Message: "Invalid startDatetime format. Use YYYY-MM-DDTHH:MM.",
-			})
-			return
-		}
-
-		unlock := acquireBachBookingLock(office.ID, colIDStr, domain.FormatSlotDateTime(bachSlotTime))
-		defer unlock()
-
-		bachDateStr = bachSlotTime.Format("2006-01-02")
-		appointments, err := h.amdRestClient.GetAppointments(r.Context(), tokenData, colIDStr, bachDateStr)
-		if err != nil {
-			json.NewEncoder(w).Encode(BookAppointmentResponse{
-				Status:  "error",
-				Message: "Failed to verify Bach slot availability: " + err.Error(),
-			})
-			return
-		}
-		blockHolds, err := h.amdRestClient.GetBlockHolds(r.Context(), tokenData, colIDStr, bachDateStr)
-		if err != nil {
-			json.NewEncoder(w).Encode(BookAppointmentResponse{
-				Status:  "error",
-				Message: "Failed to verify Bach block holds: " + err.Error(),
-			})
-			return
-		}
-
-		force, err = forceForBachBooking(office, colIDStr, bachSlotTime, time.Duration(req.Duration)*time.Minute, appointments, blockHolds)
-		if err != nil {
-			json.NewEncoder(w).Encode(BookAppointmentResponse{
-				Status:  "error",
-				Outcome: "slot_unavailable",
-				Message: err.Error(),
-			})
-			return
-		}
+	if req.bookingRequiresForce && isBachColumn(office, colIDStr) {
+		force = 1
 	}
 
 	// Book via AMD REST API
@@ -1420,30 +1370,6 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 	}
 
 	log.Printf("book-appointment: success office=%s", office.ID)
-
-	if bachColumn && force == 1 {
-		appointments, err := h.amdRestClient.GetAppointments(r.Context(), tokenData, colIDStr, bachDateStr)
-		if err != nil {
-			log.Printf("WARNING: failed to post-verify forced Bach booking office=%s columnId=%s: %v", office.ID, colIDStr, err)
-		} else if countSameStartAppointments(bachSlotTime, appointments) > bachSameStartCapacity {
-			cancelErr := h.amdRestClient.CancelAppointment(r.Context(), tokenData, apptID)
-			if cancelErr != nil {
-				log.Printf("ERROR: forced Bach booking exceeded capacity and cancellation failed office=%s columnId=%s: %v", office.ID, colIDStr, cancelErr)
-				json.NewEncoder(w).Encode(BookAppointmentResponse{
-					Status:  "error",
-					Message: "Appointment could not be safely confirmed because the slot exceeded Bach capacity. Please transfer the call to the office.",
-				})
-				return
-			}
-			log.Printf("book-appointment: canceled over-capacity forced Bach booking office=%s columnId=%s", office.ID, colIDStr)
-			json.NewEncoder(w).Encode(BookAppointmentResponse{
-				Status:  "error",
-				Outcome: "slot_unavailable",
-				Message: "This time slot is no longer available. Please check availability again and choose a different slot.",
-			})
-			return
-		}
-	}
 
 	json.NewEncoder(w).Encode(buildBookAppointmentReceipt(req, office, apptID))
 }
@@ -1540,58 +1466,6 @@ func sameStartCapacityForColumn(office *domain.OfficeConfig, col domain.Schedule
 		return bachSameStartCapacity
 	}
 	return 1
-}
-
-func forceForBachBooking(office *domain.OfficeConfig, columnID string, slotTime time.Time, slotDuration time.Duration, appointments []domain.Appointment, blockHolds []domain.BlockHold) (int, error) {
-	if !isBachColumn(office, columnID) {
-		return 0, nil
-	}
-	if domain.IsBlockedByHold(slotTime, slotDuration, blockHolds) {
-		return 0, fmt.Errorf("This time slot is no longer available. Please check availability again and choose a different slot.")
-	}
-	if hasDifferentStartOverlappingAppointment(slotTime, slotDuration, appointments) {
-		return 0, fmt.Errorf("This time slot is no longer available. Please check availability again and choose a different slot.")
-	}
-
-	sameStartCount := countSameStartAppointments(slotTime, appointments)
-	if sameStartCount >= bachSameStartCapacity {
-		return 0, fmt.Errorf("This time slot is no longer available. Please check availability again and choose a different slot.")
-	}
-	if sameStartCount > 0 {
-		return 1, nil
-	}
-	return 0, nil
-}
-
-func acquireBachBookingLock(officeID, columnID, startDatetime string) func() {
-	key := officeID + "|" + columnID + "|" + startDatetime
-
-	bachBookingLocksMu.Lock()
-	lock := bachBookingLocks[key]
-	if lock == nil {
-		lock = &refCountedMutex{}
-		bachBookingLocks[key] = lock
-	}
-	lock.refs++
-	bachBookingLocksMu.Unlock()
-
-	lock.mu.Lock()
-	return func() {
-		lock.mu.Unlock()
-
-		bachBookingLocksMu.Lock()
-		lock.refs--
-		if lock.refs == 0 {
-			delete(bachBookingLocks, key)
-		}
-		bachBookingLocksMu.Unlock()
-	}
-}
-
-func bachBookingLockCount() int {
-	bachBookingLocksMu.Lock()
-	defer bachBookingLocksMu.Unlock()
-	return len(bachBookingLocks)
 }
 
 func (h *Handlers) getSchedulerSetup(ctx context.Context, tokenData *domain.TokenData, now time.Time) (*domain.SchedulerSetup, error) {

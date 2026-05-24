@@ -22,8 +22,9 @@
   appointment and block-hold reads live for each availability search.
 - Increased the shared AdvancedMD HTTP transport connection pool for concurrent
   voice-call traffic.
-- Replaced the unbounded Bach exact-slot lock map with reference-counted locks
-  that are removed after the booking attempt finishes.
+- Moved Bach `force: 1` booking decisions onto signed availability
+  `bookingToken` payloads and removed the Bach-only booking-time appointment,
+  block-hold, lock, and post-verification guardrail calls.
 - Updated README/API docs, environment examples, CI checks, and release
   artifact generation to match the current production contract.
 
@@ -47,11 +48,8 @@
   while still blocking different-start duration overlaps and block holds.
 - Added `sameStartBooked`, `sameStartCapacity`, and `requiresForce` metadata on
   partially booked availability slots.
-- Added server-owned AMD `force: 1` booking support for Bach slots after
-  re-checking the selected column's appointments and block holds.
-- Bach booking now serializes each office/column/start within a process and
-  post-verifies forced bookings, canceling the new appointment if capacity was
-  exceeded by a concurrent force-book.
+- Added server-owned AMD `force: 1` booking support for Bach slots using the
+  signed availability `bookingToken`'s `requiresForce` decision.
 - Non-Bach columns now remain single-booked even when AMD reports
   `maxApptsPerSlot > 1`; only Bach columns can show a second same-start slot.
 

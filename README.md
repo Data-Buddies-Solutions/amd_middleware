@@ -493,11 +493,10 @@ Booking validation:
   `patientStatus`, `dob`, or `routeToSpringHill`.
 - DOB must be valid and satisfy provider age rules for age-restricted columns.
 - DOB applies medical pediatric routing when the patient is under 18.
-- Bach slots are re-checked against appointments and block holds before booking;
-  the middleware sends AMD `force: 1` only when one same-start Bach appointment
-  already exists on the selected column. Forced Bach bookings are post-verified;
-  if a concurrent force-book pushes the slot over capacity, the new appointment
-  is canceled and the caller is asked to choose another slot.
+- Bach slots that availability marked `requiresForce` are booked with AMD
+  `force: 1` from the signed `bookingToken`; booking does not re-fetch
+  appointments or block holds for Bach. If AMD reports a conflict, the response
+  asks the caller to choose another slot.
 - AMD 409 conflicts return a clear slot-no-longer-available message.
 
 Response statuses: `booked`, `error`.
