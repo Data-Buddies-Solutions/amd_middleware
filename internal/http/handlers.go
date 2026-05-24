@@ -21,7 +21,16 @@ import (
 
 // eastern is the America/New_York timezone, loaded once at startup.
 var eastern *time.Location
-var bachBookingLocks sync.Map
+
+type refCountedMutex struct {
+	mu   sync.Mutex
+	refs int
+}
+
+var (
+	bachBookingLocksMu sync.Mutex
+	bachBookingLocks   = make(map[string]*refCountedMutex)
+)
 
 func init() {
 	var err error
@@ -40,12 +49,7 @@ type ErrorResponse struct {
 
 const maxPatientNoteLength = 1000
 const bachSameStartCapacity = 2
-
-// ElevenLabsWebhookResponse is the response format for ElevenLabs conversation initiation webhook.
-type ElevenLabsWebhookResponse struct {
-	Type             string                 `json:"type"`
-	DynamicVariables map[string]interface{} `json:"dynamic_variables"`
-}
+const schedulerSetupCacheTTL = 6 * time.Hour
 
 // VerifyPatientRequest is the expected JSON body for patient verification.
 type VerifyPatientRequest struct {
@@ -81,10 +85,16 @@ type PatientMatch struct {
 
 // Handlers holds the dependencies for HTTP handlers.
 type Handlers struct {
-	tokenManager       *auth.TokenManager
-	amdClient          *clients.AdvancedMDClient
-	amdRestClient      *clients.AdvancedMDRestClient
-	bookingTokenSecret string
+	tokenManager        *auth.TokenManager
+	amdClient           *clients.AdvancedMDClient
+	amdRestClient       *clients.AdvancedMDRestClient
+	bookingTokenSecret  string
+	allowRawSlotBooking bool
+	allowLegacyCancel   bool
+
+	schedulerSetupMu        sync.Mutex
+	schedulerSetup          *domain.SchedulerSetup
+	schedulerSetupExpiresAt time.Time
 }
 
 // NewHandlers creates a new Handlers instance.
@@ -99,6 +109,16 @@ func NewHandlers(tm *auth.TokenManager, amdClient *clients.AdvancedMDClient, amd
 		amdRestClient:      amdRestClient,
 		bookingTokenSecret: secret,
 	}
+}
+
+// SetAllowRawSlotBooking enables the legacy raw scheduler field booking path.
+func (h *Handlers) SetAllowRawSlotBooking(allow bool) {
+	h.allowRawSlotBooking = allow
+}
+
+// SetAllowLegacyCancel enables cancellation by appointment ID without a signed cancel token.
+func (h *Handlers) SetAllowLegacyCancel(allow bool) {
+	h.allowLegacyCancel = allow
 }
 
 // resolveOffice resolves an office name to its config.
@@ -138,63 +158,6 @@ func effectiveRoutingForDOB(office *domain.OfficeConfig, routing domain.RoutingR
 func (h *Handlers) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"status":"ok"}`))
-}
-
-// TokenRequest is the optional JSON body for the token/precall webhook.
-type TokenRequest struct {
-	Office string `json:"office,omitempty"`
-}
-
-// HandleGetToken returns the cached AdvancedMD token for ElevenLabs agents.
-// Accepts POST only (for ElevenLabs conversation initiation webhook).
-func (h *Handlers) HandleGetToken(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	log.Printf("token: received webhook request")
-
-	// Parse optional office from request body
-	var req TokenRequest
-	json.NewDecoder(r.Body).Decode(&req) // ignore errors — body may be empty
-
-	officePhone := req.Office
-	if officePhone == "" {
-		officePhone = domain.DefaultPhone
-	}
-
-	office, err := resolveOffice(officePhone)
-	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			Status:  "error",
-			Message: err.Error(),
-		})
-		return
-	}
-	_ = office // resolved for validation only; phone key is returned below
-
-	tokenData, err := h.tokenManager.GetToken(r.Context())
-	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			Status:  "error",
-			Message: "Failed to get token: " + err.Error(),
-		})
-		return
-	}
-
-	nowEST := time.Now().In(eastern)
-
-	dynamicVars := map[string]interface{}{
-		"amd_token":         tokenData.Token,
-		"amd_rest_api_base": tokenData.RestApiBase,
-		"patient_id":        "1",
-		"current_date":      nowEST.Format("Monday, January 2, 2006"),
-		"current_time":      nowEST.Format("3:04 PM"),
-		"office":            officePhone,
-	}
-
-	json.NewEncoder(w).Encode(ElevenLabsWebhookResponse{
-		Type:             "conversation_initiation_client_data",
-		DynamicVariables: dynamicVars,
-	})
 }
 
 // AddPatientRequest is the expected JSON body for patient creation.
@@ -257,8 +220,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		req.SubscriberNum = "self pay"
 	}
 
-	log.Printf("add-patient: received request: firstName=%q lastName=%q dob=%q phone=%q email=%q street=%q aptSuite=%q city=%q state=%q zip=%q sex=%q insurance=%q coverageType=%q subscriberName=%q subscriberNum=%q office=%q",
-		req.FirstName, req.LastName, req.DOB, req.Phone, req.Email, req.Street, req.AptSuite, req.City, req.State, req.Zip, req.Sex, req.Insurance, req.CoverageType, req.SubscriberName, req.SubscriberNum, office.ID)
+	log.Printf("add-patient: received request office=%s coverageType=%q", office.ID, req.CoverageType)
 
 	// Validate required fields (aptSuite and email are optional)
 	missing := addPatientMissingFields(req)
@@ -496,7 +458,7 @@ func (h *Handlers) HandleVerifyPatient(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		log.Printf("verify-patient: lookup phone=%q returned %d patients", digits, len(patients))
+		log.Printf("verify-patient: phone lookup returned %d patients", len(patients))
 	} else {
 		normalizedLastName := domain.StripDiacritics(req.LastName)
 		normalizedFirstName := domain.StripDiacritics(req.FirstName)
@@ -508,10 +470,7 @@ func (h *Handlers) HandleVerifyPatient(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		log.Printf("verify-patient: lookup lastName=%q returned %d patients", normalizedLastName, len(patients))
-	}
-	for i, p := range patients {
-		log.Printf("verify-patient: result[%d] id=%s name=%q dob=%q", i, p.ID, p.FullName, p.DOB)
+		log.Printf("verify-patient: name lookup returned %d patients", len(patients))
 	}
 
 	// Filter patients — by DOB if provided, otherwise by first name (phone + firstName path)
@@ -544,7 +503,7 @@ func (h *Handlers) HandleVerifyPatient(w http.ResponseWriter, r *http.Request) {
 		p := matchingPatients[0]
 		demoResult, err := h.amdClient.GetDemographic(r.Context(), tokenData, p.ID)
 		if err != nil {
-			log.Printf("WARNING: failed to get demographics for patient %s: %v", p.ID, err)
+			log.Printf("WARNING: verify-patient: failed to get demographics: %v", err)
 		}
 
 		resp := VerifyPatientResponse{
@@ -596,7 +555,7 @@ func (h *Handlers) HandleVerifyPatient(w http.ResponseWriter, r *http.Request) {
 				if strings.HasPrefix(p.FirstName, upperFirstName) {
 					demoResult, err := h.amdClient.GetDemographic(r.Context(), tokenData, p.ID)
 					if err != nil {
-						log.Printf("WARNING: failed to get demographics for patient %s: %v", p.ID, err)
+						log.Printf("WARNING: verify-patient: failed to get demographics: %v", err)
 					}
 
 					resp := VerifyPatientResponse{
@@ -668,12 +627,13 @@ type PatientApptResponse struct {
 
 // PatientApptDetail is a single appointment formatted for LLM consumption.
 type PatientApptDetail struct {
-	ID       int    `json:"id"`                 // AMD appointment ID — for cancel_appt
-	Date     string `json:"date"`               // Human-readable (e.g., "Wednesday, March 18, 2026")
-	Time     string `json:"time"`               // e.g., "12:00 PM"
-	Provider string `json:"provider,omitempty"` // e.g., "Dr. Austin Bach"
-	Type     string `json:"type,omitempty"`     // e.g., "New Adult Medical"
-	Facility string `json:"facility,omitempty"` // e.g., "Abita Eye Group Spring Hill"
+	ID          int    `json:"id"`                    // AMD appointment ID — for cancel_appt
+	Date        string `json:"date"`                  // Human-readable (e.g., "Wednesday, March 18, 2026")
+	Time        string `json:"time"`                  // e.g., "12:00 PM"
+	Provider    string `json:"provider,omitempty"`    // e.g., "Dr. Austin Bach"
+	Type        string `json:"type,omitempty"`        // e.g., "New Adult Medical"
+	Facility    string `json:"facility,omitempty"`    // e.g., "Abita Eye Group Spring Hill"
+	CancelToken string `json:"cancelToken,omitempty"` // Signed token binding this appointment to patient and office
 }
 
 // HandleGetPatientAppointments retrieves appointments for a verified patient.
@@ -706,7 +666,7 @@ func (h *Handlers) HandleGetPatientAppointments(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	log.Printf("patient-appointments: patientId=%s office=%s", req.PatientID, office.ID)
+	log.Printf("patient-appointments: request office=%s", office.ID)
 
 	if _, err := strconv.Atoi(req.PatientID); err != nil {
 		json.NewEncoder(w).Encode(PatientApptResponse{
@@ -735,7 +695,7 @@ func (h *Handlers) HandleGetPatientAppointments(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	log.Printf("patient-appointments: found %d appointments for patient %s", len(details), req.PatientID)
+	log.Printf("patient-appointments: found %d appointments", len(details))
 
 	if len(details) == 0 {
 		json.NewEncoder(w).Encode(PatientApptResponse{
@@ -812,7 +772,7 @@ func (h *Handlers) HandlePatientLookup(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(PatientLookupResponse{Status: "error", Message: "Failed to lookup patient by phone: " + err.Error()})
 		return
 	}
-	log.Printf("patient-lookup: phone=%q returned %d patients", digits, len(patients))
+	log.Printf("patient-lookup: phone lookup returned %d patients", len(patients))
 
 	// Filter by DOB if provided
 	matching := patients
@@ -859,7 +819,7 @@ func (h *Handlers) HandlePatientLookup(w http.ResponseWriter, r *http.Request) {
 
 	demoResult, err := h.amdClient.GetDemographic(r.Context(), tokenData, patient.ID)
 	if err != nil {
-		log.Printf("WARNING: patient-lookup: failed to get demographics for %s: %v", patient.ID, err)
+		log.Printf("WARNING: patient-lookup: failed to get demographics: %v", err)
 	}
 
 	if demoResult != nil {
@@ -885,7 +845,7 @@ func (h *Handlers) HandlePatientLookup(w http.ResponseWriter, r *http.Request) {
 	// Fetch appointments
 	appts, err := h.fetchUpcomingAppointments(r.Context(), tokenData, patient.ID, office)
 	if err != nil {
-		log.Printf("WARNING: patient-lookup: failed to get appointments for %s: %v", patient.ID, err)
+		log.Printf("WARNING: patient-lookup: failed to get appointments: %v", err)
 		// Still return patient info — appointments are best-effort
 	} else {
 		resp.Appointments = appts
@@ -958,14 +918,18 @@ func (h *Handlers) fetchUpcomingAppointments(ctx context.Context, tokenData *dom
 			}
 		}
 
-		details = append(details, PatientApptDetail{
+		detail := PatientApptDetail{
 			ID:       a.ID,
 			Date:     startTime.Format("Monday, January 2, 2006"),
 			Time:     startTime.Format("3:04 PM"),
 			Provider: office.FriendlyProviderName(a.Provider),
 			Type:     typeName,
 			Facility: friendlyFacilityName(a.Facility),
-		})
+		}
+		if err := h.addCancelToken(&detail, patientID, office, time.Now().UTC()); err != nil {
+			return nil, fmt.Errorf("failed to create cancel token: %w", err)
+		}
+		details = append(details, detail)
 	}
 
 	return details, nil
@@ -981,7 +945,10 @@ func friendlyFacilityName(amdName string) string {
 
 // CancelAppointmentRequest is the expected JSON body for cancelling an appointment.
 type CancelAppointmentRequest struct {
-	AppointmentID int `json:"appointmentId"`
+	AppointmentID int    `json:"appointmentId"`
+	PatientID     string `json:"patientId,omitempty"`
+	CancelToken   string `json:"cancelToken,omitempty"`
+	Office        string `json:"office,omitempty"`
 }
 
 // CancelAppointmentResponse is returned after cancelling an appointment.
@@ -1011,8 +978,45 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 		})
 		return
 	}
+	if req.CancelToken == "" && !h.allowLegacyCancel {
+		json.NewEncoder(w).Encode(CancelAppointmentResponse{
+			Status:  "error",
+			Message: "cancelToken is required. Please load appointments again and choose the appointment to cancel.",
+		})
+		return
+	}
+	var office *domain.OfficeConfig
+	if req.Office != "" || req.CancelToken == "" {
+		var err error
+		office, err = resolveOffice(req.Office)
+		if err != nil {
+			json.NewEncoder(w).Encode(CancelAppointmentResponse{
+				Status:  "error",
+				Message: err.Error(),
+			})
+			return
+		}
+	}
+	if req.CancelToken != "" {
+		if req.PatientID == "" {
+			json.NewEncoder(w).Encode(CancelAppointmentResponse{
+				Status:  "error",
+				Message: "patientId is required",
+			})
+			return
+		}
+		tokenOffice, err := h.applyCancelToken(&req, office, time.Now().UTC())
+		if err != nil {
+			json.NewEncoder(w).Encode(CancelAppointmentResponse{
+				Status:  "error",
+				Message: "Invalid or expired cancel token. Please load appointments again and choose the appointment to cancel.",
+			})
+			return
+		}
+		office = tokenOffice
+	}
 
-	log.Printf("cancel-appointment: appointmentId=%d", req.AppointmentID)
+	log.Printf("cancel-appointment: request office=%s", office.ID)
 
 	// Get auth token
 	tokenData, err := h.tokenManager.GetToken(r.Context())
@@ -1129,17 +1133,21 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	office, err := resolveOffice(req.Office)
-	if err != nil {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Message: err.Error(),
-		})
-		return
+	var office *domain.OfficeConfig
+	if req.Office != "" || req.BookingToken == "" {
+		var err error
+		office, err = resolveOffice(req.Office)
+		if err != nil {
+			json.NewEncoder(w).Encode(BookAppointmentResponse{
+				Status:  "error",
+				Message: err.Error(),
+			})
+			return
+		}
 	}
-
 	if req.BookingToken != "" {
-		if err := h.applyBookingToken(&req, office, time.Now().UTC()); err != nil {
+		tokenOffice, err := h.applyBookingToken(&req, office, time.Now().UTC())
+		if err != nil {
 			json.NewEncoder(w).Encode(BookAppointmentResponse{
 				Status:  "error",
 				Outcome: "invalid_booking_token",
@@ -1147,10 +1155,11 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 			})
 			return
 		}
+		office = tokenOffice
 	}
 
-	log.Printf("book-appointment: patientId=%s columnId=%d profileId=%d startDatetime=%s duration=%d typeId=%d routing=%q office=%s",
-		req.PatientID, req.ColumnID, req.ProfileID, req.StartDatetime, req.Duration, req.AppointmentTypeID, req.Routing, office.ID)
+	log.Printf("book-appointment: request office=%s routing=%q bookingToken=%t legacyRaw=%t typeId=%d",
+		office.ID, req.Routing, req.BookingToken != "", req.BookingToken == "", req.AppointmentTypeID)
 
 	// Validate required fields
 	if req.PatientID == "" {
@@ -1266,6 +1275,14 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		})
 		return
 	}
+	if req.BookingToken == "" && !h.allowRawSlotBooking {
+		json.NewEncoder(w).Encode(BookAppointmentResponse{
+			Status:  "error",
+			Outcome: "booking_token_required",
+			Message: "bookingToken is required. Please check availability again and choose one of the returned slots.",
+		})
+		return
+	}
 
 	// Get auth token
 	tokenData, err := h.tokenManager.GetToken(r.Context())
@@ -1295,9 +1312,8 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		lock := bachBookingLock(office.ID, colIDStr, domain.FormatSlotDateTime(bachSlotTime))
-		lock.Lock()
-		defer lock.Unlock()
+		unlock := acquireBachBookingLock(office.ID, colIDStr, domain.FormatSlotDateTime(bachSlotTime))
+		defer unlock()
 
 		bachDateStr = bachSlotTime.Format("2006-01-02")
 		appointments, err := h.amdRestClient.GetAppointments(r.Context(), tokenData, colIDStr, bachDateStr)
@@ -1364,23 +1380,23 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	log.Printf("book-appointment: success appointmentId=%d", apptID)
+	log.Printf("book-appointment: success office=%s", office.ID)
 
 	if bachColumn && force == 1 {
 		appointments, err := h.amdRestClient.GetAppointments(r.Context(), tokenData, colIDStr, bachDateStr)
 		if err != nil {
-			log.Printf("WARNING: failed to post-verify forced Bach booking appointmentId=%d columnId=%s startDatetime=%s: %v", apptID, colIDStr, req.StartDatetime, err)
+			log.Printf("WARNING: failed to post-verify forced Bach booking office=%s columnId=%s: %v", office.ID, colIDStr, err)
 		} else if countSameStartAppointments(bachSlotTime, appointments) > bachSameStartCapacity {
 			cancelErr := h.amdRestClient.CancelAppointment(r.Context(), tokenData, apptID)
 			if cancelErr != nil {
-				log.Printf("ERROR: forced Bach booking exceeded capacity and cancellation failed appointmentId=%d columnId=%s startDatetime=%s: %v", apptID, colIDStr, req.StartDatetime, cancelErr)
+				log.Printf("ERROR: forced Bach booking exceeded capacity and cancellation failed office=%s columnId=%s: %v", office.ID, colIDStr, cancelErr)
 				json.NewEncoder(w).Encode(BookAppointmentResponse{
 					Status:  "error",
 					Message: "Appointment could not be safely confirmed because the slot exceeded Bach capacity. Please transfer the call to the office.",
 				})
 				return
 			}
-			log.Printf("book-appointment: canceled over-capacity forced Bach appointmentId=%d columnId=%s startDatetime=%s", apptID, colIDStr, req.StartDatetime)
+			log.Printf("book-appointment: canceled over-capacity forced Bach booking office=%s columnId=%s", office.ID, colIDStr)
 			json.NewEncoder(w).Encode(BookAppointmentResponse{
 				Status:  "error",
 				Outcome: "slot_unavailable",
@@ -1508,10 +1524,66 @@ func forceForBachBooking(office *domain.OfficeConfig, columnID string, slotTime 
 	return 0, nil
 }
 
-func bachBookingLock(officeID, columnID, startDatetime string) *sync.Mutex {
+func acquireBachBookingLock(officeID, columnID, startDatetime string) func() {
 	key := officeID + "|" + columnID + "|" + startDatetime
-	actual, _ := bachBookingLocks.LoadOrStore(key, &sync.Mutex{})
-	return actual.(*sync.Mutex)
+
+	bachBookingLocksMu.Lock()
+	lock := bachBookingLocks[key]
+	if lock == nil {
+		lock = &refCountedMutex{}
+		bachBookingLocks[key] = lock
+	}
+	lock.refs++
+	bachBookingLocksMu.Unlock()
+
+	lock.mu.Lock()
+	return func() {
+		lock.mu.Unlock()
+
+		bachBookingLocksMu.Lock()
+		lock.refs--
+		if lock.refs == 0 {
+			delete(bachBookingLocks, key)
+		}
+		bachBookingLocksMu.Unlock()
+	}
+}
+
+func bachBookingLockCount() int {
+	bachBookingLocksMu.Lock()
+	defer bachBookingLocksMu.Unlock()
+	return len(bachBookingLocks)
+}
+
+func (h *Handlers) getSchedulerSetup(ctx context.Context, tokenData *domain.TokenData, now time.Time) (*domain.SchedulerSetup, error) {
+	h.schedulerSetupMu.Lock()
+	defer h.schedulerSetupMu.Unlock()
+
+	if h.schedulerSetup != nil && now.Before(h.schedulerSetupExpiresAt) {
+		return h.schedulerSetup, nil
+	}
+
+	var (
+		setup *domain.SchedulerSetup
+		err   error
+	)
+	if h.amdClient == nil {
+		err = fmt.Errorf("scheduler setup client is not configured")
+	} else {
+		setup, err = h.amdClient.GetSchedulerSetup(ctx, tokenData)
+	}
+	if err != nil {
+		if h.schedulerSetup != nil {
+			log.Printf("WARNING: scheduler setup refresh failed; using cached setup: %v", err)
+			h.schedulerSetupExpiresAt = now.Add(time.Minute)
+			return h.schedulerSetup, nil
+		}
+		return nil, err
+	}
+
+	h.schedulerSetup = setup
+	h.schedulerSetupExpiresAt = now.Add(schedulerSetupCacheTTL)
+	return setup, nil
 }
 
 // HandleGetAvailability returns available appointment slots for providers.
@@ -1584,8 +1656,9 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Get scheduler setup (1 XMLRPC call)
-	setup, err := h.amdClient.GetSchedulerSetup(r.Context(), tokenData)
+	// Get scheduler setup from cache when fresh. Appointments and block
+	// holds below are still fetched live for availability freshness.
+	setup, err := h.getSchedulerSetup(r.Context(), tokenData, time.Now().UTC())
 	if err != nil {
 		json.NewEncoder(w).Encode(ErrorResponse{
 			Status:  "error",

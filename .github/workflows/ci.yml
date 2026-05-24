@@ -5,6 +5,11 @@ on:
     branches: [main, dev]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
@@ -16,6 +21,12 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Download modules
+        run: go mod download
+
+      - name: Format check
+        run: test -z "$(gofmt -l cmd internal)"
+
       - name: Build
         run: go build ./...
 
@@ -24,3 +35,6 @@ jobs:
 
       - name: Vet
         run: go vet ./...
+
+      - name: Race test
+        run: go test -race ./...

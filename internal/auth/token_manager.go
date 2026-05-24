@@ -71,7 +71,6 @@ func (tm *TokenManager) GetToken(ctx context.Context) (*domain.TokenData, error)
 	return tm.tokenData, nil
 }
 
-
 // refresh performs authentication and updates the in-memory cache.
 func (tm *TokenManager) refresh(ctx context.Context) error {
 	log.Println("Refreshing AdvancedMD token...")

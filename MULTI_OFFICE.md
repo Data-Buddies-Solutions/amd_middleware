@@ -2,8 +2,8 @@
 
 The middleware is the source of truth for office routing. The voice agent should
 send the current office value when it knows it, usually from the inbound trunk
-phone number returned by `/api/token`. Direct callers can also pass an office
-name.
+phone number in LiveKit call/session state. Direct callers can also pass an
+office name.
 
 ## Lookup Inputs
 

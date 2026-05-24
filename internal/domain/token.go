@@ -32,7 +32,6 @@ type TokenData struct {
 	CreatedAt string `json:"createdAt"`
 }
 
-
 // stripProtocol removes the https:// prefix from a URL.
 func stripProtocol(url string) string {
 	return strings.TrimPrefix(url, "https://")
@@ -71,4 +70,3 @@ func BuildTokenData(token, webserverURL string) *TokenData {
 		CreatedAt:    time.Now().UTC().Format(time.RFC3339),
 	}
 }
-

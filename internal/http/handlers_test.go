@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -275,6 +276,28 @@ func TestHandleBookAppointment_AgeGuard(t *testing.T) {
 	}
 }
 
+func TestHandleBookAppointment_RequiresBookingTokenForRawSlot(t *testing.T) {
+	handlers := &Handlers{}
+	req := httptest.NewRequest(
+		"POST",
+		"/api/appointment/book",
+		bytes.NewBufferString(`{"patientId":"123","columnId":1513,"profileId":620,"startDatetime":"2026-05-12T10:00","duration":30,"appointmentTypeId":1007}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandleBookAppointment(w, req)
+
+	var body BookAppointmentResponse
+	json.NewDecoder(w.Result().Body).Decode(&body)
+	if body.Status != "error" {
+		t.Fatalf("expected status error, got %q", body.Status)
+	}
+	if body.Outcome != "booking_token_required" {
+		t.Fatalf("expected booking_token_required, got %q", body.Outcome)
+	}
+}
+
 func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
 	handlers := &Handlers{}
 	date := time.Now().AddDate(0, 0, 2).Format("2006-01-02")
@@ -475,7 +498,7 @@ func TestAuthMiddleware(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("GET", "/api/token", nil)
+			req := httptest.NewRequest("GET", "/api/patient/appointments", nil)
 			if tt.authHeader != "" {
 				req.Header.Set("Authorization", tt.authHeader)
 			}
@@ -865,8 +888,127 @@ func TestBookingTokenRejectsTamperedExpiredAndWrongOffice(t *testing.T) {
 	req := BookAppointmentRequest{BookingToken: token}
 	handlers := NewHandlers(nil, nil, nil, "test-booking-secret")
 	office, _ := domain.LookupOffice("Hollywood")
-	if err := handlers.applyBookingToken(&req, office, now); err == nil {
+	if _, err := handlers.applyBookingToken(&req, office, now); err == nil {
 		t.Fatal("token for a different office should be rejected")
+	}
+
+	req = BookAppointmentRequest{BookingToken: token}
+	office, err = handlers.applyBookingToken(&req, nil, now)
+	if err != nil {
+		t.Fatalf("token should resolve office when request omits office: %v", err)
+	}
+	if office.ID != "spring_hill" {
+		t.Fatalf("resolved office = %s, want spring_hill", office.ID)
+	}
+}
+
+func TestCancelTokenRoundTrip(t *testing.T) {
+	now := time.Date(2026, 5, 20, 12, 0, 0, 0, time.UTC)
+	detail := PatientApptDetail{ID: 9570263}
+	office := domain.DefaultOffice()
+	handlers := NewHandlers(nil, nil, nil, "test-booking-secret")
+
+	if err := handlers.addCancelToken(&detail, "12345", office, now); err != nil {
+		t.Fatalf("addCancelToken error = %v", err)
+	}
+	if detail.CancelToken == "" {
+		t.Fatal("expected cancel token")
+	}
+
+	req := CancelAppointmentRequest{
+		AppointmentID: 9570263,
+		PatientID:     "12345",
+		CancelToken:   detail.CancelToken,
+	}
+	tokenOffice, err := handlers.applyCancelToken(&req, office, now.Add(time.Minute))
+	if err != nil {
+		t.Fatalf("applyCancelToken error = %v", err)
+	}
+	if tokenOffice.ID != office.ID {
+		t.Fatalf("token office = %s, want %s", tokenOffice.ID, office.ID)
+	}
+	if req.AppointmentID != 9570263 || req.PatientID != "12345" {
+		t.Fatalf("request changed after token validation = %+v", req)
+	}
+}
+
+func TestCancelTokenRejectsTamperedExpiredAndWrongOffice(t *testing.T) {
+	now := time.Date(2026, 5, 20, 12, 0, 0, 0, time.UTC)
+	token, err := signCancelToken("test-booking-secret", cancelTokenPayload{
+		OfficeID:      "spring_hill",
+		PatientID:     "12345",
+		AppointmentID: 9570263,
+		IssuedAt:      now.Unix(),
+		ExpiresAt:     now.Add(cancelTokenTTL).Unix(),
+	})
+	if err != nil {
+		t.Fatalf("signCancelToken error = %v", err)
+	}
+
+	if _, err := verifyCancelToken("wrong-secret", token, now); err == nil {
+		t.Fatal("wrong secret should reject token")
+	}
+	if _, err := verifyCancelToken("test-booking-secret", token+"x", now); err == nil {
+		t.Fatal("tampered token should be rejected")
+	}
+	if _, err := verifyCancelToken("test-booking-secret", token, now.Add(cancelTokenTTL)); err == nil {
+		t.Fatal("expired token should be rejected")
+	}
+
+	req := CancelAppointmentRequest{
+		AppointmentID: 9570263,
+		PatientID:     "12345",
+		CancelToken:   token,
+	}
+	handlers := NewHandlers(nil, nil, nil, "test-booking-secret")
+	office, ok := domain.LookupOffice("+19542872010")
+	if !ok {
+		t.Fatal("expected Hollywood office")
+	}
+	if _, err := handlers.applyCancelToken(&req, office, now); err == nil {
+		t.Fatal("token for a different office should be rejected")
+	}
+
+	req = CancelAppointmentRequest{
+		AppointmentID: 11111,
+		PatientID:     "12345",
+		CancelToken:   token,
+	}
+	office, _ = domain.LookupOffice("Spring Hill")
+	if _, err := handlers.applyCancelToken(&req, office, now); err == nil {
+		t.Fatal("token should reject mismatched appointment ID")
+	}
+
+	req = CancelAppointmentRequest{
+		AppointmentID: 9570263,
+		PatientID:     "99999",
+		CancelToken:   token,
+	}
+	if _, err := handlers.applyCancelToken(&req, office, now); err == nil {
+		t.Fatal("token should reject mismatched patient ID")
+	}
+
+	hollywoodToken, err := signCancelToken("test-booking-secret", cancelTokenPayload{
+		OfficeID:      "hollywood",
+		PatientID:     "12345",
+		AppointmentID: 9570263,
+		IssuedAt:      now.Unix(),
+		ExpiresAt:     now.Add(cancelTokenTTL).Unix(),
+	})
+	if err != nil {
+		t.Fatalf("sign Hollywood cancel token error = %v", err)
+	}
+	req = CancelAppointmentRequest{
+		AppointmentID: 9570263,
+		PatientID:     "12345",
+		CancelToken:   hollywoodToken,
+	}
+	office, err = handlers.applyCancelToken(&req, nil, now)
+	if err != nil {
+		t.Fatalf("token should resolve office when request omits office: %v", err)
+	}
+	if office.ID != "hollywood" {
+		t.Fatalf("resolved office = %s, want hollywood", office.ID)
 	}
 }
 
@@ -894,8 +1036,12 @@ func TestAddBookingTokensAndApplyBookingToken(t *testing.T) {
 	}
 
 	req := BookAppointmentRequest{BookingToken: slots[0].BookingToken}
-	if err := handlers.applyBookingToken(&req, office, now); err != nil {
+	tokenOffice, err := handlers.applyBookingToken(&req, office, now)
+	if err != nil {
 		t.Fatalf("applyBookingToken error = %v", err)
+	}
+	if tokenOffice.ID != office.ID {
+		t.Fatalf("token office = %s, want %s", tokenOffice.ID, office.ID)
 	}
 	if req.ColumnID != 1513 ||
 		req.ProfileID != 620 ||
@@ -1145,19 +1291,90 @@ func TestForceForBachBooking(t *testing.T) {
 }
 
 func TestBachBookingLock(t *testing.T) {
-	first := bachBookingLock("spring_hill", "1513", "2026-06-01T09:00")
-	second := bachBookingLock("spring_hill", "1513", "2026-06-01T09:00")
-	otherColumn := bachBookingLock("spring_hill", "1598", "2026-06-01T09:00")
-	otherStart := bachBookingLock("spring_hill", "1513", "2026-06-01T09:15")
+	bachBookingLocksMu.Lock()
+	bachBookingLocks = make(map[string]*refCountedMutex)
+	bachBookingLocksMu.Unlock()
+	t.Cleanup(func() {
+		bachBookingLocksMu.Lock()
+		bachBookingLocks = make(map[string]*refCountedMutex)
+		bachBookingLocksMu.Unlock()
+	})
 
-	if first != second {
-		t.Fatal("same Bach office/column/start should reuse one lock")
+	unlock := acquireBachBookingLock("spring_hill", "1513", "2026-06-01T09:00")
+	if got := bachBookingLockCount(); got != 1 {
+		t.Fatalf("lock count = %d, want 1", got)
 	}
-	if first == otherColumn {
-		t.Fatal("different Bach columns should use distinct locks")
+
+	acquired := make(chan struct{})
+	released := make(chan struct{})
+	go func() {
+		unlockSame := acquireBachBookingLock("spring_hill", "1513", "2026-06-01T09:00")
+		close(acquired)
+		unlockSame()
+		close(released)
+	}()
+
+	select {
+	case <-acquired:
+		t.Fatal("same Bach office/column/start should block until the first lock releases")
+	case <-time.After(20 * time.Millisecond):
 	}
-	if first == otherStart {
-		t.Fatal("different Bach start times should use distinct locks")
+
+	unlockOther := acquireBachBookingLock("spring_hill", "1598", "2026-06-01T09:00")
+	if got := bachBookingLockCount(); got != 2 {
+		t.Fatalf("lock count with another column = %d, want 2", got)
+	}
+	unlockOther()
+
+	unlock()
+	select {
+	case <-released:
+	case <-time.After(time.Second):
+		t.Fatal("same Bach lock did not unblock after release")
+	}
+	if got := bachBookingLockCount(); got != 0 {
+		t.Fatalf("lock count after release = %d, want 0", got)
+	}
+}
+
+func TestGetSchedulerSetupUsesFreshCache(t *testing.T) {
+	now := time.Date(2026, 5, 24, 12, 0, 0, 0, time.UTC)
+	setup := &domain.SchedulerSetup{
+		Columns: []domain.SchedulerColumn{{ID: "1513"}},
+	}
+	handlers := &Handlers{
+		schedulerSetup:          setup,
+		schedulerSetupExpiresAt: now.Add(time.Hour),
+	}
+
+	got, err := handlers.getSchedulerSetup(context.Background(), &domain.TokenData{}, now)
+	if err != nil {
+		t.Fatalf("getSchedulerSetup error = %v", err)
+	}
+	if got != setup {
+		t.Fatal("expected cached scheduler setup pointer")
+	}
+}
+
+func TestGetSchedulerSetupFallsBackToStaleCacheOnRefreshError(t *testing.T) {
+	now := time.Date(2026, 5, 24, 12, 0, 0, 0, time.UTC)
+	setup := &domain.SchedulerSetup{
+		Columns: []domain.SchedulerColumn{{ID: "1513"}},
+	}
+	handlers := &Handlers{
+		schedulerSetup:          setup,
+		schedulerSetupExpiresAt: now.Add(-time.Second),
+	}
+
+	got, err := handlers.getSchedulerSetup(context.Background(), &domain.TokenData{}, now)
+	if err != nil {
+		t.Fatalf("getSchedulerSetup error = %v", err)
+	}
+	if got != setup {
+		t.Fatal("expected stale scheduler setup fallback")
+	}
+	if !handlers.schedulerSetupExpiresAt.After(now) {
+		t.Fatal("expected stale fallback to set a short retry window")
 	}
 }
 
@@ -1536,13 +1753,25 @@ func TestRouter(t *testing.T) {
 	})
 
 	t.Run("api endpoints require auth", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/token", nil)
+		req := httptest.NewRequest("POST", "/api/patient/appointments", strings.NewReader(`{"patientId":"123"}`))
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
 
 		if w.Code != http.StatusUnauthorized {
 			t.Errorf("Expected 401 without auth, got %d", w.Code)
+		}
+	})
+
+	t.Run("token endpoint removed", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/api/token", nil)
+		req.Header.Set("Authorization", "Bearer test-secret")
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound && w.Code != http.StatusMethodNotAllowed {
+			t.Errorf("Expected removed token endpoint to be unavailable, got %d", w.Code)
 		}
 	})
 
@@ -1575,6 +1804,16 @@ func TestHandleCancelAppointment_ValidationErrors(t *testing.T) {
 			name:        "zero appointmentId",
 			body:        `{"appointmentId":0}`,
 			expectedMsg: "appointmentId is required",
+		},
+		{
+			name:        "missing cancelToken",
+			body:        `{"appointmentId":12345}`,
+			expectedMsg: "cancelToken is required. Please load appointments again and choose the appointment to cancel.",
+		},
+		{
+			name:        "missing patientId with cancelToken",
+			body:        `{"appointmentId":12345,"cancelToken":"signed-token"}`,
+			expectedMsg: "patientId is required",
 		},
 	}
 
@@ -1895,31 +2134,5 @@ func TestHandleAddPatientNote_ValidationErrors(t *testing.T) {
 				t.Errorf("Expected message %q, got %q", tt.expectedMsg, body.Message)
 			}
 		})
-	}
-}
-
-func TestSanitizeLoggedRequestBody_RedactsPatientNote(t *testing.T) {
-	body := `{"patientId":"123","note":"Patient shared private details.","office":"+17275919997"}`
-
-	got := sanitizeLoggedRequestBody("/api/patient/notes", body)
-
-	if strings.Contains(got, "Patient shared private details") {
-		t.Fatalf("expected patient note to be redacted, got %s", got)
-	}
-	if !strings.Contains(got, `"[REDACTED]"`) {
-		t.Fatalf("expected redaction marker, got %s", got)
-	}
-	if !strings.Contains(got, `"patientId":"123"`) {
-		t.Fatalf("expected non-note fields to remain, got %s", got)
-	}
-}
-
-func TestSanitizeLoggedRequestBody_LeavesOtherRoutesUnchanged(t *testing.T) {
-	body := `{"note":"not a patient note route"}`
-
-	got := sanitizeLoggedRequestBody("/api/add-patient", body)
-
-	if got != body {
-		t.Fatalf("expected body unchanged, got %s", got)
 	}
 }

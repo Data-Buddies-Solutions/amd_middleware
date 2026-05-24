@@ -1,10 +1,7 @@
 package http
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"time"
@@ -62,15 +59,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		// Read and log request body (re-buffer for handler)
-		var reqBody string
-		if r.Body != nil {
-			bodyBytes, _ := io.ReadAll(r.Body)
-			reqBody = sanitizeLoggedRequestBody(r.URL.Path, string(bodyBytes))
-			r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-		}
-
-		// Wrap response writer to capture status code + body
+		// Capture status only. Request/response bodies may contain PHI.
 		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 
 		next.ServeHTTP(wrapped, r)
@@ -78,42 +67,20 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		duration := time.Since(start)
 		requestID := GetRequestID(r.Context())
 
-		log.Printf("[%s] %s %s %d %v req=%s resp=%s",
+		log.Printf("[%s] %s %s %d %v",
 			requestID,
 			r.Method,
 			r.URL.Path,
 			wrapped.statusCode,
 			duration,
-			reqBody,
-			wrapped.body.String(),
 		)
 	})
 }
 
-func sanitizeLoggedRequestBody(path string, body string) string {
-	if path != "/api/patient/notes" || body == "" {
-		return body
-	}
-
-	var payload map[string]interface{}
-	if err := json.Unmarshal([]byte(body), &payload); err != nil {
-		return `{"note":"[REDACTED]"}`
-	}
-	if _, ok := payload["note"]; ok {
-		payload["note"] = "[REDACTED]"
-	}
-	sanitized, err := json.Marshal(payload)
-	if err != nil {
-		return `{"note":"[REDACTED]"}`
-	}
-	return string(sanitized)
-}
-
-// responseWriter wraps http.ResponseWriter to capture the status code and body.
+// responseWriter wraps http.ResponseWriter to capture the status code.
 type responseWriter struct {
 	http.ResponseWriter
 	statusCode int
-	body       bytes.Buffer
 }
 
 func (rw *responseWriter) WriteHeader(code int) {
@@ -122,7 +89,6 @@ func (rw *responseWriter) WriteHeader(code int) {
 }
 
 func (rw *responseWriter) Write(b []byte) (int, error) {
-	rw.body.Write(b)
 	return rw.ResponseWriter.Write(b)
 }
 

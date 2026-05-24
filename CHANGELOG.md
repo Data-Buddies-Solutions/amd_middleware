@@ -1,5 +1,32 @@
 # Changelog
 
+## [Unreleased] - 2026-05-24
+
+### LiveKit Middleware Hardening
+
+- Removed the legacy `/api/token` ElevenLabs webhook path. The LiveKit agent
+  calls middleware tools directly with its middleware API token; AdvancedMD
+  credentials and session tokens now stay server-side.
+- Added short-lived signed `cancelToken` values to patient appointment results
+  and made cancellation require `appointmentId`, `patientId`, and `cancelToken`
+  by default. `ALLOW_LEGACY_CANCEL=true` is available as a temporary rollout
+  escape hatch.
+- Made signed `bookingToken` the default booking path. Raw scheduler-field
+  booking is disabled unless `ALLOW_RAW_SLOT_BOOKING=true`.
+- Reduced server logs to request metadata, office/routing context, counts, and
+  outcome/error summaries without request bodies, response bodies, patient
+  identifiers, appointment identifiers, phone numbers, names, or DOBs.
+- Hardened AdvancedMD/XMLRPC error handling so non-2xx and malformed responses
+  are surfaced as upstream errors instead of being treated as empty results.
+- Cached AdvancedMD scheduler setup in memory for six hours while keeping
+  appointment and block-hold reads live for each availability search.
+- Increased the shared AdvancedMD HTTP transport connection pool for concurrent
+  voice-call traffic.
+- Replaced the unbounded Bach exact-slot lock map with reference-counted locks
+  that are removed after the booking attempt finishes.
+- Updated README/API docs, environment examples, CI checks, and release
+  artifact generation to match the current production contract.
+
 ## [Unreleased] - 2026-05-21
 
 ### Slot Booking Tokens

@@ -26,6 +26,8 @@ func setEnvVars(t *testing.T) func() {
 		}
 		os.Unsetenv("PORT")
 		os.Unsetenv("BOOKING_TOKEN_SECRET")
+		os.Unsetenv("ALLOW_RAW_SLOT_BOOKING")
+		os.Unsetenv("ALLOW_LEGACY_CANCEL")
 	}
 }
 
@@ -56,6 +58,12 @@ func TestLoad_Success(t *testing.T) {
 	if cfg.BookingTokenSecret != "test-secret" {
 		t.Errorf("BookingTokenSecret = %q, want API secret fallback", cfg.BookingTokenSecret)
 	}
+	if cfg.AllowRawSlotBooking {
+		t.Error("AllowRawSlotBooking should default to false")
+	}
+	if cfg.AllowLegacyCancel {
+		t.Error("AllowLegacyCancel should default to false")
+	}
 }
 
 func TestLoad_CustomBookingTokenSecret(t *testing.T) {
@@ -70,6 +78,25 @@ func TestLoad_CustomBookingTokenSecret(t *testing.T) {
 
 	if cfg.BookingTokenSecret != "booking-secret" {
 		t.Errorf("BookingTokenSecret = %q, want 'booking-secret'", cfg.BookingTokenSecret)
+	}
+}
+
+func TestLoad_LegacyFlags(t *testing.T) {
+	cleanup := setEnvVars(t)
+	defer cleanup()
+	os.Setenv("ALLOW_RAW_SLOT_BOOKING", "true")
+	os.Setenv("ALLOW_LEGACY_CANCEL", "1")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() failed: %v", err)
+	}
+
+	if !cfg.AllowRawSlotBooking {
+		t.Error("AllowRawSlotBooking = false, want true")
+	}
+	if !cfg.AllowLegacyCancel {
+		t.Error("AllowLegacyCancel = false, want true")
 	}
 }
 
