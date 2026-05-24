@@ -28,6 +28,7 @@ type bookingTokenPayload struct {
 	ProfileID     int    `json:"profileId"`
 	StartDatetime string `json:"startDatetime"`
 	Duration      int    `json:"duration"`
+	RequiresForce bool   `json:"requiresForce,omitempty"`
 	Provider      string `json:"provider,omitempty"`
 	IssuedAt      int64  `json:"iat"`
 	ExpiresAt     int64  `json:"exp"`
@@ -206,6 +207,7 @@ func (h *Handlers) addBookingTokens(slots []domain.AvailabilitySlotOption, offic
 			ProfileID:     slots[i].ProfileID,
 			StartDatetime: slots[i].DateTime,
 			Duration:      slots[i].Duration,
+			RequiresForce: slots[i].RequiresForce,
 			Provider:      slots[i].Provider,
 			IssuedAt:      issuedAt,
 			ExpiresAt:     expiresAt,
@@ -235,6 +237,7 @@ func (h *Handlers) applyBookingToken(req *BookAppointmentRequest, requestedOffic
 	req.StartDatetime = payload.StartDatetime
 	req.Duration = payload.Duration
 	req.Routing = payload.Routing
+	req.bookingRequiresForce = payload.RequiresForce
 	return office, nil
 }
 

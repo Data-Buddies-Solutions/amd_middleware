@@ -206,10 +206,10 @@ slot fields directly only when `ALLOW_RAW_SLOT_BOOKING=true`.
 - `episodeid: 1`.
 - `type` wrapped as `[{ "id": <appointmentTypeId> }]`.
 - appointment color from `DefaultAppointmentTypeColors`.
-- `force: 1` only for Dr. Bach slots that already have one same-start
-  appointment on the selected column after a server-side re-check. Forced Bach
-  bookings are post-verified and canceled if a concurrent force-book leaves the
-  selected column/start over capacity.
+- `force: 1` for Dr. Bach slots whose signed `bookingToken` carries
+  `requiresForce` from the preceding availability search. Booking does not
+  re-fetch appointments or block holds for Bach; AMD conflicts return the normal
+  slot-unavailable response.
 
 Validation before sending to AMD:
 
