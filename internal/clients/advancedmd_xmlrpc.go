@@ -70,9 +70,9 @@ type AdvancedMDClient struct {
 	httpClient *http.Client
 }
 
-// DefaultPatientNoteTypeFID is the AdvancedMD note type for communication/phone notes.
-// Verified against lookupnotetypes as code CN ("COMMUNICATON NOTES / PHONE").
-const DefaultPatientNoteTypeFID = "559"
+// DefaultPatientNoteTypeFID is the AdvancedMD note type for appointment notes.
+// Verified against lookupnotetypes as code AP ("APPOINTMENT NOTES").
+const DefaultPatientNoteTypeFID = "532"
 
 // NewAdvancedMDClient creates a new AdvancedMD XMLRPC client.
 func NewAdvancedMDClient(httpClient *http.Client) *AdvancedMDClient {
@@ -396,7 +396,7 @@ type SavePatientNoteParams struct {
 	Note        string
 }
 
-// SavePatientNote adds a communication note to an existing patient in AdvancedMD.
+// SavePatientNote adds an appointment note to an existing patient in AdvancedMD.
 // Returns the newly created note ID from PPMDResults.@newid.
 func (c *AdvancedMDClient) SavePatientNote(ctx context.Context, tokenData *domain.TokenData, params SavePatientNoteParams) (string, error) {
 	msgTime := time.Now().Format("01/02/2006 03:04:05 PM")

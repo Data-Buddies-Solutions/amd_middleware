@@ -366,7 +366,7 @@ func TestAdvancedMDClient_SavePatientNote(t *testing.T) {
 			"@uid":         "",
 			"@patientfid":  "123",
 			"@profilefid":  "620",
-			"@notetypefid": "559",
+			"@notetypefid": "532",
 			"@note":        "Patient called to reschedule.",
 		}
 		for key, want := range expected {
@@ -383,10 +383,9 @@ func TestAdvancedMDClient_SavePatientNote(t *testing.T) {
 	defer cleanup()
 
 	noteID, err := client.SavePatientNote(context.Background(), tokenData, SavePatientNoteParams{
-		PatientID:   "pat123",
-		ProfileID:   "620",
-		NoteTypeFID: "notetype559",
-		Note:        "Patient called to reschedule.",
+		PatientID: "pat123",
+		ProfileID: "620",
+		Note:      "Patient called to reschedule.",
 	})
 	if err != nil {
 		t.Fatalf("SavePatientNote failed: %v", err)
