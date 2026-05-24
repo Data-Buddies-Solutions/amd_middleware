@@ -1714,6 +1714,67 @@ func TestHandleGetPatientAppointments_ValidationErrors(t *testing.T) {
 	}
 }
 
+func TestFetchUpcomingAppointmentsFiltersPastAppointments(t *testing.T) {
+	now := time.Now().In(eastern)
+	pastToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, eastern)
+	future := now.Add(2 * time.Hour)
+	monthKey := func(t time.Time) string {
+		return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, eastern).Format("2006-01-02")
+	}
+
+	appointmentsByMonth := map[string][]clients.AMDAppointmentResponse{}
+	appointmentsByMonth[monthKey(pastToday)] = append(appointmentsByMonth[monthKey(pastToday)], clients.AMDAppointmentResponse{
+		ID:               11111,
+		StartDateTime:    pastToday.Format("2006-01-02T15:04:05"),
+		PatientID:        12345,
+		Provider:         "BACH, AUSTIN",
+		Facility:         "ABITA EYE GROUP SPRING HILL",
+		AppointmentTypes: []int{1007},
+	})
+	appointmentsByMonth[monthKey(future)] = append(appointmentsByMonth[monthKey(future)], clients.AMDAppointmentResponse{
+		ID:               22222,
+		StartDateTime:    future.Format("2006-01-02T15:04:05"),
+		PatientID:        12345,
+		Provider:         "BACH, AUSTIN",
+		Facility:         "ABITA EYE GROUP SPRING HILL",
+		AppointmentTypes: []int{1007},
+	})
+	appointmentsByMonth[monthKey(future)] = append(appointmentsByMonth[monthKey(future)], clients.AMDAppointmentResponse{
+		ID:            33333,
+		StartDateTime: future.Format("2006-01-02T15:04:05"),
+		PatientID:     99999,
+	})
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/scheduler/appointments" {
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(appointmentsByMonth[r.URL.Query().Get("startDate")])
+	}))
+	defer server.Close()
+
+	handlers := NewHandlers(nil, nil, clients.NewAdvancedMDRestClient(server.Client()), "test-booking-secret")
+	tokenData := &domain.TokenData{
+		Token:       "Bearer test-token",
+		RestApiBase: strings.TrimPrefix(server.URL, "https://"),
+	}
+
+	details, err := handlers.fetchUpcomingAppointments(context.Background(), tokenData, "12345", domain.DefaultOffice())
+	if err != nil {
+		t.Fatalf("fetchUpcomingAppointments error = %v", err)
+	}
+	if len(details) != 1 {
+		t.Fatalf("appointments = %+v, want exactly one future appointment", details)
+	}
+	if details[0].ID != 22222 {
+		t.Fatalf("appointment ID = %d, want 22222", details[0].ID)
+	}
+	if details[0].CancelToken == "" {
+		t.Fatal("future appointment should include cancel token")
+	}
+}
+
 func TestFriendlyProviderName(t *testing.T) {
 	office := domain.DefaultOffice()
 

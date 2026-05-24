@@ -860,7 +860,8 @@ func (h *Handlers) HandlePatientLookup(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-// fetchUpcomingAppointments retrieves appointments for a patient ID (1 month back + current month + 5 months forward).
+// fetchUpcomingAppointments retrieves future appointments for a patient ID
+// (current month + 5 months forward).
 func (h *Handlers) fetchUpcomingAppointments(ctx context.Context, tokenData *domain.TokenData, patientID string, office *domain.OfficeConfig) ([]PatientApptDetail, error) {
 	patientIDInt, err := strconv.Atoi(patientID)
 	if err != nil {
@@ -870,19 +871,19 @@ func (h *Handlers) fetchUpcomingAppointments(ctx context.Context, tokenData *dom
 	columnIDStr := strings.Join(office.AllowedColumnIDs(), "-")
 
 	now := time.Now().In(eastern)
+	cutoff := appointmentLookupCutoff(now)
 	thisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, eastern)
 
-	months := make([]time.Time, 7)
-	months[0] = thisMonth.AddDate(0, -1, 0)
-	for i := 1; i < 7; i++ {
-		months[i] = thisMonth.AddDate(0, i-1, 0)
+	months := make([]time.Time, 6)
+	for i := range months {
+		months[i] = thisMonth.AddDate(0, i, 0)
 	}
 
 	type monthResult struct {
 		appts []clients.AMDAppointmentResponse
 		err   error
 	}
-	ch := make(chan monthResult, 7)
+	ch := make(chan monthResult, len(months))
 
 	for _, m := range months {
 		m := m
@@ -893,7 +894,7 @@ func (h *Handlers) fetchUpcomingAppointments(ctx context.Context, tokenData *dom
 	}
 
 	var allAppts []clients.AMDAppointmentResponse
-	for range 7 {
+	for range months {
 		r := <-ch
 		if r.err != nil {
 			return nil, r.err
@@ -908,6 +909,9 @@ func (h *Handlers) fetchUpcomingAppointments(ctx context.Context, tokenData *dom
 
 		startTime, err := clients.ParseDateTime(a.StartDateTime)
 		if err != nil {
+			continue
+		}
+		if !startTime.After(cutoff) {
 			continue
 		}
 
@@ -933,6 +937,11 @@ func (h *Handlers) fetchUpcomingAppointments(ctx context.Context, tokenData *dom
 	}
 
 	return details, nil
+}
+
+func appointmentLookupCutoff(now time.Time) time.Time {
+	local := now.In(eastern)
+	return time.Date(local.Year(), local.Month(), local.Day(), local.Hour(), local.Minute(), local.Second(), 0, time.UTC)
 }
 
 // friendlyFacilityName cleans up AMD facility names to title case.
