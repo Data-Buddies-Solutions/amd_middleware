@@ -463,6 +463,8 @@ may still send `appointmentTypeId`; otherwise the same intent fields are used:
   "visitCategory": "routine_vision",
   "visitKind": "routine_vision",
   "patientStatus": "established",
+  "appointmentReason": "blurry vision",
+  "referringDoctor": "Dr. Smith",
   "routing": "optical_only",
   "office": "Hollywood"
 }
@@ -475,10 +477,13 @@ Required fields: `patientId`, appointment intent (`visitCategory`/`visitKind`,
 legacy override; new callers should not send it.
 
 Optional fields: `patientName`, `dob`, `ageBand`, `routing`, `office`,
-`isPostOp`, and `visitReason`. `dob` is required when booking an age-restricted
-provider column, and under-18 DOBs apply the office's pediatric routing for
-medical bookings. When `bookingToken` is used, the token owns the office,
-selected `columnId`, `profileId`, `startDatetime`, `duration`, and routing lane.
+`isPostOp`, `visitReason`, `appointmentReason`, and `referringDoctor`. When
+`appointmentReason` or `referringDoctor` is present, booking first creates the
+appointment, then saves an AP patient note with the new appointment ID in the
+note body. `dob` is required when booking an age-restricted provider column,
+and under-18 DOBs apply the office's pediatric routing for medical bookings.
+When `bookingToken` is used, the token owns the office, selected `columnId`,
+`profileId`, `startDatetime`, `duration`, and routing lane.
 
 Booking validation:
 
@@ -499,7 +504,8 @@ Booking validation:
   asks the caller to choose another slot.
 - AMD 409 conflicts return a clear slot-no-longer-available message.
 
-Response statuses: `booked`, `error`.
+Response statuses: `booked`, `partial`, `error`. `partial` means the
+appointment was booked but the follow-up AP note failed.
 
 ### POST /api/patient/appointments
 
@@ -558,7 +564,7 @@ appointment's hidden `cancelToken` in session state. `cancel_appt` should send:
 
 ### POST /api/patient/notes
 
-Saves a communication note on an existing patient. The middleware owns the AMD
+Saves an appointment note on an existing patient. The middleware owns the AMD
 note type and default profile ID.
 
 Request:

@@ -1202,6 +1202,119 @@ func TestHandleBookAppointment_UsesBookingTokenRequiresForceWithoutBachRecheck(t
 	}
 }
 
+func TestHandleBookAppointment_SavesAppointmentNoteAfterBooking(t *testing.T) {
+	domain.InitRegistry("")
+	now := time.Now().UTC()
+	token, err := signBookingToken("test-booking-secret", bookingTokenPayload{
+		OfficeID:      "spring_hill",
+		Routing:       string(domain.RoutingAll),
+		ColumnID:      1513,
+		ProfileID:     620,
+		StartDatetime: "2026-06-02T09:00",
+		Duration:      15,
+		IssuedAt:      now.Unix(),
+		ExpiresAt:     now.Add(bookingTokenTTL).Unix(),
+	})
+	if err != nil {
+		t.Fatalf("signBookingToken error = %v", err)
+	}
+
+	var bookingPayload map[string]any
+	var notePayload map[string]any
+	httpClient := &http.Client{
+		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			body, _ := io.ReadAll(r.Body)
+			contentType := r.Header.Get("Content-Type")
+
+			status := http.StatusOK
+			response := ""
+			switch {
+			case strings.Contains(contentType, "application/xml") && strings.Contains(r.URL.Host, "partnerlogin"):
+				response = `<PPMDResults><Results><usercontext webserver="https://mock.advancedmd.test/processrequest/api-801/APP"></usercontext></Results></PPMDResults>`
+			case strings.Contains(contentType, "application/xml"):
+				response = `<PPMDResults><Results success="1"><usercontext>test-token</usercontext></Results></PPMDResults>`
+			case strings.Contains(r.URL.Path, "/scheduler/Appointments"):
+				if err := json.Unmarshal(body, &bookingPayload); err != nil {
+					status = http.StatusInternalServerError
+					response = `{"error":"invalid booking payload"}`
+					break
+				}
+				response = `{"id":98765}`
+			case strings.Contains(r.URL.Path, "/xmlrpc/processrequest.aspx"):
+				if err := json.Unmarshal(body, &notePayload); err != nil {
+					status = http.StatusInternalServerError
+					response = `{"error":"invalid note payload"}`
+					break
+				}
+				response = `{"PPMDResults":{"@newid":"3135521","record":{"@uid":"3135521"}}}`
+			default:
+				status = http.StatusInternalServerError
+				response = `{"error":"unexpected request"}`
+			}
+
+			return &http.Response{
+				StatusCode: status,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader(response)),
+				Request:    r,
+			}, nil
+		}),
+	}
+	authenticator := auth.NewAuthenticator(auth.Credentials{
+		Username:  "user",
+		Password:  "pass",
+		OfficeKey: "office",
+		AppName:   "app",
+	}, httpClient)
+	handlers := NewHandlers(
+		auth.NewTokenManager(authenticator),
+		clients.NewAdvancedMDClient(httpClient),
+		clients.NewAdvancedMDRestClient(httpClient),
+		"test-booking-secret",
+	)
+
+	body := fmt.Sprintf(`{"patientId":"123","bookingToken":%q,"appointmentTypeId":1007,"appointmentReason":"blurry vision","referringDoctor":"Dr. Smith"}`, token)
+	req := httptest.NewRequest("POST", "/api/appointment/book", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandleBookAppointment(w, req)
+
+	var resp BookAppointmentResponse
+	json.NewDecoder(w.Result().Body).Decode(&resp)
+	if resp.Status != "booked" {
+		t.Fatalf("expected booked response, got %#v", resp)
+	}
+	if resp.NoteStatus != "saved" || resp.NoteID != "3135521" {
+		t.Fatalf("note status/id = %q/%q, want saved/3135521", resp.NoteStatus, resp.NoteID)
+	}
+	if bookingPayload["patientid"] != float64(123) {
+		t.Fatalf("booking payload patientid = %#v", bookingPayload["patientid"])
+	}
+
+	msg := notePayload["ppmdmsg"].(map[string]any)
+	masterfile := msg["masterfile"].(map[string]any)
+	if masterfile["@patientfid"] != "123" {
+		t.Fatalf("note patientfid = %#v, want 123", masterfile["@patientfid"])
+	}
+	if masterfile["@profilefid"] != "620" {
+		t.Fatalf("note profilefid = %#v, want 620", masterfile["@profilefid"])
+	}
+	if masterfile["@notetypefid"] != "532" {
+		t.Fatalf("note notetypefid = %#v, want 532", masterfile["@notetypefid"])
+	}
+	note := masterfile["@note"].(string)
+	for _, want := range []string{
+		"Appointment ID: 98765",
+		"Appointment reason: blurry vision",
+		"Referring doctor: Dr. Smith",
+	} {
+		if !strings.Contains(note, want) {
+			t.Fatalf("note %q does not contain %q", note, want)
+		}
+	}
+}
+
 func TestHasDifferentStartOverlappingAppointment(t *testing.T) {
 	eastern, _ := time.LoadLocation("America/New_York")
 

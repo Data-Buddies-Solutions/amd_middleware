@@ -1063,6 +1063,8 @@ type BookAppointmentRequest struct {
 	AgeBand           string `json:"ageBand,omitempty"`
 	IsPostOp          bool   `json:"isPostOp,omitempty"`
 	VisitReason       string `json:"visitReason,omitempty"`
+	AppointmentReason string `json:"appointmentReason,omitempty"`
+	ReferringDoctor   string `json:"referringDoctor,omitempty"`
 
 	bookingRequiresForce bool
 }
@@ -1080,6 +1082,8 @@ type BookAppointmentResponse struct {
 	Duration            int      `json:"duration,omitempty"`
 	AppointmentTypeID   int      `json:"appointmentTypeId,omitempty"`
 	AppointmentTypeName string   `json:"appointmentTypeName,omitempty"`
+	NoteID              string   `json:"noteId,omitempty"`
+	NoteStatus          string   `json:"noteStatus,omitempty"`
 	Message             string   `json:"message"`
 	Missing             []string `json:"missing,omitempty"`
 }
@@ -1126,6 +1130,29 @@ func normalizeBookingPatientName(name string) string {
 		return cases.Title(language.English).String(strings.ToLower(name))
 	}
 	return name
+}
+
+func buildBookingPatientNote(appointmentID int, appointmentReason string, referringDoctor string) string {
+	appointmentReason = normalizePatientNote(appointmentReason)
+	referringDoctor = normalizePatientNote(referringDoctor)
+	if appointmentReason == "" && referringDoctor == "" {
+		return ""
+	}
+	if referringDoctor == "" {
+		referringDoctor = "none"
+	}
+
+	lines := []string{
+		fmt.Sprintf("Appointment ID: %d", appointmentID),
+	}
+	if appointmentReason != "" {
+		lines = append(lines, "Appointment reason: "+appointmentReason)
+	}
+	if referringDoctor != "" {
+		lines = append(lines, "Referring doctor: "+referringDoctor)
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 // HandleBookAppointment books an appointment in AdvancedMD.
@@ -1192,6 +1219,13 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 	}
 	if err := validateOptionalDOB(req.DOB); err != nil {
 		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: err.Error()})
+		return
+	}
+	if notePreview := buildBookingPatientNote(0, req.AppointmentReason, req.ReferringDoctor); len([]rune(notePreview)) > maxPatientNoteLength {
+		json.NewEncoder(w).Encode(BookAppointmentResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("appointment note must be %d characters or fewer", maxPatientNoteLength),
+		})
 		return
 	}
 
@@ -1371,7 +1405,35 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 
 	log.Printf("book-appointment: success office=%s", office.ID)
 
-	json.NewEncoder(w).Encode(buildBookAppointmentReceipt(req, office, apptID))
+	receipt := buildBookAppointmentReceipt(req, office, apptID)
+	if note := buildBookingPatientNote(apptID, req.AppointmentReason, req.ReferringDoctor); note != "" {
+		if h.amdClient == nil {
+			receipt.Status = "partial"
+			receipt.NoteStatus = "failed"
+			receipt.Message = "Appointment booked but note failed: AdvancedMD note client is not configured"
+			json.NewEncoder(w).Encode(receipt)
+			return
+		}
+
+		noteID, err := h.amdClient.SavePatientNote(r.Context(), tokenData, clients.SavePatientNoteParams{
+			PatientID:   req.PatientID,
+			ProfileID:   strconv.Itoa(req.ProfileID),
+			NoteTypeFID: clients.DefaultPatientNoteTypeFID,
+			Note:        note,
+		})
+		if err != nil {
+			receipt.Status = "partial"
+			receipt.NoteStatus = "failed"
+			receipt.Message = "Appointment booked but note failed: " + err.Error()
+			json.NewEncoder(w).Encode(receipt)
+			return
+		}
+		receipt.NoteID = noteID
+		receipt.NoteStatus = "saved"
+		receipt.Message = "Appointment booked and note saved successfully"
+	}
+
+	json.NewEncoder(w).Encode(receipt)
 }
 
 // AvailabilityRequest is the expected JSON body for availability lookup.
@@ -2084,7 +2146,7 @@ type AddPatientNoteResponse struct {
 	Message   string `json:"message,omitempty"`
 }
 
-// HandleAddPatientNote saves a communication/phone note on an existing patient.
+// HandleAddPatientNote saves an appointment note on an existing patient.
 func (h *Handlers) HandleAddPatientNote(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

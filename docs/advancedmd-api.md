@@ -35,7 +35,7 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/patient/appointments` | Upcoming appointments for a patient |
 | `POST /api/appointment/book` | Book appointment with server-side defaults |
 | `POST /api/appointment/cancel` | Cancel appointment |
-| `POST /api/patient/notes` | Save patient communication note |
+| `POST /api/patient/notes` | Save patient appointment note |
 
 ## XMLRPC APIs Used
 
@@ -122,8 +122,8 @@ Used by `POST /api/patient/notes`.
 
 Server-owned defaults:
 
-- `notetype`: `CN`
-- `notetypefid`: `notetype559`
+- `notetype`: `AP`
+- `notetypefid`: `notetype532`
 - `useclienttime`: `1`
 - `uid`: empty
 - `profilefid`: office default profile ID
@@ -223,6 +223,11 @@ Validation before sending to AMD:
 - DOB applies medical pediatric routing when the patient is under 18.
 
 AMD 409 conflicts are returned as a clear slot-conflict message.
+
+When the app-facing booking request includes `appointmentReason` or
+`referringDoctor`, the middleware calls `savepatientnotes` after AMD returns the
+new appointment ID. The generated AP note includes the appointment ID,
+appointment reason, and referring doctor.
 
 ### `PUT /scheduler/appointments/{id}/cancel`
 
