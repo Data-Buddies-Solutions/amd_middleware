@@ -12,7 +12,7 @@ AdvancedMD uses a two-step login:
 2. POST to the returned webserver URL.
 
 The middleware owns this flow through `internal/auth`. Tokens are cached in
-Redis and refreshed by `TokenManager`.
+memory and refreshed by `TokenManager`.
 
 Headers used downstream:
 
@@ -27,7 +27,6 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 
 | Endpoint | Purpose |
 | --- | --- |
-| `POST /api/token` | Conversation-init data and cached AMD token |
 | `POST /api/verify-patient` | Patient verification plus insurance routing |
 | `POST /api/patient-lookup` | Phone lookup plus upcoming appointments |
 | `POST /api/add-patient` | Create patient and attach insurance |
@@ -152,6 +151,11 @@ Important fields:
 The middleware does not expose every AMD column. It filters to office-owned
 columns listed in `internal/domain/office.go`.
 
+Scheduler setup is cached in process for six hours because provider columns,
+profile IDs, facilities, work hours, and slot intervals are relatively static.
+Actual appointments and block holds are still fetched live for each availability
+search.
+
 ## REST APIs Used
 
 ### `GET /scheduler/appointments`
@@ -176,7 +180,9 @@ the middleware returns `outcome: "availability_search_incomplete"` with
 retry, the agent should ask for different preferences.
 
 For patient appointments, the middleware queries all allowed office columns
-across seven months, then filters by patient ID.
+across seven months, then filters by patient ID. Each returned appointment
+includes a short-lived signed `cancelToken` that binds appointment ID, patient
+ID, office, and action.
 
 ### `GET /scheduler/blockholds`
 
@@ -192,9 +198,9 @@ Used by `POST /api/appointment/book`.
 The middleware builds AMD's request body from the selected availability slot
 plus server-owned defaults. The preferred app-facing booking request passes
 `bookingToken`; the middleware verifies the token and expands it to AMD's
-`columnId`, `profileId`, `startDatetime`, `duration`, and routing lane before
-running the same validation path. Legacy callers may still send those raw slot
-fields directly.
+office, `columnId`, `profileId`, `startDatetime`, `duration`, and routing lane
+before running the same validation path. Legacy callers may still send those raw
+slot fields directly only when `ALLOW_RAW_SLOT_BOOKING=true`.
 
 - `facilityid` from the resolved office.
 - `episodeid: 1`.
@@ -208,7 +214,8 @@ fields directly.
 Validation before sending to AMD:
 
 - patient ID is numeric.
-- signed booking tokens are unexpired and belong to the resolved office.
+- signed booking tokens are unexpired and match `office` when `office` is
+  supplied.
 - column ID belongs to the office.
 - column ID is valid for the requested routing lane.
 - appointment type is valid for the office and routing lane.
@@ -217,12 +224,15 @@ Validation before sending to AMD:
 
 AMD 409 conflicts are returned as a clear slot-conflict message.
 
-### `DELETE /scheduler/Appointments/{id}`
+### `PUT /scheduler/appointments/{id}/cancel`
 
 Used by `POST /api/appointment/cancel`.
 
-The middleware sends only the appointment ID. AMD rejects the older
-`noshowreasonid` body for this use case, so it is intentionally omitted.
+The app-facing cancellation request should include `appointmentId`, `patientId`,
+and `cancelToken` from `POST /api/patient/appointments` or
+`POST /api/patient-lookup`. The token supplies office when `office` is omitted
+and rejects a conflicting explicit office. Appointment-ID-only cancellation is
+disabled unless `ALLOW_LEGACY_CANCEL=true`.
 
 ## Office Scheduler State
 

@@ -13,6 +13,9 @@
 .DS_Store
 Thumbs.db
 
+# Local tool state
+.clawpatch/
+
 # Go
 gateway
 *.exe

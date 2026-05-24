@@ -107,6 +107,9 @@ func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *domai
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("unexpected XMLRPC status %d", resp.StatusCode)
+	}
 
 	return body, nil
 }
@@ -161,6 +164,26 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domai
 
 // parseLookupResponse handles AMD's single-vs-array patient response format.
 func parseLookupResponse(body []byte) ([]domain.Patient, error) {
+	var envelope struct {
+		PPMDResults struct {
+			Results struct {
+				PatientList struct {
+					ItemCount string `json:"@itemcount"`
+				} `json:"patientlist"`
+			} `json:"Results"`
+			Error interface{} `json:"Error"`
+		} `json:"PPMDResults"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return nil, fmt.Errorf("failed to parse lookup response: %w", err)
+	}
+	if err := checkXMLRPCError(body, "lookuppatient"); err != nil {
+		return nil, err
+	}
+	if envelope.PPMDResults.Results.PatientList.ItemCount == "0" {
+		return []domain.Patient{}, nil
+	}
+
 	// Try array response first
 	var arrayResp AMDLookupResponse
 	if err := json.Unmarshal(body, &arrayResp); err == nil {
@@ -177,7 +200,7 @@ func parseLookupResponse(body []byte) ([]domain.Patient, error) {
 		}
 	}
 
-	return []domain.Patient{}, nil
+	return nil, fmt.Errorf("lookuppatient returned malformed patientlist")
 }
 
 // AddPatientParams holds the parameters for creating a new patient.

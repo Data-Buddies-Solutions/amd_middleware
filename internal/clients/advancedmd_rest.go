@@ -85,8 +85,7 @@ func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *d
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("unexpected status %d from AMD appointments API", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -108,7 +107,7 @@ func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *d
 	for _, a := range amdAppts {
 		startTime, err := ParseDateTime(a.StartDateTime)
 		if err != nil {
-			log.Printf("WARNING: skipping appointment %d in column %s — %v", a.ID, columnID, err)
+			log.Printf("WARNING: skipping appointment with invalid start time in column %s: %v", columnID, err)
 			continue
 		}
 
@@ -186,8 +185,7 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("unexpected status %d from AMD block holds API", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -209,7 +207,7 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 	for _, h := range amdHolds {
 		startTime, err := ParseDateTime(h.StartDateTime)
 		if err != nil {
-			log.Printf("WARNING: skipping block hold %d — %v", h.ID, err)
+			log.Printf("WARNING: skipping block hold with invalid start time: %v", err)
 			continue
 		}
 
@@ -283,8 +281,7 @@ func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, token
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("unexpected status %d from AMD monthly appointments API", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -346,14 +343,17 @@ func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *d
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
-
 	if resp.StatusCode == http.StatusConflict {
-		return 0, fmt.Errorf("conflict: %s", string(body))
+		return 0, fmt.Errorf("conflict")
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return 0, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
+		return 0, fmt.Errorf("unexpected status %d from AMD booking API", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var result BookAppointmentResponse
@@ -392,10 +392,8 @@ func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData 
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
+		return fmt.Errorf("unexpected status %d from AMD cancellation API", resp.StatusCode)
 	}
 
 	return nil

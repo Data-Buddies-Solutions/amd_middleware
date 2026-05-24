@@ -194,4 +194,3 @@ func TestIsAllowedColumn(t *testing.T) {
 		})
 	}
 }
-

@@ -201,6 +201,36 @@ func TestAdvancedMDClient_LookupPatient_RequestPayload(t *testing.T) {
 	}
 }
 
+func TestAdvancedMDClient_LookupPatient_HTTPError(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		w.Write([]byte(`upstream unavailable`))
+	})
+
+	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
+	defer cleanup()
+
+	_, err := client.LookupPatient(context.Background(), tokenData, "Smith", "")
+	if err == nil {
+		t.Fatal("Expected error for non-2xx XMLRPC response, got nil")
+	}
+}
+
+func TestAdvancedMDClient_LookupPatient_MalformedResponse(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"PPMDResults":{"Results":{"patientlist":{}}}}`))
+	})
+
+	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
+	defer cleanup()
+
+	_, err := client.LookupPatient(context.Background(), tokenData, "Smith", "")
+	if err == nil {
+		t.Fatal("Expected error for malformed lookup response, got nil")
+	}
+}
+
 func TestAdvancedMDClient_AddPatient(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

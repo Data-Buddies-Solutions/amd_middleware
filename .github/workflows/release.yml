@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, for example v1.2.3"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -28,9 +34,14 @@ jobs:
           CGO_ENABLED: "0"
         run: go build -trimpath -ldflags="-s -w" -o gateway-linux-amd64 ./cmd/api
 
+      - name: Checksums
+        run: shasum -a 256 gateway-linux-amd64 > checksums.txt
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           generate_release_notes: true
           files: |
             gateway-linux-amd64
+            checksums.txt

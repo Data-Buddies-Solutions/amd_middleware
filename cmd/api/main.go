@@ -36,8 +36,9 @@ func main() {
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
-			MaxIdleConns:        10,
-			MaxIdleConnsPerHost: 10,
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 50,
+			MaxConnsPerHost:     75,
 			IdleConnTimeout:     90 * time.Second,
 		},
 	}
@@ -69,6 +70,8 @@ func main() {
 
 	// Initialize handlers
 	handlers := apphttp.NewHandlers(tokenManager, amdClient, amdRestClient, cfg.BookingTokenSecret)
+	handlers.SetAllowRawSlotBooking(cfg.AllowRawSlotBooking)
+	handlers.SetAllowLegacyCancel(cfg.AllowLegacyCancel)
 
 	// Create router
 	router := apphttp.NewRouter(handlers, cfg.APISecret)

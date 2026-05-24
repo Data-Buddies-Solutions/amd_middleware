@@ -111,4 +111,3 @@ func TestBuildTokenData(t *testing.T) {
 		t.Error("CreatedAt should not be empty")
 	}
 }
-

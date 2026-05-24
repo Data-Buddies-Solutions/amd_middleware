@@ -11,10 +11,10 @@ func TestStripPrefix(t *testing.T) {
 		{"col1513", "col", "1513"},
 		{"prof620", "prof", "620"},
 		{"fac1568", "fac", "1568"},
-		{"1513", "col", "1513"},   // no prefix
-		{"col", "col", "col"},     // prefix only, no ID
-		{"", "col", ""},           // empty
-		{"colABC", "col", "ABC"},  // non-numeric
+		{"1513", "col", "1513"},  // no prefix
+		{"col", "col", "col"},    // prefix only, no ID
+		{"", "col", ""},          // empty
+		{"colABC", "col", "ABC"}, // non-numeric
 	}
 
 	for _, tt := range tests {
@@ -35,8 +35,8 @@ func TestParseWorkweek(t *testing.T) {
 	}{
 		// AMD format: 7 chars for Mon-Sun (1=works, 0=off)
 		// Our bitmask: 1=Sun, 2=Mon, 4=Tue, 8=Wed, 16=Thu, 32=Fri, 64=Sat
-		{"Mon-Fri", "1111100", 2 + 4 + 8 + 16 + 32},     // 62
-		{"Wed-Thu", "0011000", 8 + 16},                     // 24
+		{"Mon-Fri", "1111100", 2 + 4 + 8 + 16 + 32},            // 62
+		{"Wed-Thu", "0011000", 8 + 16},                         // 24
 		{"Every day", "1111111", 1 + 2 + 4 + 8 + 16 + 32 + 64}, // 127
 		{"No days", "0000000", 0},
 		{"Mon only", "1000000", 2},
@@ -63,9 +63,9 @@ func TestNormalizeTime(t *testing.T) {
 	}{
 		{"0800", "08:00"},
 		{"1700", "17:00"},
-		{"08:00", "08:00"},    // already correct
-		{"17:00", "17:00"},    // already correct
-		{"", ""},              // empty
+		{"08:00", "08:00"}, // already correct
+		{"17:00", "17:00"}, // already correct
+		{"", ""},           // empty
 		{"0930", "09:30"},
 	}
 

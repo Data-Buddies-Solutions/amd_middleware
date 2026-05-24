@@ -18,6 +18,8 @@ experiment has been removed.
 - Uses separate medical and routine-vision insurance crosswalks.
 - Filters availability and booking by office, routing lane, appointment type,
   provider column, preauth lead time, and provider age rules.
+- Caches scheduler setup briefly while fetching live appointments and block
+  holds for each availability search.
 - Fetches appointments and block holds concurrently during availability checks.
 - Returns 200 responses with `status: "error"` for agent-readable business
   errors.
@@ -26,7 +28,6 @@ experiment has been removed.
 
 ```
 LiveKit agent
-  -> POST /api/token
   -> POST /api/verify-patient or /api/patient-lookup
   -> POST /api/scheduler/availability
   -> POST /api/appointment/book
@@ -34,7 +35,7 @@ LiveKit agent
   -> POST /api/patient/notes
 
 AdvancedMD middleware
-  -> token manager and Redis cache
+  -> in-memory token manager with background refresh
   -> AdvancedMD XMLRPC APIs for patients, demographics, notes, scheduler setup
   -> AdvancedMD REST APIs for appointments, block holds, booking, cancellation
 ```
@@ -81,9 +82,10 @@ advancedmd-token-management/
 | `ADVANCEDMD_PASSWORD` | Yes | AdvancedMD API password |
 | `ADVANCEDMD_OFFICE_KEY` | Yes | AdvancedMD office key |
 | `ADVANCEDMD_APP_NAME` | Yes | Registered AdvancedMD app name |
-| `REDIS_URL` | Yes | Redis URL for token cache |
 | `API_SECRET` | Yes | Bearer token required by `/api/*` endpoints |
 | `BOOKING_TOKEN_SECRET` | No | HMAC secret for signed availability slot booking tokens; defaults to `API_SECRET` |
+| `ALLOW_RAW_SLOT_BOOKING` | No | Temporary legacy escape hatch for booking without `bookingToken`; default `false` |
+| `ALLOW_LEGACY_CANCEL` | No | Temporary legacy escape hatch for cancelling without `cancelToken`; default `false` |
 | `PORT` | No | Server port, default `8080` |
 | `AMD_ENV` | No | `dev` uses dev office IDs; anything else uses prod |
 
@@ -94,7 +96,6 @@ export ADVANCEDMD_USERNAME=...
 export ADVANCEDMD_PASSWORD=...
 export ADVANCEDMD_OFFICE_KEY=...
 export ADVANCEDMD_APP_NAME=...
-export REDIS_URL=...
 export API_SECRET=...
 
 go run ./cmd/api
@@ -137,7 +138,9 @@ Office truth lives in `internal/domain/office.go`.
 - office IDs or display names, for example `hollywood`, `Hollywood`,
   `sweetwater`, `Spring Hill`
 
-If `office` is omitted, prod defaults to Spring Hill.
+If `office` is omitted on non-token requests, prod defaults to Spring Hill.
+Signed `bookingToken` and `cancelToken` requests infer office from the token and
+reject a conflicting explicit office.
 
 ### Production Offices
 
@@ -230,35 +233,6 @@ Returns:
 
 ```json
 {"status":"ok"}
-```
-
-### POST /api/token
-
-Conversation-init endpoint for the voice agent. Optional `office` validates and
-returns the office value as a dynamic variable.
-
-Request:
-
-```json
-{
-  "office": "+19542872010"
-}
-```
-
-Response:
-
-```json
-{
-  "type": "conversation_initiation_client_data",
-  "dynamic_variables": {
-    "amd_token": "Bearer ...",
-    "amd_rest_api_base": "providerapi.advancedmd.com/api/api-101/APP",
-    "patient_id": "1",
-    "current_date": "Thursday, May 14, 2026",
-    "current_time": "3:04 PM",
-    "office": "+19542872010"
-  }
-}
 ```
 
 ### POST /api/verify-patient
@@ -471,7 +445,8 @@ Request:
 }
 ```
 
-Legacy raw-slot request, kept for compatibility:
+Legacy raw-slot request, disabled by default and intended only as a temporary
+compatibility escape hatch with `ALLOW_RAW_SLOT_BOOKING=true`:
 
 ```json
 {
@@ -495,14 +470,14 @@ or the legacy raw slot fields `columnId`, `profileId`, `startDatetime`, and
 Optional fields: `patientName`, `dob`, `routing`, `office`. `dob` is required
 when booking an age-restricted provider column, and under-18 DOBs apply the
 office's pediatric routing for medical bookings. When `bookingToken` is used,
-the token owns the selected `columnId`, `profileId`, `startDatetime`,
+the token owns the office, selected `columnId`, `profileId`, `startDatetime`,
 `duration`, and routing lane.
 
 Booking validation:
 
 - `patientId` must be numeric.
-- `bookingToken`, when present, must be signed, unexpired, and issued for the
-  resolved office.
+- `bookingToken`, when present, must be signed and unexpired. If `office` is
+  supplied, it must match the token's office.
 - `columnId` must belong to the resolved office.
 - `columnId` must be valid for the requested routing lane.
 - `appointmentTypeId` must be valid for the office and routing lane.
@@ -531,21 +506,46 @@ Request:
 }
 ```
 
+Appointment responses include `cancelToken`, a signed short-lived token binding
+the appointment to the patient and office. The agent should store this token in
+tool/session state and pass it back when cancelling.
+
 Response statuses: `found`, `no_appointments`, `error`.
 
 ### POST /api/appointment/cancel
 
-Cancels an appointment by AMD appointment ID.
+Cancels an appointment with a middleware-issued cancel token. Legacy
+appointment-ID-only cancellation is disabled unless `ALLOW_LEGACY_CANCEL=true`.
 
 Request:
 
 ```json
 {
-  "appointmentId": 9570263
+  "appointmentId": 9570263,
+  "patientId": "17604634",
+  "cancelToken": "signed-cancel-token",
+  "office": "Sweetwater"
 }
 ```
 
 Response statuses: `cancelled`, `error`.
+
+### LiveKit Agent Contract
+
+The LiveKit agent no longer needs `/api/token`; that endpoint has been removed.
+The agent should call middleware endpoints directly with `AMD_API_URL` and
+`AMD_API_TOKEN`.
+
+For cancellation, `confirm_appt` / appointment lookup should keep each
+appointment's hidden `cancelToken` in session state. `cancel_appt` should send:
+
+```json
+{
+  "appointmentId": 9570263,
+  "patientId": "17604634",
+  "cancelToken": "signed-cancel-token"
+}
+```
 
 ### POST /api/patient/notes
 
