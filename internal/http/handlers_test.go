@@ -393,7 +393,7 @@ func sameStrings(a, b []string) bool {
 	return true
 }
 
-func TestHandleVerifyPatient_ValidationErrors(t *testing.T) {
+func TestHandlePatientResolve_ValidationErrors(t *testing.T) {
 	handlers := &Handlers{}
 
 	tests := []struct {
@@ -409,26 +409,38 @@ func TestHandleVerifyPatient_ValidationErrors(t *testing.T) {
 			expectedMsg: "Invalid JSON body",
 		},
 		{
-			name:        "missing lastName and phone",
+			name:        "missing lookup fields",
 			method:      "POST",
 			body:        `{"dob":"01/15/1980"}`,
-			expectedMsg: "Provide phone + firstName, phone + dob, or lastName + dob",
+			expectedMsg: "Provide patientId, phone, phone + firstName, phone + dob, or lastName + dob",
 		},
 		{
 			name:        "missing dob",
 			method:      "POST",
 			body:        `{"lastName":"Smith"}`,
-			expectedMsg: "Provide phone + firstName, phone + dob, or lastName + dob",
+			expectedMsg: "Provide patientId, phone, phone + firstName, phone + dob, or lastName + dob",
+		},
+		{
+			name:        "non-numeric patientId",
+			method:      "POST",
+			body:        `{"patientId":"abc"}`,
+			expectedMsg: "patientId must be numeric",
+		},
+		{
+			name:        "patientId with lookup fields",
+			method:      "POST",
+			body:        `{"patientId":"123","phone":"9542872010"}`,
+			expectedMsg: "Provide either patientId or lookup fields, not both",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(tt.method, "/api/verify-patient", bytes.NewBufferString(tt.body))
+			req := httptest.NewRequest(tt.method, "/api/patient/resolve", bytes.NewBufferString(tt.body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 
-			handlers.HandleVerifyPatient(w, req)
+			handlers.HandlePatientResolve(w, req)
 
 			resp := w.Result()
 			// Errors return 200 OK so ElevenLabs passes the body to the LLM
@@ -436,7 +448,7 @@ func TestHandleVerifyPatient_ValidationErrors(t *testing.T) {
 				t.Errorf("Expected status 200, got %d", resp.StatusCode)
 			}
 
-			var body VerifyPatientResponse
+			var body PatientResolveResponse
 			json.NewDecoder(resp.Body).Decode(&body)
 			if body.Status != "error" {
 				t.Errorf("Expected status 'error', got '%s'", body.Status)
@@ -445,6 +457,87 @@ func TestHandleVerifyPatient_ValidationErrors(t *testing.T) {
 				t.Errorf("Expected message '%s', got '%s'", tt.expectedMsg, body.Message)
 			}
 		})
+	}
+}
+
+func TestHandlePatientResolve_PhoneOnlyLoadsAppointments(t *testing.T) {
+	handlers := newPatientResolveTestHandlers(t, http.StatusOK)
+
+	req := httptest.NewRequest("POST", "/api/patient/resolve", strings.NewReader(`{"phone":"9542872010","office":"Spring Hill"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandlePatientResolve(w, req)
+
+	var body PatientResolveResponse
+	if err := json.NewDecoder(w.Result().Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Status != "verified" {
+		t.Fatalf("status = %q, want verified; body = %+v", body.Status, body)
+	}
+	if body.PatientID != "123" {
+		t.Fatalf("patientId = %q, want 123", body.PatientID)
+	}
+	if body.AppointmentsStatus != appointmentsStatusFound {
+		t.Fatalf("appointmentsStatus = %q, want %q", body.AppointmentsStatus, appointmentsStatusFound)
+	}
+	if len(body.Appointments) != 1 {
+		t.Fatalf("appointments = %+v, want one appointment", body.Appointments)
+	}
+	if body.Appointments[0].CancelToken == "" {
+		t.Fatal("appointment should include cancelToken")
+	}
+}
+
+func TestHandlePatientResolve_PatientIDRefreshUsesSameRoute(t *testing.T) {
+	handlers := newPatientResolveTestHandlers(t, http.StatusOK)
+
+	req := httptest.NewRequest("POST", "/api/patient/resolve", strings.NewReader(`{"patientId":"123","office":"Spring Hill"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandlePatientResolve(w, req)
+
+	var body PatientResolveResponse
+	if err := json.NewDecoder(w.Result().Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Status != "verified" {
+		t.Fatalf("status = %q, want verified; body = %+v", body.Status, body)
+	}
+	if body.PatientID != "123" {
+		t.Fatalf("patientId = %q, want 123", body.PatientID)
+	}
+	if body.AppointmentsStatus != appointmentsStatusFound {
+		t.Fatalf("appointmentsStatus = %q, want %q", body.AppointmentsStatus, appointmentsStatusFound)
+	}
+	if len(body.Appointments) != 1 {
+		t.Fatalf("appointments = %+v, want one appointment", body.Appointments)
+	}
+}
+
+func TestHandlePatientResolve_AppointmentFailureStillVerifies(t *testing.T) {
+	handlers := newPatientResolveTestHandlers(t, http.StatusInternalServerError)
+
+	req := httptest.NewRequest("POST", "/api/patient/resolve", strings.NewReader(`{"phone":"9542872010","office":"Spring Hill"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandlePatientResolve(w, req)
+
+	var body PatientResolveResponse
+	if err := json.NewDecoder(w.Result().Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Status != "verified" {
+		t.Fatalf("status = %q, want verified; body = %+v", body.Status, body)
+	}
+	if body.AppointmentsStatus != appointmentsStatusError {
+		t.Fatalf("appointmentsStatus = %q, want %q", body.AppointmentsStatus, appointmentsStatusError)
+	}
+	if body.AppointmentsMessage == "" {
+		t.Fatal("appointmentsMessage should explain the appointment lookup failure")
 	}
 }
 
@@ -557,7 +650,7 @@ func TestAuthMiddleware(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("GET", "/api/patient/appointments", nil)
+			req := httptest.NewRequest("GET", "/api/patient/resolve", nil)
 			if tt.authHeader != "" {
 				req.Header.Set("Authorization", tt.authHeader)
 			}
@@ -1741,61 +1834,6 @@ func TestEnforcePreauthMinDate(t *testing.T) {
 	}
 }
 
-func TestHandleGetPatientAppointments_ValidationErrors(t *testing.T) {
-	handlers := &Handlers{}
-
-	tests := []struct {
-		name        string
-		body        string
-		expectedMsg string
-	}{
-		{
-			name:        "invalid JSON",
-			body:        "not json",
-			expectedMsg: "Invalid JSON body",
-		},
-		{
-			name:        "missing patientId",
-			body:        `{}`,
-			expectedMsg: "patientId is required",
-		},
-		{
-			name:        "empty patientId",
-			body:        `{"patientId":""}`,
-			expectedMsg: "patientId is required",
-		},
-		{
-			name:        "non-numeric patientId",
-			body:        `{"patientId":"abc"}`,
-			expectedMsg: "patientId must be numeric",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/api/patient/appointments", bytes.NewBufferString(tt.body))
-			req.Header.Set("Content-Type", "application/json")
-			w := httptest.NewRecorder()
-
-			handlers.HandleGetPatientAppointments(w, req)
-
-			resp := w.Result()
-			if resp.StatusCode != http.StatusOK {
-				t.Errorf("Expected status 200, got %d", resp.StatusCode)
-			}
-
-			var body PatientApptResponse
-			json.NewDecoder(resp.Body).Decode(&body)
-			if body.Status != "error" {
-				t.Errorf("Expected status 'error', got '%s'", body.Status)
-			}
-			if body.Message != tt.expectedMsg {
-				t.Errorf("Expected message %q, got %q", tt.expectedMsg, body.Message)
-			}
-		})
-	}
-}
-
 func TestFetchUpcomingAppointmentsFiltersPastAppointments(t *testing.T) {
 	now := time.Now().In(eastern)
 	pastToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, eastern)
@@ -1955,13 +1993,27 @@ func TestRouter(t *testing.T) {
 	})
 
 	t.Run("api endpoints require auth", func(t *testing.T) {
-		req := httptest.NewRequest("POST", "/api/patient/appointments", strings.NewReader(`{"patientId":"123"}`))
+		req := httptest.NewRequest("POST", "/api/patient/resolve", strings.NewReader(`{"patientId":"123"}`))
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
 
 		if w.Code != http.StatusUnauthorized {
 			t.Errorf("Expected 401 without auth, got %d", w.Code)
+		}
+	})
+
+	t.Run("old patient read endpoints removed", func(t *testing.T) {
+		for _, path := range []string{"/api/verify-patient", "/api/patient-lookup", "/api/patient/appointments"} {
+			req := httptest.NewRequest("POST", path, strings.NewReader(`{}`))
+			req.Header.Set("Authorization", "Bearer test-secret")
+			w := httptest.NewRecorder()
+
+			router.ServeHTTP(w, req)
+
+			if w.Code != http.StatusNotFound && w.Code != http.StatusMethodNotAllowed {
+				t.Errorf("Expected %s to be removed, got %d", path, w.Code)
+			}
 		}
 	})
 
@@ -2276,6 +2328,114 @@ func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
 	), &writes
+}
+
+func newPatientResolveTestHandlers(t *testing.T, appointmentStatus int) *Handlers {
+	t.Helper()
+	future := time.Now().In(eastern).Add(48 * time.Hour)
+	futureMonth := time.Date(future.Year(), future.Month(), 1, 0, 0, 0, 0, eastern).Format("2006-01-02")
+
+	httpClient := &http.Client{
+		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			var body []byte
+			if r.Body != nil {
+				body, _ = io.ReadAll(r.Body)
+			}
+			contentType := r.Header.Get("Content-Type")
+
+			status := http.StatusOK
+			response := `{}`
+			switch {
+			case strings.Contains(contentType, "application/xml") && strings.Contains(r.URL.Host, "partnerlogin"):
+				response = `<PPMDResults><Results><usercontext webserver="https://mock.advancedmd.test/processrequest/api-801/APP"></usercontext></Results></PPMDResults>`
+			case strings.Contains(contentType, "application/xml"):
+				response = `<PPMDResults><Results success="1"><usercontext>test-token</usercontext></Results></PPMDResults>`
+			case strings.Contains(r.URL.Path, "/scheduler/appointments"):
+				status = appointmentStatus
+				if status == http.StatusOK && r.URL.Query().Get("startDate") == futureMonth {
+					response = fmt.Sprintf(`[{
+						"id": 9570263,
+						"startdatetime": %q,
+						"patientid": 123,
+						"profile": "BACH, AUSTIN",
+						"facility": "ABITA EYE GROUP SPRING HILL",
+						"appointmenttypeids": [1007]
+					}]`, future.Format("2006-01-02T15:04:05"))
+				} else if status == http.StatusOK {
+					response = `[]`
+				} else {
+					response = `{"error":"appointment failure"}`
+				}
+			case strings.Contains(string(body), `"@action":"lookuppatient"`):
+				response = `{
+					"PPMDResults": {
+						"Results": {
+							"patientlist": {
+								"@itemcount": "1",
+								"patient": {
+									"@id": "pat123",
+									"@name": "DOE,JANE",
+									"@dob": "01/15/1980",
+									"contactinfo": {"@homephone": "954-287-2010"}
+								}
+							}
+						}
+					}
+				}`
+			case strings.Contains(string(body), `"@action":"getdemographic"`):
+				response = `{
+					"PPMDResults": {
+						"Results": {
+							"patientlist": {
+								"patient": {
+									"@id": "pat123",
+									"@respparty": "resp456",
+									"@dob": "01/15/1980",
+									"insplanlist": {
+										"insplan": {
+											"@id": "ins789",
+											"@carrier": "car40906",
+											"@subscriber": "resp456",
+											"@enddate": "",
+											"@coverage": "1"
+										}
+									}
+								}
+							},
+							"carrierlist": {
+								"carrier": {
+									"@id": "car40906",
+									"@name": "HUMANA MEDICARE"
+								}
+							}
+						}
+					}
+				}`
+			}
+
+			return &http.Response{
+				StatusCode: status,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader(response)),
+				Request:    r,
+			}, nil
+		}),
+	}
+
+	authenticator := auth.NewAuthenticator(auth.Credentials{
+		Username:  "user",
+		Password:  "pass",
+		OfficeKey: "office",
+		AppName:   "app",
+	}, httpClient)
+	tokenManager := auth.NewTokenManager(authenticator)
+
+	return NewHandlers(
+		tokenManager,
+		clients.NewAdvancedMDClient(httpClient),
+		clients.NewAdvancedMDRestClient(httpClient),
+		"test-booking-secret",
+	)
 }
 
 func TestHandleAddPatientNote_ValidationErrors(t *testing.T) {

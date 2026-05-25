@@ -28,7 +28,7 @@ experiment has been removed.
 
 ```
 LiveKit agent
-  -> POST /api/verify-patient or /api/patient-lookup
+  -> POST /api/patient/resolve
   -> POST /api/scheduler/availability
   -> POST /api/appointment/book
   -> POST /api/appointment/cancel
@@ -235,44 +235,41 @@ Returns:
 {"status":"ok"}
 ```
 
-### POST /api/verify-patient
+### POST /api/patient/resolve
 
-Looks up patients by phone plus first name, phone plus DOB, or last name plus
-DOB. Returns demographics, insurance, routing, and allowed providers.
+Single patient read route for pre-call lookup, patient verification, and
+appointment refresh. It resolves patients by phone, name/DOB, or known
+`patientId`; returns demographics, insurance routing, allowed providers, and
+loads upcoming appointments by default.
 
 Request:
 
 ```json
 {
   "phone": "9542872010",
+  "firstName": "Jane",
   "dob": "01/15/1980",
-  "office": "Hollywood"
+  "office": "Hollywood",
+  "includeAppointments": true
 }
 ```
 
 Valid request shapes:
 
+- `phone`
 - `phone` + `firstName`
 - `phone` + `dob`
+- `phone` + `firstName` + `dob`
 - `lastName` + `dob`
 - `lastName` + `dob` + `firstName`
+- `patientId`
 
-Response statuses: `verified`, `multiple_matches`, `not_found`, `error`.
-
-### POST /api/patient-lookup
-
-Combined patient lookup and appointment summary. It searches by phone, optionally
-filters by DOB, adds insurance routing, and returns upcoming appointments.
-
-Request:
-
-```json
-{
-  "phone": "7864657475",
-  "dob": "01/15/1980",
-  "office": "Sweetwater"
-}
-```
+Appointment loading is best effort. A verified patient response uses
+`appointmentsStatus` to separate identity resolution from appointment loading:
+`found`, `none`, `skipped`, or `error`. Appointment responses include
+`cancelToken`, a signed short-lived token binding the appointment to the patient
+and office. The agent should store this token in tool/session state and pass it
+back when cancelling.
 
 Response statuses: `verified`, `multiple_matches`, `not_found`, `error`.
 
@@ -506,26 +503,6 @@ Booking validation:
 
 Response statuses: `booked`, `partial`, `error`. `partial` means the
 appointment was booked but the follow-up AP note failed.
-
-### POST /api/patient/appointments
-
-Returns upcoming appointments for a verified patient. The middleware queries
-allowed columns across seven months, then filters by patient ID.
-
-Request:
-
-```json
-{
-  "patientId": "17604634",
-  "office": "Sweetwater"
-}
-```
-
-Appointment responses include `cancelToken`, a signed short-lived token binding
-the appointment to the patient and office. The agent should store this token in
-tool/session state and pass it back when cancelling.
-
-Response statuses: `found`, `no_appointments`, `error`.
 
 ### POST /api/appointment/cancel
 
