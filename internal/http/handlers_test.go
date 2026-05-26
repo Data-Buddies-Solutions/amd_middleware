@@ -480,6 +480,9 @@ func TestHandlePatientResolve_PhoneOnlyLoadsAppointments(t *testing.T) {
 	if body.PatientID != "123" {
 		t.Fatalf("patientId = %q, want 123", body.PatientID)
 	}
+	if body.Phone != "850-373-3869" {
+		t.Fatalf("phone = %q, want cell phone", body.Phone)
+	}
 	if body.AppointmentsStatus != appointmentsStatusFound {
 		t.Fatalf("appointmentsStatus = %q, want %q", body.AppointmentsStatus, appointmentsStatusFound)
 	}
@@ -2494,7 +2497,7 @@ func newPatientResolveTestHandlers(t *testing.T, appointmentStatus int) *Handler
 									"@id": "pat123",
 									"@name": "DOE,JANE",
 									"@dob": "01/15/1980",
-									"contactinfo": {"@homephone": "954-287-2010"}
+									"contactinfo": {"@cellphone": "850-373-3869"}
 								}
 							}
 						}
