@@ -398,6 +398,8 @@ type PatientApptDetail struct {
 	Provider    string `json:"provider,omitempty"`    // e.g., "Dr. Austin Bach"
 	Type        string `json:"type,omitempty"`        // e.g., "New Adult Medical"
 	Facility    string `json:"facility,omitempty"`    // e.g., "Abita Eye Group Spring Hill"
+	OfficeID    string `json:"officeId,omitempty"`    // Stable office ID that owns the appointment column
+	Office      string `json:"office,omitempty"`      // Display name for the owning office
 	CancelToken string `json:"cancelToken,omitempty"` // Signed token binding this appointment to patient and office
 }
 
@@ -696,6 +698,19 @@ func setPatientResolveMessage(resp *PatientResolveResponse) {
 // fetchUpcomingAppointments retrieves future appointments for a patient ID
 // (current month + 5 months forward).
 func (h *Handlers) fetchUpcomingAppointments(ctx context.Context, tokenData *domain.TokenData, patientID string, office *domain.OfficeConfig) ([]PatientApptDetail, error) {
+	lookupOffices := domain.AppointmentLookupOffices(office)
+	details := make([]PatientApptDetail, 0)
+	for _, lookupOffice := range lookupOffices {
+		officeDetails, err := h.fetchUpcomingAppointmentsForOffice(ctx, tokenData, patientID, lookupOffice)
+		if err != nil {
+			return nil, err
+		}
+		details = append(details, officeDetails...)
+	}
+	return details, nil
+}
+
+func (h *Handlers) fetchUpcomingAppointmentsForOffice(ctx context.Context, tokenData *domain.TokenData, patientID string, office *domain.OfficeConfig) ([]PatientApptDetail, error) {
 	patientIDInt, err := strconv.Atoi(patientID)
 	if err != nil {
 		return nil, fmt.Errorf("patientId must be numeric: %w", err)
@@ -761,7 +776,9 @@ func (h *Handlers) fetchUpcomingAppointments(ctx context.Context, tokenData *dom
 			Time:     startTime.Format("3:04 PM"),
 			Provider: office.FriendlyProviderName(a.Provider),
 			Type:     typeName,
-			Facility: friendlyFacilityName(a.Facility),
+			Facility: appointmentFacilityName(a.Facility, office),
+			OfficeID: office.ID,
+			Office:   office.DisplayName,
 		}
 		if err := h.addCancelToken(&detail, patientID, office, time.Now().UTC()); err != nil {
 			return nil, fmt.Errorf("failed to create cancel token: %w", err)
@@ -783,6 +800,14 @@ func friendlyFacilityName(amdName string) string {
 		return ""
 	}
 	return cases.Title(language.English).String(strings.ToLower(amdName))
+}
+
+func appointmentFacilityName(amdName string, office *domain.OfficeConfig) string {
+	facility := friendlyFacilityName(amdName)
+	if facility != "" {
+		return facility
+	}
+	return office.DisplayName
 }
 
 // CancelAppointmentRequest is the expected JSON body for cancelling an appointment.

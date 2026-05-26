@@ -70,6 +70,34 @@ func TestDefaultOffice(t *testing.T) {
 	}
 }
 
+func TestAppointmentLookupOffices(t *testing.T) {
+	tests := []struct {
+		name   string
+		office *OfficeConfig
+		want   []string
+	}{
+		{"spring hill includes crystal river", springHillOffice, []string{"spring_hill", "crystal_river"}},
+		{"crystal river includes spring hill", crystalRiverOffice, []string{"spring_hill", "crystal_river"}},
+		{"hollywood includes sweetwater", hollywoodOffice, []string{"hollywood", "sweetwater"}},
+		{"sweetwater includes hollywood", sweetwaterOffice, []string{"hollywood", "sweetwater"}},
+		{"unknown office stays scoped", &OfficeConfig{ID: "other"}, []string{"other"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := AppointmentLookupOffices(tt.office)
+			if len(got) != len(tt.want) {
+				t.Fatalf("AppointmentLookupOffices() len = %d, want %d: %+v", len(got), len(tt.want), got)
+			}
+			for i, wantID := range tt.want {
+				if got[i].ID != wantID {
+					t.Fatalf("AppointmentLookupOffices()[%d].ID = %q, want %q", i, got[i].ID, wantID)
+				}
+			}
+		})
+	}
+}
+
 func TestOfficeConfig_IsAllowedColumn(t *testing.T) {
 	office := DefaultOffice()
 

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -1870,6 +1871,10 @@ func TestFetchUpcomingAppointmentsFiltersPastAppointments(t *testing.T) {
 			t.Fatalf("unexpected path %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
+		if !strings.Contains(r.URL.Query().Get("columnId"), "1513") {
+			json.NewEncoder(w).Encode([]clients.AMDAppointmentResponse{})
+			return
+		}
 		json.NewEncoder(w).Encode(appointmentsByMonth[r.URL.Query().Get("startDate")])
 	}))
 	defer server.Close()
@@ -1892,6 +1897,117 @@ func TestFetchUpcomingAppointmentsFiltersPastAppointments(t *testing.T) {
 	}
 	if details[0].CancelToken == "" {
 		t.Fatal("future appointment should include cancel token")
+	}
+}
+
+func TestFetchUpcomingAppointmentsLoadsNearbyOfficeGroup(t *testing.T) {
+	domain.InitRegistry("")
+	future := time.Now().In(eastern).Add(48 * time.Hour)
+	futureMonth := time.Date(future.Year(), future.Month(), 1, 0, 0, 0, 0, eastern).Format("2006-01-02")
+	requestedColumns := make(map[string]int)
+	var requestedMu sync.Mutex
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/scheduler/appointments" {
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+		columnID := r.URL.Query().Get("columnId")
+		requestedMu.Lock()
+		requestedColumns[columnID]++
+		requestedMu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Get("startDate") != futureMonth {
+			json.NewEncoder(w).Encode([]clients.AMDAppointmentResponse{})
+			return
+		}
+		switch {
+		case strings.Contains(columnID, "1513"):
+			json.NewEncoder(w).Encode([]clients.AMDAppointmentResponse{{
+				ID:               22222,
+				StartDateTime:    future.Format("2006-01-02T15:04:05"),
+				PatientID:        12345,
+				ColumnID:         1513,
+				Provider:         "BACH, AUSTIN",
+				Facility:         "ABITA EYE GROUP SPRING HILL",
+				AppointmentTypes: []int{1007},
+			}})
+		case strings.Contains(columnID, "1593"):
+			json.NewEncoder(w).Encode([]clients.AMDAppointmentResponse{{
+				ID:               33333,
+				StartDateTime:    future.Add(30 * time.Minute).Format("2006-01-02T15:04:05"),
+				PatientID:        12345,
+				ColumnID:         1593,
+				Provider:         "LICHT, J",
+				Facility:         "EYE RADIANCE CRYSTAL RIVER",
+				AppointmentTypes: []int{6169},
+			}})
+		default:
+			json.NewEncoder(w).Encode([]clients.AMDAppointmentResponse{})
+		}
+	}))
+	defer server.Close()
+
+	handlers := NewHandlers(nil, nil, clients.NewAdvancedMDRestClient(server.Client()), "test-booking-secret")
+	tokenData := &domain.TokenData{
+		Token:       "Bearer test-token",
+		RestApiBase: strings.TrimPrefix(server.URL, "https://"),
+	}
+
+	details, err := handlers.fetchUpcomingAppointments(context.Background(), tokenData, "12345", domain.DefaultOffice())
+	if err != nil {
+		t.Fatalf("fetchUpcomingAppointments error = %v", err)
+	}
+	if len(details) != 2 {
+		t.Fatalf("appointments = %+v, want Spring Hill and Crystal River appointments", details)
+	}
+	byID := make(map[int]PatientApptDetail)
+	for _, detail := range details {
+		byID[detail.ID] = detail
+	}
+
+	spring := byID[22222]
+	if spring.OfficeID != "spring_hill" || spring.Office != "Spring Hill" {
+		t.Fatalf("spring appointment office = %q/%q, want spring_hill/Spring Hill", spring.OfficeID, spring.Office)
+	}
+	if spring.Provider != "Dr. Austin Bach" {
+		t.Fatalf("spring provider = %q, want Dr. Austin Bach", spring.Provider)
+	}
+	crystal := byID[33333]
+	if crystal.OfficeID != "crystal_river" || crystal.Office != "Crystal River" {
+		t.Fatalf("crystal appointment office = %q/%q, want crystal_river/Crystal River", crystal.OfficeID, crystal.Office)
+	}
+	if crystal.Provider != "Dr. J. Licht" {
+		t.Fatalf("crystal provider = %q, want Dr. J. Licht", crystal.Provider)
+	}
+
+	for _, detail := range []PatientApptDetail{spring, crystal} {
+		if detail.CancelToken == "" {
+			t.Fatalf("appointment %d should include cancel token", detail.ID)
+		}
+		req := CancelAppointmentRequest{
+			AppointmentID: detail.ID,
+			PatientID:     "12345",
+			CancelToken:   detail.CancelToken,
+		}
+		tokenOffice, err := handlers.applyCancelToken(&req, nil, time.Now().UTC())
+		if err != nil {
+			t.Fatalf("cancel token for appointment %d did not verify: %v", detail.ID, err)
+		}
+		if tokenOffice.ID != detail.OfficeID {
+			t.Fatalf("cancel token office = %q, want %q", tokenOffice.ID, detail.OfficeID)
+		}
+	}
+
+	sawSpring := false
+	sawCrystal := false
+	requestedMu.Lock()
+	for columnID := range requestedColumns {
+		sawSpring = sawSpring || strings.Contains(columnID, "1513")
+		sawCrystal = sawCrystal || strings.Contains(columnID, "1593")
+	}
+	requestedMu.Unlock()
+	if !sawSpring || !sawCrystal {
+		t.Fatalf("requested columns = %v, want Spring Hill and Crystal River groups", requestedColumns)
 	}
 }
 
@@ -2352,11 +2468,13 @@ func newPatientResolveTestHandlers(t *testing.T, appointmentStatus int) *Handler
 				response = `<PPMDResults><Results success="1"><usercontext>test-token</usercontext></Results></PPMDResults>`
 			case strings.Contains(r.URL.Path, "/scheduler/appointments"):
 				status = appointmentStatus
-				if status == http.StatusOK && r.URL.Query().Get("startDate") == futureMonth {
+				columnID := r.URL.Query().Get("columnId")
+				if status == http.StatusOK && r.URL.Query().Get("startDate") == futureMonth && strings.Contains(columnID, "1513") {
 					response = fmt.Sprintf(`[{
 						"id": 9570263,
 						"startdatetime": %q,
 						"patientid": 123,
+						"columnid": 1513,
 						"profile": "BACH, AUSTIN",
 						"facility": "ABITA EYE GROUP SPRING HILL",
 						"appointmenttypeids": [1007]

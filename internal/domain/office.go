@@ -202,6 +202,51 @@ func (o *OfficeConfig) AppointmentTypeName(typeID int) (string, bool) {
 	return name, ok
 }
 
+// LookupOfficeByID resolves an office config from the active registry by stable
+// office ID.
+func LookupOfficeByID(officeID string) (*OfficeConfig, bool) {
+	for _, office := range OfficeRegistry {
+		if office.ID == officeID {
+			return office, true
+		}
+	}
+	return nil, false
+}
+
+// AppointmentLookupOffices returns the nearby-office group used when loading a
+// resolved patient's upcoming appointments.
+func AppointmentLookupOffices(office *OfficeConfig) []*OfficeConfig {
+	if office == nil {
+		return nil
+	}
+
+	officeIDs := []string{office.ID}
+	switch office.ID {
+	case "spring_hill", "crystal_river":
+		officeIDs = []string{"spring_hill", "crystal_river"}
+	case "hollywood", "sweetwater":
+		officeIDs = []string{"hollywood", "sweetwater"}
+	}
+
+	offices := make([]*OfficeConfig, 0, len(officeIDs))
+	seen := make(map[*OfficeConfig]bool, len(officeIDs))
+	for _, officeID := range officeIDs {
+		lookupOffice, ok := LookupOfficeByID(officeID)
+		if !ok {
+			continue
+		}
+		if seen[lookupOffice] {
+			continue
+		}
+		seen[lookupOffice] = true
+		offices = append(offices, lookupOffice)
+	}
+	if len(offices) == 0 {
+		return []*OfficeConfig{office}
+	}
+	return offices
+}
+
 // DefaultAppointmentTypeColors maps AMD appointment type IDs to booking colors.
 var DefaultAppointmentTypeColors = map[int]string{
 	1006: "RED",    // New Adult Medical
