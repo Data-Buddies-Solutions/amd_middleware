@@ -1,4 +1,4 @@
-# AdvancedMD Middleware
+# AdvancedMD Middleware 
 
 Go HTTP middleware between the LiveKit voice agent and AdvancedMD. It owns
 AdvancedMD authentication, office routing, scheduler column selection,
