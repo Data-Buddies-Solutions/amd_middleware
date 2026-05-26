@@ -282,10 +282,5 @@ func (h *Handlers) applyCancelToken(req *CancelAppointmentRequest, requestedOffi
 }
 
 func lookupOfficeByID(officeID string) (*domain.OfficeConfig, bool) {
-	for _, office := range domain.OfficeRegistry {
-		if office.ID == officeID {
-			return office, true
-		}
-	}
-	return nil, false
+	return domain.LookupOfficeByID(officeID)
 }

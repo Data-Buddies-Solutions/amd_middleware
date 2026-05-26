@@ -175,10 +175,12 @@ the middleware returns `outcome: "availability_search_incomplete"` with
 `shouldRetrySameSearch: true` instead of calling it no availability; after one
 retry, the agent should ask for different preferences.
 
-For patient resolve, the middleware queries all allowed office columns across
-six months, then filters by patient ID. Each returned appointment includes a
-short-lived signed `cancelToken` that binds appointment ID, patient ID, office,
-and action. Appointment loading is best effort and reported with
+For patient resolve, the middleware queries six months of columns for the
+resolved office's nearby appointment group, then filters by patient ID. Spring
+Hill and Crystal River are grouped together; Hollywood and Sweetwater are
+grouped together. Each returned appointment includes `officeId`, `office`, and
+a short-lived signed `cancelToken` that binds appointment ID, patient ID,
+office, and action. Appointment loading is best effort and reported with
 `appointmentsStatus` so identity resolution can still succeed when appointment
 loading fails.
 

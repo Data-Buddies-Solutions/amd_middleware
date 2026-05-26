@@ -16,6 +16,8 @@ Introduce one public patient route that returns:
 - Patient identity.
 - Insurance/demographic routing.
 - Upcoming appointments by default.
+- Nearby-office appointment grouping: Spring Hill + Crystal River, and
+  Hollywood + Sweetwater.
 - Structured appointment-loading status so patient verification can still succeed when appointment loading fails.
 
 The agent should use this one route for pre-call lookup, patient verification, and appointment refresh. It should not need separate middleware routes for `verify_patient`, `patient_lookup`, or `confirm_appt`.
@@ -86,6 +88,8 @@ Successful single-patient response:
       "provider": "Dr. Austin Bach",
       "type": "Follow Up",
       "facility": "Abita Eye Group Spring Hill",
+      "officeId": "spring_hill",
+      "office": "Spring Hill",
       "cancelToken": "signed-cancel-token"
     }
   ],

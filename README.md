@@ -242,6 +242,11 @@ appointment refresh. It resolves patients by phone, name/DOB, or known
 `patientId`; returns demographics, insurance routing, allowed providers, and
 loads upcoming appointments by default.
 
+Appointment loading uses nearby office groups: Spring Hill and Crystal River are
+queried together, and Hollywood and Sweetwater are queried together. Returned
+appointments include the owning `officeId` and `office`; the `cancelToken` is
+signed for that owning office.
+
 Request:
 
 ```json
