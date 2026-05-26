@@ -476,7 +476,7 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	resp := h.buildResolvedPatient(r.Context(), tokenData, patient, office, includeAppointments(req))
+	resp := h.buildResolvedPatient(r.Context(), tokenData, patient, office, includeAppointments(req), req.Phone)
 	json.NewEncoder(w).Encode(resp)
 }
 
@@ -503,6 +503,15 @@ func validatePatientResolveRequest(req PatientResolveRequest) string {
 
 func includeAppointments(req PatientResolveRequest) bool {
 	return req.IncludeAppointments == nil || *req.IncludeAppointments
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func (h *Handlers) resolvePatientCandidates(ctx context.Context, tokenData *domain.TokenData, req PatientResolveRequest) ([]domain.Patient, error) {
@@ -608,13 +617,13 @@ func (h *Handlers) resolveKnownPatient(ctx context.Context, tokenData *domain.To
 	return resp
 }
 
-func (h *Handlers) buildResolvedPatient(ctx context.Context, tokenData *domain.TokenData, patient domain.Patient, office *domain.OfficeConfig, loadAppointments bool) PatientResolveResponse {
+func (h *Handlers) buildResolvedPatient(ctx context.Context, tokenData *domain.TokenData, patient domain.Patient, office *domain.OfficeConfig, loadAppointments bool, lookupPhone string) PatientResolveResponse {
 	resp := PatientResolveResponse{
 		Status:       "verified",
 		PatientID:    patient.ID,
 		Name:         patient.FullName,
 		DOB:          patient.DOB,
-		Phone:        patient.Phone,
+		Phone:        firstNonEmpty(patient.Phone, lookupPhone),
 		Appointments: []PatientApptDetail{},
 	}
 

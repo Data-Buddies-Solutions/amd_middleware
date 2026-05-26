@@ -729,12 +729,10 @@ func TestAdvancedMDClient_GetSchedulerSetup(t *testing.T) {
 func TestConvertPatients(t *testing.T) {
 	amdPatients := []AMDPatient{
 		{
-			ID:   "pat100",
-			Name: "DOE,JANE",
-			DOB:  "03/20/1990",
-			ContactInfo: struct {
-				HomePhone string `json:"@homephone"`
-			}{HomePhone: "555-999-8888"},
+			ID:          "pat100",
+			Name:        "DOE,JANE",
+			DOB:         "03/20/1990",
+			ContactInfo: AMDContactInfo{HomePhone: "555-999-8888"},
 		},
 	}
 
@@ -759,5 +757,25 @@ func TestConvertPatients(t *testing.T) {
 	}
 	if p.Phone != "555-999-8888" {
 		t.Errorf("Expected Phone '555-999-8888', got %q", p.Phone)
+	}
+}
+
+func TestConvertPatients_PrefersCellPhone(t *testing.T) {
+	amdPatients := []AMDPatient{
+		{
+			ID:   "pat100",
+			Name: "DOE,JANE",
+			DOB:  "03/20/1990",
+			ContactInfo: AMDContactInfo{
+				HomePhone: "555-999-8888",
+				CellPhone: "555-111-2222",
+			},
+		},
+	}
+
+	patients := convertPatients(amdPatients)
+
+	if got := patients[0].Phone; got != "555-111-2222" {
+		t.Errorf("Phone = %q, want cell phone", got)
 	}
 }

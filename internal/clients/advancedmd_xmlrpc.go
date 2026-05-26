@@ -54,15 +54,22 @@ type AMDLookupResponseSingle struct {
 
 // AMDPatient represents a patient record from AdvancedMD.
 type AMDPatient struct {
-	ID          string `json:"@id"`
-	Name        string `json:"@name"`
-	DOB         string `json:"@dob"`
-	Gender      string `json:"@gender"`
-	Chart       string `json:"@chart"`
-	RespParty   string `json:"@respparty"`
-	ContactInfo struct {
-		HomePhone string `json:"@homephone"`
-	} `json:"contactinfo"`
+	ID          string         `json:"@id"`
+	Name        string         `json:"@name"`
+	DOB         string         `json:"@dob"`
+	Gender      string         `json:"@gender"`
+	Chart       string         `json:"@chart"`
+	RespParty   string         `json:"@respparty"`
+	ContactInfo AMDContactInfo `json:"contactinfo"`
+}
+
+type AMDContactInfo struct {
+	HomePhone   string `json:"@homephone"`
+	CellPhone   string `json:"@cellphone"`
+	MobilePhone string `json:"@mobilephone"`
+	WorkPhone   string `json:"@workphone"`
+	OfficePhone string `json:"@officephone"`
+	OtherPhone  string `json:"@otherphone"`
 }
 
 // AdvancedMDClient handles XMLRPC calls to AdvancedMD.
@@ -652,10 +659,26 @@ func convertPatients(amdPatients []AMDPatient) []domain.Patient {
 			FullName:  p.Name,
 			FirstName: domain.ParseFirstName(p.Name),
 			DOB:       p.DOB,
-			Phone:     p.ContactInfo.HomePhone,
+			Phone:     bestPatientPhone(p.ContactInfo),
 		}
 	}
 	return patients
+}
+
+func bestPatientPhone(contact AMDContactInfo) string {
+	for _, phone := range []string{
+		contact.CellPhone,
+		contact.MobilePhone,
+		contact.HomePhone,
+		contact.WorkPhone,
+		contact.OfficePhone,
+		contact.OtherPhone,
+	} {
+		if strings.TrimSpace(phone) != "" {
+			return phone
+		}
+	}
+	return ""
 }
 
 // AMDSchedulerSetupResponse represents the getschedulersetup response structure.
