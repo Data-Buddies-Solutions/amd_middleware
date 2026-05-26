@@ -24,11 +24,9 @@ func NewRouter(handlers *Handlers, apiSecret string) http.Handler {
 	r.Route("/api", func(r chi.Router) {
 		r.Use(AuthMiddleware(apiSecret))
 
-		r.Post("/verify-patient", handlers.HandleVerifyPatient)
-		r.Post("/patient-lookup", handlers.HandlePatientLookup)
+		r.Post("/patient/resolve", handlers.HandlePatientResolve)
 		r.Post("/add-patient", handlers.HandleAddPatient)
 		r.Post("/scheduler/availability", handlers.HandleGetAvailability)
-		r.Post("/patient/appointments", handlers.HandleGetPatientAppointments)
 		r.Post("/patient/notes", handlers.HandleAddPatientNote)
 		r.Post("/appointment/book", handlers.HandleBookAppointment)
 		r.Post("/appointment/cancel", handlers.HandleCancelAppointment)

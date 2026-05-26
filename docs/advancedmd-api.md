@@ -27,12 +27,10 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 
 | Endpoint | Purpose |
 | --- | --- |
-| `POST /api/verify-patient` | Patient verification plus insurance routing |
-| `POST /api/patient-lookup` | Phone lookup plus upcoming appointments |
+| `POST /api/patient/resolve` | Patient lookup/verification plus upcoming appointments |
 | `POST /api/add-patient` | Create patient and attach insurance |
 | `POST /api/patient/update-insurance` | End-date old plan and attach new plan |
 | `POST /api/scheduler/availability` | Office/routing/DOB-aware availability |
-| `POST /api/patient/appointments` | Upcoming appointments for a patient |
 | `POST /api/appointment/book` | Book appointment with server-side defaults |
 | `POST /api/appointment/cancel` | Cancel appointment |
 | `POST /api/patient/notes` | Save patient appointment note |
@@ -43,8 +41,7 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 
 Used by:
 
-- `POST /api/verify-patient`
-- `POST /api/patient-lookup`
+- `POST /api/patient/resolve`
 
 Minimum request shape:
 
@@ -65,8 +62,7 @@ path and middleware filters by DOB when DOB is supplied.
 Implementation:
 
 - `internal/clients/advancedmd_xmlrpc.go`
-- `HandleVerifyPatient`
-- `HandlePatientLookup`
+- `HandlePatientResolve`
 
 ### `addpatient`
 
@@ -163,7 +159,7 @@ search.
 Used by:
 
 - `POST /api/scheduler/availability`
-- `POST /api/patient/appointments`
+- `POST /api/patient/resolve`
 
 For availability, the middleware queries appointments by column and day, then
 blocks candidate slots whose full duration overlaps existing appointments.
@@ -179,10 +175,12 @@ the middleware returns `outcome: "availability_search_incomplete"` with
 `shouldRetrySameSearch: true` instead of calling it no availability; after one
 retry, the agent should ask for different preferences.
 
-For patient appointments, the middleware queries all allowed office columns
-across seven months, then filters by patient ID. Each returned appointment
-includes a short-lived signed `cancelToken` that binds appointment ID, patient
-ID, office, and action.
+For patient resolve, the middleware queries all allowed office columns across
+six months, then filters by patient ID. Each returned appointment includes a
+short-lived signed `cancelToken` that binds appointment ID, patient ID, office,
+and action. Appointment loading is best effort and reported with
+`appointmentsStatus` so identity resolution can still succeed when appointment
+loading fails.
 
 ### `GET /scheduler/blockholds`
 
@@ -234,10 +232,9 @@ appointment reason, and referring doctor.
 Used by `POST /api/appointment/cancel`.
 
 The app-facing cancellation request should include `appointmentId`, `patientId`,
-and `cancelToken` from `POST /api/patient/appointments` or
-`POST /api/patient-lookup`. The token supplies office when `office` is omitted
-and rejects a conflicting explicit office. Appointment-ID-only cancellation is
-disabled unless `ALLOW_LEGACY_CANCEL=true`.
+and `cancelToken` from `POST /api/patient/resolve`. The token supplies office
+when `office` is omitted and rejects a conflicting explicit office.
+Appointment-ID-only cancellation is disabled unless `ALLOW_LEGACY_CANCEL=true`.
 
 ## Office Scheduler State
 

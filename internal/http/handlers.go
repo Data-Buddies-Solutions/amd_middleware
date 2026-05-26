@@ -41,32 +41,46 @@ const maxPatientNoteLength = 1000
 const bachSameStartCapacity = 2
 const schedulerSetupCacheTTL = 6 * time.Hour
 
-// VerifyPatientRequest is the expected JSON body for patient verification.
-type VerifyPatientRequest struct {
-	LastName  string `json:"lastName"`
-	DOB       string `json:"dob"`
-	FirstName string `json:"firstName,omitempty"`
-	Phone     string `json:"phone,omitempty"`
-	Office    string `json:"office,omitempty"`
+// PatientResolveRequest is the single patient-read request shape. It supports
+// pre-call phone lookup, verification by phone/name/DOB, and appointment refresh
+// for an already verified patient ID.
+type PatientResolveRequest struct {
+	PatientID           string `json:"patientId,omitempty"`
+	LastName            string `json:"lastName,omitempty"`
+	DOB                 string `json:"dob,omitempty"`
+	FirstName           string `json:"firstName,omitempty"`
+	Phone               string `json:"phone,omitempty"`
+	Office              string `json:"office,omitempty"`
+	IncludeAppointments *bool  `json:"includeAppointments,omitempty"`
 }
 
-// VerifyPatientResponse is returned on successful patient verification.
-type VerifyPatientResponse struct {
-	Status             string         `json:"status"`
-	PatientID          string         `json:"patientId,omitempty"`
-	Name               string         `json:"name,omitempty"`
-	DOB                string         `json:"dob,omitempty"`
-	Phone              string         `json:"phone,omitempty"`
-	InsuranceCarrier   string         `json:"insuranceCarrier,omitempty"`
-	InsuranceCarrierID string         `json:"insuranceCarrierId,omitempty"`
-	InsPlanID          string         `json:"insPlanId,omitempty"`
-	RespPartyID        string         `json:"respPartyId,omitempty"`
-	Routing            string         `json:"routing,omitempty"`
-	AllowedProviders   []string       `json:"allowedProviders,omitempty"`
-	RoutingAmbiguous   bool           `json:"routingAmbiguous,omitempty"`
-	Message            string         `json:"message,omitempty"`
-	Matches            []PatientMatch `json:"matches,omitempty"`
+// PatientResolveResponse is returned by /api/patient/resolve.
+type PatientResolveResponse struct {
+	Status              string              `json:"status"`
+	PatientID           string              `json:"patientId,omitempty"`
+	Name                string              `json:"name,omitempty"`
+	DOB                 string              `json:"dob,omitempty"`
+	Phone               string              `json:"phone,omitempty"`
+	InsuranceCarrier    string              `json:"insuranceCarrier,omitempty"`
+	InsuranceCarrierID  string              `json:"insuranceCarrierId,omitempty"`
+	InsPlanID           string              `json:"insPlanId,omitempty"`
+	RespPartyID         string              `json:"respPartyId,omitempty"`
+	Routing             string              `json:"routing,omitempty"`
+	AllowedProviders    []string            `json:"allowedProviders,omitempty"`
+	RoutingAmbiguous    bool                `json:"routingAmbiguous,omitempty"`
+	AppointmentsStatus  string              `json:"appointmentsStatus,omitempty"`
+	Appointments        []PatientApptDetail `json:"appointments"`
+	AppointmentsMessage string              `json:"appointmentsMessage,omitempty"`
+	Message             string              `json:"message,omitempty"`
+	Matches             []PatientMatch      `json:"matches,omitempty"`
 }
+
+const (
+	appointmentsStatusFound   = "found"
+	appointmentsStatusNone    = "none"
+	appointmentsStatusSkipped = "skipped"
+	appointmentsStatusError   = "error"
+)
 
 // PatientMatch provides minimal info for disambiguation.
 type PatientMatch struct {
@@ -376,245 +390,6 @@ func addPatientMissingFields(req AddPatientRequest) []string {
 	return missing
 }
 
-// HandleVerifyPatient looks up a patient by name and DOB.
-func (h *Handlers) HandleVerifyPatient(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	// Parse request body
-	var req VerifyPatientRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		json.NewEncoder(w).Encode(VerifyPatientResponse{
-			Status:  "error",
-			Message: "Invalid JSON body",
-		})
-		return
-	}
-
-	office, err := resolveOffice(req.Office)
-	if err != nil {
-		json.NewEncoder(w).Encode(VerifyPatientResponse{
-			Status:  "error",
-			Message: err.Error(),
-		})
-		return
-	}
-
-	// Validate required fields:
-	//   phone + firstName  — search by phone, filter by first name
-	//   phone + dob        — search by phone, filter by DOB
-	//   lastName + dob     — search by name, filter by DOB
-	hasPhone := req.Phone != ""
-	hasLastName := req.LastName != ""
-	hasFirstName := req.FirstName != ""
-	hasDOB := req.DOB != ""
-
-	if hasPhone && (hasFirstName || hasDOB) {
-		// valid: phone + firstName, phone + dob, or phone + both
-	} else if hasLastName && hasDOB {
-		// valid: lastName + dob
-	} else {
-		json.NewEncoder(w).Encode(VerifyPatientResponse{
-			Status:  "error",
-			Message: "Provide phone + firstName, phone + dob, or lastName + dob",
-		})
-		return
-	}
-
-	// Normalize inputs
-	var normalizedDOB string
-	if hasDOB {
-		normalizedDOB = domain.NormalizeDOB(req.DOB)
-	}
-
-	// Get token
-	tokenData, err := h.tokenManager.GetToken(r.Context())
-	if err != nil {
-		json.NewEncoder(w).Encode(VerifyPatientResponse{
-			Status:  "error",
-			Message: "Failed to get authentication token: " + err.Error(),
-		})
-		return
-	}
-
-	// Call AdvancedMD lookuppatient API — by phone or by name
-	var patients []domain.Patient
-	if hasPhone {
-		digits := domain.NormalizePhoneDigits(req.Phone)
-		patients, err = h.amdClient.LookupPatientByPhone(r.Context(), tokenData, digits)
-		if err != nil {
-			json.NewEncoder(w).Encode(VerifyPatientResponse{
-				Status:  "error",
-				Message: "Failed to lookup patient by phone: " + err.Error(),
-			})
-			return
-		}
-		log.Printf("verify-patient: phone lookup returned %d patients", len(patients))
-	} else {
-		normalizedLastName := domain.StripDiacritics(req.LastName)
-		normalizedFirstName := domain.StripDiacritics(req.FirstName)
-		patients, err = h.amdClient.LookupPatient(r.Context(), tokenData, normalizedLastName, normalizedFirstName)
-		if err != nil {
-			json.NewEncoder(w).Encode(VerifyPatientResponse{
-				Status:  "error",
-				Message: "Failed to lookup patient: " + err.Error(),
-			})
-			return
-		}
-		log.Printf("verify-patient: name lookup returned %d patients", len(patients))
-	}
-
-	// Filter patients — by DOB if provided, otherwise by first name (phone + firstName path)
-	var matchingPatients []domain.Patient
-	if hasDOB {
-		for _, p := range patients {
-			if domain.NormalizeDOB(p.DOB) == normalizedDOB {
-				matchingPatients = append(matchingPatients, p)
-			}
-		}
-	} else {
-		upperFirstName := strings.ToUpper(domain.StripDiacritics(req.FirstName))
-		for _, p := range patients {
-			if strings.HasPrefix(p.FirstName, upperFirstName) {
-				matchingPatients = append(matchingPatients, p)
-			}
-		}
-	}
-
-	// Handle results
-	switch len(matchingPatients) {
-	case 0:
-		json.NewEncoder(w).Encode(VerifyPatientResponse{
-			Status:  "not_found",
-			Message: "No patient found matching the provided information",
-		})
-		return
-
-	case 1:
-		p := matchingPatients[0]
-		demoResult, err := h.amdClient.GetDemographic(r.Context(), tokenData, p.ID)
-		if err != nil {
-			log.Printf("WARNING: verify-patient: failed to get demographics: %v", err)
-		}
-
-		resp := VerifyPatientResponse{
-			Status:    "verified",
-			PatientID: p.ID,
-			Name:      p.FullName,
-			DOB:       p.DOB,
-			Phone:     p.Phone,
-		}
-
-		if demoResult != nil {
-			resp.InsuranceCarrier = demoResult.CarrierName
-			resp.InsPlanID = demoResult.InsPlanID
-			resp.RespPartyID = demoResult.RespPartyID
-
-			if demoResult.CarrierID != "" {
-				resp.InsuranceCarrierID = demoResult.CarrierID
-				routing, ambiguous := domain.RoutingForDemographicInsurance(demoResult.CarrierID, demoResult.CarrierName, office)
-				resp.Routing = string(routing)
-				resp.AllowedProviders = office.ProvidersForRoutingAndDOB(routing, p.DOB)
-				resp.RoutingAmbiguous = ambiguous
-			}
-		}
-
-		// Pediatric override: under-18 patients → office pediatric routing
-		if domain.IsMinor(p.DOB) && resp.Routing != "" && resp.Routing != string(domain.RoutingNotAccepted) {
-			resp.Routing = string(office.PediatricRouting)
-			resp.AllowedProviders = office.ProvidersForRoutingAndDOB(office.PediatricRouting, p.DOB)
-			resp.RoutingAmbiguous = false
-		}
-
-		json.NewEncoder(w).Encode(resp)
-		return
-
-	default:
-		if !hasDOB {
-			// Phone + firstName path: first name already used as filter, ask for DOB to disambiguate
-			json.NewEncoder(w).Encode(VerifyPatientResponse{
-				Status:  "multiple_matches",
-				Message: fmt.Sprintf("Found %d patients with that name and phone number. Please provide date of birth.", len(matchingPatients)),
-			})
-			return
-		}
-
-		// DOB path: try to disambiguate by first name
-		if hasFirstName {
-			upperFirstName := strings.ToUpper(domain.StripDiacritics(req.FirstName))
-			for _, p := range matchingPatients {
-				if strings.HasPrefix(p.FirstName, upperFirstName) {
-					demoResult, err := h.amdClient.GetDemographic(r.Context(), tokenData, p.ID)
-					if err != nil {
-						log.Printf("WARNING: verify-patient: failed to get demographics: %v", err)
-					}
-
-					resp := VerifyPatientResponse{
-						Status:    "verified",
-						PatientID: p.ID,
-						Name:      p.FullName,
-						DOB:       p.DOB,
-						Phone:     p.Phone,
-					}
-
-					if demoResult != nil {
-						resp.InsuranceCarrier = demoResult.CarrierName
-						resp.InsPlanID = demoResult.InsPlanID
-						resp.RespPartyID = demoResult.RespPartyID
-
-						if demoResult.CarrierID != "" {
-							resp.InsuranceCarrierID = demoResult.CarrierID
-							routing, ambiguous := domain.RoutingForDemographicInsurance(demoResult.CarrierID, demoResult.CarrierName, office)
-							resp.Routing = string(routing)
-							resp.AllowedProviders = office.ProvidersForRoutingAndDOB(routing, p.DOB)
-							resp.RoutingAmbiguous = ambiguous
-						}
-					}
-
-					// Pediatric override: under-18 patients → office pediatric routing
-					if domain.IsMinor(p.DOB) && resp.Routing != "" && resp.Routing != string(domain.RoutingNotAccepted) {
-						resp.Routing = string(office.PediatricRouting)
-						resp.AllowedProviders = office.ProvidersForRoutingAndDOB(office.PediatricRouting, p.DOB)
-						resp.RoutingAmbiguous = false
-					}
-
-					json.NewEncoder(w).Encode(resp)
-					return
-				}
-			}
-			json.NewEncoder(w).Encode(VerifyPatientResponse{
-				Status:  "not_found",
-				Message: "No patient found matching that first name",
-			})
-			return
-		}
-
-		// Return list of first names for disambiguation
-		var matches []PatientMatch
-		for _, p := range matchingPatients {
-			matches = append(matches, PatientMatch{FirstName: p.FirstName})
-		}
-		json.NewEncoder(w).Encode(VerifyPatientResponse{
-			Status:  "multiple_matches",
-			Message: fmt.Sprintf("Found %d patients with that last name and DOB. Please provide first name.", len(matchingPatients)),
-			Matches: matches,
-		})
-	}
-}
-
-// GetAppointmentsRequest is the expected JSON body for patient appointment lookup.
-type GetAppointmentsRequest struct {
-	PatientID string `json:"patientId"`
-	Office    string `json:"office,omitempty"`
-}
-
-// PatientApptResponse is returned on successful appointment lookup.
-type PatientApptResponse struct {
-	Status       string              `json:"status"`
-	PatientID    string              `json:"patientId,omitempty"`
-	Appointments []PatientApptDetail `json:"appointments,omitempty"`
-	Message      string              `json:"message,omitempty"`
-}
-
 // PatientApptDetail is a single appointment formatted for LLM consumption.
 type PatientApptDetail struct {
 	ID          int    `json:"id"`                    // AMD appointment ID — for cancel_appt
@@ -626,145 +401,130 @@ type PatientApptDetail struct {
 	CancelToken string `json:"cancelToken,omitempty"` // Signed token binding this appointment to patient and office
 }
 
-// HandleGetPatientAppointments retrieves appointments for a verified patient.
-func (h *Handlers) HandleGetPatientAppointments(w http.ResponseWriter, r *http.Request) {
+// HandlePatientResolve resolves a patient and, by default, loads appointments.
+func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	var req GetAppointmentsRequest
+	var req PatientResolveRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		json.NewEncoder(w).Encode(PatientApptResponse{
+		json.NewEncoder(w).Encode(PatientResolveResponse{
 			Status:  "error",
 			Message: "Invalid JSON body",
 		})
 		return
 	}
 
-	if req.PatientID == "" {
-		json.NewEncoder(w).Encode(PatientApptResponse{
-			Status:  "error",
-			Message: "patientId is required",
-		})
-		return
-	}
-
 	office, err := resolveOffice(req.Office)
 	if err != nil {
-		json.NewEncoder(w).Encode(PatientApptResponse{
+		json.NewEncoder(w).Encode(PatientResolveResponse{
 			Status:  "error",
 			Message: err.Error(),
 		})
 		return
 	}
 
-	log.Printf("patient-appointments: request office=%s", office.ID)
-
-	if _, err := strconv.Atoi(req.PatientID); err != nil {
-		json.NewEncoder(w).Encode(PatientApptResponse{
+	if msg := validatePatientResolveRequest(req); msg != "" {
+		json.NewEncoder(w).Encode(PatientResolveResponse{
 			Status:  "error",
-			Message: "patientId must be numeric",
+			Message: msg,
 		})
 		return
 	}
 
 	tokenData, err := h.tokenManager.GetToken(r.Context())
 	if err != nil {
-		json.NewEncoder(w).Encode(PatientApptResponse{
+		json.NewEncoder(w).Encode(PatientResolveResponse{
 			Status:  "error",
 			Message: "Failed to get authentication token: " + err.Error(),
 		})
 		return
 	}
 
-	details, err := h.fetchUpcomingAppointments(r.Context(), tokenData, req.PatientID, office)
+	if req.PatientID != "" {
+		resp := h.resolveKnownPatient(r.Context(), tokenData, req, office)
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+
+	patients, err := h.resolvePatientCandidates(r.Context(), tokenData, req)
 	if err != nil {
-		log.Printf("patient-appointments: error: %v", err)
-		json.NewEncoder(w).Encode(PatientApptResponse{
+		json.NewEncoder(w).Encode(PatientResolveResponse{
 			Status:  "error",
-			Message: "Failed to retrieve appointments: " + err.Error(),
+			Message: err.Error(),
 		})
 		return
 	}
 
-	log.Printf("patient-appointments: found %d appointments", len(details))
-
-	if len(details) == 0 {
-		json.NewEncoder(w).Encode(PatientApptResponse{
-			Status:    "no_appointments",
-			PatientID: req.PatientID,
-			Message:   "No appointments found for this patient",
+	patient, matches := selectResolvedPatient(patients, req)
+	if patient.ID == "" {
+		if len(matches) == 0 {
+			json.NewEncoder(w).Encode(PatientResolveResponse{
+				Status:       "not_found",
+				Appointments: []PatientApptDetail{},
+				Message:      notFoundMessage(req),
+			})
+			return
+		}
+		json.NewEncoder(w).Encode(PatientResolveResponse{
+			Status:       "multiple_matches",
+			Appointments: []PatientApptDetail{},
+			Matches:      matches,
+			Message:      multipleMatchesMessage(req, len(matches)),
 		})
 		return
 	}
 
-	json.NewEncoder(w).Encode(PatientApptResponse{
-		Status:       "found",
-		PatientID:    req.PatientID,
-		Appointments: details,
-		Message:      fmt.Sprintf("Found %d appointment(s)", len(details)),
-	})
+	resp := h.buildResolvedPatient(r.Context(), tokenData, patient, office, includeAppointments(req))
+	json.NewEncoder(w).Encode(resp)
 }
 
-// PatientLookupRequest is the JSON body for the combined patient lookup endpoint.
-type PatientLookupRequest struct {
-	Phone  string `json:"phone"`
-	DOB    string `json:"dob,omitempty"`
-	Office string `json:"office,omitempty"`
+func validatePatientResolveRequest(req PatientResolveRequest) string {
+	hasPatientID := req.PatientID != ""
+	hasLookupFields := req.Phone != "" || req.FirstName != "" || req.LastName != "" || req.DOB != ""
+	if hasPatientID {
+		if _, err := strconv.Atoi(req.PatientID); err != nil {
+			return "patientId must be numeric"
+		}
+		if hasLookupFields {
+			return "Provide either patientId or lookup fields, not both"
+		}
+		return ""
+	}
+	if req.Phone != "" {
+		return ""
+	}
+	if req.LastName != "" && req.DOB != "" {
+		return ""
+	}
+	return "Provide patientId, phone, phone + firstName, phone + dob, or lastName + dob"
 }
 
-// PatientLookupResponse is the combined response with identity + appointments.
-type PatientLookupResponse struct {
-	Status             string              `json:"status"`
-	PatientID          string              `json:"patientId,omitempty"`
-	Name               string              `json:"name,omitempty"`
-	DOB                string              `json:"dob,omitempty"`
-	Phone              string              `json:"phone,omitempty"`
-	InsuranceCarrier   string              `json:"insuranceCarrier,omitempty"`
-	InsuranceCarrierID string              `json:"insuranceCarrierId,omitempty"`
-	Routing            string              `json:"routing,omitempty"`
-	AllowedProviders   []string            `json:"allowedProviders,omitempty"`
-	RoutingAmbiguous   bool                `json:"routingAmbiguous,omitempty"`
-	Appointments       []PatientApptDetail `json:"appointments,omitempty"`
-	Matches            []PatientMatch      `json:"matches,omitempty"`
-	Message            string              `json:"message,omitempty"`
+func includeAppointments(req PatientResolveRequest) bool {
+	return req.IncludeAppointments == nil || *req.IncludeAppointments
 }
 
-// HandlePatientLookup verifies a patient and returns their upcoming appointments in one call.
-func (h *Handlers) HandlePatientLookup(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var req PatientLookupRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		json.NewEncoder(w).Encode(PatientLookupResponse{Status: "error", Message: "Invalid JSON body"})
-		return
+func (h *Handlers) resolvePatientCandidates(ctx context.Context, tokenData *domain.TokenData, req PatientResolveRequest) ([]domain.Patient, error) {
+	if req.Phone != "" {
+		digits := domain.NormalizePhoneDigits(req.Phone)
+		patients, err := h.amdClient.LookupPatientByPhone(ctx, tokenData, digits)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to lookup patient by phone: %w", err)
+		}
+		log.Printf("patient-resolve: phone lookup returned %d patients", len(patients))
+		return patients, nil
 	}
 
-	office, err := resolveOffice(req.Office)
+	normalizedLastName := domain.StripDiacritics(req.LastName)
+	normalizedFirstName := domain.StripDiacritics(req.FirstName)
+	patients, err := h.amdClient.LookupPatient(ctx, tokenData, normalizedLastName, normalizedFirstName)
 	if err != nil {
-		json.NewEncoder(w).Encode(PatientLookupResponse{Status: "error", Message: err.Error()})
-		return
+		return nil, fmt.Errorf("Failed to lookup patient: %w", err)
 	}
+	log.Printf("patient-resolve: name lookup returned %d patients", len(patients))
+	return patients, nil
+}
 
-	if req.Phone == "" {
-		json.NewEncoder(w).Encode(PatientLookupResponse{Status: "error", Message: "phone is required"})
-		return
-	}
-
-	tokenData, err := h.tokenManager.GetToken(r.Context())
-	if err != nil {
-		json.NewEncoder(w).Encode(PatientLookupResponse{Status: "error", Message: "Failed to get authentication token: " + err.Error()})
-		return
-	}
-
-	// Lookup patient by phone
-	digits := domain.NormalizePhoneDigits(req.Phone)
-	patients, err := h.amdClient.LookupPatientByPhone(r.Context(), tokenData, digits)
-	if err != nil {
-		json.NewEncoder(w).Encode(PatientLookupResponse{Status: "error", Message: "Failed to lookup patient by phone: " + err.Error()})
-		return
-	}
-	log.Printf("patient-lookup: phone lookup returned %d patients", len(patients))
-
-	// Filter by DOB if provided
+func selectResolvedPatient(patients []domain.Patient, req PatientResolveRequest) (domain.Patient, []PatientMatch) {
 	matching := patients
 	if req.DOB != "" {
 		normalizedDOB := domain.NormalizeDOB(req.DOB)
@@ -776,78 +536,161 @@ func (h *Handlers) HandlePatientLookup(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Resolve single patient
-	var patient domain.Patient
+	if req.FirstName != "" {
+		firstNameMatches := make([]domain.Patient, 0, len(matching))
+		for _, p := range matching {
+			if patientFirstNameMatches(p, req.FirstName) {
+				firstNameMatches = append(firstNameMatches, p)
+			}
+		}
+		matching = firstNameMatches
+	}
+
 	switch len(matching) {
 	case 0:
-		json.NewEncoder(w).Encode(PatientLookupResponse{Status: "not_found", Message: "No patient found for that phone number"})
-		return
+		return domain.Patient{}, nil
 	case 1:
-		patient = matching[0]
+		return matching[0], nil
 	default:
-		// Multiple matches — return list for the agent to disambiguate
-		var matches []PatientMatch
+		matches := make([]PatientMatch, 0, len(matching))
 		for _, p := range matching {
 			matches = append(matches, PatientMatch{FirstName: p.FirstName})
 		}
-		json.NewEncoder(w).Encode(PatientLookupResponse{
-			Status:  "multiple_matches",
-			Message: fmt.Sprintf("Found %d patients for this phone number. Ask the caller to confirm their name.", len(matching)),
-			Matches: matches,
-		})
+		return domain.Patient{}, matches
+	}
+}
+
+func patientFirstNameMatches(patient domain.Patient, firstName string) bool {
+	patientFirst := strings.ToUpper(domain.StripDiacritics(patient.FirstName))
+	requestFirst := strings.ToUpper(domain.StripDiacritics(firstName))
+	return strings.HasPrefix(patientFirst, requestFirst)
+}
+
+func notFoundMessage(req PatientResolveRequest) string {
+	if req.Phone != "" && req.FirstName == "" && req.DOB == "" {
+		return "No patient found for that phone number"
+	}
+	if req.FirstName != "" {
+		return "No patient found matching that first name"
+	}
+	return "No patient found matching the provided information"
+}
+
+func multipleMatchesMessage(req PatientResolveRequest, count int) string {
+	if req.Phone != "" && req.FirstName != "" && req.DOB == "" {
+		return fmt.Sprintf("Found %d patients with that name and phone number. Please provide date of birth.", count)
+	}
+	if req.Phone != "" {
+		return fmt.Sprintf("Found %d patients for this phone number. Ask the caller to confirm their name.", count)
+	}
+	return fmt.Sprintf("Found %d patients with that last name and DOB. Please provide first name.", count)
+}
+
+func (h *Handlers) resolveKnownPatient(ctx context.Context, tokenData *domain.TokenData, req PatientResolveRequest, office *domain.OfficeConfig) PatientResolveResponse {
+	resp := PatientResolveResponse{
+		Status:       "verified",
+		PatientID:    req.PatientID,
+		Appointments: []PatientApptDetail{},
+	}
+
+	demoResult, err := h.amdClient.GetDemographic(ctx, tokenData, req.PatientID)
+	if err != nil {
+		log.Printf("WARNING: patient-resolve: failed to get demographics for patientId %s: %v", req.PatientID, err)
+	} else if demoResult != nil {
+		applyDemographicsToResolveResponse(&resp, demoResult, office, demoResult.DOB)
+		resp.DOB = demoResult.DOB
+	}
+
+	attachAppointments(ctx, h, tokenData, &resp, req.PatientID, office, includeAppointments(req))
+	setPatientResolveMessage(&resp)
+	return resp
+}
+
+func (h *Handlers) buildResolvedPatient(ctx context.Context, tokenData *domain.TokenData, patient domain.Patient, office *domain.OfficeConfig, loadAppointments bool) PatientResolveResponse {
+	resp := PatientResolveResponse{
+		Status:       "verified",
+		PatientID:    patient.ID,
+		Name:         patient.FullName,
+		DOB:          patient.DOB,
+		Phone:        patient.Phone,
+		Appointments: []PatientApptDetail{},
+	}
+
+	demoResult, err := h.amdClient.GetDemographic(ctx, tokenData, patient.ID)
+	if err != nil {
+		log.Printf("WARNING: patient-resolve: failed to get demographics: %v", err)
+	} else if demoResult != nil {
+		applyDemographicsToResolveResponse(&resp, demoResult, office, patient.DOB)
+	}
+
+	attachAppointments(ctx, h, tokenData, &resp, patient.ID, office, loadAppointments)
+	setPatientResolveMessage(&resp)
+	return resp
+}
+
+func applyDemographicsToResolveResponse(resp *PatientResolveResponse, demoResult *clients.DemographicResult, office *domain.OfficeConfig, patientDOB string) {
+	resp.InsuranceCarrier = demoResult.CarrierName
+	resp.InsPlanID = demoResult.InsPlanID
+	resp.RespPartyID = demoResult.RespPartyID
+
+	if demoResult.CarrierID != "" {
+		resp.InsuranceCarrierID = demoResult.CarrierID
+		routing, ambiguous := domain.RoutingForDemographicInsurance(demoResult.CarrierID, demoResult.CarrierName, office)
+		resp.Routing = string(routing)
+		resp.AllowedProviders = office.ProvidersForRoutingAndDOB(routing, patientDOB)
+		resp.RoutingAmbiguous = ambiguous
+	}
+
+	if domain.IsMinor(patientDOB) && resp.Routing != "" && resp.Routing != string(domain.RoutingNotAccepted) {
+		resp.Routing = string(office.PediatricRouting)
+		resp.AllowedProviders = office.ProvidersForRoutingAndDOB(office.PediatricRouting, patientDOB)
+		resp.RoutingAmbiguous = false
+	}
+}
+
+func attachAppointments(ctx context.Context, h *Handlers, tokenData *domain.TokenData, resp *PatientResolveResponse, patientID string, office *domain.OfficeConfig, loadAppointments bool) {
+	if !loadAppointments {
+		resp.AppointmentsStatus = appointmentsStatusSkipped
+		resp.Appointments = []PatientApptDetail{}
+		return
+	}
+	if h.amdRestClient == nil {
+		resp.AppointmentsStatus = appointmentsStatusError
+		resp.Appointments = []PatientApptDetail{}
+		resp.AppointmentsMessage = "AdvancedMD appointment client is not configured"
 		return
 	}
 
-	// Build response with patient identity + insurance routing
-	resp := PatientLookupResponse{
-		Status:    "verified",
-		PatientID: patient.ID,
-		Name:      patient.FullName,
-		DOB:       patient.DOB,
-		Phone:     patient.Phone,
-	}
-
-	demoResult, err := h.amdClient.GetDemographic(r.Context(), tokenData, patient.ID)
+	appts, err := h.fetchUpcomingAppointments(ctx, tokenData, patientID, office)
 	if err != nil {
-		log.Printf("WARNING: patient-lookup: failed to get demographics: %v", err)
+		log.Printf("WARNING: patient-resolve: failed to get appointments: %v", err)
+		resp.AppointmentsStatus = appointmentsStatusError
+		resp.Appointments = []PatientApptDetail{}
+		resp.AppointmentsMessage = "Failed to retrieve appointments: " + err.Error()
+		return
 	}
 
-	if demoResult != nil {
-		if demoResult.CarrierName != "" {
-			resp.InsuranceCarrier = demoResult.CarrierName
-		}
-		if demoResult.CarrierID != "" {
-			resp.InsuranceCarrierID = demoResult.CarrierID
-			routing, ambiguous := domain.RoutingForDemographicInsurance(demoResult.CarrierID, demoResult.CarrierName, office)
-			resp.Routing = string(routing)
-			resp.AllowedProviders = office.ProvidersForRoutingAndDOB(routing, patient.DOB)
-			resp.RoutingAmbiguous = ambiguous
-		}
-	}
-
-	// Pediatric override
-	if domain.IsMinor(patient.DOB) && resp.Routing != "" && resp.Routing != string(domain.RoutingNotAccepted) {
-		resp.Routing = string(office.PediatricRouting)
-		resp.AllowedProviders = office.ProvidersForRoutingAndDOB(office.PediatricRouting, patient.DOB)
-		resp.RoutingAmbiguous = false
-	}
-
-	// Fetch appointments
-	appts, err := h.fetchUpcomingAppointments(r.Context(), tokenData, patient.ID, office)
-	if err != nil {
-		log.Printf("WARNING: patient-lookup: failed to get appointments: %v", err)
-		// Still return patient info — appointments are best-effort
+	resp.Appointments = appts
+	if len(appts) > 0 {
+		resp.AppointmentsStatus = appointmentsStatusFound
 	} else {
-		resp.Appointments = appts
+		resp.AppointmentsStatus = appointmentsStatusNone
 	}
+}
 
-	if len(resp.Appointments) > 0 {
+func setPatientResolveMessage(resp *PatientResolveResponse) {
+	switch resp.AppointmentsStatus {
+	case appointmentsStatusFound:
 		resp.Message = fmt.Sprintf("Patient verified with %d appointment(s)", len(resp.Appointments))
-	} else {
+	case appointmentsStatusNone:
 		resp.Message = "Patient verified, no appointments found"
+	case appointmentsStatusSkipped:
+		resp.Message = "Patient verified, appointment lookup skipped"
+	case appointmentsStatusError:
+		resp.Message = "Patient verified, appointment lookup unavailable"
+	default:
+		resp.Message = "Patient verified"
 	}
-
-	json.NewEncoder(w).Encode(resp)
 }
 
 // fetchUpcomingAppointments retrieves future appointments for a patient ID

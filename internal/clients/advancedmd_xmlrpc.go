@@ -483,6 +483,7 @@ type DemographicResult struct {
 	CarrierID   string // "car40887"
 	InsPlanID   string // "ins8719894" — active insplan ID for end-dating
 	RespPartyID string // "resp21543970" — for new plan's @subscriber
+	DOB         string // "01/15/1980"
 }
 
 // AMDDemographicResponse represents the getdemographic response with insurance info.
@@ -560,6 +561,7 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *domain
 
 	result := &DemographicResult{
 		RespPartyID: resp.PPMDResults.Results.PatientList.Patient.RespParty,
+		DOB:         resp.PPMDResults.Results.PatientList.Patient.DOB,
 	}
 
 	// Parse insplanlist to get insurance details
