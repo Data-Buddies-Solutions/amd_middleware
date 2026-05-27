@@ -276,6 +276,10 @@ and office. The agent should store this token in tool/session state and pass it
 back when cancelling.
 
 Response statuses: `verified`, `multiple_matches`, `not_found`, `error`.
+For `multiple_matches`, the top-level response keeps `status: "multiple_matches"`
+and `matches` contains full verified patient payloads,
+including `patientId`, routing, appointment status, appointments, and cancel
+tokens when appointments exist.
 
 ### POST /api/add-patient
 

@@ -494,6 +494,42 @@ func TestHandlePatientResolve_PhoneOnlyLoadsAppointments(t *testing.T) {
 	}
 }
 
+func TestHandlePatientResolve_PhoneOnlyMultipleMatchesReturnsFullDetails(t *testing.T) {
+	handlers := newPatientResolveTestHandlers(t, http.StatusOK)
+
+	req := httptest.NewRequest("POST", "/api/patient/resolve", strings.NewReader(`{"phone":"5552223333","office":"Spring Hill"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandlePatientResolve(w, req)
+
+	var body PatientResolveResponse
+	if err := json.NewDecoder(w.Result().Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Status != "multiple_matches" {
+		t.Fatalf("status = %q, want multiple_matches; body = %+v", body.Status, body)
+	}
+	if len(body.Matches) != 2 {
+		t.Fatalf("matches = %+v, want two full patient details", body.Matches)
+	}
+	if body.Matches[0].Status != "verified" || body.Matches[0].PatientID != "123" {
+		t.Fatalf("first match = %+v, want verified patient 123", body.Matches[0])
+	}
+	if body.Matches[0].AppointmentsStatus != appointmentsStatusFound || len(body.Matches[0].Appointments) != 1 {
+		t.Fatalf("first match appointments = %q/%+v, want found appointment", body.Matches[0].AppointmentsStatus, body.Matches[0].Appointments)
+	}
+	if body.Matches[0].Appointments[0].CancelToken == "" {
+		t.Fatal("first match appointment should include cancelToken")
+	}
+	if body.Matches[1].Status != "verified" || body.Matches[1].PatientID != "456" {
+		t.Fatalf("second match = %+v, want verified patient 456", body.Matches[1])
+	}
+	if body.Matches[1].AppointmentsStatus != appointmentsStatusNone || len(body.Matches[1].Appointments) != 0 {
+		t.Fatalf("second match appointments = %q/%+v, want none", body.Matches[1].AppointmentsStatus, body.Matches[1].Appointments)
+	}
+}
+
 func TestHandlePatientResolve_PatientIDRefreshUsesSameRoute(t *testing.T) {
 	handlers := newPatientResolveTestHandlers(t, http.StatusOK)
 
@@ -2538,6 +2574,30 @@ func newPatientResolveTestHandlers(t *testing.T, appointmentStatus int) *Handler
 				} else {
 					response = `{"error":"appointment failure"}`
 				}
+			case strings.Contains(string(body), `"@action":"lookuppatient"`) && strings.Contains(string(body), `"@phone":"5552223333"`):
+				response = `{
+					"PPMDResults": {
+						"Results": {
+							"patientlist": {
+								"@itemcount": "2",
+								"patient": [
+									{
+										"@id": "pat123",
+										"@name": "DOE,JANE",
+										"@dob": "01/15/1980",
+										"contactinfo": {"@cellphone": "850-373-3869"}
+									},
+									{
+										"@id": "pat456",
+										"@name": "DOE,JOHN",
+										"@dob": "03/20/1982",
+										"contactinfo": {"@cellphone": "850-373-0000"}
+									}
+								]
+							}
+						}
+					}
+				}`
 			case strings.Contains(string(body), `"@action":"lookuppatient"`):
 				response = `{
 					"PPMDResults": {
