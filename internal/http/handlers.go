@@ -42,16 +42,15 @@ const bachSameStartCapacity = 2
 const schedulerSetupCacheTTL = 6 * time.Hour
 
 // PatientResolveRequest is the single patient-read request shape. It supports
-// pre-call phone lookup, verification by phone/name/DOB, and appointment refresh
-// for an already verified patient ID.
+// pre-call phone lookup, verification by phone/name/DOB, and direct loading for
+// an already verified patient ID.
 type PatientResolveRequest struct {
-	PatientID           string `json:"patientId,omitempty"`
-	LastName            string `json:"lastName,omitempty"`
-	DOB                 string `json:"dob,omitempty"`
-	FirstName           string `json:"firstName,omitempty"`
-	Phone               string `json:"phone,omitempty"`
-	Office              string `json:"office,omitempty"`
-	IncludeAppointments *bool  `json:"includeAppointments,omitempty"`
+	PatientID string `json:"patientId,omitempty"`
+	LastName  string `json:"lastName,omitempty"`
+	DOB       string `json:"dob,omitempty"`
+	FirstName string `json:"firstName,omitempty"`
+	Phone     string `json:"phone,omitempty"`
+	Office    string `json:"office,omitempty"`
 }
 
 // PatientResolveResponse is returned by /api/patient/resolve.
@@ -76,10 +75,9 @@ type PatientResolveResponse struct {
 }
 
 const (
-	appointmentsStatusFound   = "found"
-	appointmentsStatusNone    = "none"
-	appointmentsStatusSkipped = "skipped"
-	appointmentsStatusError   = "error"
+	appointmentsStatusFound = "found"
+	appointmentsStatusNone  = "none"
+	appointmentsStatusError = "error"
 )
 
 // PatientMatch provides minimal info for disambiguation.
@@ -476,7 +474,7 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	resp := h.buildResolvedPatient(r.Context(), tokenData, patient, office, includeAppointments(req), req.Phone)
+	resp := h.buildResolvedPatient(r.Context(), tokenData, patient, office, req.Phone)
 	json.NewEncoder(w).Encode(resp)
 }
 
@@ -499,10 +497,6 @@ func validatePatientResolveRequest(req PatientResolveRequest) string {
 		return ""
 	}
 	return "Provide patientId, phone, phone + firstName, phone + dob, or lastName + dob"
-}
-
-func includeAppointments(req PatientResolveRequest) bool {
-	return req.IncludeAppointments == nil || *req.IncludeAppointments
 }
 
 func firstNonEmpty(values ...string) string {
@@ -612,12 +606,12 @@ func (h *Handlers) resolveKnownPatient(ctx context.Context, tokenData *domain.To
 		resp.DOB = demoResult.DOB
 	}
 
-	attachAppointments(ctx, h, tokenData, &resp, req.PatientID, office, includeAppointments(req))
+	attachAppointments(ctx, h, tokenData, &resp, req.PatientID, office)
 	setPatientResolveMessage(&resp)
 	return resp
 }
 
-func (h *Handlers) buildResolvedPatient(ctx context.Context, tokenData *domain.TokenData, patient domain.Patient, office *domain.OfficeConfig, loadAppointments bool, lookupPhone string) PatientResolveResponse {
+func (h *Handlers) buildResolvedPatient(ctx context.Context, tokenData *domain.TokenData, patient domain.Patient, office *domain.OfficeConfig, lookupPhone string) PatientResolveResponse {
 	resp := PatientResolveResponse{
 		Status:       "verified",
 		PatientID:    patient.ID,
@@ -634,7 +628,7 @@ func (h *Handlers) buildResolvedPatient(ctx context.Context, tokenData *domain.T
 		applyDemographicsToResolveResponse(&resp, demoResult, office, patient.DOB)
 	}
 
-	attachAppointments(ctx, h, tokenData, &resp, patient.ID, office, loadAppointments)
+	attachAppointments(ctx, h, tokenData, &resp, patient.ID, office)
 	setPatientResolveMessage(&resp)
 	return resp
 }
@@ -659,12 +653,7 @@ func applyDemographicsToResolveResponse(resp *PatientResolveResponse, demoResult
 	}
 }
 
-func attachAppointments(ctx context.Context, h *Handlers, tokenData *domain.TokenData, resp *PatientResolveResponse, patientID string, office *domain.OfficeConfig, loadAppointments bool) {
-	if !loadAppointments {
-		resp.AppointmentsStatus = appointmentsStatusSkipped
-		resp.Appointments = []PatientApptDetail{}
-		return
-	}
+func attachAppointments(ctx context.Context, h *Handlers, tokenData *domain.TokenData, resp *PatientResolveResponse, patientID string, office *domain.OfficeConfig) {
 	if h.amdRestClient == nil {
 		resp.AppointmentsStatus = appointmentsStatusError
 		resp.Appointments = []PatientApptDetail{}
@@ -695,8 +684,6 @@ func setPatientResolveMessage(resp *PatientResolveResponse) {
 		resp.Message = fmt.Sprintf("Patient verified with %d appointment(s)", len(resp.Appointments))
 	case appointmentsStatusNone:
 		resp.Message = "Patient verified, no appointments found"
-	case appointmentsStatusSkipped:
-		resp.Message = "Patient verified, appointment lookup skipped"
 	case appointmentsStatusError:
 		resp.Message = "Patient verified, appointment lookup unavailable"
 	default:

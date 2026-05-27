@@ -254,8 +254,7 @@ Request:
   "phone": "9542872010",
   "firstName": "Jane",
   "dob": "01/15/1980",
-  "office": "Hollywood",
-  "includeAppointments": true
+  "office": "Hollywood"
 }
 ```
 
@@ -271,7 +270,7 @@ Valid request shapes:
 
 Appointment loading is best effort. A verified patient response uses
 `appointmentsStatus` to separate identity resolution from appointment loading:
-`found`, `none`, `skipped`, or `error`. Appointment responses include
+`found`, `none`, or `error`. Appointment responses include
 `cancelToken`, a signed short-lived token binding the appointment to the patient
 and office. The agent should store this token in tool/session state and pass it
 back when cancelling.
