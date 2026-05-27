@@ -46,8 +46,7 @@ Request:
   "lastName": "Doe",
   "dob": "01/15/1980",
   "office": "Hollywood",
-  "patientId": "",
-  "includeAppointments": true
+  "patientId": ""
 }
 ```
 
@@ -61,7 +60,7 @@ Valid identity input shapes:
 - `lastName` + `firstName` + `dob`: narrower name lookup filtered by DOB.
 - `patientId`: direct load/appointment refresh for an already verified patient.
 
-Default `includeAppointments` should be `true`. A caller may set it to `false` only for flows that need identity/routing but explicitly do not need appointment state.
+Appointment loading is always part of patient resolve. Clients should not send an appointment-loading toggle.
 
 ## Response Contract
 
@@ -101,7 +100,6 @@ Appointment status values:
 
 - `found`: appointments loaded and at least one future appointment exists.
 - `none`: appointments loaded and no future appointments exist.
-- `skipped`: request set `includeAppointments: false`.
 - `error`: patient was verified, but appointment loading failed.
 
 When appointment loading fails, keep `status: "verified"`:
@@ -217,7 +215,7 @@ This keeps one endpoint behavior consistent while allowing different input shape
 
 ## Agent Migration
 
-1. Update pre-call `lookupByPhone` to call `/api/patient/resolve` with `phone` and `includeAppointments: true`.
+1. Update pre-call `lookupByPhone` to call `/api/patient/resolve` with `phone`.
 2. Update `verify_patient` to call `/api/patient/resolve` instead of `/api/verify-patient`.
 3. Store returned appointments and cancel tokens in session state for both pre-call and verification flows.
 4. Update `confirm_appt` to call `/api/patient/resolve` with `patientId` only when appointment state needs refresh.
@@ -243,7 +241,7 @@ Middleware tests:
 - `lastName` + `dob` resolves and loads appointments.
 - `patientId` refresh loads appointments through the same route.
 - appointment fetch failure still returns `status: verified` with `appointmentsStatus: error`.
-- `includeAppointments: false` returns `appointmentsStatus: skipped`.
+- `/api/patient/resolve` always attempts appointment loading for verified patients.
 - pediatric routing override still applies before allowed providers are returned.
 - old patient-read routes are not registered in the router.
 
