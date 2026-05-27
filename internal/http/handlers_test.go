@@ -832,6 +832,8 @@ func TestAvailabilityResponse_HasFoundContractAndOmitsMessageWhenEmpty(t *testin
 		Outcome:               domain.AvailabilityOutcomeFound,
 		AvailabilityFound:     true,
 		RequestedDate:         "2026-05-18",
+		SearchedFrom:          "2026-05-18",
+		SearchedThrough:       "2026-06-01",
 		ShouldRetrySameSearch: false,
 		NextAction:            domain.AvailabilityNextActionOfferSlots,
 		ActualDate:            "2026-06-01",
@@ -871,6 +873,12 @@ func TestAvailabilityResponse_HasFoundContractAndOmitsMessageWhenEmpty(t *testin
 	if decoded["actualDate"] != "2026-06-01" {
 		t.Errorf("Expected actualDate 2026-06-01, got %q", decoded["actualDate"])
 	}
+	if decoded["searchedFrom"] != "2026-05-18" {
+		t.Errorf("Expected searchedFrom 2026-05-18, got %q", decoded["searchedFrom"])
+	}
+	if decoded["searchedThrough"] != "2026-06-01" {
+		t.Errorf("Expected searchedThrough 2026-06-01, got %q", decoded["searchedThrough"])
+	}
 	if decoded["dateShifted"] != true {
 		t.Errorf("Expected dateShifted true, got %v", decoded["dateShifted"])
 	}
@@ -887,6 +895,49 @@ func TestAvailabilityResponse_HasFoundContractAndOmitsMessageWhenEmpty(t *testin
 	}
 	if _, exists := decoded["message"]; exists {
 		t.Error("Expected message field to be omitted when empty")
+	}
+}
+
+func TestSelectBalancedDisplaySlots_ReturnsRepresentativeTimes(t *testing.T) {
+	allSlots := []domain.AvailableSlot{
+		{Time: "8:00 AM", DateTime: "2026-06-03T08:00"},
+		{Time: "8:30 AM", DateTime: "2026-06-03T08:30"},
+		{Time: "9:00 AM", DateTime: "2026-06-03T09:00"},
+		{Time: "9:30 AM", DateTime: "2026-06-03T09:30"},
+		{Time: "10:00 AM", DateTime: "2026-06-03T10:00"},
+		{Time: "10:30 AM", DateTime: "2026-06-03T10:30"},
+		{Time: "11:00 AM", DateTime: "2026-06-03T11:00"},
+		{Time: "1:00 PM", DateTime: "2026-06-03T13:00"},
+		{Time: "2:30 PM", DateTime: "2026-06-03T14:30"},
+		{Time: "4:00 PM", DateTime: "2026-06-03T16:00"},
+	}
+
+	selected := selectBalancedDisplaySlots(allSlots, 5)
+
+	got := make([]string, 0, len(selected))
+	for _, slot := range selected {
+		got = append(got, slot.Time)
+	}
+	want := []string{"8:00 AM", "9:00 AM", "10:30 AM", "1:00 PM", "4:00 PM"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("expected balanced slots %v, got %v", want, got)
+	}
+}
+
+func TestSelectBalancedDisplaySlots_ReturnsAllSlotsAtOrBelowLimit(t *testing.T) {
+	allSlots := []domain.AvailableSlot{
+		{Time: "8:00 AM", DateTime: "2026-06-03T08:00"},
+		{Time: "1:00 PM", DateTime: "2026-06-03T13:00"},
+		{Time: "4:00 PM", DateTime: "2026-06-03T16:00"},
+	}
+
+	selected := selectBalancedDisplaySlots(allSlots, 5)
+
+	if len(selected) != len(allSlots) {
+		t.Fatalf("expected all %d slots, got %d", len(allSlots), len(selected))
+	}
+	if selected[0].Time != "8:00 AM" || selected[2].Time != "4:00 PM" {
+		t.Fatalf("expected original chronological order, got %+v", selected)
 	}
 }
 
