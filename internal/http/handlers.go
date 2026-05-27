@@ -1653,11 +1653,7 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 			if len(allSlots) > 0 {
 				pa.FirstAvailable = allSlots[0].Time
 				pa.LastAvailable = allSlots[len(allSlots)-1].Time
-				if len(allSlots) > 5 {
-					pa.Slots = allSlots[:5]
-				} else {
-					pa.Slots = allSlots
-				}
+				pa.Slots = selectBalancedDisplaySlots(allSlots, 5)
 			} else {
 				pa.Slots = []domain.AvailableSlot{}
 			}
@@ -1742,8 +1738,39 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 		NextAction:            domain.AvailabilityNextActionOfferSlots,
 		ActualDate:            actualDate,
 		DateShifted:           availabilityDateShifted(originalRequestedDate, searchStartDate, actualDate),
+		SearchedFrom:          searchStartDate,
+		SearchedThrough:       actualDate,
 		Slots:                 slots,
 	})
+}
+
+func selectBalancedDisplaySlots(slots []domain.AvailableSlot, limit int) []domain.AvailableSlot {
+	if limit <= 0 || len(slots) == 0 {
+		return []domain.AvailableSlot{}
+	}
+	if len(slots) <= limit {
+		return slots
+	}
+	if limit == 1 {
+		return slots[:1]
+	}
+
+	selected := make([]domain.AvailableSlot, 0, limit)
+	seenIndexes := make(map[int]bool, limit)
+	lastIndex := len(slots) - 1
+	for i := 0; i < limit; i++ {
+		// Evenly sample the chronological slot list, rounded to the nearest
+		// index. This keeps first/latest options while surfacing middle-day
+		// choices that first-N truncation would hide.
+		index := (i*lastIndex + (limit-1)/2) / (limit - 1)
+		if seenIndexes[index] {
+			continue
+		}
+		seenIndexes[index] = true
+		selected = append(selected, slots[index])
+	}
+
+	return selected
 }
 
 // calculateAvailableSlots generates available time slots for a column on a single day.
