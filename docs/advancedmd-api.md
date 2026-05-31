@@ -178,9 +178,8 @@ retry, the agent should ask for different preferences.
 For patient resolve, the middleware queries six months of columns for the
 resolved office's nearby appointment group, then filters by patient ID. Spring
 Hill and Crystal River are grouped together; Hollywood and Sweetwater are
-grouped together. Each returned appointment includes `officeId`, `office`, and
-a short-lived signed `cancelToken` that binds appointment ID, patient ID,
-office, and action. Appointment loading is best effort and reported with
+grouped together. Each returned appointment includes `officeId` and `office`.
+Appointment loading is best effort and reported with
 `appointmentsStatus` so identity resolution can still succeed when appointment
 loading fails.
 
@@ -234,9 +233,9 @@ appointment reason, and referring doctor.
 Used by `POST /api/appointment/cancel`.
 
 The app-facing cancellation request should include `appointmentId`, `patientId`,
-and `cancelToken` from `POST /api/patient/resolve`. The token supplies office
-when `office` is omitted and rejects a conflicting explicit office.
-Appointment-ID-only cancellation is disabled unless `ALLOW_LEGACY_CANCEL=true`.
+and `office`. Middleware reloads the patient's upcoming appointments for the
+relevant nearby-office group and cancels only when the appointment belongs to
+that patient.
 
 ## Office Scheduler State
 

@@ -21,7 +21,6 @@ type Config struct {
 	// Server settings
 	Port                string
 	AllowRawSlotBooking bool
-	AllowLegacyCancel   bool
 }
 
 // Load reads configuration from environment variables and validates required fields.
@@ -35,7 +34,6 @@ func Load() (*Config, error) {
 		BookingTokenSecret:  os.Getenv("BOOKING_TOKEN_SECRET"),
 		Port:                os.Getenv("PORT"),
 		AllowRawSlotBooking: parseBoolEnv(os.Getenv("ALLOW_RAW_SLOT_BOOKING")),
-		AllowLegacyCancel:   parseBoolEnv(os.Getenv("ALLOW_LEGACY_CANCEL")),
 	}
 
 	// Default port

@@ -7,10 +7,9 @@
 - Removed the legacy `/api/token` ElevenLabs webhook path. The LiveKit agent
   calls middleware tools directly with its middleware API token; AdvancedMD
   credentials and session tokens now stay server-side.
-- Added short-lived signed `cancelToken` values to patient appointment results
-  and made cancellation require `appointmentId`, `patientId`, and `cancelToken`
-  by default. `ALLOW_LEGACY_CANCEL=true` is available as a temporary rollout
-  escape hatch.
+- Changed cancellation to require `appointmentId` and `patientId`, with
+  middleware reloading upcoming appointments to verify patient ownership before
+  calling AdvancedMD.
 - Made signed `bookingToken` the default booking path. Raw scheduler-field
   booking is disabled unless `ALLOW_RAW_SLOT_BOOKING=true`.
 - Reduced server logs to request metadata, office/routing context, counts, and

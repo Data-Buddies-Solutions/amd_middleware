@@ -88,8 +88,7 @@ Successful single-patient response:
       "type": "Follow Up",
       "facility": "Abita Eye Group Spring Hill",
       "officeId": "spring_hill",
-      "office": "Spring Hill",
-      "cancelToken": "signed-cancel-token"
+      "office": "Spring Hill"
     }
   ],
   "message": "Patient verified with 1 appointment(s)"
@@ -149,8 +148,7 @@ Non-single-patient statuses:
           "type": "Follow Up",
           "facility": "Abita Eye Group Spring Hill",
           "officeId": "spring_hill",
-          "office": "Spring Hill",
-          "cancelToken": "signed-cancel-token"
+          "office": "Spring Hill"
         }
       ],
       "message": "Patient verified with 1 appointment(s)"
@@ -258,7 +256,7 @@ This keeps one endpoint behavior consistent while allowing different input shape
 
 1. Update pre-call `lookupByPhone` to call `/api/patient/resolve` with `phone`.
 2. Update `verify_patient` to call `/api/patient/resolve` instead of `/api/verify-patient`.
-3. Store returned appointments and cancel tokens in session state for both pre-call and verification flows.
+3. Store returned appointments in session state for both pre-call and verification flows.
 4. Update `confirm_appt` to call `/api/patient/resolve` with `patientId` only when appointment state needs refresh.
 5. Change `confirm_appt` policy so it skips refresh when appointments are already present and `appointmentsStatus` is `found` or `none`.
 6. If `appointmentsStatus` is `error`, allow `confirm_appt` as a retry/refresh path through the same route.
@@ -289,7 +287,7 @@ Middleware tests:
 Agent tests:
 
 - pre-call single match loads appointments and still requires first-name confirmation before use.
-- `verify_patient` stores appointments and cancel tokens from patient resolve.
+- `verify_patient` stores appointments from patient resolve.
 - `confirm_appt` is skipped when appointments are already loaded.
 - `confirm_appt` uses patient resolve with `patientId` when appointment status is `error`, missing, stale, or patient changed.
 - multiple-match flow still asks for first name before using names from backend data.
