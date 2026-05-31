@@ -92,7 +92,6 @@ type Handlers struct {
 	amdRestClient       *clients.AdvancedMDRestClient
 	bookingTokenSecret  string
 	allowRawSlotBooking bool
-	allowLegacyCancel   bool
 
 	schedulerSetupMu        sync.Mutex
 	schedulerSetup          *domain.SchedulerSetup
@@ -116,11 +115,6 @@ func NewHandlers(tm *auth.TokenManager, amdClient *clients.AdvancedMDClient, amd
 // SetAllowRawSlotBooking enables the legacy raw scheduler field booking path.
 func (h *Handlers) SetAllowRawSlotBooking(allow bool) {
 	h.allowRawSlotBooking = allow
-}
-
-// SetAllowLegacyCancel enables cancellation by appointment ID without a signed cancel token.
-func (h *Handlers) SetAllowLegacyCancel(allow bool) {
-	h.allowLegacyCancel = allow
 }
 
 // resolveOffice resolves an office name to its config.
@@ -390,15 +384,14 @@ func addPatientMissingFields(req AddPatientRequest) []string {
 
 // PatientApptDetail is a single appointment formatted for LLM consumption.
 type PatientApptDetail struct {
-	ID          int    `json:"id"`                    // AMD appointment ID — for cancel_appt
-	Date        string `json:"date"`                  // Human-readable (e.g., "Wednesday, March 18, 2026")
-	Time        string `json:"time"`                  // e.g., "12:00 PM"
-	Provider    string `json:"provider,omitempty"`    // e.g., "Dr. Austin Bach"
-	Type        string `json:"type,omitempty"`        // e.g., "New Adult Medical"
-	Facility    string `json:"facility,omitempty"`    // e.g., "Abita Eye Group Spring Hill"
-	OfficeID    string `json:"officeId,omitempty"`    // Stable office ID that owns the appointment column
-	Office      string `json:"office,omitempty"`      // Display name for the owning office
-	CancelToken string `json:"cancelToken,omitempty"` // Signed token binding this appointment to patient and office
+	ID       int    `json:"id"`                 // AMD appointment ID — for cancel_appt
+	Date     string `json:"date"`               // Human-readable (e.g., "Wednesday, March 18, 2026")
+	Time     string `json:"time"`               // e.g., "12:00 PM"
+	Provider string `json:"provider,omitempty"` // e.g., "Dr. Austin Bach"
+	Type     string `json:"type,omitempty"`     // e.g., "New Adult Medical"
+	Facility string `json:"facility,omitempty"` // e.g., "Abita Eye Group Spring Hill"
+	OfficeID string `json:"officeId,omitempty"` // Stable office ID that owns the appointment column
+	Office   string `json:"office,omitempty"`   // Display name for the owning office
 }
 
 // HandlePatientResolve resolves a patient and, by default, loads appointments.
@@ -776,9 +769,6 @@ func (h *Handlers) fetchUpcomingAppointmentsForOffice(ctx context.Context, token
 			OfficeID: office.ID,
 			Office:   office.DisplayName,
 		}
-		if err := h.addCancelToken(&detail, patientID, office, time.Now().UTC()); err != nil {
-			return nil, fmt.Errorf("failed to create cancel token: %w", err)
-		}
 		details = append(details, detail)
 	}
 
@@ -810,7 +800,6 @@ func appointmentFacilityName(amdName string, office *domain.OfficeConfig) string
 type CancelAppointmentRequest struct {
 	AppointmentID int    `json:"appointmentId"`
 	PatientID     string `json:"patientId,omitempty"`
-	CancelToken   string `json:"cancelToken,omitempty"`
 	Office        string `json:"office,omitempty"`
 }
 
@@ -841,45 +830,29 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 		})
 		return
 	}
-	if req.CancelToken == "" && !h.allowLegacyCancel {
+	req.PatientID = domain.StripPatientPrefix(strings.TrimSpace(req.PatientID))
+	if req.PatientID == "" {
 		json.NewEncoder(w).Encode(CancelAppointmentResponse{
 			Status:  "error",
-			Message: "cancelToken is required. Please load appointments again and choose the appointment to cancel.",
+			Message: "patientId is required",
 		})
 		return
 	}
-	var office *domain.OfficeConfig
-	if req.Office != "" || req.CancelToken == "" {
-		var err error
-		office, err = resolveOffice(req.Office)
-		if err != nil {
-			json.NewEncoder(w).Encode(CancelAppointmentResponse{
-				Status:  "error",
-				Message: err.Error(),
-			})
-			return
-		}
+	if _, err := strconv.Atoi(req.PatientID); err != nil {
+		json.NewEncoder(w).Encode(CancelAppointmentResponse{
+			Status:  "error",
+			Message: "patientId must be numeric",
+		})
+		return
 	}
-	if req.CancelToken != "" {
-		if req.PatientID == "" {
-			json.NewEncoder(w).Encode(CancelAppointmentResponse{
-				Status:  "error",
-				Message: "patientId is required",
-			})
-			return
-		}
-		tokenOffice, err := h.applyCancelToken(&req, office, time.Now().UTC())
-		if err != nil {
-			json.NewEncoder(w).Encode(CancelAppointmentResponse{
-				Status:  "error",
-				Message: "Invalid or expired cancel token. Please load appointments again and choose the appointment to cancel.",
-			})
-			return
-		}
-		office = tokenOffice
+	office, err := resolveOffice(req.Office)
+	if err != nil {
+		json.NewEncoder(w).Encode(CancelAppointmentResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+		return
 	}
-
-	log.Printf("cancel-appointment: request office=%s", office.ID)
 
 	// Get auth token
 	tokenData, err := h.tokenManager.GetToken(r.Context())
@@ -890,6 +863,25 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 		})
 		return
 	}
+
+	owningOffice, err := h.cancelableAppointmentOffice(r.Context(), tokenData, req.PatientID, req.AppointmentID, office)
+	if err != nil {
+		log.Printf("cancel-appointment: appointment ownership check failed: %v", err)
+		json.NewEncoder(w).Encode(CancelAppointmentResponse{
+			Status:  "error",
+			Message: "Unable to verify appointment before cancellation. Please load appointments again and choose the appointment to cancel.",
+		})
+		return
+	}
+	if owningOffice == nil {
+		json.NewEncoder(w).Encode(CancelAppointmentResponse{
+			Status:  "error",
+			Message: "No upcoming appointment matches that patient and appointment ID. Please load appointments again and choose the appointment to cancel.",
+		})
+		return
+	}
+
+	log.Printf("cancel-appointment: request office=%s", owningOffice.ID)
 
 	// Cancel via AMD REST API
 	if err := h.amdRestClient.CancelAppointment(r.Context(), tokenData, req.AppointmentID); err != nil {
@@ -906,6 +898,30 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 		AppointmentID: req.AppointmentID,
 		Message:       "Appointment cancelled successfully",
 	})
+}
+
+func (h *Handlers) cancelableAppointmentOffice(ctx context.Context, tokenData *domain.TokenData, patientID string, appointmentID int, office *domain.OfficeConfig) (*domain.OfficeConfig, error) {
+	if h.amdRestClient == nil {
+		return nil, fmt.Errorf("AdvancedMD appointment client is not configured")
+	}
+	appointments, err := h.fetchUpcomingAppointments(ctx, tokenData, patientID, office)
+	if err != nil {
+		return nil, err
+	}
+	for _, appointment := range appointments {
+		if appointment.ID != appointmentID {
+			continue
+		}
+		if appointment.OfficeID == "" {
+			return office, nil
+		}
+		owningOffice, ok := lookupOfficeByID(appointment.OfficeID)
+		if !ok {
+			return nil, fmt.Errorf("unknown appointment office ID %q", appointment.OfficeID)
+		}
+		return owningOffice, nil
+	}
+	return nil, nil
 }
 
 // BookAppointmentRequest is the expected JSON body for booking an appointment.

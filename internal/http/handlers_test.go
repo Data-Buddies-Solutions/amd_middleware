@@ -489,9 +489,6 @@ func TestHandlePatientResolve_PhoneOnlyLoadsAppointments(t *testing.T) {
 	if len(body.Appointments) != 1 {
 		t.Fatalf("appointments = %+v, want one appointment", body.Appointments)
 	}
-	if body.Appointments[0].CancelToken == "" {
-		t.Fatal("appointment should include cancelToken")
-	}
 }
 
 func TestHandlePatientResolve_PatientIDRefreshUsesSameRoute(t *testing.T) {
@@ -1108,116 +1105,6 @@ func TestBookingTokenRejectsTamperedExpiredAndWrongOffice(t *testing.T) {
 	}
 	if office.ID != "spring_hill" {
 		t.Fatalf("resolved office = %s, want spring_hill", office.ID)
-	}
-}
-
-func TestCancelTokenRoundTrip(t *testing.T) {
-	now := time.Date(2026, 5, 20, 12, 0, 0, 0, time.UTC)
-	detail := PatientApptDetail{ID: 9570263}
-	office := domain.DefaultOffice()
-	handlers := NewHandlers(nil, nil, nil, "test-booking-secret")
-
-	if err := handlers.addCancelToken(&detail, "12345", office, now); err != nil {
-		t.Fatalf("addCancelToken error = %v", err)
-	}
-	if detail.CancelToken == "" {
-		t.Fatal("expected cancel token")
-	}
-
-	req := CancelAppointmentRequest{
-		AppointmentID: 9570263,
-		PatientID:     "12345",
-		CancelToken:   detail.CancelToken,
-	}
-	tokenOffice, err := handlers.applyCancelToken(&req, office, now.Add(time.Minute))
-	if err != nil {
-		t.Fatalf("applyCancelToken error = %v", err)
-	}
-	if tokenOffice.ID != office.ID {
-		t.Fatalf("token office = %s, want %s", tokenOffice.ID, office.ID)
-	}
-	if req.AppointmentID != 9570263 || req.PatientID != "12345" {
-		t.Fatalf("request changed after token validation = %+v", req)
-	}
-}
-
-func TestCancelTokenRejectsTamperedExpiredAndWrongOffice(t *testing.T) {
-	now := time.Date(2026, 5, 20, 12, 0, 0, 0, time.UTC)
-	token, err := signCancelToken("test-booking-secret", cancelTokenPayload{
-		OfficeID:      "spring_hill",
-		PatientID:     "12345",
-		AppointmentID: 9570263,
-		IssuedAt:      now.Unix(),
-		ExpiresAt:     now.Add(cancelTokenTTL).Unix(),
-	})
-	if err != nil {
-		t.Fatalf("signCancelToken error = %v", err)
-	}
-
-	if _, err := verifyCancelToken("wrong-secret", token, now); err == nil {
-		t.Fatal("wrong secret should reject token")
-	}
-	if _, err := verifyCancelToken("test-booking-secret", token+"x", now); err == nil {
-		t.Fatal("tampered token should be rejected")
-	}
-	if _, err := verifyCancelToken("test-booking-secret", token, now.Add(cancelTokenTTL)); err == nil {
-		t.Fatal("expired token should be rejected")
-	}
-
-	req := CancelAppointmentRequest{
-		AppointmentID: 9570263,
-		PatientID:     "12345",
-		CancelToken:   token,
-	}
-	handlers := NewHandlers(nil, nil, nil, "test-booking-secret")
-	office, ok := domain.LookupOffice("+19542872010")
-	if !ok {
-		t.Fatal("expected Hollywood office")
-	}
-	if _, err := handlers.applyCancelToken(&req, office, now); err == nil {
-		t.Fatal("token for a different office should be rejected")
-	}
-
-	req = CancelAppointmentRequest{
-		AppointmentID: 11111,
-		PatientID:     "12345",
-		CancelToken:   token,
-	}
-	office, _ = domain.LookupOffice("Spring Hill")
-	if _, err := handlers.applyCancelToken(&req, office, now); err == nil {
-		t.Fatal("token should reject mismatched appointment ID")
-	}
-
-	req = CancelAppointmentRequest{
-		AppointmentID: 9570263,
-		PatientID:     "99999",
-		CancelToken:   token,
-	}
-	if _, err := handlers.applyCancelToken(&req, office, now); err == nil {
-		t.Fatal("token should reject mismatched patient ID")
-	}
-
-	hollywoodToken, err := signCancelToken("test-booking-secret", cancelTokenPayload{
-		OfficeID:      "hollywood",
-		PatientID:     "12345",
-		AppointmentID: 9570263,
-		IssuedAt:      now.Unix(),
-		ExpiresAt:     now.Add(cancelTokenTTL).Unix(),
-	})
-	if err != nil {
-		t.Fatalf("sign Hollywood cancel token error = %v", err)
-	}
-	req = CancelAppointmentRequest{
-		AppointmentID: 9570263,
-		PatientID:     "12345",
-		CancelToken:   hollywoodToken,
-	}
-	office, err = handlers.applyCancelToken(&req, nil, now)
-	if err != nil {
-		t.Fatalf("token should resolve office when request omits office: %v", err)
-	}
-	if office.ID != "hollywood" {
-		t.Fatalf("resolved office = %s, want hollywood", office.ID)
 	}
 }
 
@@ -1949,9 +1836,6 @@ func TestFetchUpcomingAppointmentsFiltersPastAppointments(t *testing.T) {
 	if details[0].ID != 22222 {
 		t.Fatalf("appointment ID = %d, want 22222", details[0].ID)
 	}
-	if details[0].CancelToken == "" {
-		t.Fatal("future appointment should include cancel token")
-	}
 }
 
 func TestFetchUpcomingAppointmentsLoadsNearbyOfficeGroup(t *testing.T) {
@@ -2034,24 +1918,6 @@ func TestFetchUpcomingAppointmentsLoadsNearbyOfficeGroup(t *testing.T) {
 		t.Fatalf("crystal provider = %q, want Dr. J. Licht", crystal.Provider)
 	}
 
-	for _, detail := range []PatientApptDetail{spring, crystal} {
-		if detail.CancelToken == "" {
-			t.Fatalf("appointment %d should include cancel token", detail.ID)
-		}
-		req := CancelAppointmentRequest{
-			AppointmentID: detail.ID,
-			PatientID:     "12345",
-			CancelToken:   detail.CancelToken,
-		}
-		tokenOffice, err := handlers.applyCancelToken(&req, nil, time.Now().UTC())
-		if err != nil {
-			t.Fatalf("cancel token for appointment %d did not verify: %v", detail.ID, err)
-		}
-		if tokenOffice.ID != detail.OfficeID {
-			t.Fatalf("cancel token office = %q, want %q", tokenOffice.ID, detail.OfficeID)
-		}
-	}
-
 	sawSpring := false
 	sawCrystal := false
 	requestedMu.Lock()
@@ -2062,6 +1928,55 @@ func TestFetchUpcomingAppointmentsLoadsNearbyOfficeGroup(t *testing.T) {
 	requestedMu.Unlock()
 	if !sawSpring || !sawCrystal {
 		t.Fatalf("requested columns = %v, want Spring Hill and Crystal River groups", requestedColumns)
+	}
+}
+
+func TestHandleCancelAppointment_ValidatesPatientAppointmentBeforeCancel(t *testing.T) {
+	handlers, cancelRequests := newCancelAppointmentTestHandlers(t, 12345, 33333)
+
+	req := httptest.NewRequest("POST", "/api/appointment/cancel", strings.NewReader(`{"patientId":"pat12345","appointmentId":33333,"office":"Spring Hill"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandleCancelAppointment(w, req)
+
+	var body CancelAppointmentResponse
+	if err := json.NewDecoder(w.Result().Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Status != "cancelled" {
+		t.Fatalf("status = %q, want cancelled; body = %+v", body.Status, body)
+	}
+	if body.AppointmentID != 33333 {
+		t.Fatalf("appointmentId = %d, want 33333", body.AppointmentID)
+	}
+	if *cancelRequests != 1 {
+		t.Fatalf("cancel requests = %d, want 1", *cancelRequests)
+	}
+}
+
+func TestHandleCancelAppointment_RejectsPatientAppointmentMismatch(t *testing.T) {
+	handlers, cancelRequests := newCancelAppointmentTestHandlers(t, 12345, 33333)
+
+	req := httptest.NewRequest("POST", "/api/appointment/cancel", strings.NewReader(`{"patientId":"12345","appointmentId":44444,"office":"Spring Hill"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandleCancelAppointment(w, req)
+
+	var body CancelAppointmentResponse
+	if err := json.NewDecoder(w.Result().Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Status != "error" {
+		t.Fatalf("status = %q, want error; body = %+v", body.Status, body)
+	}
+	expected := "No upcoming appointment matches that patient and appointment ID. Please load appointments again and choose the appointment to cancel."
+	if body.Message != expected {
+		t.Fatalf("message = %q, want %q", body.Message, expected)
+	}
+	if *cancelRequests != 0 {
+		t.Fatalf("cancel requests = %d, want 0", *cancelRequests)
 	}
 }
 
@@ -2230,14 +2145,14 @@ func TestHandleCancelAppointment_ValidationErrors(t *testing.T) {
 			expectedMsg: "appointmentId is required",
 		},
 		{
-			name:        "missing cancelToken",
+			name:        "missing patientId",
 			body:        `{"appointmentId":12345}`,
-			expectedMsg: "cancelToken is required. Please load appointments again and choose the appointment to cancel.",
+			expectedMsg: "patientId is required",
 		},
 		{
-			name:        "missing patientId with cancelToken",
-			body:        `{"appointmentId":12345,"cancelToken":"signed-token"}`,
-			expectedMsg: "patientId is required",
+			name:        "non-numeric patientId",
+			body:        `{"appointmentId":12345,"patientId":"abc"}`,
+			expectedMsg: "patientId must be numeric",
 		},
 	}
 
@@ -2455,6 +2370,70 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 	return f(r)
+}
+
+func newCancelAppointmentTestHandlers(t *testing.T, patientID int, appointmentID int) (*Handlers, *int) {
+	t.Helper()
+	future := time.Now().In(eastern).Add(48 * time.Hour)
+	futureMonth := time.Date(future.Year(), future.Month(), 1, 0, 0, 0, 0, eastern).Format("2006-01-02")
+	cancelRequests := 0
+
+	httpClient := &http.Client{
+		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			contentType := r.Header.Get("Content-Type")
+
+			status := http.StatusOK
+			response := `{}`
+			switch {
+			case strings.Contains(contentType, "application/xml") && strings.Contains(r.URL.Host, "partnerlogin"):
+				response = `<PPMDResults><Results><usercontext webserver="https://mock.advancedmd.test/processrequest/api-801/APP"></usercontext></Results></PPMDResults>`
+			case strings.Contains(contentType, "application/xml"):
+				response = `<PPMDResults><Results success="1"><usercontext>test-token</usercontext></Results></PPMDResults>`
+			case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/scheduler/appointments"):
+				columnID := r.URL.Query().Get("columnId")
+				if r.URL.Query().Get("startDate") == futureMonth && strings.Contains(columnID, "1593") {
+					response = fmt.Sprintf(`[{
+						"id": %d,
+						"startdatetime": %q,
+						"patientid": %d,
+						"columnid": 1593,
+						"profileid": 620,
+						"provider": "LICHT, J",
+						"facility": "EYE RADIANCE CRYSTAL RIVER",
+						"appointmenttypeids": [6169]
+					}]`, appointmentID, future.Format("2006-01-02T15:04:05"), patientID)
+				} else {
+					response = `[]`
+				}
+			case r.Method == http.MethodPut && strings.Contains(r.URL.Path, fmt.Sprintf("/scheduler/appointments/%d/cancel", appointmentID)):
+				cancelRequests++
+				response = `{}`
+			default:
+				status = http.StatusInternalServerError
+				response = `{"error":"unexpected request"}`
+			}
+
+			return &http.Response{
+				StatusCode: status,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader(response)),
+				Request:    r,
+			}, nil
+		}),
+	}
+	authenticator := auth.NewAuthenticator(auth.Credentials{
+		Username:  "user",
+		Password:  "pass",
+		OfficeKey: "office",
+		AppName:   "app",
+	}, httpClient)
+
+	return NewHandlers(
+		auth.NewTokenManager(authenticator),
+		nil,
+		clients.NewAdvancedMDRestClient(httpClient),
+		"test-booking-secret",
+	), &cancelRequests
 }
 
 func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {

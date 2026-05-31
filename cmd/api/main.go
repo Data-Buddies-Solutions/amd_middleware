@@ -71,7 +71,6 @@ func main() {
 	// Initialize handlers
 	handlers := apphttp.NewHandlers(tokenManager, amdClient, amdRestClient, cfg.BookingTokenSecret)
 	handlers.SetAllowRawSlotBooking(cfg.AllowRawSlotBooking)
-	handlers.SetAllowLegacyCancel(cfg.AllowLegacyCancel)
 
 	// Create router
 	router := apphttp.NewRouter(handlers, cfg.APISecret)

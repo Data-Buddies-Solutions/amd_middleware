@@ -85,7 +85,6 @@ advancedmd-token-management/
 | `API_SECRET` | Yes | Bearer token required by `/api/*` endpoints |
 | `BOOKING_TOKEN_SECRET` | No | HMAC secret for signed availability slot booking tokens; defaults to `API_SECRET` |
 | `ALLOW_RAW_SLOT_BOOKING` | No | Temporary legacy escape hatch for booking without `bookingToken`; default `false` |
-| `ALLOW_LEGACY_CANCEL` | No | Temporary legacy escape hatch for cancelling without `cancelToken`; default `false` |
 | `PORT` | No | Server port, default `8080` |
 | `AMD_ENV` | No | `dev` uses dev office IDs; anything else uses prod |
 
@@ -138,9 +137,8 @@ Office truth lives in `internal/domain/office.go`.
 - office IDs or display names, for example `hollywood`, `Hollywood`,
   `sweetwater`, `Spring Hill`
 
-If `office` is omitted on non-token requests, prod defaults to Spring Hill.
-Signed `bookingToken` and `cancelToken` requests infer office from the token and
-reject a conflicting explicit office.
+If `office` is omitted, prod defaults to Spring Hill. Signed `bookingToken`
+requests infer office from the token and reject a conflicting explicit office.
 
 ### Production Offices
 
@@ -244,8 +242,7 @@ loads upcoming appointments by default.
 
 Appointment loading uses nearby office groups: Spring Hill and Crystal River are
 queried together, and Hollywood and Sweetwater are queried together. Returned
-appointments include the owning `officeId` and `office`; the `cancelToken` is
-signed for that owning office.
+appointments include the owning `officeId` and `office`.
 
 Request:
 
@@ -270,10 +267,10 @@ Valid request shapes:
 
 Appointment loading is best effort. A verified patient response uses
 `appointmentsStatus` to separate identity resolution from appointment loading:
-`found`, `none`, or `error`. Appointment responses include
-`cancelToken`, a signed short-lived token binding the appointment to the patient
-and office. The agent should store this token in tool/session state and pass it
-back when cancelling.
+`found`, `none`, or `error`. For cancellation, the agent sends the loaded
+`appointmentId` and verified `patientId`; middleware reloads upcoming
+appointments and verifies that the appointment belongs to that patient before
+calling AdvancedMD.
 
 Response statuses: `verified`, `multiple_matches`, `not_found`, `error`.
 
@@ -510,8 +507,8 @@ appointment was booked but the follow-up AP note failed.
 
 ### POST /api/appointment/cancel
 
-Cancels an appointment with a middleware-issued cancel token. Legacy
-appointment-ID-only cancellation is disabled unless `ALLOW_LEGACY_CANCEL=true`.
+Cancels an appointment after validating that the requested `appointmentId`
+belongs to the verified `patientId` in the relevant office lookup group.
 
 Request:
 
@@ -519,7 +516,6 @@ Request:
 {
   "appointmentId": 9570263,
   "patientId": "17604634",
-  "cancelToken": "signed-cancel-token",
   "office": "Sweetwater"
 }
 ```
@@ -532,14 +528,14 @@ The LiveKit agent no longer needs `/api/token`; that endpoint has been removed.
 The agent should call middleware endpoints directly with `AMD_API_URL` and
 `AMD_API_TOKEN`.
 
-For cancellation, `confirm_appt` / appointment lookup should keep each
-appointment's hidden `cancelToken` in session state. `cancel_appt` should send:
+For cancellation, appointment lookup should keep loaded appointment details in
+session state. `cancel_appt` should send:
 
 ```json
 {
   "appointmentId": 9570263,
   "patientId": "17604634",
-  "cancelToken": "signed-cancel-token"
+  "office": "Sweetwater"
 }
 ```
 
