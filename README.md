@@ -273,6 +273,10 @@ appointments and verifies that the appointment belongs to that patient before
 calling AdvancedMD.
 
 Response statuses: `verified`, `multiple_matches`, `not_found`, `error`.
+For `multiple_matches`, the top-level response keeps `status: "multiple_matches"`
+and `matches` contains full verified patient payloads,
+including `patientId`, routing, appointment status, appointments, and cancel
+tokens when appointments exist.
 
 ### POST /api/add-patient
 

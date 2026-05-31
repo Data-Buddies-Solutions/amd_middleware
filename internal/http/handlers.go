@@ -55,23 +55,23 @@ type PatientResolveRequest struct {
 
 // PatientResolveResponse is returned by /api/patient/resolve.
 type PatientResolveResponse struct {
-	Status              string              `json:"status"`
-	PatientID           string              `json:"patientId,omitempty"`
-	Name                string              `json:"name,omitempty"`
-	DOB                 string              `json:"dob,omitempty"`
-	Phone               string              `json:"phone,omitempty"`
-	InsuranceCarrier    string              `json:"insuranceCarrier,omitempty"`
-	InsuranceCarrierID  string              `json:"insuranceCarrierId,omitempty"`
-	InsPlanID           string              `json:"insPlanId,omitempty"`
-	RespPartyID         string              `json:"respPartyId,omitempty"`
-	Routing             string              `json:"routing,omitempty"`
-	AllowedProviders    []string            `json:"allowedProviders,omitempty"`
-	RoutingAmbiguous    bool                `json:"routingAmbiguous,omitempty"`
-	AppointmentsStatus  string              `json:"appointmentsStatus,omitempty"`
-	Appointments        []PatientApptDetail `json:"appointments"`
-	AppointmentsMessage string              `json:"appointmentsMessage,omitempty"`
-	Message             string              `json:"message,omitempty"`
-	Matches             []PatientMatch      `json:"matches,omitempty"`
+	Status              string                   `json:"status"`
+	PatientID           string                   `json:"patientId,omitempty"`
+	Name                string                   `json:"name,omitempty"`
+	DOB                 string                   `json:"dob,omitempty"`
+	Phone               string                   `json:"phone,omitempty"`
+	InsuranceCarrier    string                   `json:"insuranceCarrier,omitempty"`
+	InsuranceCarrierID  string                   `json:"insuranceCarrierId,omitempty"`
+	InsPlanID           string                   `json:"insPlanId,omitempty"`
+	RespPartyID         string                   `json:"respPartyId,omitempty"`
+	Routing             string                   `json:"routing,omitempty"`
+	AllowedProviders    []string                 `json:"allowedProviders,omitempty"`
+	RoutingAmbiguous    bool                     `json:"routingAmbiguous,omitempty"`
+	AppointmentsStatus  string                   `json:"appointmentsStatus,omitempty"`
+	Appointments        []PatientApptDetail      `json:"appointments"`
+	AppointmentsMessage string                   `json:"appointmentsMessage,omitempty"`
+	Message             string                   `json:"message,omitempty"`
+	Matches             []PatientResolveResponse `json:"matches,omitempty"`
 }
 
 const (
@@ -79,11 +79,6 @@ const (
 	appointmentsStatusNone  = "none"
 	appointmentsStatusError = "error"
 )
-
-// PatientMatch provides minimal info for disambiguation.
-type PatientMatch struct {
-	FirstName string `json:"firstName"`
-}
 
 // Handlers holds the dependencies for HTTP handlers.
 type Handlers struct {
@@ -448,9 +443,9 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	patient, matches := selectResolvedPatient(patients, req)
+	patient, matchingPatients := selectResolvedPatient(patients, req)
 	if patient.ID == "" {
-		if len(matches) == 0 {
+		if len(matchingPatients) == 0 {
 			json.NewEncoder(w).Encode(PatientResolveResponse{
 				Status:       "not_found",
 				Appointments: []PatientApptDetail{},
@@ -458,6 +453,7 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 			})
 			return
 		}
+		matches := h.buildResolvedPatientMatches(r.Context(), tokenData, matchingPatients, office, req.Phone)
 		json.NewEncoder(w).Encode(PatientResolveResponse{
 			Status:       "multiple_matches",
 			Appointments: []PatientApptDetail{},
@@ -522,7 +518,7 @@ func (h *Handlers) resolvePatientCandidates(ctx context.Context, tokenData *doma
 	return patients, nil
 }
 
-func selectResolvedPatient(patients []domain.Patient, req PatientResolveRequest) (domain.Patient, []PatientMatch) {
+func selectResolvedPatient(patients []domain.Patient, req PatientResolveRequest) (domain.Patient, []domain.Patient) {
 	matching := patients
 	if req.DOB != "" {
 		normalizedDOB := domain.NormalizeDOB(req.DOB)
@@ -550,11 +546,7 @@ func selectResolvedPatient(patients []domain.Patient, req PatientResolveRequest)
 	case 1:
 		return matching[0], nil
 	default:
-		matches := make([]PatientMatch, 0, len(matching))
-		for _, p := range matching {
-			matches = append(matches, PatientMatch{FirstName: p.FirstName})
-		}
-		return domain.Patient{}, matches
+		return domain.Patient{}, matching
 	}
 }
 
@@ -624,6 +616,14 @@ func (h *Handlers) buildResolvedPatient(ctx context.Context, tokenData *domain.T
 	attachAppointments(ctx, h, tokenData, &resp, patient.ID, office)
 	setPatientResolveMessage(&resp)
 	return resp
+}
+
+func (h *Handlers) buildResolvedPatientMatches(ctx context.Context, tokenData *domain.TokenData, patients []domain.Patient, office *domain.OfficeConfig, lookupPhone string) []PatientResolveResponse {
+	matches := make([]PatientResolveResponse, 0, len(patients))
+	for _, patient := range patients {
+		matches = append(matches, h.buildResolvedPatient(ctx, tokenData, patient, office, lookupPhone))
+	}
+	return matches
 }
 
 func applyDemographicsToResolveResponse(resp *PatientResolveResponse, demoResult *clients.DemographicResult, office *domain.OfficeConfig, patientDOB string) {

@@ -52,7 +52,7 @@ Request:
 
 Valid identity input shapes:
 
-- `phone` only: pre-call lookup. Returns a single match, multiple first-name matches, or no match.
+- `phone` only: pre-call lookup. Returns a single match, multiple full patient matches, or no match.
 - `phone` + `firstName`: phone lookup filtered by first name.
 - `phone` + `dob`: phone lookup filtered by DOB.
 - `phone` + `firstName` + `dob`: phone lookup filtered by both.
@@ -124,10 +124,51 @@ Non-single-patient statuses:
 ```json
 {
   "status": "multiple_matches",
-  "message": "Found 3 patients for this phone number. Ask the caller to confirm their name.",
+  "appointments": [],
+  "message": "Found 2 patients for this phone number. Ask the caller to confirm their name.",
   "matches": [
-    { "firstName": "JANE" },
-    { "firstName": "JOHN" }
+    {
+      "status": "verified",
+      "patientId": "17604634",
+      "name": "DOE,JANE",
+      "dob": "01/15/1980",
+      "phone": "(954)287-2010",
+      "insuranceCarrier": "Aetna",
+      "insuranceCarrierId": "123",
+      "routing": "bach_only",
+      "allowedProviders": ["Dr. Austin Bach"],
+      "routingAmbiguous": false,
+      "appointmentsStatus": "found",
+      "appointments": [
+        {
+          "id": 9570263,
+          "date": "Wednesday, March 18, 2026",
+          "time": "12:00 PM",
+          "provider": "Dr. Austin Bach",
+          "type": "Follow Up",
+          "facility": "Abita Eye Group Spring Hill",
+          "officeId": "spring_hill",
+          "office": "Spring Hill",
+          "cancelToken": "signed-cancel-token"
+        }
+      ],
+      "message": "Patient verified with 1 appointment(s)"
+    },
+    {
+      "status": "verified",
+      "patientId": "17604635",
+      "name": "DOE,JOHN",
+      "dob": "03/20/1982",
+      "phone": "(954)287-2010",
+      "insuranceCarrier": "Humana Medicare",
+      "insuranceCarrierId": "456",
+      "routing": "accepted",
+      "allowedProviders": ["Dr. Austin Bach"],
+      "routingAmbiguous": false,
+      "appointmentsStatus": "none",
+      "appointments": [],
+      "message": "Patient verified, no appointments found"
+    }
   ]
 }
 ```
@@ -197,7 +238,7 @@ type PatientResolveResult struct {
     AppointmentsStatus  string
     Appointments        []PatientApptDetail
     AppointmentsMessage string
-    Matches             []PatientMatch
+    Matches             []PatientResolveResult
     Message             string
 }
 ```
@@ -234,7 +275,7 @@ This keeps one endpoint behavior consistent while allowing different input shape
 Middleware tests:
 
 - `phone` only single match returns `status: verified`, routing, and appointments.
-- `phone` only multiple matches returns first-name matches and does not load appointments.
+- `phone` only multiple matches returns full patient details and appointments for each match.
 - `phone` + `firstName` resolves a multiple-match phone number and loads appointments.
 - `phone` + `dob` resolves and loads appointments.
 - `lastName` + `dob` resolves and loads appointments.
