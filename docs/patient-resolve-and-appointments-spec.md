@@ -148,8 +148,7 @@ Non-single-patient statuses:
           "type": "Follow Up",
           "facility": "Abita Eye Group Spring Hill",
           "officeId": "spring_hill",
-          "office": "Spring Hill",
-          "cancelToken": "signed-cancel-token"
+          "office": "Spring Hill"
         }
       ],
       "message": "Patient verified with 1 appointment(s)"

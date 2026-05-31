@@ -516,8 +516,11 @@ func TestHandlePatientResolve_PhoneOnlyMultipleMatchesReturnsFullDetails(t *test
 	if body.Matches[0].AppointmentsStatus != appointmentsStatusFound || len(body.Matches[0].Appointments) != 1 {
 		t.Fatalf("first match appointments = %q/%+v, want found appointment", body.Matches[0].AppointmentsStatus, body.Matches[0].Appointments)
 	}
-	if body.Matches[0].Appointments[0].CancelToken == "" {
-		t.Fatal("first match appointment should include cancelToken")
+	if body.Matches[0].Appointments[0].ID != 9570263 {
+		t.Fatalf("first match appointment ID = %d, want 9570263", body.Matches[0].Appointments[0].ID)
+	}
+	if body.Matches[0].Appointments[0].OfficeID != "spring_hill" {
+		t.Fatalf("first match appointment office ID = %q, want spring_hill", body.Matches[0].Appointments[0].OfficeID)
 	}
 	if body.Matches[1].Status != "verified" || body.Matches[1].PatientID != "456" {
 		t.Fatalf("second match = %+v, want verified patient 456", body.Matches[1])
