@@ -311,6 +311,7 @@ type BookAppointmentParams struct {
 	FacilityID int    `json:"facilityid"`
 	Color      string `json:"color"`
 	Force      int    `json:"force,omitempty"`
+	Comments   string `json:"comments,omitempty"`
 }
 
 // BookAppointmentResponse represents the AMD response after booking.

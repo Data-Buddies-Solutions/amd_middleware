@@ -37,7 +37,7 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
-const maxPatientNoteLength = 1000
+const maxAppointmentCommentLength = 1000
 const bachSameStartCapacity = 2
 const schedulerSetupCacheTTL = 6 * time.Hour
 
@@ -962,8 +962,6 @@ type BookAppointmentResponse struct {
 	Duration            int      `json:"duration,omitempty"`
 	AppointmentTypeID   int      `json:"appointmentTypeId,omitempty"`
 	AppointmentTypeName string   `json:"appointmentTypeName,omitempty"`
-	NoteID              string   `json:"noteId,omitempty"`
-	NoteStatus          string   `json:"noteStatus,omitempty"`
 	Message             string   `json:"message"`
 	Missing             []string `json:"missing,omitempty"`
 }
@@ -1012,27 +1010,30 @@ func normalizeBookingPatientName(name string) string {
 	return name
 }
 
-func buildBookingPatientNote(appointmentID int, appointmentReason string, referringDoctor string) string {
-	appointmentReason = normalizePatientNote(appointmentReason)
-	referringDoctor = normalizePatientNote(referringDoctor)
+func buildBookingAppointmentComment(appointmentReason string, referringDoctor string) string {
+	appointmentReason = normalizeAppointmentCommentPart(appointmentReason)
+	referringDoctor = normalizeAppointmentCommentPart(referringDoctor)
 	if appointmentReason == "" && referringDoctor == "" {
 		return ""
+	}
+	if appointmentReason == "" {
+		appointmentReason = "none"
 	}
 	if referringDoctor == "" {
 		referringDoctor = "none"
 	}
 
 	lines := []string{
-		fmt.Sprintf("Appointment ID: %d", appointmentID),
-	}
-	if appointmentReason != "" {
-		lines = append(lines, "Appointment reason: "+appointmentReason)
-	}
-	if referringDoctor != "" {
-		lines = append(lines, "Referring doctor: "+referringDoctor)
+		"Appointment reason: " + appointmentReason,
+		"Referring doctor: " + referringDoctor,
+		"- AI",
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+func normalizeAppointmentCommentPart(value string) string {
+	return strings.TrimSpace(value)
 }
 
 // HandleBookAppointment books an appointment in AdvancedMD.
@@ -1101,10 +1102,11 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: err.Error()})
 		return
 	}
-	if notePreview := buildBookingPatientNote(0, req.AppointmentReason, req.ReferringDoctor); len([]rune(notePreview)) > maxPatientNoteLength {
+	appointmentComment := buildBookingAppointmentComment(req.AppointmentReason, req.ReferringDoctor)
+	if len([]rune(appointmentComment)) > maxAppointmentCommentLength {
 		json.NewEncoder(w).Encode(BookAppointmentResponse{
 			Status:  "error",
-			Message: fmt.Sprintf("appointment note must be %d characters or fewer", maxPatientNoteLength),
+			Message: fmt.Sprintf("appointment comments must be %d characters or fewer", maxAppointmentCommentLength),
 		})
 		return
 	}
@@ -1261,6 +1263,7 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		FacilityID: facilityIDInt,
 		Color:      color,
 		Force:      force,
+		Comments:   appointmentComment,
 	})
 	if err != nil {
 		log.Printf("book-appointment: AMD error: %v", err)
@@ -1286,33 +1289,6 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 	log.Printf("book-appointment: success office=%s", office.ID)
 
 	receipt := buildBookAppointmentReceipt(req, office, apptID)
-	if note := buildBookingPatientNote(apptID, req.AppointmentReason, req.ReferringDoctor); note != "" {
-		if h.amdClient == nil {
-			receipt.Status = "partial"
-			receipt.NoteStatus = "failed"
-			receipt.Message = "Appointment booked but note failed: AdvancedMD note client is not configured"
-			json.NewEncoder(w).Encode(receipt)
-			return
-		}
-
-		noteID, err := h.amdClient.SavePatientNote(r.Context(), tokenData, clients.SavePatientNoteParams{
-			PatientID:   req.PatientID,
-			ProfileID:   strconv.Itoa(req.ProfileID),
-			NoteTypeFID: clients.DefaultPatientNoteTypeFID,
-			Note:        note,
-		})
-		if err != nil {
-			receipt.Status = "partial"
-			receipt.NoteStatus = "failed"
-			receipt.Message = "Appointment booked but note failed: " + err.Error()
-			json.NewEncoder(w).Encode(receipt)
-			return
-		}
-		receipt.NoteID = noteID
-		receipt.NoteStatus = "saved"
-		receipt.Message = "Appointment booked and note saved successfully"
-	}
-
 	json.NewEncoder(w).Encode(receipt)
 }
 
@@ -2036,108 +2012,4 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 		PreauthRequired:  insEntry.PreauthRequired,
 		Message:          "Insurance updated successfully",
 	})
-}
-
-// AddPatientNoteRequest is the expected JSON body for adding a patient note.
-type AddPatientNoteRequest struct {
-	PatientID string `json:"patientId"`
-	Note      string `json:"note"`
-	Office    string `json:"office,omitempty"`
-}
-
-// AddPatientNoteResponse is returned after saving a patient note.
-type AddPatientNoteResponse struct {
-	Status    string `json:"status"`
-	PatientID string `json:"patientId,omitempty"`
-	NoteID    string `json:"noteId,omitempty"`
-	Message   string `json:"message,omitempty"`
-}
-
-// HandleAddPatientNote saves an appointment note on an existing patient.
-func (h *Handlers) HandleAddPatientNote(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var req AddPatientNoteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		json.NewEncoder(w).Encode(AddPatientNoteResponse{
-			Status:  "error",
-			Message: "Invalid JSON body",
-		})
-		return
-	}
-
-	patientID := domain.StripPatientPrefix(strings.TrimSpace(req.PatientID))
-	note := normalizePatientNote(req.Note)
-	if patientID == "" {
-		json.NewEncoder(w).Encode(AddPatientNoteResponse{
-			Status:  "error",
-			Message: "patientId is required",
-		})
-		return
-	}
-	if _, err := strconv.Atoi(patientID); err != nil {
-		json.NewEncoder(w).Encode(AddPatientNoteResponse{
-			Status:  "error",
-			Message: "patientId must be numeric",
-		})
-		return
-	}
-	if note == "" {
-		json.NewEncoder(w).Encode(AddPatientNoteResponse{
-			Status:  "error",
-			Message: "note is required",
-		})
-		return
-	}
-	if len([]rune(note)) > maxPatientNoteLength {
-		json.NewEncoder(w).Encode(AddPatientNoteResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("note must be %d characters or fewer", maxPatientNoteLength),
-		})
-		return
-	}
-
-	office, err := resolveOffice(req.Office)
-	if err != nil {
-		json.NewEncoder(w).Encode(AddPatientNoteResponse{
-			Status:  "error",
-			Message: err.Error(),
-		})
-		return
-	}
-
-	tokenData, err := h.tokenManager.GetToken(r.Context())
-	if err != nil {
-		json.NewEncoder(w).Encode(AddPatientNoteResponse{
-			Status:  "error",
-			Message: "Failed to get authentication token: " + err.Error(),
-		})
-		return
-	}
-
-	noteID, err := h.amdClient.SavePatientNote(r.Context(), tokenData, clients.SavePatientNoteParams{
-		PatientID:   patientID,
-		ProfileID:   office.DefaultProfileID,
-		NoteTypeFID: clients.DefaultPatientNoteTypeFID,
-		Note:        note,
-	})
-	if err != nil {
-		json.NewEncoder(w).Encode(AddPatientNoteResponse{
-			Status:    "error",
-			PatientID: patientID,
-			Message:   "Failed to save patient note: " + err.Error(),
-		})
-		return
-	}
-
-	json.NewEncoder(w).Encode(AddPatientNoteResponse{
-		Status:    "saved",
-		PatientID: patientID,
-		NoteID:    noteID,
-		Message:   "Patient note saved",
-	})
-}
-
-func normalizePatientNote(note string) string {
-	return strings.TrimSpace(note)
 }

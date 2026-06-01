@@ -398,6 +398,9 @@ func TestBookAppointment_IncludesForceWhenSet(t *testing.T) {
 		if payload["force"] != float64(1) {
 			t.Fatalf("force = %v, want 1 in payload %#v", payload["force"], payload)
 		}
+		if payload["comments"] != "Appointment reason: blurry vision\nReferring doctor: Dr. Smith\n- AI" {
+			t.Fatalf("comments = %v, want appointment comments in payload %#v", payload["comments"], payload)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(BookAppointmentResponse{ID: 98765})
@@ -419,6 +422,7 @@ func TestBookAppointment_IncludesForceWhenSet(t *testing.T) {
 		FacilityID: 1568,
 		Color:      "#FF0000",
 		Force:      1,
+		Comments:   "Appointment reason: blurry vision\nReferring doctor: Dr. Smith\n- AI",
 	})
 	if err != nil {
 		t.Fatalf("BookAppointment failed: %v", err)

@@ -3,7 +3,7 @@
 Go HTTP middleware between the LiveKit voice agent and AdvancedMD. It owns
 AdvancedMD authentication, office routing, scheduler column selection,
 insurance routing, patient lookup/creation, appointment lookup, booking,
-cancellation, and patient notes.
+cancellation, and insurance updates.
 
 This repo currently ships one server binary from `./cmd/api`. The old local CLI
 experiment has been removed.
@@ -32,11 +32,10 @@ LiveKit agent
   -> POST /api/scheduler/availability
   -> POST /api/appointment/book
   -> POST /api/appointment/cancel
-  -> POST /api/patient/notes
 
 AdvancedMD middleware
   -> in-memory token manager with background refresh
-  -> AdvancedMD XMLRPC APIs for patients, demographics, notes, scheduler setup
+  -> AdvancedMD XMLRPC APIs for patients, demographics, scheduler setup
   -> AdvancedMD REST APIs for appointments, block holds, booking, cancellation
 ```
 
@@ -480,11 +479,18 @@ legacy override; new callers should not send it.
 
 Optional fields: `patientName`, `dob`, `ageBand`, `routing`, `office`,
 `isPostOp`, `visitReason`, `appointmentReason`, and `referringDoctor`. When
-`appointmentReason` or `referringDoctor` is present, booking first creates the
-appointment, then saves an AP patient note with the new appointment ID in the
-note body. `dob` is required when booking an age-restricted provider column,
-and under-18 DOBs apply the office's pediatric routing for medical bookings.
-When `bookingToken` is used, the token owns the office, selected `columnId`,
+`appointmentReason` or `referringDoctor` is present, booking sends AMD
+appointment `comments` in the booking payload:
+
+```text
+Appointment reason: <appointmentReason or none>
+Referring doctor: <referringDoctor or none>
+- AI
+```
+
+`dob` is required when booking an age-restricted provider column, and under-18
+DOBs apply the office's pediatric routing for medical bookings. When
+`bookingToken` is used, the token owns the office, selected `columnId`,
 `profileId`, `startDatetime`, `duration`, and routing lane.
 
 Booking validation:
@@ -504,10 +510,10 @@ Booking validation:
   `force: 1` from the signed `bookingToken`; booking does not re-fetch
   appointments or block holds for Bach. If AMD reports a conflict, the response
   asks the caller to choose another slot.
+- Appointment comments must be 1000 characters or fewer.
 - AMD 409 conflicts return a clear slot-no-longer-available message.
 
-Response statuses: `booked`, `partial`, `error`. `partial` means the
-appointment was booked but the follow-up AP note failed.
+Response statuses: `booked`, `error`.
 
 ### POST /api/appointment/cancel
 
@@ -542,25 +548,6 @@ session state. `cancel_appt` should send:
   "office": "Sweetwater"
 }
 ```
-
-### POST /api/patient/notes
-
-Saves an appointment note on an existing patient. The middleware owns the AMD
-note type and default profile ID.
-
-Request:
-
-```json
-{
-  "patientId": "17604634",
-  "note": "Patient called to reschedule. Appointment updated.",
-  "office": "Hollywood"
-}
-```
-
-Notes are capped at 1000 characters.
-
-Response statuses: `saved`, `error`.
 
 ## Development Notes
 

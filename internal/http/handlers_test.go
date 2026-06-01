@@ -92,6 +92,24 @@ func TestBuildBookAppointmentReceipt(t *testing.T) {
 	}
 }
 
+func TestBuildBookingAppointmentComment(t *testing.T) {
+	comment := buildBookingAppointmentComment(" blurry vision ", " Dr. Smith ")
+	want := "Appointment reason: blurry vision\nReferring doctor: Dr. Smith\n- AI"
+	if comment != want {
+		t.Fatalf("comment = %q, want %q", comment, want)
+	}
+
+	comment = buildBookingAppointmentComment("blurry vision", "")
+	want = "Appointment reason: blurry vision\nReferring doctor: none\n- AI"
+	if comment != want {
+		t.Fatalf("comment with missing referring doctor = %q, want %q", comment, want)
+	}
+
+	if comment := buildBookingAppointmentComment("", ""); comment != "" {
+		t.Fatalf("blank comment = %q, want empty", comment)
+	}
+}
+
 func TestFilterColumnsForRouting_RoutineVisionLane(t *testing.T) {
 	office := domain.DefaultOffice()
 	columns := []domain.SchedulerColumn{
@@ -1276,7 +1294,7 @@ func TestHandleBookAppointment_UsesBookingTokenRequiresForceWithoutBachRecheck(t
 	}
 }
 
-func TestHandleBookAppointment_SavesAppointmentNoteAfterBooking(t *testing.T) {
+func TestHandleBookAppointment_SendsAppointmentCommentsInBookingPayload(t *testing.T) {
 	domain.InitRegistry("")
 	now := time.Now().UTC()
 	token, err := signBookingToken("test-booking-secret", bookingTokenPayload{
@@ -1294,7 +1312,6 @@ func TestHandleBookAppointment_SavesAppointmentNoteAfterBooking(t *testing.T) {
 	}
 
 	var bookingPayload map[string]any
-	var notePayload map[string]any
 	httpClient := &http.Client{
 		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 			body, _ := io.ReadAll(r.Body)
@@ -1314,13 +1331,6 @@ func TestHandleBookAppointment_SavesAppointmentNoteAfterBooking(t *testing.T) {
 					break
 				}
 				response = `{"id":98765}`
-			case strings.Contains(r.URL.Path, "/xmlrpc/processrequest.aspx"):
-				if err := json.Unmarshal(body, &notePayload); err != nil {
-					status = http.StatusInternalServerError
-					response = `{"error":"invalid note payload"}`
-					break
-				}
-				response = `{"PPMDResults":{"@newid":"3135521","record":{"@uid":"3135521"}}}`
 			default:
 				status = http.StatusInternalServerError
 				response = `{"error":"unexpected request"}`
@@ -1342,7 +1352,7 @@ func TestHandleBookAppointment_SavesAppointmentNoteAfterBooking(t *testing.T) {
 	}, httpClient)
 	handlers := NewHandlers(
 		auth.NewTokenManager(authenticator),
-		clients.NewAdvancedMDClient(httpClient),
+		nil,
 		clients.NewAdvancedMDRestClient(httpClient),
 		"test-booking-secret",
 	)
@@ -1359,33 +1369,12 @@ func TestHandleBookAppointment_SavesAppointmentNoteAfterBooking(t *testing.T) {
 	if resp.Status != "booked" {
 		t.Fatalf("expected booked response, got %#v", resp)
 	}
-	if resp.NoteStatus != "saved" || resp.NoteID != "3135521" {
-		t.Fatalf("note status/id = %q/%q, want saved/3135521", resp.NoteStatus, resp.NoteID)
-	}
 	if bookingPayload["patientid"] != float64(123) {
 		t.Fatalf("booking payload patientid = %#v", bookingPayload["patientid"])
 	}
-
-	msg := notePayload["ppmdmsg"].(map[string]any)
-	masterfile := msg["masterfile"].(map[string]any)
-	if masterfile["@patientfid"] != "123" {
-		t.Fatalf("note patientfid = %#v, want 123", masterfile["@patientfid"])
-	}
-	if masterfile["@profilefid"] != "620" {
-		t.Fatalf("note profilefid = %#v, want 620", masterfile["@profilefid"])
-	}
-	if masterfile["@notetypefid"] != "532" {
-		t.Fatalf("note notetypefid = %#v, want 532", masterfile["@notetypefid"])
-	}
-	note := masterfile["@note"].(string)
-	for _, want := range []string{
-		"Appointment ID: 98765",
-		"Appointment reason: blurry vision",
-		"Referring doctor: Dr. Smith",
-	} {
-		if !strings.Contains(note, want) {
-			t.Fatalf("note %q does not contain %q", note, want)
-		}
+	wantComment := "Appointment reason: blurry vision\nReferring doctor: Dr. Smith\n- AI"
+	if bookingPayload["comments"] != wantComment {
+		t.Fatalf("booking comments = %#v, want %q", bookingPayload["comments"], wantComment)
 	}
 }
 
@@ -2650,65 +2639,4 @@ func newPatientResolveTestHandlers(t *testing.T, appointmentStatus int) *Handler
 		clients.NewAdvancedMDRestClient(httpClient),
 		"test-booking-secret",
 	)
-}
-
-func TestHandleAddPatientNote_ValidationErrors(t *testing.T) {
-	handlers := &Handlers{}
-	longNote := strings.Repeat("x", maxPatientNoteLength+1)
-
-	tests := []struct {
-		name        string
-		body        string
-		expectedMsg string
-	}{
-		{
-			name:        "invalid JSON",
-			body:        "not json",
-			expectedMsg: "Invalid JSON body",
-		},
-		{
-			name:        "missing patientId",
-			body:        `{"note":"Patient called to reschedule."}`,
-			expectedMsg: "patientId is required",
-		},
-		{
-			name:        "missing note",
-			body:        `{"patientId":"123"}`,
-			expectedMsg: "note is required",
-		},
-		{
-			name:        "non-numeric patientId",
-			body:        `{"patientId":"abc123","note":"Patient called."}`,
-			expectedMsg: "patientId must be numeric",
-		},
-		{
-			name:        "blank note",
-			body:        `{"patientId":"123","note":"   "}`,
-			expectedMsg: "note is required",
-		},
-		{
-			name:        "note too long",
-			body:        fmt.Sprintf(`{"patientId":"123","note":%q}`, longNote),
-			expectedMsg: "note must be 1000 characters or fewer",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/api/patient/notes", bytes.NewBufferString(tt.body))
-			req.Header.Set("Content-Type", "application/json")
-			w := httptest.NewRecorder()
-
-			handlers.HandleAddPatientNote(w, req)
-
-			var body AddPatientNoteResponse
-			json.NewDecoder(w.Result().Body).Decode(&body)
-			if body.Status != "error" {
-				t.Errorf("Expected status 'error', got %q", body.Status)
-			}
-			if body.Message != tt.expectedMsg {
-				t.Errorf("Expected message %q, got %q", tt.expectedMsg, body.Message)
-			}
-		})
-	}
 }
