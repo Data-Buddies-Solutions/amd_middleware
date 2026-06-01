@@ -33,7 +33,6 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/scheduler/availability` | Office/routing/DOB-aware availability |
 | `POST /api/appointment/book` | Book appointment with server-side defaults |
 | `POST /api/appointment/cancel` | Cancel appointment |
-| `POST /api/patient/notes` | Save patient appointment note |
 
 ## XMLRPC APIs Used
 
@@ -111,20 +110,6 @@ plan ID, and responsible party ID. The response is converted to:
 
 Used by `POST /api/patient/update-insurance` before adding the replacement
 insurance plan.
-
-### `savepatientnote`
-
-Used by `POST /api/patient/notes`.
-
-Server-owned defaults:
-
-- `notetype`: `AP`
-- `notetypefid`: `notetype532`
-- `useclienttime`: `1`
-- `uid`: empty
-- `profilefid`: office default profile ID
-
-Patient notes are capped at 1000 characters by the middleware.
 
 ### `getschedulersetup`
 
@@ -224,9 +209,10 @@ Validation before sending to AMD:
 AMD 409 conflicts are returned as a clear slot-conflict message.
 
 When the app-facing booking request includes `appointmentReason` or
-`referringDoctor`, the middleware calls `savepatientnotes` after AMD returns the
-new appointment ID. The generated AP note includes the appointment ID,
-appointment reason, and referring doctor.
+`referringDoctor`, the middleware adds `comments` directly to the AMD booking
+payload. The comment includes appointment reason, referring doctor, and the
+`- AI` initials marker. Empty inputs are omitted entirely; a missing field in a
+non-empty comment is written as `none`.
 
 ### `PUT /scheduler/appointments/{id}/cancel`
 

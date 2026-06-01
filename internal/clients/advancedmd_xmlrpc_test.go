@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"advancedmd-token-management/internal/domain"
@@ -337,94 +336,6 @@ func TestAdvancedMDClient_AddInsurance_Error(t *testing.T) {
 	err := client.AddInsurance(context.Background(), tokenData, "pat123", "resp123", "car40906", "SUB12345")
 	if err == nil {
 		t.Fatal("Expected error for failed insurance attachment, got nil")
-	}
-}
-
-func TestAdvancedMDClient_SavePatientNote(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var payload map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-			t.Fatalf("failed to decode request body: %v", err)
-		}
-
-		msg := payload["ppmdmsg"].(map[string]interface{})
-		if msg["@action"] != "savepatientnotes" {
-			t.Errorf("action = %q, want savepatientnotes", msg["@action"])
-		}
-		if msg["@class"] != "api" {
-			t.Errorf("class = %q, want api", msg["@class"])
-		}
-		if msg["@id"] != "123" {
-			t.Errorf("id = %q, want stripped patient ID 123", msg["@id"])
-		}
-		if msg["@useclienttime"] != "1" {
-			t.Errorf("useclienttime = %q, want 1", msg["@useclienttime"])
-		}
-
-		masterfile := msg["masterfile"].(map[string]interface{})
-		expected := map[string]string{
-			"@uid":         "",
-			"@patientfid":  "123",
-			"@profilefid":  "620",
-			"@notetypefid": "532",
-			"@note":        "Patient called to reschedule.",
-		}
-		for key, want := range expected {
-			if got := masterfile[key]; got != want {
-				t.Errorf("masterfile[%s] = %q, want %q", key, got, want)
-			}
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"PPMDResults":{"@newid":"3135521","record":{"@uid":"3135521"}}}`))
-	})
-
-	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
-	defer cleanup()
-
-	noteID, err := client.SavePatientNote(context.Background(), tokenData, SavePatientNoteParams{
-		PatientID: "pat123",
-		ProfileID: "620",
-		Note:      "Patient called to reschedule.",
-	})
-	if err != nil {
-		t.Fatalf("SavePatientNote failed: %v", err)
-	}
-	if noteID != "3135521" {
-		t.Errorf("noteID = %q, want 3135521", noteID)
-	}
-}
-
-func TestAdvancedMDClient_SavePatientNote_Error(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{
-			"PPMDResults": {
-				"Error": {
-					"Fault": {
-						"faultstring": "Server Error",
-						"detail": {
-							"description": "The INSERT statement conflicted with the FOREIGN KEY constraint"
-						}
-					}
-				}
-			}
-		}`))
-	})
-
-	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
-	defer cleanup()
-
-	_, err := client.SavePatientNote(context.Background(), tokenData, SavePatientNoteParams{
-		PatientID: "123",
-		ProfileID: "620",
-		Note:      "Patient called.",
-	})
-	if err == nil {
-		t.Fatal("Expected error for failed note save, got nil")
-	}
-	if !strings.Contains(err.Error(), "FOREIGN KEY constraint") {
-		t.Errorf("Expected FK error detail, got %v", err)
 	}
 }
 

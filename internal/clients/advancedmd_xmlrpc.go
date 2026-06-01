@@ -77,10 +77,6 @@ type AdvancedMDClient struct {
 	httpClient *http.Client
 }
 
-// DefaultPatientNoteTypeFID is the AdvancedMD note type for appointment notes.
-// Verified against lookupnotetypes as code AP ("APPOINTMENT NOTES").
-const DefaultPatientNoteTypeFID = "532"
-
 // NewAdvancedMDClient creates a new AdvancedMD XMLRPC client.
 func NewAdvancedMDClient(httpClient *http.Client) *AdvancedMDClient {
 	return &AdvancedMDClient{httpClient: httpClient}
@@ -393,66 +389,6 @@ func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *doma
 	}
 
 	return nil
-}
-
-// SavePatientNoteParams holds parameters for adding a patient note in AdvancedMD.
-type SavePatientNoteParams struct {
-	PatientID   string
-	ProfileID   string
-	NoteTypeFID string
-	Note        string
-}
-
-// SavePatientNote adds an appointment note to an existing patient in AdvancedMD.
-// Returns the newly created note ID from PPMDResults.@newid.
-func (c *AdvancedMDClient) SavePatientNote(ctx context.Context, tokenData *domain.TokenData, params SavePatientNoteParams) (string, error) {
-	msgTime := time.Now().Format("01/02/2006 03:04:05 PM")
-	patientID := domain.StripPatientPrefix(strings.TrimSpace(params.PatientID))
-	noteTypeFID := strings.TrimPrefix(strings.TrimSpace(params.NoteTypeFID), "notetype")
-	if noteTypeFID == "" {
-		noteTypeFID = DefaultPatientNoteTypeFID
-	}
-
-	payload := map[string]interface{}{
-		"ppmdmsg": map[string]interface{}{
-			"@action":        "savepatientnotes",
-			"@class":         "api",
-			"@msgtime":       msgTime,
-			"@id":            patientID,
-			"@useclienttime": "1",
-			"masterfile": map[string]interface{}{
-				"@uid":         "",
-				"@patientfid":  patientID,
-				"@profilefid":  params.ProfileID,
-				"@notetypefid": noteTypeFID,
-				"@note":        params.Note,
-			},
-		},
-	}
-
-	body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
-	if err != nil {
-		return "", fmt.Errorf("save patient note request failed: %w", err)
-	}
-
-	if err := checkXMLRPCError(body, "save patient note"); err != nil {
-		return "", err
-	}
-
-	var resp struct {
-		PPMDResults struct {
-			NewID string      `json:"@newid"`
-			Error interface{} `json:"Error"`
-		} `json:"PPMDResults"`
-	}
-	if err := json.Unmarshal(body, &resp); err != nil {
-		return "", fmt.Errorf("failed to parse save patient note response: %w", err)
-	}
-	if resp.PPMDResults.NewID == "" {
-		return "", fmt.Errorf("save patient note returned unexpected response: %s", string(body))
-	}
-
-	return resp.PPMDResults.NewID, nil
 }
 
 // checkXMLRPCError parses AMD XMLRPC response body for errors.
