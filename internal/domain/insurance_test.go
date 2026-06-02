@@ -61,6 +61,16 @@ func TestLookupInsurance_SelfPayMedical(t *testing.T) {
 	}
 }
 
+func TestLookupInsurance_SunshineHealthRoutineVision(t *testing.T) {
+	entry, found := LookupInsuranceForCoverageAtOffice("Sunshine Health", InsuranceModeVision, &OfficeConfig{ID: "hollywood", DisplayName: "Hollywood"})
+	if !found {
+		t.Fatal("Sunshine Health routine vision found = false, want true")
+	}
+	if entry.CarrierID != "car281245" || entry.Routing != RoutingOpticalOnly {
+		t.Fatalf("Sunshine Health routine vision entry = %#v, want car281245/optical_only", entry)
+	}
+}
+
 func TestLookupInsurance_SpringHillRejectedMedicalPlans(t *testing.T) {
 	office := &OfficeConfig{ID: "spring_hill", DisplayName: "Spring Hill"}
 	tests := []string{

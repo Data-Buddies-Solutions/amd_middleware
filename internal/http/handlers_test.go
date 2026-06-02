@@ -2330,6 +2330,13 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 			wantXMLRPCWrites: 1,
 		},
 		{
+			name:             "routine vision accepts Sunshine Health alias",
+			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insurance":"Sunshine Health","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-16, 0, 0).Format("01/02/2006")),
+			wantRouting:      string(domain.RoutingOpticalOnly),
+			wantProviders:    []string{"Dr. Farnan", "Dr. Vidal", "Dr. Calero"},
+			wantXMLRPCWrites: 1,
+		},
+		{
 			name:             "medical minor uses pediatric routing",
 			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insPlanId":"ins123","oldInsurance":"Old","insurance":"Aetna","subscriberNum":"ABC123","office":"Spring Hill","dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
 			wantRouting:      string(domain.RoutingBachOnly),

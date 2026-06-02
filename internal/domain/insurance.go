@@ -564,6 +564,7 @@ var VisionInsuranceAliases = map[string]string{
 	"ambetter":                      "envolve",
 	"ambetter from sunshine health": "envolve",
 	"sunshine":                      "envolve",
+	"sunshine health":               "envolve",
 
 	// Premier
 	"amerihealth": "premier",
