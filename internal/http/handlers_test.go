@@ -507,6 +507,9 @@ func TestHandlePatientResolve_PhoneOnlyLoadsAppointments(t *testing.T) {
 	if len(body.Appointments) != 1 {
 		t.Fatalf("appointments = %+v, want one appointment", body.Appointments)
 	}
+	if body.Appointments[0].AppointmentTypeID != 1007 {
+		t.Fatalf("appointmentTypeId = %d, want 1007", body.Appointments[0].AppointmentTypeID)
+	}
 }
 
 func TestHandlePatientResolve_PhoneOnlyMultipleMatchesReturnsFullDetails(t *testing.T) {
@@ -536,6 +539,9 @@ func TestHandlePatientResolve_PhoneOnlyMultipleMatchesReturnsFullDetails(t *test
 	}
 	if body.Matches[0].Appointments[0].ID != 9570263 {
 		t.Fatalf("first match appointment ID = %d, want 9570263", body.Matches[0].Appointments[0].ID)
+	}
+	if body.Matches[0].Appointments[0].AppointmentTypeID != 1007 {
+		t.Fatalf("first match appointment type ID = %d, want 1007", body.Matches[0].Appointments[0].AppointmentTypeID)
 	}
 	if body.Matches[0].Appointments[0].OfficeID != "spring_hill" {
 		t.Fatalf("first match appointment office ID = %q, want spring_hill", body.Matches[0].Appointments[0].OfficeID)

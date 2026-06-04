@@ -379,14 +379,15 @@ func addPatientMissingFields(req AddPatientRequest) []string {
 
 // PatientApptDetail is a single appointment formatted for LLM consumption.
 type PatientApptDetail struct {
-	ID       int    `json:"id"`                 // AMD appointment ID — for cancel_appt
-	Date     string `json:"date"`               // Human-readable (e.g., "Wednesday, March 18, 2026")
-	Time     string `json:"time"`               // e.g., "12:00 PM"
-	Provider string `json:"provider,omitempty"` // e.g., "Dr. Austin Bach"
-	Type     string `json:"type,omitempty"`     // e.g., "New Adult Medical"
-	Facility string `json:"facility,omitempty"` // e.g., "Abita Eye Group Spring Hill"
-	OfficeID string `json:"officeId,omitempty"` // Stable office ID that owns the appointment column
-	Office   string `json:"office,omitempty"`   // Display name for the owning office
+	ID                int    `json:"id"`                          // AMD appointment ID — for cancel_appt
+	Date              string `json:"date"`                        // Human-readable (e.g., "Wednesday, March 18, 2026")
+	Time              string `json:"time"`                        // e.g., "12:00 PM"
+	Provider          string `json:"provider,omitempty"`          // e.g., "Dr. Austin Bach"
+	Type              string `json:"type,omitempty"`              // e.g., "New Adult Medical"
+	AppointmentTypeID int    `json:"appointmentTypeId,omitempty"` // AMD appointment type ID
+	Facility          string `json:"facility,omitempty"`          // e.g., "Abita Eye Group Spring Hill"
+	OfficeID          string `json:"officeId,omitempty"`          // Stable office ID that owns the appointment column
+	Office            string `json:"office,omitempty"`            // Display name for the owning office
 }
 
 // HandlePatientResolve resolves a patient and, by default, loads appointments.
@@ -752,22 +753,25 @@ func (h *Handlers) fetchUpcomingAppointmentsForOffice(ctx context.Context, token
 			continue
 		}
 
+		appointmentTypeID := 0
 		typeName := ""
 		if len(a.AppointmentTypes) > 0 {
-			if name, ok := office.AppointmentTypeName(a.AppointmentTypes[0]); ok {
+			appointmentTypeID = a.AppointmentTypes[0]
+			if name, ok := office.AppointmentTypeName(appointmentTypeID); ok {
 				typeName = name
 			}
 		}
 
 		detail := PatientApptDetail{
-			ID:       a.ID,
-			Date:     startTime.Format("Monday, January 2, 2006"),
-			Time:     startTime.Format("3:04 PM"),
-			Provider: office.FriendlyProviderName(a.Provider),
-			Type:     typeName,
-			Facility: appointmentFacilityName(a.Facility, office),
-			OfficeID: office.ID,
-			Office:   office.DisplayName,
+			ID:                a.ID,
+			Date:              startTime.Format("Monday, January 2, 2006"),
+			Time:              startTime.Format("3:04 PM"),
+			Provider:          office.FriendlyProviderName(a.Provider),
+			Type:              typeName,
+			AppointmentTypeID: appointmentTypeID,
+			Facility:          appointmentFacilityName(a.Facility, office),
+			OfficeID:          office.ID,
+			Office:            office.DisplayName,
 		}
 		details = append(details, detail)
 	}
