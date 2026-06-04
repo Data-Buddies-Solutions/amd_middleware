@@ -325,6 +325,24 @@ func ResolveAppointmentTypeID(typeID int) (int, bool) {
 	return typeID, true
 }
 
+// CanonicalAppointmentTypeID translates an env-specific AMD appointment type ID
+// back to the canonical/prod ID accepted by booking requests.
+func CanonicalAppointmentTypeID(typeID int) (int, bool) {
+	if !isDevEnv {
+		if _, ok := DefaultAppointmentTypeColors[typeID]; !ok {
+			return 0, false
+		}
+		return typeID, true
+	}
+
+	for canonicalID, devID := range devAppointmentTypes {
+		if devID == typeID {
+			return canonicalID, true
+		}
+	}
+	return 0, false
+}
+
 // AllowsAppointmentType reports whether an appointment type can be booked for this office/routing lane.
 func (o *OfficeConfig) AllowsAppointmentType(typeID int, routing RoutingRule) bool {
 	if _, ok := DefaultAppointmentTypeColors[typeID]; !ok {
