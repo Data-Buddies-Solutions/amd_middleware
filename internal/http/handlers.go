@@ -757,6 +757,9 @@ func (h *Handlers) fetchUpcomingAppointmentsForOffice(ctx context.Context, token
 		typeName := ""
 		if len(a.AppointmentTypes) > 0 {
 			appointmentTypeID = a.AppointmentTypes[0]
+			if canonicalTypeID, ok := domain.CanonicalAppointmentTypeID(appointmentTypeID); ok {
+				appointmentTypeID = canonicalTypeID
+			}
 			if name, ok := office.AppointmentTypeName(appointmentTypeID); ok {
 				typeName = name
 			}

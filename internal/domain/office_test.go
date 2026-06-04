@@ -219,6 +219,29 @@ func TestOfficeConfig_AppointmentColor(t *testing.T) {
 	}
 }
 
+func TestCanonicalAppointmentTypeID(t *testing.T) {
+	defer InitRegistry("prod")
+
+	InitRegistry("prod")
+	if got, ok := CanonicalAppointmentTypeID(1007); !ok || got != 1007 {
+		t.Fatalf("prod CanonicalAppointmentTypeID(1007) = (%d, %v), want (1007, true)", got, ok)
+	}
+	if got, ok := CanonicalAppointmentTypeID(18); ok || got != 0 {
+		t.Fatalf("prod CanonicalAppointmentTypeID(18) = (%d, %v), want (0, false)", got, ok)
+	}
+
+	InitRegistry("dev")
+	if got, ok := CanonicalAppointmentTypeID(18); !ok || got != 1007 {
+		t.Fatalf("dev CanonicalAppointmentTypeID(18) = (%d, %v), want (1007, true)", got, ok)
+	}
+	if got, ok := CanonicalAppointmentTypeID(1010); !ok || got != 1010 {
+		t.Fatalf("dev CanonicalAppointmentTypeID(1010) = (%d, %v), want (1010, true)", got, ok)
+	}
+	if got, ok := CanonicalAppointmentTypeID(9999); ok || got != 0 {
+		t.Fatalf("dev CanonicalAppointmentTypeID(9999) = (%d, %v), want (0, false)", got, ok)
+	}
+}
+
 func TestOfficeConfig_AllowsAppointmentType(t *testing.T) {
 	springHill := prodOffices["+17275919997"]
 	crystalRiver := prodOffices["+13523202007"]

@@ -1872,6 +1872,54 @@ func TestFetchUpcomingAppointmentsFiltersPastAppointments(t *testing.T) {
 	}
 }
 
+func TestFetchUpcomingAppointmentsReturnsCanonicalTypeIDInDev(t *testing.T) {
+	domain.InitRegistry("dev")
+	defer domain.InitRegistry("prod")
+
+	future := time.Now().In(eastern).Add(48 * time.Hour)
+	futureMonth := time.Date(future.Year(), future.Month(), 1, 0, 0, 0, 0, eastern).Format("2006-01-02")
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/scheduler/appointments" {
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Get("startDate") != futureMonth || !strings.Contains(r.URL.Query().Get("columnId"), "1716") {
+			json.NewEncoder(w).Encode([]clients.AMDAppointmentResponse{})
+			return
+		}
+		json.NewEncoder(w).Encode([]clients.AMDAppointmentResponse{{
+			ID:               22222,
+			StartDateTime:    future.Format("2006-01-02T15:04:05"),
+			PatientID:        12345,
+			Provider:         "BACH, AUSTIN",
+			Facility:         "ABITA EYE GROUP SPRING HILL",
+			AppointmentTypes: []int{18},
+		}})
+	}))
+	defer server.Close()
+
+	handlers := NewHandlers(nil, nil, clients.NewAdvancedMDRestClient(server.Client()), "test-booking-secret")
+	tokenData := &domain.TokenData{
+		Token:       "Bearer test-token",
+		RestApiBase: strings.TrimPrefix(server.URL, "https://"),
+	}
+
+	details, err := handlers.fetchUpcomingAppointments(context.Background(), tokenData, "12345", domain.DefaultOffice())
+	if err != nil {
+		t.Fatalf("fetchUpcomingAppointments error = %v", err)
+	}
+	if len(details) != 1 {
+		t.Fatalf("appointments = %+v, want exactly one future appointment", details)
+	}
+	if details[0].AppointmentTypeID != 1007 {
+		t.Fatalf("appointmentTypeId = %d, want canonical 1007", details[0].AppointmentTypeID)
+	}
+	if details[0].Type != "Established Adult Medical (Follow Up)" {
+		t.Fatalf("appointment type name = %q, want Established Adult Medical (Follow Up)", details[0].Type)
+	}
+}
+
 func TestFetchUpcomingAppointmentsLoadsNearbyOfficeGroup(t *testing.T) {
 	domain.InitRegistry("")
 	future := time.Now().In(eastern).Add(48 * time.Hour)
