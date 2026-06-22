@@ -1594,8 +1594,8 @@ func TestCalculateAvailableSlots_MultiSlotAppointment(t *testing.T) {
 	date := time.Date(2026, 3, 6, 0, 0, 0, 0, eastern)
 	nowEastern := time.Date(2026, 3, 5, 10, 0, 0, 0, eastern) // day before
 
-	// Dr. Noel: 30-min intervals. Non-Bach columns are single-booked even if
-	// AMD reports max > 1.
+	// Spring Hill Dr. Noel: 30-min intervals. All Spring Hill columns are
+	// second-bookable.
 	col := domain.SchedulerColumn{
 		ID:              "1550",
 		Name:            "DR. NOEL",
@@ -1625,26 +1625,32 @@ func TestCalculateAvailableSlots_MultiSlotAppointment(t *testing.T) {
 	slots := calculateAvailableSlots(domain.DefaultOffice(), col, appointments, blockHolds, date, nowEastern)
 
 	// 8:30 — blocked by hold
-	// 9:00 — one same-start appt on non-Bach column → blocked
+	// 9:00 — one same-start appt on configured column -> available with force
 	// 9:30 — Vargas (9:00, 60min) overlaps into 9:30 → blocked
 	// 10:00 — 0 appts → available
 
-	if len(slots) != 1 {
-		t.Errorf("Expected 1 available slot, got %d: %v", len(slots), slots)
+	if len(slots) != 2 {
+		t.Errorf("Expected 2 available slots, got %d: %v", len(slots), slots)
 		return
 	}
 
-	if slots[0].Time != "10:00 AM" {
-		t.Errorf("Expected 10:00 AM, got %s", slots[0].Time)
+	if slots[0].Time != "9:00 AM" ||
+		slots[0].SameStartBooked != 1 ||
+		slots[0].SameStartCapacity != 2 ||
+		!slots[0].RequiresForce {
+		t.Errorf("unexpected first slot metadata: %+v", slots[0])
+	}
+	if slots[1].Time != "10:00 AM" {
+		t.Errorf("Expected 10:00 AM second slot, got %s", slots[1].Time)
 	}
 }
 
-func TestCalculateAvailableSlots_BachSingleBookedSlotsAvailableWithForceMetadata(t *testing.T) {
+func TestCalculateAvailableSlots_ConfiguredSingleBookedSlotsAvailableWithForceMetadata(t *testing.T) {
 	eastern, _ := time.LoadLocation("America/New_York")
 	date := time.Date(2026, 6, 1, 0, 0, 0, 0, eastern) // Monday
 	nowEastern := time.Date(2026, 5, 31, 10, 0, 0, 0, eastern)
 
-	// Dr. Bach uses explicit middleware capacity even when AMD reports max=0.
+	// Spring Hill Bach preserves explicit middleware capacity even when AMD reports max=0.
 	col := domain.SchedulerColumn{
 		ID:              "1513",
 		Name:            "DR. BACH - BP",
@@ -1669,8 +1675,8 @@ func TestCalculateAvailableSlots_BachSingleBookedSlotsAvailableWithForceMetadata
 		if slot.SameStartBooked != 1 {
 			t.Errorf("slot %s SameStartBooked = %d, want 1", slot.Time, slot.SameStartBooked)
 		}
-		if slot.SameStartCapacity != bachSameStartCapacity {
-			t.Errorf("slot %s SameStartCapacity = %d, want %d", slot.Time, slot.SameStartCapacity, bachSameStartCapacity)
+		if slot.SameStartCapacity != 2 {
+			t.Errorf("slot %s SameStartCapacity = %d, want 2", slot.Time, slot.SameStartCapacity)
 		}
 		if !slot.RequiresForce {
 			t.Errorf("slot %s should require force", slot.Time)
@@ -1678,7 +1684,7 @@ func TestCalculateAvailableSlots_BachSingleBookedSlotsAvailableWithForceMetadata
 	}
 }
 
-func TestCalculateAvailableSlots_BachTwoSameStartAppointmentsBlockSlot(t *testing.T) {
+func TestCalculateAvailableSlots_ConfiguredTwoSameStartAppointmentsBlockSlot(t *testing.T) {
 	eastern, _ := time.LoadLocation("America/New_York")
 	date := time.Date(2026, 6, 1, 0, 0, 0, 0, eastern) // Monday
 	nowEastern := time.Date(2026, 5, 31, 10, 0, 0, 0, eastern)
@@ -1700,18 +1706,25 @@ func TestCalculateAvailableSlots_BachTwoSameStartAppointmentsBlockSlot(t *testin
 
 	slots := calculateAvailableSlots(domain.DefaultOffice(), col, appointments, nil, date, nowEastern)
 	if len(slots) != 0 {
-		t.Fatalf("Expected no slots when Bach same-start capacity is full, got %d: %v", len(slots), slots)
+		t.Fatalf("Expected no slots when same-start capacity is full, got %d: %v", len(slots), slots)
 	}
 }
 
-func TestCalculateAvailableSlots_NonBachMaxZeroBlocksSameStart(t *testing.T) {
+func TestCalculateAvailableSlots_CrystalRiverMaxZeroBlocksSameStart(t *testing.T) {
 	eastern, _ := time.LoadLocation("America/New_York")
 	date := time.Date(2026, 6, 1, 0, 0, 0, 0, eastern) // Monday
 	nowEastern := time.Date(2026, 5, 31, 10, 0, 0, 0, eastern)
 
+	domain.InitRegistry("prod")
+	defer domain.InitRegistry("prod")
+
+	office, ok := domain.LookupOffice("+13523202007")
+	if !ok {
+		t.Fatal("expected Crystal River office")
+	}
 	col := domain.SchedulerColumn{
-		ID:              "1600",
-		Name:            "ROUTINE VISION",
+		ID:              "1593",
+		Name:            "DR. LICHT",
 		StartTime:       "09:00",
 		EndTime:         "09:15",
 		Interval:        15,
@@ -1722,19 +1735,26 @@ func TestCalculateAvailableSlots_NonBachMaxZeroBlocksSameStart(t *testing.T) {
 		{StartDateTime: time.Date(2026, 6, 1, 9, 0, 0, 0, eastern), Duration: 15},
 	}
 
-	slots := calculateAvailableSlots(domain.DefaultOffice(), col, appointments, nil, date, nowEastern)
+	slots := calculateAvailableSlots(office, col, appointments, nil, date, nowEastern)
 	if len(slots) != 0 {
-		t.Fatalf("Expected non-Bach max=0 same-start slot to be blocked, got %d: %v", len(slots), slots)
+		t.Fatalf("Expected Crystal River max=0 same-start slot to be blocked, got %d: %v", len(slots), slots)
 	}
 }
 
-func TestCalculateAvailableSlots_NonBachMaxTwoBlocksSingleSameStart(t *testing.T) {
+func TestCalculateAvailableSlots_CrystalRiverMaxTwoBlocksSingleSameStart(t *testing.T) {
 	eastern, _ := time.LoadLocation("America/New_York")
 	date := time.Date(2026, 6, 1, 0, 0, 0, 0, eastern) // Monday
 	nowEastern := time.Date(2026, 5, 31, 10, 0, 0, 0, eastern)
 
+	domain.InitRegistry("prod")
+	defer domain.InitRegistry("prod")
+
+	office, ok := domain.LookupOffice("+13523202007")
+	if !ok {
+		t.Fatal("expected Crystal River office")
+	}
 	col := domain.SchedulerColumn{
-		ID:              "1551",
+		ID:              "1593",
 		Name:            "DR. LICHT",
 		StartTime:       "09:00",
 		EndTime:         "09:15",
@@ -1746,9 +1766,45 @@ func TestCalculateAvailableSlots_NonBachMaxTwoBlocksSingleSameStart(t *testing.T
 		{StartDateTime: time.Date(2026, 6, 1, 9, 0, 0, 0, eastern), Duration: 15},
 	}
 
-	slots := calculateAvailableSlots(domain.DefaultOffice(), col, appointments, nil, date, nowEastern)
+	slots := calculateAvailableSlots(office, col, appointments, nil, date, nowEastern)
 	if len(slots) != 0 {
-		t.Fatalf("Expected non-Bach max=2 same-start slot to be blocked, got %d: %v", len(slots), slots)
+		t.Fatalf("Expected Crystal River max=2 same-start slot to be blocked, got %d: %v", len(slots), slots)
+	}
+}
+
+func TestCalculateAvailableSlots_NonSpringHillOpticalSingleBookedSlotsAvailableWithForceMetadata(t *testing.T) {
+	eastern, _ := time.LoadLocation("America/New_York")
+	date := time.Date(2026, 6, 1, 0, 0, 0, 0, eastern) // Monday
+	nowEastern := time.Date(2026, 5, 31, 10, 0, 0, 0, eastern)
+
+	domain.InitRegistry("prod")
+	defer domain.InitRegistry("prod")
+
+	office, ok := domain.LookupOffice("+17864657475")
+	if !ok {
+		t.Fatal("expected Sweetwater office")
+	}
+	col := domain.SchedulerColumn{
+		ID:              "1554",
+		Name:            "DR. FARNAN",
+		StartTime:       "09:00",
+		EndTime:         "09:15",
+		Interval:        15,
+		MaxApptsPerSlot: 0,
+		Workweek:        62,
+	}
+	appointments := []domain.Appointment{
+		{StartDateTime: time.Date(2026, 6, 1, 9, 0, 0, 0, eastern), Duration: 15},
+	}
+
+	slots := calculateAvailableSlots(office, col, appointments, nil, date, nowEastern)
+	if len(slots) != 1 {
+		t.Fatalf("Expected Sweetwater optical same-start slot to be second-bookable, got %d: %v", len(slots), slots)
+	}
+	if slots[0].SameStartBooked != 1 ||
+		slots[0].SameStartCapacity != 2 ||
+		!slots[0].RequiresForce {
+		t.Fatalf("unexpected same-start metadata: %+v", slots[0])
 	}
 }
 
