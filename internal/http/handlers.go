@@ -38,7 +38,7 @@ type ErrorResponse struct {
 }
 
 const maxAppointmentCommentLength = 1000
-const bachSameStartCapacity = 2
+const defaultSameStartCapacity = 1
 const schedulerSetupCacheTTL = 6 * time.Hour
 
 // PatientResolveRequest is the single patient-read request shape. It supports
@@ -1252,7 +1252,7 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 	facilityIDInt, _ := strconv.Atoi(office.FacilityID)
 
 	force := 0
-	if req.bookingRequiresForce && isBachColumn(office, colIDStr) {
+	if req.bookingRequiresForce && requiresForceForSameStart(office, colIDStr) {
 		force = 1
 	}
 
@@ -1378,19 +1378,23 @@ func officeSupportsRouting(office *domain.OfficeConfig, routing domain.RoutingRu
 	return len(office.ColumnsForRouting(routing)) > 0
 }
 
-func isBachColumn(office *domain.OfficeConfig, columnID string) bool {
+func sameStartCapacityForColumnID(office *domain.OfficeConfig, columnID string) int {
 	if office == nil {
-		return false
+		return defaultSameStartCapacity
 	}
 	col, ok := office.Columns[columnID]
-	return ok && col.MatchKey == "BACH"
+	if !ok || col.SameStartCapacity <= defaultSameStartCapacity {
+		return defaultSameStartCapacity
+	}
+	return col.SameStartCapacity
+}
+
+func requiresForceForSameStart(office *domain.OfficeConfig, columnID string) bool {
+	return sameStartCapacityForColumnID(office, columnID) > defaultSameStartCapacity
 }
 
 func sameStartCapacityForColumn(office *domain.OfficeConfig, col domain.SchedulerColumn) int {
-	if isBachColumn(office, col.ID) {
-		return bachSameStartCapacity
-	}
-	return 1
+	return sameStartCapacityForColumnID(office, col.ID)
 }
 
 func (h *Handlers) getSchedulerSetup(ctx context.Context, tokenData *domain.TokenData, now time.Time) (*domain.SchedulerSetup, error) {
@@ -1832,7 +1836,7 @@ func calculateAvailableSlots(office *domain.OfficeConfig, col domain.SchedulerCo
 		if sameStartCount > 0 {
 			slot.SameStartBooked = sameStartCount
 			slot.SameStartCapacity = sameStartCapacity
-			slot.RequiresForce = isBachColumn(office, col.ID)
+			slot.RequiresForce = requiresForceForSameStart(office, col.ID)
 		}
 		slots = append(slots, slot)
 	}

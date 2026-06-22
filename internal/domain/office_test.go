@@ -327,6 +327,64 @@ func TestOfficeConfig_HollywoodAndSweetwaterColumns(t *testing.T) {
 	}
 }
 
+func TestOfficeConfig_SameStartCapacityScope(t *testing.T) {
+	tests := []struct {
+		name       string
+		office     *OfficeConfig
+		doubleBook []string
+		singleBook []string
+	}{
+		{
+			name:       "spring hill all columns double-bookable",
+			office:     springHillOffice,
+			doubleBook: []string{"1513", "1598", "1551", "1550", "1600"},
+		},
+		{
+			name:       "crystal river remains single-booked",
+			office:     crystalRiverOffice,
+			singleBook: []string{"1593"},
+		},
+		{
+			name:       "sweetwater all columns double-bookable",
+			office:     sweetwaterOffice,
+			doubleBook: []string{"682", "1307", "1296", "1554", "1210"},
+		},
+		{
+			name:       "hollywood all columns double-bookable",
+			office:     hollywoodOffice,
+			doubleBook: []string{"1268", "1478", "1555", "1510", "1305"},
+		},
+		{
+			name:       "dev spring hill all columns double-bookable",
+			office:     devSpringHillOffice,
+			doubleBook: []string{"1716", "1723", "1726"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, columnID := range tt.doubleBook {
+				col, ok := tt.office.Columns[columnID]
+				if !ok {
+					t.Fatalf("missing column %s", columnID)
+				}
+				if col.SameStartCapacity != 2 {
+					t.Fatalf("column %s SameStartCapacity = %d, want 2", columnID, col.SameStartCapacity)
+				}
+			}
+			for _, columnID := range tt.singleBook {
+				col, ok := tt.office.Columns[columnID]
+				if !ok {
+					t.Fatalf("missing column %s", columnID)
+				}
+				if col.SameStartCapacity != 0 {
+					t.Fatalf("column %s SameStartCapacity = %d, want default 0", columnID, col.SameStartCapacity)
+				}
+			}
+		})
+	}
+}
+
 func TestOfficeConfig_RoutineAgeRules(t *testing.T) {
 	office := prodOffices["+17864657475"]
 	now := time.Now()

@@ -190,9 +190,9 @@ slot fields directly only when `ALLOW_RAW_SLOT_BOOKING=true`.
 - `episodeid: 1`.
 - `type` wrapped as `[{ "id": <appointmentTypeId> }]`.
 - appointment color from `DefaultAppointmentTypeColors`.
-- `force: 1` for Dr. Bach slots whose signed `bookingToken` carries
-  `requiresForce` from the preceding availability search. Booking does not
-  re-fetch appointments or block holds for Bach; AMD conflicts return the normal
+- `force: 1` for slots whose signed `bookingToken` carries `requiresForce` from
+  the preceding availability search. Booking does not re-fetch appointments or
+  block holds for those force-required slots; AMD conflicts return the normal
   slot-unavailable response.
 
 Validation before sending to AMD:
@@ -250,8 +250,9 @@ Candidate slots are filtered in this order:
 4. Slot must be outside block holds.
 5. Slot duration must not overlap a different-start existing appointment.
 6. Same-start appointment count must be below per-column capacity.
-7. Dr. Bach columns use capacity 2 per column; partially booked Bach slots
-   return `sameStartBooked`, `sameStartCapacity`, and `requiresForce`.
+7. Configured double-book columns use capacity 2 per column; partially booked
+   configured slots return `sameStartBooked`, `sameStartCapacity`, and
+   `requiresForce`. Crystal River columns remain single-booked.
 
 The response includes at most five displayed slots per provider, while
 `totalAvailable` reports the full count.
