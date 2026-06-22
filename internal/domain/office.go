@@ -19,11 +19,12 @@ type OfficeConfig struct {
 
 // OfficeColumn defines a provider column within an office.
 type OfficeColumn struct {
-	ProfileID   string // "620"
-	DisplayName string // "Dr. Austin Bach"
-	ShortName   string // "Dr. Bach"
-	MatchKey    string // "BACH" — uppercase fragment for matching AMD names
-	MinAgeYears int    // Minimum patient age in years; 0 means newborn and up
+	ProfileID         string // "620"
+	DisplayName       string // "Dr. Austin Bach"
+	ShortName         string // "Dr. Bach"
+	MatchKey          string // "BACH" — uppercase fragment for matching AMD names
+	MinAgeYears       int    // Minimum patient age in years; 0 means newborn and up
+	SameStartCapacity int    // Maximum appointments at the same start time; 0 means single-booked
 }
 
 // InsuranceMode selects which insurance crosswalk should be used.
@@ -371,11 +372,11 @@ var springHillOffice = &OfficeConfig{
 	FacilityID:       "1568",
 	DefaultProfileID: "620",
 	Columns: map[string]OfficeColumn{
-		"1513": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH"},
-		"1598": {ProfileID: "620", DisplayName: "Dr. Austin Bach (Overflow)", ShortName: "Dr. Bach", MatchKey: "BACH"},
-		"1551": {ProfileID: "2064", DisplayName: "Dr. J. Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"},
-		"1550": {ProfileID: "2076", DisplayName: "Dr. D. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL"},
-		"1600": {ProfileID: "1983", DisplayName: "Routine Vision - Dr. Melissa Otero", ShortName: "Routine Vision", MatchKey: "OTERO"},
+		"1513": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
+		"1598": {ProfileID: "620", DisplayName: "Dr. Austin Bach (Overflow)", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
+		"1551": {ProfileID: "2064", DisplayName: "Dr. J. Licht", ShortName: "Dr. Licht", MatchKey: "LICHT", SameStartCapacity: 2},
+		"1550": {ProfileID: "2076", DisplayName: "Dr. D. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL", SameStartCapacity: 2},
+		"1600": {ProfileID: "1983", DisplayName: "Routine Vision - Dr. Melissa Otero", ShortName: "Routine Vision", MatchKey: "OTERO", SameStartCapacity: 2},
 	},
 	RoutingTiers: map[RoutingRule][]string{
 		RoutingBachOnly:    {"1513", "1598"},
@@ -408,11 +409,11 @@ var sweetwaterOffice = &OfficeConfig{
 	FacilityID:       "670",
 	DefaultProfileID: "620",
 	Columns: map[string]OfficeColumn{
-		"682":  {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH"},
-		"1307": {ProfileID: "620", DisplayName: "Dr. Austin Bach (Overflow)", ShortName: "Dr. Bach", MatchKey: "BACH"},
-		"1296": {ProfileID: "1996", DisplayName: "Dr. Maria Casas", ShortName: "Dr. Casas", MatchKey: "CASAS", MinAgeYears: 7},
-		"1554": {ProfileID: "2075", DisplayName: "Dr. Kyler Farnan", ShortName: "Dr. Farnan", MatchKey: "FARNAN", MinAgeYears: 5},
-		"1210": {ProfileID: "1993", DisplayName: "Dr. Gisselle Calero", ShortName: "Dr. Calero", MatchKey: "CALERO", MinAgeYears: 4},
+		"682":  {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
+		"1307": {ProfileID: "620", DisplayName: "Dr. Austin Bach (Overflow)", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
+		"1296": {ProfileID: "1996", DisplayName: "Dr. Maria Casas", ShortName: "Dr. Casas", MatchKey: "CASAS", MinAgeYears: 7, SameStartCapacity: 2},
+		"1554": {ProfileID: "2075", DisplayName: "Dr. Kyler Farnan", ShortName: "Dr. Farnan", MatchKey: "FARNAN", MinAgeYears: 5, SameStartCapacity: 2},
+		"1210": {ProfileID: "1993", DisplayName: "Dr. Gisselle Calero", ShortName: "Dr. Calero", MatchKey: "CALERO", MinAgeYears: 4, SameStartCapacity: 2},
 	},
 	RoutingTiers: map[RoutingRule][]string{
 		RoutingBachOnly:    {"682", "1307"},
@@ -429,11 +430,11 @@ var hollywoodOffice = &OfficeConfig{
 	FacilityID:       "1480",
 	DefaultProfileID: "620",
 	Columns: map[string]OfficeColumn{
-		"1268": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH"},
-		"1478": {ProfileID: "620", DisplayName: "Dr. Austin Bach (Overflow)", ShortName: "Dr. Bach", MatchKey: "BACH"},
-		"1555": {ProfileID: "2075", DisplayName: "Dr. Kyler Farnan", ShortName: "Dr. Farnan", MatchKey: "FARNAN", MinAgeYears: 5},
-		"1510": {ProfileID: "2057", DisplayName: "Dr. Lisbet Vidal", ShortName: "Dr. Vidal", MatchKey: "VIDAL", MinAgeYears: 7},
-		"1305": {ProfileID: "1993", DisplayName: "Dr. Gisselle Calero", ShortName: "Dr. Calero", MatchKey: "CALERO", MinAgeYears: 4},
+		"1268": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
+		"1478": {ProfileID: "620", DisplayName: "Dr. Austin Bach (Overflow)", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
+		"1555": {ProfileID: "2075", DisplayName: "Dr. Kyler Farnan", ShortName: "Dr. Farnan", MatchKey: "FARNAN", MinAgeYears: 5, SameStartCapacity: 2},
+		"1510": {ProfileID: "2057", DisplayName: "Dr. Lisbet Vidal", ShortName: "Dr. Vidal", MatchKey: "VIDAL", MinAgeYears: 7, SameStartCapacity: 2},
+		"1305": {ProfileID: "1993", DisplayName: "Dr. Gisselle Calero", ShortName: "Dr. Calero", MatchKey: "CALERO", MinAgeYears: 4, SameStartCapacity: 2},
 	},
 	RoutingTiers: map[RoutingRule][]string{
 		RoutingBachOnly:    {"1268", "1478"},
@@ -450,9 +451,9 @@ var devSpringHillOffice = &OfficeConfig{
 	FacilityID:       "1032",
 	DefaultProfileID: "1135",
 	Columns: map[string]OfficeColumn{
-		"1716": {ProfileID: "1135", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH"},
-		"1723": {ProfileID: "1141", DisplayName: "Dr. J. Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"},
-		"1726": {ProfileID: "1137", DisplayName: "Dr. D. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL"},
+		"1716": {ProfileID: "1135", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
+		"1723": {ProfileID: "1141", DisplayName: "Dr. J. Licht", ShortName: "Dr. Licht", MatchKey: "LICHT", SameStartCapacity: 2},
+		"1726": {ProfileID: "1137", DisplayName: "Dr. D. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL", SameStartCapacity: 2},
 	},
 	RoutingTiers: map[RoutingRule][]string{
 		RoutingBachOnly:  {"1716"},

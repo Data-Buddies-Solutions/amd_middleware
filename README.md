@@ -372,8 +372,9 @@ Availability rules:
 6. Recurring block holds use the daily hold window, not the recurrence end date.
 7. Different-start appointments block overlapping appointment durations.
 8. Same-start appointment count is checked against per-column capacity.
-9. Dr. Bach columns allow one existing same-start appointment per column; those
-   slots include `sameStartBooked`, `sameStartCapacity`, and `requiresForce`.
+9. Configured double-book columns allow one existing same-start appointment per
+   column; those slots include `sameStartBooked`, `sameStartCapacity`, and
+   `requiresForce`. Crystal River columns remain single-booked.
 
 Response:
 
@@ -506,9 +507,9 @@ Booking validation:
   `patientStatus`, `dob`, or `routeToSpringHill`.
 - DOB must be valid and satisfy provider age rules for age-restricted columns.
 - DOB applies medical pediatric routing when the patient is under 18.
-- Bach slots that availability marked `requiresForce` are booked with AMD
-  `force: 1` from the signed `bookingToken`; booking does not re-fetch
-  appointments or block holds for Bach. If AMD reports a conflict, the response
+- Slots that availability marked `requiresForce` are booked with AMD `force: 1`
+  from the signed `bookingToken`; booking does not re-fetch appointments or block
+  holds for those force-required slots. If AMD reports a conflict, the response
   asks the caller to choose another slot.
 - Appointment comments must be 1000 characters or fewer.
 - AMD 409 conflicts return a clear slot-no-longer-available message.
