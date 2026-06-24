@@ -374,7 +374,8 @@ Availability rules:
 8. Same-start appointment count is checked against per-column capacity.
 9. Configured double-book columns allow one existing same-start appointment per
    column; those slots include `sameStartBooked`, `sameStartCapacity`, and
-   `requiresForce`. Crystal River columns remain single-booked.
+   `requiresForce`. Spring Hill routine vision and Crystal River columns remain
+   single-booked.
 
 Response:
 

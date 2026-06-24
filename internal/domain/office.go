@@ -376,7 +376,7 @@ var springHillOffice = &OfficeConfig{
 		"1598": {ProfileID: "620", DisplayName: "Dr. Austin Bach (Overflow)", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
 		"1551": {ProfileID: "2064", DisplayName: "Dr. J. Licht", ShortName: "Dr. Licht", MatchKey: "LICHT", SameStartCapacity: 2},
 		"1550": {ProfileID: "2076", DisplayName: "Dr. D. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL", SameStartCapacity: 2},
-		"1600": {ProfileID: "1983", DisplayName: "Routine Vision - Dr. Melissa Otero", ShortName: "Routine Vision", MatchKey: "OTERO", SameStartCapacity: 2},
+		"1600": {ProfileID: "1983", DisplayName: "Routine Vision - Dr. Melissa Otero", ShortName: "Routine Vision", MatchKey: "OTERO"},
 	},
 	RoutingTiers: map[RoutingRule][]string{
 		RoutingBachOnly:    {"1513", "1598"},
