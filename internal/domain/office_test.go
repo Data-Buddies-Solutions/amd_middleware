@@ -335,9 +335,10 @@ func TestOfficeConfig_SameStartCapacityScope(t *testing.T) {
 		singleBook []string
 	}{
 		{
-			name:       "spring hill all columns double-bookable",
+			name:       "spring hill medical columns double-bookable",
 			office:     springHillOffice,
-			doubleBook: []string{"1513", "1598", "1551", "1550", "1600"},
+			doubleBook: []string{"1513", "1598", "1551", "1550"},
+			singleBook: []string{"1600"},
 		},
 		{
 			name:       "crystal river remains single-booked",

@@ -1594,7 +1594,7 @@ func TestCalculateAvailableSlots_MultiSlotAppointment(t *testing.T) {
 	date := time.Date(2026, 3, 6, 0, 0, 0, 0, eastern)
 	nowEastern := time.Date(2026, 3, 5, 10, 0, 0, 0, eastern) // day before
 
-	// Spring Hill Dr. Noel: 30-min intervals. All Spring Hill columns are
+	// Spring Hill Dr. Noel: 30-min intervals. Spring Hill medical columns are
 	// second-bookable.
 	col := domain.SchedulerColumn{
 		ID:              "1550",
@@ -1710,6 +1710,30 @@ func TestCalculateAvailableSlots_ConfiguredTwoSameStartAppointmentsBlockSlot(t *
 	}
 }
 
+func TestCalculateAvailableSlots_SpringHillOpticalBlocksSingleSameStart(t *testing.T) {
+	eastern, _ := time.LoadLocation("America/New_York")
+	date := time.Date(2026, 6, 1, 0, 0, 0, 0, eastern) // Monday
+	nowEastern := time.Date(2026, 5, 31, 10, 0, 0, 0, eastern)
+
+	col := domain.SchedulerColumn{
+		ID:              "1600",
+		Name:            "ROUTINE VISION",
+		StartTime:       "09:00",
+		EndTime:         "09:15",
+		Interval:        15,
+		MaxApptsPerSlot: 2,
+		Workweek:        62,
+	}
+	appointments := []domain.Appointment{
+		{StartDateTime: time.Date(2026, 6, 1, 9, 0, 0, 0, eastern), Duration: 15},
+	}
+
+	slots := calculateAvailableSlots(domain.DefaultOffice(), col, appointments, nil, date, nowEastern)
+	if len(slots) != 0 {
+		t.Fatalf("Expected Spring Hill routine vision same-start slot to be blocked, got %d: %v", len(slots), slots)
+	}
+}
+
 func TestCalculateAvailableSlots_CrystalRiverMaxZeroBlocksSameStart(t *testing.T) {
 	eastern, _ := time.LoadLocation("America/New_York")
 	date := time.Date(2026, 6, 1, 0, 0, 0, 0, eastern) // Monday
@@ -1772,7 +1796,7 @@ func TestCalculateAvailableSlots_CrystalRiverMaxTwoBlocksSingleSameStart(t *test
 	}
 }
 
-func TestCalculateAvailableSlots_NonSpringHillOpticalSingleBookedSlotsAvailableWithForceMetadata(t *testing.T) {
+func TestCalculateAvailableSlots_SweetwaterOpticalSameStartSlotAvailableWithForceMetadata(t *testing.T) {
 	eastern, _ := time.LoadLocation("America/New_York")
 	date := time.Date(2026, 6, 1, 0, 0, 0, 0, eastern) // Monday
 	nowEastern := time.Date(2026, 5, 31, 10, 0, 0, 0, eastern)

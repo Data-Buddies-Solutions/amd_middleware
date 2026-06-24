@@ -252,7 +252,8 @@ Candidate slots are filtered in this order:
 6. Same-start appointment count must be below per-column capacity.
 7. Configured double-book columns use capacity 2 per column; partially booked
    configured slots return `sameStartBooked`, `sameStartCapacity`, and
-   `requiresForce`. Crystal River columns remain single-booked.
+   `requiresForce`. Spring Hill routine vision and Crystal River columns remain
+   single-booked.
 
 The response includes at most five displayed slots per provider, while
 `totalAvailable` reports the full count.
