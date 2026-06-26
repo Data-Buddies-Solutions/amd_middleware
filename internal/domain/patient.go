@@ -79,14 +79,17 @@ func NormalizeDOB(dob string) string {
 	return dob
 }
 
-// FormatPhone normalizes a phone number to (XXX)XXX-XXXX format.
-// Strips all non-digit characters, then formats if exactly 10 digits remain.
+// FormatPhone normalizes a US phone number to (XXX)XXX-XXXX format.
+// Strips all non-digit characters and drops a leading US country code.
 func FormatPhone(phone string) string {
 	var digits []byte
 	for _, c := range phone {
 		if c >= '0' && c <= '9' {
 			digits = append(digits, byte(c))
 		}
+	}
+	if len(digits) == 11 && digits[0] == '1' {
+		digits = digits[1:]
 	}
 	if len(digits) == 10 {
 		return fmt.Sprintf("(%s)%s-%s", string(digits[0:3]), string(digits[3:6]), string(digits[6:10]))
