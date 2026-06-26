@@ -241,7 +241,9 @@ func TestFormatPhone(t *testing.T) {
 		{"with parens and dash", "(555)123-4567", "(555)123-4567"},
 		{"with spaces", "555 123 4567", "(555)123-4567"},
 		{"with dots", "555.123.4567", "(555)123-4567"},
-		{"with country code", "+15551234567", "+15551234567"}, // 11 digits, returned as-is
+		{"with plus country code", "+15551234567", "(555)123-4567"},
+		{"with bare country code", "15551234567", "(555)123-4567"},
+		{"with formatted country code", "1 (555) 123-4567", "(555)123-4567"},
 		{"too short", "555123", "555123"},
 		{"empty string", "", ""},
 		{"mixed chars", "call 555-123-4567 now", "(555)123-4567"}, // 10 digits extracted
