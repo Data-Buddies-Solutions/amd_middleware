@@ -346,12 +346,12 @@ func TestOfficeConfig_SameStartCapacityScope(t *testing.T) {
 			singleBook: []string{"1593"},
 		},
 		{
-			name:       "sweetwater all columns double-bookable",
+			name:       "sweetwater all columns have same-start capacity",
 			office:     sweetwaterOffice,
 			doubleBook: []string{"682", "1307", "1296", "1554", "1210"},
 		},
 		{
-			name:       "hollywood all columns double-bookable",
+			name:       "hollywood all columns have same-start capacity",
 			office:     hollywoodOffice,
 			doubleBook: []string{"1268", "1478", "1555", "1510", "1305"},
 		},
@@ -380,6 +380,67 @@ func TestOfficeConfig_SameStartCapacityScope(t *testing.T) {
 				}
 				if col.SameStartCapacity != 0 {
 					t.Fatalf("column %s SameStartCapacity = %d, want default 0", columnID, col.SameStartCapacity)
+				}
+			}
+		})
+	}
+}
+
+func TestOfficeConfig_HollywoodSweetwaterRoutineSameStartWindows(t *testing.T) {
+	tests := []struct {
+		name       string
+		office     *OfficeConfig
+		routineIDs []string
+		medicalIDs []string
+	}{
+		{
+			name:       "sweetwater",
+			office:     sweetwaterOffice,
+			routineIDs: []string{"1296", "1554", "1210"},
+			medicalIDs: []string{"682", "1307"},
+		},
+		{
+			name:       "hollywood",
+			office:     hollywoodOffice,
+			routineIDs: []string{"1555", "1510", "1305"},
+			medicalIDs: []string{"1268", "1478"},
+		},
+	}
+
+	monday := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	friday := time.Date(2026, 6, 5, 0, 0, 0, 0, time.UTC)
+	cases := []struct {
+		name  string
+		start time.Time
+		want  int
+	}{
+		{"monday morning start", monday.Add(8*time.Hour + 30*time.Minute), 2},
+		{"monday morning end", monday.Add(10*time.Hour + 45*time.Minute), 2},
+		{"monday midday blocked", monday.Add(11 * time.Hour), 0},
+		{"monday afternoon start", monday.Add(13*time.Hour + 30*time.Minute), 2},
+		{"monday afternoon end", monday.Add(14*time.Hour + 30*time.Minute), 2},
+		{"monday late afternoon blocked", monday.Add(14*time.Hour + 45*time.Minute), 0},
+		{"friday morning end", friday.Add(11*time.Hour + 45*time.Minute), 2},
+		{"friday afternoon blocked", friday.Add(13*time.Hour + 30*time.Minute), 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, columnID := range tt.routineIDs {
+				col := tt.office.Columns[columnID]
+				if len(col.SameStartWindows) == 0 {
+					t.Fatalf("routine column %s has no same-start windows", columnID)
+				}
+				for _, tc := range cases {
+					if got := col.SameStartCapacityAt(tc.start); got != tc.want {
+						t.Fatalf("%s column %s SameStartCapacityAt(%s) = %d, want %d", tc.name, columnID, tc.start.Format("Monday 15:04"), got, tc.want)
+					}
+				}
+			}
+			for _, columnID := range tt.medicalIDs {
+				col := tt.office.Columns[columnID]
+				if len(col.SameStartWindows) != 0 {
+					t.Fatalf("medical column %s should not have time-limited same-start windows", columnID)
 				}
 			}
 		})

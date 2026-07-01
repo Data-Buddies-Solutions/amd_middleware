@@ -1796,39 +1796,110 @@ func TestCalculateAvailableSlots_CrystalRiverMaxTwoBlocksSingleSameStart(t *test
 	}
 }
 
-func TestCalculateAvailableSlots_SweetwaterOpticalSameStartSlotAvailableWithForceMetadata(t *testing.T) {
+func TestCalculateAvailableSlots_HollywoodSweetwaterOpticalSameStartWindows(t *testing.T) {
 	eastern, _ := time.LoadLocation("America/New_York")
-	date := time.Date(2026, 6, 1, 0, 0, 0, 0, eastern) // Monday
-	nowEastern := time.Date(2026, 5, 31, 10, 0, 0, 0, eastern)
-
 	domain.InitRegistry("prod")
 	defer domain.InitRegistry("prod")
 
-	office, ok := domain.LookupOffice("+17864657475")
-	if !ok {
-		t.Fatal("expected Sweetwater office")
-	}
-	col := domain.SchedulerColumn{
-		ID:              "1554",
-		Name:            "DR. FARNAN",
-		StartTime:       "09:00",
-		EndTime:         "09:15",
-		Interval:        15,
-		MaxApptsPerSlot: 0,
-		Workweek:        62,
-	}
-	appointments := []domain.Appointment{
-		{StartDateTime: time.Date(2026, 6, 1, 9, 0, 0, 0, eastern), Duration: 15},
+	tests := []struct {
+		name     string
+		officeID string
+		columnID string
+		start    time.Time
+		wantSlot bool
+	}{
+		{
+			name:     "sweetwater monday morning start",
+			officeID: "+17864657475",
+			columnID: "1554",
+			start:    time.Date(2026, 6, 1, 8, 30, 0, 0, eastern),
+			wantSlot: true,
+		},
+		{
+			name:     "sweetwater monday morning end",
+			officeID: "+17864657475",
+			columnID: "1554",
+			start:    time.Date(2026, 6, 1, 10, 45, 0, 0, eastern),
+			wantSlot: true,
+		},
+		{
+			name:     "sweetwater monday midday blocked",
+			officeID: "+17864657475",
+			columnID: "1554",
+			start:    time.Date(2026, 6, 1, 11, 0, 0, 0, eastern),
+		},
+		{
+			name:     "sweetwater monday afternoon start",
+			officeID: "+17864657475",
+			columnID: "1554",
+			start:    time.Date(2026, 6, 1, 13, 30, 0, 0, eastern),
+			wantSlot: true,
+		},
+		{
+			name:     "sweetwater monday afternoon end",
+			officeID: "+17864657475",
+			columnID: "1554",
+			start:    time.Date(2026, 6, 1, 14, 30, 0, 0, eastern),
+			wantSlot: true,
+		},
+		{
+			name:     "sweetwater monday late afternoon blocked",
+			officeID: "+17864657475",
+			columnID: "1554",
+			start:    time.Date(2026, 6, 1, 14, 45, 0, 0, eastern),
+		},
+		{
+			name:     "hollywood friday morning end",
+			officeID: "+19542872010",
+			columnID: "1555",
+			start:    time.Date(2026, 6, 5, 11, 45, 0, 0, eastern),
+			wantSlot: true,
+		},
+		{
+			name:     "hollywood friday afternoon blocked",
+			officeID: "+19542872010",
+			columnID: "1555",
+			start:    time.Date(2026, 6, 5, 13, 30, 0, 0, eastern),
+		},
 	}
 
-	slots := calculateAvailableSlots(office, col, appointments, nil, date, nowEastern)
-	if len(slots) != 1 {
-		t.Fatalf("Expected Sweetwater optical same-start slot to be second-bookable, got %d: %v", len(slots), slots)
-	}
-	if slots[0].SameStartBooked != 1 ||
-		slots[0].SameStartCapacity != 2 ||
-		!slots[0].RequiresForce {
-		t.Fatalf("unexpected same-start metadata: %+v", slots[0])
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			office, ok := domain.LookupOffice(tt.officeID)
+			if !ok {
+				t.Fatalf("expected office %s", tt.officeID)
+			}
+			col := domain.SchedulerColumn{
+				ID:              tt.columnID,
+				Name:            "ROUTINE VISION",
+				StartTime:       tt.start.Format("15:04"),
+				EndTime:         tt.start.Add(15 * time.Minute).Format("15:04"),
+				Interval:        15,
+				MaxApptsPerSlot: 0,
+				Workweek:        62,
+			}
+			appointments := []domain.Appointment{
+				{StartDateTime: tt.start, Duration: 15},
+			}
+			date := time.Date(tt.start.Year(), tt.start.Month(), tt.start.Day(), 0, 0, 0, 0, eastern)
+			nowEastern := date.AddDate(0, 0, -1).Add(10 * time.Hour)
+
+			slots := calculateAvailableSlots(office, col, appointments, nil, date, nowEastern)
+			if !tt.wantSlot {
+				if len(slots) != 0 {
+					t.Fatalf("expected same-start slot to be blocked, got %d: %v", len(slots), slots)
+				}
+				return
+			}
+			if len(slots) != 1 {
+				t.Fatalf("expected same-start slot to be second-bookable, got %d: %v", len(slots), slots)
+			}
+			if slots[0].SameStartBooked != 1 ||
+				slots[0].SameStartCapacity != 2 ||
+				!slots[0].RequiresForce {
+				t.Fatalf("unexpected same-start metadata: %+v", slots[0])
+			}
+		})
 	}
 }
 

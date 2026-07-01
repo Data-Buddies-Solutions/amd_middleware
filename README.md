@@ -374,7 +374,9 @@ Availability rules:
 8. Same-start appointment count is checked against per-column capacity.
 9. Configured double-book columns allow one existing same-start appointment per
    column; those slots include `sameStartBooked`, `sameStartCapacity`, and
-   `requiresForce`. Spring Hill routine vision and Crystal River columns remain
+   `requiresForce`. Hollywood and Sweetwater routine-vision columns double-book
+   only for start times 8:30-10:45 AM and 1:30-2:30 PM Monday-Thursday, and
+   8:30-11:45 AM on Friday. Spring Hill routine vision and Crystal River remain
    single-booked.
 
 Response:

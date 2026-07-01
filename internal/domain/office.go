@@ -4,6 +4,7 @@ import (
 	"log"
 	"sort"
 	"strings"
+	"time"
 )
 
 // OfficeConfig defines the configuration for a single office location.
@@ -19,12 +20,46 @@ type OfficeConfig struct {
 
 // OfficeColumn defines a provider column within an office.
 type OfficeColumn struct {
-	ProfileID         string // "620"
-	DisplayName       string // "Dr. Austin Bach"
-	ShortName         string // "Dr. Bach"
-	MatchKey          string // "BACH" — uppercase fragment for matching AMD names
-	MinAgeYears       int    // Minimum patient age in years; 0 means newborn and up
-	SameStartCapacity int    // Maximum appointments at the same start time; 0 means single-booked
+	ProfileID         string            // "620"
+	DisplayName       string            // "Dr. Austin Bach"
+	ShortName         string            // "Dr. Bach"
+	MatchKey          string            // "BACH" — uppercase fragment for matching AMD names
+	MinAgeYears       int               // Minimum patient age in years; 0 means newborn and up
+	SameStartCapacity int               // Maximum appointments at the same start time; 0 means single-booked
+	SameStartWindows  []SameStartWindow // Optional allowed start windows; empty means all start times
+}
+
+// SameStartWindow limits second-bookable starts to an inclusive minute range on one weekday.
+type SameStartWindow struct {
+	Weekday     time.Weekday
+	StartMinute int
+	EndMinute   int
+}
+
+// SameStartCapacityAt returns the column's configured same-start capacity at a slot start time.
+func (c OfficeColumn) SameStartCapacityAt(start time.Time) int {
+	if c.SameStartCapacity <= 0 {
+		return 0
+	}
+	if len(c.SameStartWindows) == 0 {
+		return c.SameStartCapacity
+	}
+
+	minute := start.Hour()*60 + start.Minute()
+	for _, window := range c.SameStartWindows {
+		if window.Weekday == start.Weekday() && minute >= window.StartMinute && minute <= window.EndMinute {
+			return c.SameStartCapacity
+		}
+	}
+	return 0
+}
+
+func sameStartWindow(weekday time.Weekday, startHour, startMinute, endHour, endMinute int) SameStartWindow {
+	return SameStartWindow{
+		Weekday:     weekday,
+		StartMinute: startHour*60 + startMinute,
+		EndMinute:   endHour*60 + endMinute,
+	}
 }
 
 // InsuranceMode selects which insurance crosswalk should be used.
@@ -403,6 +438,18 @@ var crystalRiverOffice = &OfficeConfig{
 	PediatricRouting: RoutingNotAccepted,
 }
 
+var hollywoodSweetwaterRoutineDoubleBookWindows = []SameStartWindow{
+	sameStartWindow(time.Monday, 8, 30, 10, 45),
+	sameStartWindow(time.Monday, 13, 30, 14, 30),
+	sameStartWindow(time.Tuesday, 8, 30, 10, 45),
+	sameStartWindow(time.Tuesday, 13, 30, 14, 30),
+	sameStartWindow(time.Wednesday, 8, 30, 10, 45),
+	sameStartWindow(time.Wednesday, 13, 30, 14, 30),
+	sameStartWindow(time.Thursday, 8, 30, 10, 45),
+	sameStartWindow(time.Thursday, 13, 30, 14, 30),
+	sameStartWindow(time.Friday, 8, 30, 11, 45),
+}
+
 var sweetwaterOffice = &OfficeConfig{
 	ID:               "sweetwater",
 	DisplayName:      "Sweetwater",
@@ -411,9 +458,33 @@ var sweetwaterOffice = &OfficeConfig{
 	Columns: map[string]OfficeColumn{
 		"682":  {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
 		"1307": {ProfileID: "620", DisplayName: "Dr. Austin Bach (Overflow)", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
-		"1296": {ProfileID: "1996", DisplayName: "Dr. Maria Casas", ShortName: "Dr. Casas", MatchKey: "CASAS", MinAgeYears: 7, SameStartCapacity: 2},
-		"1554": {ProfileID: "2075", DisplayName: "Dr. Kyler Farnan", ShortName: "Dr. Farnan", MatchKey: "FARNAN", MinAgeYears: 5, SameStartCapacity: 2},
-		"1210": {ProfileID: "1993", DisplayName: "Dr. Gisselle Calero", ShortName: "Dr. Calero", MatchKey: "CALERO", MinAgeYears: 4, SameStartCapacity: 2},
+		"1296": {
+			ProfileID:         "1996",
+			DisplayName:       "Dr. Maria Casas",
+			ShortName:         "Dr. Casas",
+			MatchKey:          "CASAS",
+			MinAgeYears:       7,
+			SameStartCapacity: 2,
+			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
+		},
+		"1554": {
+			ProfileID:         "2075",
+			DisplayName:       "Dr. Kyler Farnan",
+			ShortName:         "Dr. Farnan",
+			MatchKey:          "FARNAN",
+			MinAgeYears:       5,
+			SameStartCapacity: 2,
+			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
+		},
+		"1210": {
+			ProfileID:         "1993",
+			DisplayName:       "Dr. Gisselle Calero",
+			ShortName:         "Dr. Calero",
+			MatchKey:          "CALERO",
+			MinAgeYears:       4,
+			SameStartCapacity: 2,
+			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
+		},
 	},
 	RoutingTiers: map[RoutingRule][]string{
 		RoutingBachOnly:    {"682", "1307"},
@@ -432,9 +503,33 @@ var hollywoodOffice = &OfficeConfig{
 	Columns: map[string]OfficeColumn{
 		"1268": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
 		"1478": {ProfileID: "620", DisplayName: "Dr. Austin Bach (Overflow)", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
-		"1555": {ProfileID: "2075", DisplayName: "Dr. Kyler Farnan", ShortName: "Dr. Farnan", MatchKey: "FARNAN", MinAgeYears: 5, SameStartCapacity: 2},
-		"1510": {ProfileID: "2057", DisplayName: "Dr. Lisbet Vidal", ShortName: "Dr. Vidal", MatchKey: "VIDAL", MinAgeYears: 7, SameStartCapacity: 2},
-		"1305": {ProfileID: "1993", DisplayName: "Dr. Gisselle Calero", ShortName: "Dr. Calero", MatchKey: "CALERO", MinAgeYears: 4, SameStartCapacity: 2},
+		"1555": {
+			ProfileID:         "2075",
+			DisplayName:       "Dr. Kyler Farnan",
+			ShortName:         "Dr. Farnan",
+			MatchKey:          "FARNAN",
+			MinAgeYears:       5,
+			SameStartCapacity: 2,
+			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
+		},
+		"1510": {
+			ProfileID:         "2057",
+			DisplayName:       "Dr. Lisbet Vidal",
+			ShortName:         "Dr. Vidal",
+			MatchKey:          "VIDAL",
+			MinAgeYears:       7,
+			SameStartCapacity: 2,
+			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
+		},
+		"1305": {
+			ProfileID:         "1993",
+			DisplayName:       "Dr. Gisselle Calero",
+			ShortName:         "Dr. Calero",
+			MatchKey:          "CALERO",
+			MinAgeYears:       4,
+			SameStartCapacity: 2,
+			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
+		},
 	},
 	RoutingTiers: map[RoutingRule][]string{
 		RoutingBachOnly:    {"1268", "1478"},

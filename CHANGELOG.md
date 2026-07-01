@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased] - 2026-07-01
+
+### Routine Vision Same-Start Windows
+
+- Limited Hollywood and Sweetwater routine-vision double booking to 8:30-10:45
+  AM and 1:30-2:30 PM Monday-Thursday, and 8:30-11:45 AM on Friday.
+
 ## [Unreleased] - 2026-05-24
 
 ### LiveKit Middleware Hardening

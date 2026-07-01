@@ -252,7 +252,9 @@ Candidate slots are filtered in this order:
 6. Same-start appointment count must be below per-column capacity.
 7. Configured double-book columns use capacity 2 per column; partially booked
    configured slots return `sameStartBooked`, `sameStartCapacity`, and
-   `requiresForce`. Spring Hill routine vision and Crystal River columns remain
+   `requiresForce`. Hollywood and Sweetwater routine-vision columns double-book
+   only for start times 8:30-10:45 AM and 1:30-2:30 PM Monday-Thursday, and
+   8:30-11:45 AM on Friday. Spring Hill routine vision and Crystal River remain
    single-booked.
 
 The response includes at most five displayed slots per provider, while
