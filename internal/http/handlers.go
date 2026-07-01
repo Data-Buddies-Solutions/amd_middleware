@@ -1389,12 +1389,27 @@ func sameStartCapacityForColumnID(office *domain.OfficeConfig, columnID string) 
 	return col.SameStartCapacity
 }
 
+func sameStartCapacityForColumnAt(office *domain.OfficeConfig, columnID string, slotTime time.Time) int {
+	if office == nil {
+		return defaultSameStartCapacity
+	}
+	col, ok := office.Columns[columnID]
+	if !ok {
+		return defaultSameStartCapacity
+	}
+	capacity := col.SameStartCapacityAt(slotTime)
+	if capacity <= defaultSameStartCapacity {
+		return defaultSameStartCapacity
+	}
+	return capacity
+}
+
 func requiresForceForSameStart(office *domain.OfficeConfig, columnID string) bool {
 	return sameStartCapacityForColumnID(office, columnID) > defaultSameStartCapacity
 }
 
-func sameStartCapacityForColumn(office *domain.OfficeConfig, col domain.SchedulerColumn) int {
-	return sameStartCapacityForColumnID(office, col.ID)
+func sameStartCapacityForColumn(office *domain.OfficeConfig, col domain.SchedulerColumn, slotTime time.Time) int {
+	return sameStartCapacityForColumnAt(office, col.ID, slotTime)
 }
 
 func (h *Handlers) getSchedulerSetup(ctx context.Context, tokenData *domain.TokenData, now time.Time) (*domain.SchedulerSetup, error) {
@@ -1802,8 +1817,6 @@ func calculateAvailableSlots(office *domain.OfficeConfig, col domain.SchedulerCo
 		interval = 15 * time.Minute
 	}
 
-	sameStartCapacity := sameStartCapacityForColumn(office, col)
-
 	for slotTime := workStart; slotTime.Before(workEnd); slotTime = slotTime.Add(interval) {
 		// Filter past slots
 		if isToday {
@@ -1825,6 +1838,7 @@ func calculateAvailableSlots(office *domain.OfficeConfig, col domain.SchedulerCo
 
 		// AMD 4186: Check same-start-time appointment count against per-column capacity.
 		sameStartCount := countSameStartAppointments(slotTime, appointments)
+		sameStartCapacity := sameStartCapacityForColumn(office, col, slotTime)
 		if sameStartCount >= sameStartCapacity {
 			continue
 		}
