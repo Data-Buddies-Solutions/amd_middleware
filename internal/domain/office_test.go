@@ -23,6 +23,9 @@ func TestLookupOffice(t *testing.T) {
 		{"sweetwater ten digit phone", "7864657475", "sweetwater", true},
 		{"sweetwater alternate phone", "+17864654882", "sweetwater", true},
 		{"sweetwater name", "sweetwater", "sweetwater", true},
+		{"north miami beach optical phone", "+13055095333", "north_miami_beach_optical", true},
+		{"north miami beach optical ten digit phone", "3055095333", "north_miami_beach_optical", true},
+		{"north miami beach optical name", "North Miami Beach Optical", "north_miami_beach_optical", true},
 		{"unknown phone", "+15551234567", "", false},
 		{"empty string", "", "", false},
 	}
@@ -50,7 +53,7 @@ func TestValidOfficeNamesUnique(t *testing.T) {
 		}
 		seen[name] = true
 	}
-	for _, want := range []string{"Spring Hill", "Crystal River", "Hollywood", "Sweetwater"} {
+	for _, want := range []string{"Spring Hill", "Crystal River", "Hollywood", "Sweetwater", "North Miami Beach Optical"} {
 		if !seen[want] {
 			t.Fatalf("ValidOfficeNames missing %q in %v", want, names)
 		}
@@ -80,6 +83,7 @@ func TestAppointmentLookupOffices(t *testing.T) {
 		{"crystal river includes spring hill", crystalRiverOffice, []string{"spring_hill", "crystal_river"}},
 		{"hollywood includes sweetwater", hollywoodOffice, []string{"hollywood", "sweetwater"}},
 		{"sweetwater includes hollywood", sweetwaterOffice, []string{"hollywood", "sweetwater"}},
+		{"north miami beach optical stays scoped", northMiamiBeachOpticalOffice, []string{"north_miami_beach_optical"}},
 		{"unknown office stays scoped", &OfficeConfig{ID: "other"}, []string{"other"}},
 	}
 
@@ -270,6 +274,8 @@ func TestOfficeConfig_AllowsAppointmentType(t *testing.T) {
 		{"hollywood medical rejects vision type", hollywood, 1010, RoutingAll, false},
 		{"sweetwater routine accepts vision type", sweetwater, 3364, RoutingOpticalOnly, true},
 		{"sweetwater medical rejects crystal river type", sweetwater, 6167, RoutingAll, false},
+		{"north miami beach optical routine accepts vision type", northMiamiBeachOpticalOffice, 1010, RoutingOpticalOnly, true},
+		{"north miami beach optical rejects medical type", northMiamiBeachOpticalOffice, 1006, RoutingAll, false},
 		{"unknown type rejected", springHill, 9999, RoutingAll, false},
 	}
 
@@ -324,6 +330,39 @@ func TestOfficeConfig_HollywoodAndSweetwaterColumns(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestOfficeConfig_NorthMiamiBeachOpticalColumn(t *testing.T) {
+	office := prodOffices["+13055095333"]
+	if office == nil {
+		t.Fatal("expected North Miami Beach Optical office")
+	}
+	if office.FacilityID != "1582" {
+		t.Fatalf("FacilityID = %q, want 1582", office.FacilityID)
+	}
+	if office.DefaultProfileID != "621" {
+		t.Fatalf("DefaultProfileID = %q, want 621", office.DefaultProfileID)
+	}
+	if !office.IsAllowedColumn("1601") {
+		t.Fatal("expected column 1601 to be allowed")
+	}
+	if medical := office.ColumnsForRouting(RoutingAll); len(medical) != 0 {
+		t.Fatalf("medical routing columns = %v, want none", medical)
+	}
+	optical := office.ColumnsForRouting(RoutingOpticalOnly)
+	if len(optical) != 1 || !optical["1601"] {
+		t.Fatalf("optical routing columns = %v, want only 1601", optical)
+	}
+	col := office.Columns["1601"]
+	if col.ProfileID != "621" || col.DisplayName != "Brightview" || col.SameStartCapacity != 0 {
+		t.Fatalf("column 1601 = %+v, want Brightview profile 621 single-booked", col)
+	}
+	if got := office.ProviderDisplayName("621"); got != "Brightview" {
+		t.Fatalf("ProviderDisplayName(621) = %q, want Brightview", got)
+	}
+	if got := office.FriendlyProviderName("BACH, MIRIAM"); got != "Brightview" {
+		t.Fatalf("FriendlyProviderName(BACH, MIRIAM) = %q, want Brightview", got)
 	}
 }
 

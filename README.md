@@ -147,6 +147,7 @@ requests infer office from the token and reject a conflicting explicit office.
 | Crystal River | `crystal_river` | `1576` | `2064` | `+13523202007`, `+16182265883` placeholder |
 | Hollywood | `hollywood` | `1480` | `620` | `+19542872010` |
 | Sweetwater | `sweetwater` | `670` | `620` | `+17864657475`, `+17864654845`, `+17866134310`, `+17864657479`, `+17864654836`, `+17864654882` |
+| North Miami Beach Optical | `north_miami_beach_optical` | `1582` | `621` | `+13055095333` |
 
 ### Scheduler Columns
 
@@ -159,6 +160,7 @@ requests infer office from the token and reject a conflicting explicit office.
 | Hollywood | Routine vision | `1555` Dr. Farnan, `1510` Dr. Vidal, `1305` Dr. Calero |
 | Sweetwater | Medical | `682` Dr. Bach, `1307` Dr. Bach Overflow |
 | Sweetwater | Routine vision | `1296` Dr. Casas, `1554` Dr. Farnan, `1210` Dr. Calero |
+| North Miami Beach Optical | Routine vision | `1601` Brightview |
 
 ### Provider Age Rules
 
@@ -193,8 +195,11 @@ Current state:
 - Hollywood and Sweetwater use the Abita Eye Group 5/4/2026 medical insurance
   list's A.Bach column. Accepted medical plans route to `bach_only` and map to
   the existing AMD network carrier IDs.
-- Routine vision for Spring Hill, Hollywood, and Sweetwater uses the existing
-  vision insurance crosswalk and returns `routing: "optical_only"`.
+- Routine vision for Spring Hill, Hollywood, Sweetwater, and North Miami Beach
+  Optical uses the existing vision insurance crosswalk and returns
+  `routing: "optical_only"`.
+- North Miami Beach Optical is routine-vision only and does not support medical
+  scheduling.
 - `coverageType` defaults to medical. Send `"routine_vision"` only after the
   agent has confirmed an accepted vision plan.
 - Medical patients under 18 are routed through the office's pediatric routing
@@ -376,8 +381,8 @@ Availability rules:
    column; those slots include `sameStartBooked`, `sameStartCapacity`, and
    `requiresForce`. Hollywood and Sweetwater routine-vision columns double-book
    only for start times 8:30-10:45 AM and 1:30-2:30 PM Monday-Thursday, and
-   8:30-11:45 AM on Friday. Spring Hill routine vision and Crystal River remain
-   single-booked.
+   8:30-11:45 AM on Friday. Spring Hill routine vision, North Miami Beach
+   Optical, and Crystal River remain single-booked.
 
 Response:
 

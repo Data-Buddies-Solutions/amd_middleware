@@ -388,6 +388,9 @@ func (o *OfficeConfig) AllowsAppointmentType(typeID int, routing RoutingRule) bo
 	if routing == RoutingOpticalOnly {
 		return len(o.RoutingTiers[RoutingOpticalOnly]) > 0 && opticalAppointmentTypes[typeID]
 	}
+	if len(o.ColumnsForRouting(routing)) == 0 {
+		return false
+	}
 	if o.ID == "crystal_river" {
 		return crystalRiverAppointmentTypes[typeID]
 	}
@@ -540,6 +543,20 @@ var hollywoodOffice = &OfficeConfig{
 	PediatricRouting: RoutingBachOnly,
 }
 
+var northMiamiBeachOpticalOffice = &OfficeConfig{
+	ID:               "north_miami_beach_optical",
+	DisplayName:      "North Miami Beach Optical",
+	FacilityID:       "1582",
+	DefaultProfileID: "621",
+	Columns: map[string]OfficeColumn{
+		"1601": {ProfileID: "621", DisplayName: "Brightview", ShortName: "Brightview", MatchKey: "BACH"},
+	},
+	RoutingTiers: map[RoutingRule][]string{
+		RoutingOpticalOnly: {"1601"},
+	},
+	PediatricRouting: RoutingNotAccepted,
+}
+
 var devSpringHillOffice = &OfficeConfig{
 	ID:               "spring_hill",
 	DisplayName:      "Spring Hill",
@@ -571,6 +588,7 @@ var prodOffices = map[string]*OfficeConfig{
 	"+17864657479": sweetwaterOffice,
 	"+17864654836": sweetwaterOffice,
 	"+17864654882": sweetwaterOffice,
+	"+13055095333": northMiamiBeachOpticalOffice,
 }
 
 // devOffices contains office configs keyed by SIP trunk phone number (E.164).

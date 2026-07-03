@@ -229,6 +229,13 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	if insuranceMode == domain.InsuranceModeMedical && !officeSupportsMedical(office) {
+		json.NewEncoder(w).Encode(AddPatientResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Medical coverage is not supported at %s. Use routine vision coverage for this office or route medical visits to a medical office.", office.DisplayName),
+		})
+		return
+	}
 
 	// Normalize inputs
 	normalizedDOB := domain.NormalizeDOB(req.DOB)
@@ -1378,6 +1385,12 @@ func officeSupportsRouting(office *domain.OfficeConfig, routing domain.RoutingRu
 	return len(office.ColumnsForRouting(routing)) > 0
 }
 
+func officeSupportsMedical(office *domain.OfficeConfig) bool {
+	return officeSupportsRouting(office, domain.RoutingAll) ||
+		officeSupportsRouting(office, domain.RoutingBachOnly) ||
+		officeSupportsRouting(office, domain.RoutingBachLicht)
+}
+
 func sameStartCapacityForColumnID(office *domain.OfficeConfig, columnID string) int {
 	if office == nil {
 		return defaultSameStartCapacity
@@ -1970,6 +1983,13 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
 			Status:  "error",
 			Message: fmt.Sprintf("Routine vision coverage is not supported at %s. Route the patient to Spring Hill routine vision scheduling.", office.DisplayName),
+		})
+		return
+	}
+	if insuranceMode == domain.InsuranceModeMedical && !officeSupportsMedical(office) {
+		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Medical coverage is not supported at %s. Use routine vision coverage for this office or route medical visits to a medical office.", office.DisplayName),
 		})
 		return
 	}

@@ -8,6 +8,10 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 	if !ok {
 		t.Fatal("Crystal River office not found")
 	}
+	northMiamiBeachOptical, ok := LookupOffice("North Miami Beach Optical")
+	if !ok {
+		t.Fatal("North Miami Beach Optical office not found")
+	}
 
 	tests := []struct {
 		name    string
@@ -168,6 +172,17 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			wantID: 3364,
 		},
 		{
+			name:    "routine vision at North Miami Beach Optical",
+			office:  northMiamiBeachOptical,
+			routing: RoutingOpticalOnly,
+			intent: AppointmentIntent{
+				VisitCategory: AppointmentVisitRoutineVision,
+				PatientStatus: AppointmentPatientEstablished,
+				AgeBand:       AppointmentAgeAdult,
+			},
+			wantID: 3364,
+		},
+		{
 			name:    "requires status and DOB for non-Crystal River medical",
 			office:  springHill,
 			routing: RoutingAll,
@@ -175,6 +190,17 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 				VisitCategory: AppointmentVisitMedical,
 			},
 			missing: []string{"patientStatus", "dob"},
+		},
+		{
+			name:    "North Miami Beach Optical has no medical lane",
+			office:  northMiamiBeachOptical,
+			routing: RoutingAll,
+			intent: AppointmentIntent{
+				VisitCategory: AppointmentVisitMedical,
+				PatientStatus: AppointmentPatientEstablished,
+				AgeBand:       AppointmentAgeAdult,
+			},
+			missing: []string{"routing"},
 		},
 		{
 			name:    "requires routing to Spring Hill for Crystal River routine vision",
