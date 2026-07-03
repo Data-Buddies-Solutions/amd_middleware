@@ -34,6 +34,7 @@ If `office` is empty, prod defaults to Spring Hill.
 | `+17864657479` | Sweetwater | `670` | `620` |
 | `+17864654836` | Sweetwater | `670` | `620` |
 | `+17864654882` | Sweetwater | `670` | `620` |
+| `+13055095333` | North Miami Beach Optical | `1582` | `621` |
 
 ## Current Scheduler Configuration
 
@@ -101,6 +102,19 @@ Routing:
 - `bach_licht`: `682`, `1307`
 - `all_three`: `682`, `1307`
 - `optical_only`: `1296`, `1554`, `1210`
+
+### North Miami Beach Optical
+
+| Lane | Column | Profile | Provider | Minimum age |
+| --- | ---: | ---: | --- | ---: |
+| Routine vision | `1601` | `621` | Brightview | 0 |
+
+Routing:
+
+- `optical_only`: `1601`
+
+North Miami Beach Optical is routine-vision only. It does not have a medical
+lane in middleware.
 
 ## Dev Registry
 

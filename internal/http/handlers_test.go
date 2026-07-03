@@ -676,6 +676,39 @@ func TestHandleAddPatient_RoutineVisionRequiresOpticalOffice(t *testing.T) {
 	}
 }
 
+func TestHandleAddPatient_RoutineOnlyOfficeRejectsMedical(t *testing.T) {
+	handlers := &Handlers{}
+	req := httptest.NewRequest("POST", "/api/add-patient", bytes.NewBufferString(`{
+		"firstName":"Jane",
+		"lastName":"Doe",
+		"dob":"01/01/1980",
+		"phone":"5551234567",
+		"street":"123 Main St",
+		"city":"North Miami Beach",
+		"state":"FL",
+		"zip":"33162",
+		"sex":"female",
+		"insurance":"Aetna",
+		"subscriberName":"Jane Doe",
+		"subscriberNum":"ABC123",
+		"office":"+13055095333"
+	}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handlers.HandleAddPatient(w, req)
+
+	var body AddPatientResponse
+	json.NewDecoder(w.Result().Body).Decode(&body)
+	if body.Status != "error" {
+		t.Fatalf("expected status error, got %q", body.Status)
+	}
+	expected := "Medical coverage is not supported at North Miami Beach Optical. Use routine vision coverage for this office or route medical visits to a medical office."
+	if body.Message != expected {
+		t.Fatalf("expected message %q, got %q", expected, body.Message)
+	}
+}
+
 func TestAuthMiddleware(t *testing.T) {
 	apiSecret := "test-secret-123"
 	middleware := AuthMiddleware(apiSecret)
@@ -2493,6 +2526,11 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 			expectedMsg: "Routine vision coverage is not supported at Crystal River. Route the patient to Spring Hill routine vision scheduling.",
 		},
 		{
+			name:        "routine-only office rejects medical coverage",
+			body:        `{"patientId":"pat123","insurance":"Aetna","subscriberNum":"ABC123","office":"+13055095333"}`,
+			expectedMsg: "Medical coverage is not supported at North Miami Beach Optical. Use routine vision coverage for this office or route medical visits to a medical office.",
+		},
+		{
 			name:        "invalid DOB",
 			body:        `{"patientId":"pat123","insurance":"Aetna","subscriberNum":"ABC123","dob":"not-a-date"}`,
 			expectedMsg: "dob must be a valid date",
@@ -2539,6 +2577,13 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insurance":"Sunshine Health","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-16, 0, 0).Format("01/02/2006")),
 			wantRouting:      string(domain.RoutingOpticalOnly),
 			wantProviders:    []string{"Dr. Farnan", "Dr. Vidal", "Dr. Calero"},
+			wantXMLRPCWrites: 1,
+		},
+		{
+			name:             "north miami beach optical routine vision",
+			body:             `{"patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13055095333"}`,
+			wantRouting:      string(domain.RoutingOpticalOnly),
+			wantProviders:    []string{"Brightview"},
 			wantXMLRPCWrites: 1,
 		},
 		{

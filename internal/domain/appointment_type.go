@@ -1,6 +1,9 @@
 package domain
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 const (
 	AppointmentVisitMedical       = "medical"
@@ -55,8 +58,8 @@ func ResolveAppointmentTypeForIntent(office *OfficeConfig, routing RoutingRule, 
 	}
 
 	if category == AppointmentVisitRoutineVision {
-		if office.ID == "crystal_river" {
-			return unresolvedAppointmentType([]string{"routeToSpringHill"}, "Routine vision scheduling is not supported at Crystal River. Route the visit to Spring Hill before booking.")
+		if len(office.ColumnsForRouting(RoutingOpticalOnly)) == 0 {
+			return unresolvedAppointmentType([]string{"routeToSpringHill"}, fmt.Sprintf("Routine vision scheduling is not supported at %s. Route the visit to Spring Hill before booking.", office.DisplayName))
 		}
 
 		missing := missingAppointmentTypeFacts(status, ageBand)
@@ -74,6 +77,10 @@ func ResolveAppointmentTypeForIntent(office *OfficeConfig, routing RoutingRule, 
 			return resolvedAppointmentType(4245)
 		}
 		return resolvedAppointmentType(3364)
+	}
+
+	if len(office.ColumnsForRouting(routing)) == 0 {
+		return unresolvedAppointmentType([]string{"routing"}, fmt.Sprintf("Medical scheduling is not supported at %s.", office.DisplayName))
 	}
 
 	if office.ID == "crystal_river" {

@@ -89,10 +89,11 @@ crosswalk. `coverageType` controls the crosswalk:
 - omitted or `"medical"`: medical insurance map
 - `"routine_vision"`: vision insurance map
 
-The routine-vision map is currently used for Spring Hill, Hollywood, and
-Sweetwater routine-vision flows. Hollywood and Sweetwater medical requests use
-the 5/4/2026 Abita Eye Group list's A.Bach medical column and route accepted
-medical plans to `bach_only`.
+The routine-vision map is currently used for Spring Hill, Hollywood, Sweetwater,
+and North Miami Beach Optical routine-vision flows. Hollywood and Sweetwater
+medical requests use the 5/4/2026 Abita Eye Group list's A.Bach medical column
+and route accepted medical plans to `bach_only`. North Miami Beach Optical is
+routine-vision only.
 
 ### `getdemographic`
 
@@ -231,6 +232,7 @@ that patient.
 | Crystal River | `1576` | `1593` | none |
 | Hollywood | `1480` | `1268`, `1478` | `1555`, `1510`, `1305` |
 | Sweetwater | `670` | `682`, `1307` | `1296`, `1554`, `1210` |
+| North Miami Beach Optical | `1582` | none | `1601` |
 
 ## Availability Logic
 
@@ -254,8 +256,8 @@ Candidate slots are filtered in this order:
    configured slots return `sameStartBooked`, `sameStartCapacity`, and
    `requiresForce`. Hollywood and Sweetwater routine-vision columns double-book
    only for start times 8:30-10:45 AM and 1:30-2:30 PM Monday-Thursday, and
-   8:30-11:45 AM on Friday. Spring Hill routine vision and Crystal River remain
-   single-booked.
+   8:30-11:45 AM on Friday. Spring Hill routine vision, North Miami Beach
+   Optical, and Crystal River remain single-booked.
 
 The response includes at most five displayed slots per provider, while
 `totalAvailable` reports the full count.
