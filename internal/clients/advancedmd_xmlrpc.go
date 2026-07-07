@@ -219,6 +219,7 @@ type AddPatientParams struct {
 	State     string
 	Zip       string
 	Sex       string
+	SSN       string
 	ProfileID string // Provider profile ID for the office (e.g., "620")
 }
 
@@ -248,7 +249,7 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.Tok
 					"@relationship":      "1",
 					"@hipaarelationship": "18",
 					"@dob":               params.DOB,
-					"@ssn":               "",
+					"@ssn":               strings.TrimSpace(params.SSN),
 					"@chart":             "AUTO",
 					"@profile":           profileID,
 					"address": map[string]interface{}{

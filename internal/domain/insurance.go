@@ -550,7 +550,11 @@ var VisionInsuranceAliases = map[string]string{
 	"united vision":      "spectera",
 
 	// iCare
+	"eye care":            "icare",
+	"eye care health":     "icare",
+	"eye care solutions":  "icare",
 	"humana gold plus":    "icare",
+	"i care":              "icare",
 	"simply medicare":     "icare",
 	"simply medicaid":     "icare",
 	"simply medcaid":      "icare",

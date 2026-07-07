@@ -605,7 +605,7 @@ func TestHandlePatientResolve_AppointmentFailureStillVerifies(t *testing.T) {
 	}
 }
 
-func TestAddPatientMissingFields_EmailOptional(t *testing.T) {
+func TestAddPatientMissingFields_EmailAndSSNOptional(t *testing.T) {
 	baseReq := AddPatientRequest{
 		FirstName:      "Jane",
 		LastName:       "Doe",

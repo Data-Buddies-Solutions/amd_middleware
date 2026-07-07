@@ -117,6 +117,7 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 				VisitCategory: AppointmentVisitRoutineVision,
 				PatientStatus: AppointmentPatientNew,
 				AgeBand:       AppointmentAgePediatric,
+				DOB:           "01/01/2018",
 			},
 			wantID: 4244,
 		},
@@ -128,6 +129,7 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 				VisitCategory: AppointmentVisitRoutineVision,
 				PatientStatus: AppointmentPatientEstablished,
 				AgeBand:       AppointmentAgePediatric,
+				DOB:           "01/01/2018",
 			},
 			wantID: 4245,
 		},
@@ -228,6 +230,25 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 				t.Fatal("AppointmentTypeName should be set for resolved types")
 			}
 		})
+	}
+}
+
+func TestResolveAppointmentTypeForIntent_SpringHillUnderSevenRoutineVision(t *testing.T) {
+	got := ResolveAppointmentTypeForIntent(DefaultOffice(), RoutingOpticalOnly, AppointmentIntent{
+		VisitCategory: AppointmentVisitRoutineVision,
+		PatientStatus: AppointmentPatientNew,
+		AgeBand:       AppointmentAgePediatric,
+		DOB:           "01/01/2021",
+	})
+
+	if got.AppointmentTypeID != 0 {
+		t.Fatalf("AppointmentTypeID = %d, want unresolved", got.AppointmentTypeID)
+	}
+	if got.Message != "Spring Hill does not schedule routine vision for children under 7. Treat the visit as medical and schedule with Dr. Bach on the Spring Hill medical lane." {
+		t.Fatalf("Message = %q", got.Message)
+	}
+	if len(got.Missing) != 1 || got.Missing[0] != "appointmentLane" {
+		t.Fatalf("Missing = %v, want appointmentLane", got.Missing)
 	}
 }
 

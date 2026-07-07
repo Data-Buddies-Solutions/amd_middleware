@@ -66,6 +66,15 @@ func ResolveAppointmentTypeForIntent(office *OfficeConfig, routing RoutingRule, 
 		if len(missing) > 0 {
 			return unresolvedAppointmentType(missing, appointmentTypeMissingFactsMessage(missing))
 		}
+		if office.ID == "spring_hill" && ageBand == AppointmentAgePediatric {
+			age, ok := AgeYears(intent.DOB)
+			if !ok {
+				return unresolvedAppointmentType([]string{"dob"}, "Patient DOB is required before scheduling pediatric routine vision at Spring Hill.")
+			}
+			if age < 7 {
+				return unresolvedAppointmentType([]string{"appointmentLane"}, "Spring Hill does not schedule routine vision for children under 7. Treat the visit as medical and schedule with Dr. Bach on the Spring Hill medical lane.")
+			}
+		}
 
 		if status == AppointmentPatientNew {
 			if ageBand == AppointmentAgePediatric {
