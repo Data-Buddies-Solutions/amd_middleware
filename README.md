@@ -192,7 +192,7 @@ Routing values:
 Current state:
 
 - Spring Hill and Crystal River use the existing medical insurance map.
-- Hollywood and Sweetwater use the Abita Eye Group 5/4/2026 medical insurance
+- Hollywood and Sweetwater use the Abita Eye Group 7/7/2026 medical insurance
   list's A.Bach column. Accepted medical plans route to `bach_only` and map to
   the existing AMD network carrier IDs.
 - Routine vision for Spring Hill, Hollywood, Sweetwater, and North Miami Beach

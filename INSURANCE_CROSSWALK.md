@@ -215,7 +215,7 @@ For existing-patient demographics at Crystal River, these carrier IDs are reject
 ## Hollywood and Sweetwater Medical Overrides
 
 Hollywood and Sweetwater medical routing uses the Abita Eye Group Insurance List
-dated 5/4/2026 and the `A.Bach` column only. Accepted medical plans route to
+dated 7/7/2026 and the `A.Bach` column only. Accepted medical plans route to
 `bach_only` because those offices only expose Dr. Austin Bach medical columns.
 The override preserves Spring Hill and Crystal River behavior and maps accepted
 plans to the existing network carrier IDs such as Aetna `car40887`, iCare

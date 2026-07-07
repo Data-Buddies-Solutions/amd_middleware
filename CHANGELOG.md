@@ -76,7 +76,7 @@
   treating the window as exhausted no-availability.
 - Added Hollywood and Sweetwater office configs, phone mappings, scheduler
   columns, routine-vision lanes, and provider age rules.
-- Added Hollywood and Sweetwater medical insurance routing from the 5/4/2026
+- Added Hollywood and Sweetwater medical insurance routing from the 7/7/2026
   Abita list's A.Bach column, mapping accepted plans to existing network carrier
   IDs and routing them through `bach_only`.
 - Added office lookup support for E.164, 11-digit US, 10-digit US, formatted
