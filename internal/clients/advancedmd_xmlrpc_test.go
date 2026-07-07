@@ -232,9 +232,18 @@ func TestAdvancedMDClient_LookupPatient_MalformedResponse(t *testing.T) {
 
 func TestAdvancedMDClient_AddPatient(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		patient := payload["ppmdmsg"].(map[string]interface{})["patientlist"].(map[string]interface{})["patient"].(map[string]interface{})
+		if patient["@ssn"] != "1234" {
+			t.Fatalf("patient @ssn = %q, want 1234", patient["@ssn"])
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{
-			"PPMDResults": {
+				"PPMDResults": {
 				"Results": {
 					"patientlist": {
 						"patient": {
@@ -262,6 +271,7 @@ func TestAdvancedMDClient_AddPatient(t *testing.T) {
 		State:     "FL",
 		Zip:       "33333",
 		Sex:       "F",
+		SSN:       " 1234 ",
 	})
 	if err != nil {
 		t.Fatalf("AddPatient failed: %v", err)

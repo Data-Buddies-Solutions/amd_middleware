@@ -164,6 +164,7 @@ type AddPatientRequest struct {
 	State          string `json:"state"`
 	Zip            string `json:"zip"`
 	Sex            string `json:"sex"`
+	SSN            string `json:"ssn,omitempty"`
 	Insurance      string `json:"insurance"`
 	CoverageType   string `json:"coverageType,omitempty"`
 	SubscriberName string `json:"subscriberName"`
@@ -268,6 +269,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		State:     strings.ToUpper(req.State),
 		Zip:       req.Zip,
 		Sex:       normalizedSex,
+		SSN:       strings.TrimSpace(req.SSN),
 		ProfileID: office.DefaultProfileID,
 	})
 	if err != nil {
