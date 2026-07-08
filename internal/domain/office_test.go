@@ -156,9 +156,9 @@ func TestOfficeConfig_ProviderDisplayName(t *testing.T) {
 		want      string
 	}{
 		{"620", "Dr. Austin Bach"},
-		{"2064", "Dr. J. Licht"},
-		{"2076", "Dr. D. Noel"},
-		{"1983", "Routine Vision - Dr. Melissa Otero"},
+		{"2064", "Dr. Joseph Licht"},
+		{"2076", "Dr. Noel"},
+		{"1983", "Dr. Melissa Otero"},
 		{"9999", ""},
 	}
 
@@ -166,9 +166,9 @@ func TestOfficeConfig_ProviderDisplayName(t *testing.T) {
 		t.Run(tt.profileID, func(t *testing.T) {
 			got := office.ProviderDisplayName(tt.profileID)
 			if tt.profileID == "620" {
-				// Profile 620 maps to both Bach and Bach Overflow columns; accept either.
-				if got != "Dr. Austin Bach" && got != "Dr. Austin Bach (Overflow)" {
-					t.Errorf("ProviderDisplayName(%q) = %q, want Dr. Austin Bach or Dr. Austin Bach (Overflow)", tt.profileID, got)
+				// Profile 620 maps to both Bach columns.
+				if got != "Dr. Austin Bach" {
+					t.Errorf("ProviderDisplayName(%q) = %q, want Dr. Austin Bach", tt.profileID, got)
 				}
 			} else if got != tt.want {
 				t.Errorf("ProviderDisplayName(%q) = %q, want %q", tt.profileID, got, tt.want)
@@ -184,10 +184,10 @@ func TestOfficeConfig_FriendlyProviderName(t *testing.T) {
 		input string
 		want  []string
 	}{
-		{"BACH, AUSTIN", []string{"Dr. Austin Bach", "Dr. Austin Bach (Overflow)"}},
-		{"LICHT, JONATHAN", []string{"Dr. J. Licht"}},
-		{"NOEL, DON HERSHELSON", []string{"Dr. D. Noel"}},
-		{"OTERO, MELISSA", []string{"Routine Vision - Dr. Melissa Otero"}},
+		{"BACH, AUSTIN", []string{"Dr. Austin Bach"}},
+		{"LICHT, JONATHAN", []string{"Dr. Joseph Licht"}},
+		{"NOEL, DON HERSHELSON", []string{"Dr. Noel"}},
+		{"OTERO, MELISSA", []string{"Dr. Melissa Otero"}},
 		{"UNKNOWN", []string{"UNKNOWN"}},
 		{"", []string{""}},
 	}
@@ -355,14 +355,14 @@ func TestOfficeConfig_NorthMiamiBeachOpticalColumn(t *testing.T) {
 		t.Fatalf("optical routing columns = %v, want only 1601", optical)
 	}
 	col := office.Columns["1601"]
-	if col.ProfileID != "621" || col.DisplayName != "Brightview" || col.SameStartCapacity != 0 {
-		t.Fatalf("column 1601 = %+v, want Brightview profile 621 single-booked", col)
+	if col.ProfileID != "621" || col.DisplayName != "Dr. Miriam Bach" || col.SameStartCapacity != 0 {
+		t.Fatalf("column 1601 = %+v, want Dr. Miriam Bach profile 621 single-booked", col)
 	}
-	if got := office.ProviderDisplayName("621"); got != "Brightview" {
-		t.Fatalf("ProviderDisplayName(621) = %q, want Brightview", got)
+	if got := office.ProviderDisplayName("621"); got != "Dr. Miriam Bach" {
+		t.Fatalf("ProviderDisplayName(621) = %q, want Dr. Miriam Bach", got)
 	}
-	if got := office.FriendlyProviderName("BACH, MIRIAM"); got != "Brightview" {
-		t.Fatalf("FriendlyProviderName(BACH, MIRIAM) = %q, want Brightview", got)
+	if got := office.FriendlyProviderName("BACH, MIRIAM"); got != "Dr. Miriam Bach" {
+		t.Fatalf("FriendlyProviderName(BACH, MIRIAM) = %q, want Dr. Miriam Bach", got)
 	}
 }
 
@@ -575,7 +575,7 @@ func TestInitRegistry(t *testing.T) {
 		t.Error("prod registry should have column 1513 (Bach)")
 	}
 	if !office.IsAllowedColumn("1600") {
-		t.Error("prod registry should have column 1600 (Routine Vision)")
+		t.Error("prod registry should have column 1600 (Dr. Melissa Otero)")
 	}
 	if office.IsAllowedColumn("1716") {
 		t.Error("prod registry should NOT have dev column 1716")

@@ -1383,6 +1383,24 @@ func filterColumnsForDOB(columns []domain.SchedulerColumn, office *domain.Office
 	return filtered
 }
 
+func columnMatchesProvider(office *domain.OfficeConfig, col domain.SchedulerColumn, profile domain.SchedulerProfile, requestedProvider string) bool {
+	needle := strings.ToUpper(domain.NormalizeForLookup(requestedProvider))
+	if needle == "" {
+		return true
+	}
+
+	candidates := []string{profile.Name, col.Name}
+	if officeCol, ok := office.Columns[col.ID]; ok {
+		candidates = append(candidates, officeCol.DisplayName, officeCol.ShortName)
+	}
+	for _, candidate := range candidates {
+		if strings.Contains(strings.ToUpper(domain.NormalizeForLookup(candidate)), needle) {
+			return true
+		}
+	}
+	return false
+}
+
 func officeSupportsRouting(office *domain.OfficeConfig, routing domain.RoutingRule) bool {
 	return len(office.ColumnsForRouting(routing)) > 0
 }
@@ -1561,12 +1579,7 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 		}
 		if req.Provider != "" {
 			profile, ok := profileMap[col.ProfileID]
-			if !ok {
-				continue
-			}
-			normalizedProvider := strings.ToUpper(domain.NormalizeForLookup(req.Provider))
-			if !strings.Contains(strings.ToUpper(domain.NormalizeForLookup(profile.Name)), normalizedProvider) &&
-				!strings.Contains(strings.ToUpper(domain.NormalizeForLookup(col.Name)), normalizedProvider) {
+			if !ok || !columnMatchesProvider(office, col, profile, req.Provider) {
 				continue
 			}
 		}
