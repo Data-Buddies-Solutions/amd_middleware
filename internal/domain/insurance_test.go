@@ -430,7 +430,7 @@ func TestProvidersForRouting(t *testing.T) {
 		{"bach only", RoutingBachOnly, []string{"Dr. Bach"}},
 		{"bach+licht", RoutingBachLicht, []string{"Dr. Bach", "Dr. Licht"}},
 		{"all", RoutingAll, []string{"Dr. Bach", "Dr. Licht", "Dr. Noel"}},
-		{"optical only", RoutingOpticalOnly, []string{"Routine Vision"}},
+		{"optical only", RoutingOpticalOnly, []string{"Dr. Otero"}},
 	}
 
 	for _, tt := range tests {

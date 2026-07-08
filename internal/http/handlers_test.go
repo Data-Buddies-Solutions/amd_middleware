@@ -168,6 +168,23 @@ func TestFilterColumnsForDOB_RoutineAgeRules(t *testing.T) {
 	}
 }
 
+func TestColumnMatchesProvider_UsesConfiguredProviderName(t *testing.T) {
+	office, ok := domain.LookupOffice("+13055095333")
+	if !ok {
+		t.Fatal("expected North Miami Beach Optical office")
+	}
+
+	col := domain.SchedulerColumn{ID: "1601", Name: "BACH MIRIAM - NMB", ProfileID: "621"}
+	profile := domain.SchedulerProfile{ID: "621", Name: "BACH, MIRIAM"}
+
+	if !columnMatchesProvider(office, col, profile, "Miriam Bach") {
+		t.Fatal("expected configured display name to match provider filter")
+	}
+	if columnMatchesProvider(office, col, profile, "Brightview") {
+		t.Fatal("expected old Brightview alias not to match provider filter")
+	}
+}
+
 func TestHandleBookAppointment_RoutingGuard(t *testing.T) {
 	handlers := &Handlers{}
 
@@ -2180,8 +2197,8 @@ func TestFetchUpcomingAppointmentsLoadsNearbyOfficeGroup(t *testing.T) {
 	if crystal.OfficeID != "crystal_river" || crystal.Office != "Crystal River" {
 		t.Fatalf("crystal appointment office = %q/%q, want crystal_river/Crystal River", crystal.OfficeID, crystal.Office)
 	}
-	if crystal.Provider != "Dr. J. Licht" {
-		t.Fatalf("crystal provider = %q, want Dr. J. Licht", crystal.Provider)
+	if crystal.Provider != "Dr. Joseph Licht" {
+		t.Fatalf("crystal provider = %q, want Dr. Joseph Licht", crystal.Provider)
 	}
 
 	sawSpring := false
@@ -2254,8 +2271,8 @@ func TestFriendlyProviderName(t *testing.T) {
 		expected string
 	}{
 		{"BACH, AUSTIN", "Dr. Austin Bach"},
-		{"NOEL, DON HERSHELSON", "Dr. D. Noel"},
-		{"LICHT, JONATHAN", "Dr. J. Licht"},
+		{"NOEL, DON HERSHELSON", "Dr. Noel"},
+		{"LICHT, JONATHAN", "Dr. Joseph Licht"},
 		{"UNKNOWN PROVIDER", "UNKNOWN PROVIDER"},
 		{"", ""},
 	}
@@ -2583,7 +2600,7 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 			name:             "north miami beach optical routine vision",
 			body:             `{"patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13055095333"}`,
 			wantRouting:      string(domain.RoutingOpticalOnly),
-			wantProviders:    []string{"Brightview"},
+			wantProviders:    []string{"Dr. Miriam Bach"},
 			wantXMLRPCWrites: 1,
 		},
 		{

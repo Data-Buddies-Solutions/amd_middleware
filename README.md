@@ -153,14 +153,14 @@ requests infer office from the token and reject a conflicting explicit office.
 
 | Office | Lane | Columns |
 | --- | --- | --- |
-| Spring Hill | Medical | `1513` Dr. Bach, `1598` Dr. Bach Overflow, `1551` Dr. Licht, `1550` Dr. Noel |
-| Spring Hill | Routine vision | `1600` Routine Vision Dr. Melissa Otero |
-| Crystal River | Medical | `1593` Dr. Licht |
-| Hollywood | Medical | `1268` Dr. Bach, `1478` Dr. Bach HW Overflow |
+| Spring Hill | Medical | `1513` Dr. Bach, `1598` Dr. Bach, `1551` Dr. Joseph Licht, `1550` Dr. Noel |
+| Spring Hill | Routine vision | `1600` Dr. Melissa Otero |
+| Crystal River | Medical | `1593` Dr. Joseph Licht |
+| Hollywood | Medical | `1268` Dr. Bach, `1478` Dr. Bach |
 | Hollywood | Routine vision | `1555` Dr. Farnan, `1510` Dr. Vidal, `1305` Dr. Calero |
-| Sweetwater | Medical | `682` Dr. Bach, `1307` Dr. Bach Overflow |
+| Sweetwater | Medical | `682` Dr. Bach, `1307` Dr. Bach |
 | Sweetwater | Routine vision | `1296` Dr. Casas, `1554` Dr. Farnan, `1210` Dr. Calero |
-| North Miami Beach Optical | Routine vision | `1601` Brightview |
+| North Miami Beach Optical | Routine vision | `1601` Dr. Miriam Bach |
 
 ### Provider Age Rules
 
