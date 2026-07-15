@@ -2,6 +2,8 @@ package http
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -15,6 +17,8 @@ type contextKey string
 const (
 	// RequestIDKey is the context key for the request ID.
 	RequestIDKey contextKey = "requestID"
+	// LogRequestIDKey is the context key for the redacted request ID used in logs.
+	LogRequestIDKey contextKey = "logRequestID"
 )
 
 // AuthMiddleware validates the API secret in the Authorization header.
@@ -41,8 +45,13 @@ func AuthMiddleware(apiSecret string) func(http.Handler) http.Handler {
 func RequestIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID := r.Header.Get("X-Request-ID")
+		logRequestID := requestID
 		if requestID == "" {
 			requestID = uuid.New().String()
+			logRequestID = requestID
+		} else {
+			digest := sha256.Sum256([]byte(requestID))
+			logRequestID = fmt.Sprintf("external-%x", digest[:8])
 		}
 
 		// Add to response header
@@ -50,6 +59,7 @@ func RequestIDMiddleware(next http.Handler) http.Handler {
 
 		// Add to context
 		ctx := context.WithValue(r.Context(), RequestIDKey, requestID)
+		ctx = context.WithValue(ctx, LogRequestIDKey, logRequestID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -65,7 +75,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(wrapped, r)
 
 		duration := time.Since(start)
-		requestID := GetRequestID(r.Context())
+		requestID := GetLogRequestID(r.Context())
 
 		log.Printf("[%s] %s %s %d %v",
 			requestID,
@@ -95,6 +105,14 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 // GetRequestID retrieves the request ID from the context.
 func GetRequestID(ctx context.Context) string {
 	if id, ok := ctx.Value(RequestIDKey).(string); ok {
+		return id
+	}
+	return ""
+}
+
+// GetLogRequestID retrieves the redacted request ID from the context.
+func GetLogRequestID(ctx context.Context) string {
+	if id, ok := ctx.Value(LogRequestIDKey).(string); ok {
 		return id
 	}
 	return ""

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/safeerrors"
 )
 
 const (
@@ -105,7 +106,7 @@ func (tm *TokenManager) backgroundRefresh() {
 		case <-ticker.C:
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			if err := tm.refresh(ctx); err != nil {
-				log.Printf("Background token refresh failed: %v", err)
+				log.Printf("Background token refresh failed: category=%s", safeerrors.Classify(err))
 			}
 			cancel()
 		}

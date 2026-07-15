@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -619,6 +620,124 @@ func TestHandlePatientResolve_AppointmentFailureStillVerifies(t *testing.T) {
 	}
 	if body.AppointmentsMessage == "" {
 		t.Fatal("appointmentsMessage should explain the appointment lookup failure")
+	}
+	if strings.Contains(body.AppointmentsMessage, "status 500") {
+		t.Fatalf("appointmentsMessage exposed provider error: %q", body.AppointmentsMessage)
+	}
+}
+
+func TestPatientResolveLogsDoNotExposePatientIDOrProviderError(t *testing.T) {
+	handlers := newPatientResolveTestHandlers(t, http.StatusInternalServerError)
+
+	var logs bytes.Buffer
+	previousWriter := log.Writer()
+	log.SetOutput(&logs)
+	t.Cleanup(func() { log.SetOutput(previousWriter) })
+
+	req := httptest.NewRequest("POST", "/api/patient/resolve", strings.NewReader(`{"patientId":"17604634","office":"Spring Hill"}`))
+	w := httptest.NewRecorder()
+	handlers.HandlePatientResolve(w, req)
+
+	got := logs.String()
+	for _, forbidden := range []string{"17604634", "status 500", "appointment failure"} {
+		if strings.Contains(got, forbidden) {
+			t.Fatalf("logs exposed %q: %s", forbidden, got)
+		}
+	}
+	if !strings.Contains(got, "patient-resolve: failed to get appointments category=upstream_status") {
+		t.Fatalf("logs missing safe operation and category: %s", got)
+	}
+}
+
+func TestProviderFailuresAreRedactedFromResponsesAndLogs(t *testing.T) {
+	const sensitive = "patientId=17604634 token=secret-token provider-body=<private>"
+
+	t.Run("add patient", func(t *testing.T) {
+		handlers := newProviderFailureTestHandlers(t, func(r *http.Request, body []byte) *providerFailure {
+			if !strings.Contains(string(body), `"@action":"addpatient"`) {
+				return nil
+			}
+			return &providerFailure{status: http.StatusOK, body: fmt.Sprintf(`{"PPMDResults":{"Error":%q}}`, sensitive)}
+		})
+		req := httptest.NewRequest(http.MethodPost, "/api/add-patient", strings.NewReader(`{
+			"firstName":"Jane","lastName":"Doe","dob":"01/15/1980","phone":"9542872010",
+			"street":"123 Main St","city":"Spring Hill","state":"FL","zip":"34609","sex":"female",
+			"insurance":"Humana Medicare","subscriberName":"Jane Doe","subscriberNum":"H123","office":"Spring Hill"
+		}`))
+		w := httptest.NewRecorder()
+		logs := captureLogs(func() { handlers.HandleAddPatient(w, req) })
+		assertRedacted(t, w.Body.String(), logs, sensitive)
+	})
+
+	t.Run("book appointment", func(t *testing.T) {
+		handlers := newProviderFailureTestHandlers(t, func(r *http.Request, _ []byte) *providerFailure {
+			if r.Method != http.MethodPost || !strings.Contains(r.URL.Path, "/scheduler/Appointments") {
+				return nil
+			}
+			return &providerFailure{status: http.StatusInternalServerError, body: sensitive}
+		})
+		now := time.Now().UTC()
+		token, err := signBookingToken("test-booking-secret", bookingTokenPayload{
+			OfficeID: "spring_hill", Routing: string(domain.RoutingAll), ColumnID: 1513, ProfileID: 620,
+			StartDatetime: "2026-08-01T09:00", Duration: 15, IssuedAt: now.Unix(), ExpiresAt: now.Add(bookingTokenTTL).Unix(),
+		})
+		if err != nil {
+			t.Fatalf("sign booking token: %v", err)
+		}
+		body := fmt.Sprintf(`{"patientId":"17604634","bookingToken":%q,"appointmentTypeId":1007}`, token)
+		req := httptest.NewRequest(http.MethodPost, "/api/appointment/book", strings.NewReader(body))
+		w := httptest.NewRecorder()
+		logs := captureLogs(func() { handlers.HandleBookAppointment(w, req) })
+		assertRedacted(t, w.Body.String(), logs, sensitive, "unexpected status 500")
+	})
+
+	t.Run("cancel appointment", func(t *testing.T) {
+		handlers, _ := newCancelAppointmentTestHandlers(t, 17604634, 33333, http.StatusInternalServerError)
+		req := httptest.NewRequest(http.MethodPost, "/api/appointment/cancel", strings.NewReader(`{
+			"patientId":"17604634","appointmentId":33333,"office":"Spring Hill"
+		}`))
+		w := httptest.NewRecorder()
+		logs := captureLogs(func() { handlers.HandleCancelAppointment(w, req) })
+		assertRedacted(t, w.Body.String(), logs, sensitive, "unexpected status 500")
+	})
+
+	t.Run("update insurance", func(t *testing.T) {
+		handlers := newProviderFailureTestHandlers(t, func(r *http.Request, body []byte) *providerFailure {
+			if !strings.Contains(string(body), `"@action":"addinsurance"`) {
+				return nil
+			}
+			return &providerFailure{status: http.StatusOK, body: fmt.Sprintf(`{"PPMDResults":{"Error":%q}}`, sensitive)}
+		})
+		req := httptest.NewRequest(http.MethodPost, "/api/patient/update-insurance", strings.NewReader(`{
+			"patientId":"17604634","insurance":"Humana Medicare","subscriberNum":"H123","office":"Spring Hill"
+		}`))
+		w := httptest.NewRecorder()
+		logs := captureLogs(func() { handlers.HandleUpdateInsurance(w, req) })
+		assertRedacted(t, w.Body.String(), logs, sensitive)
+	})
+}
+
+func captureLogs(run func()) string {
+	var logs bytes.Buffer
+	previousWriter := log.Writer()
+	log.SetOutput(&logs)
+	defer log.SetOutput(previousWriter)
+	run()
+	return logs.String()
+}
+
+func assertRedacted(t *testing.T, response, logs string, forbidden ...string) {
+	t.Helper()
+	for _, value := range forbidden {
+		if strings.Contains(response, value) {
+			t.Fatalf("response exposed %q: %s", value, response)
+		}
+		if strings.Contains(logs, value) {
+			t.Fatalf("logs exposed %q: %s", value, logs)
+		}
+	}
+	if !strings.Contains(logs, "category=") {
+		t.Fatalf("logs missing safe error category: %s", logs)
 	}
 }
 
@@ -2215,7 +2334,7 @@ func TestFetchUpcomingAppointmentsLoadsNearbyOfficeGroup(t *testing.T) {
 }
 
 func TestHandleCancelAppointment_ValidatesPatientAppointmentBeforeCancel(t *testing.T) {
-	handlers, cancelRequests := newCancelAppointmentTestHandlers(t, 12345, 33333)
+	handlers, cancelRequests := newCancelAppointmentTestHandlers(t, 12345, 33333, http.StatusOK)
 
 	req := httptest.NewRequest("POST", "/api/appointment/cancel", strings.NewReader(`{"patientId":"pat12345","appointmentId":33333,"office":"Spring Hill"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -2239,7 +2358,7 @@ func TestHandleCancelAppointment_ValidatesPatientAppointmentBeforeCancel(t *test
 }
 
 func TestHandleCancelAppointment_RejectsPatientAppointmentMismatch(t *testing.T) {
-	handlers, cancelRequests := newCancelAppointmentTestHandlers(t, 12345, 33333)
+	handlers, cancelRequests := newCancelAppointmentTestHandlers(t, 12345, 33333, http.StatusOK)
 
 	req := httptest.NewRequest("POST", "/api/appointment/cancel", strings.NewReader(`{"patientId":"12345","appointmentId":44444,"office":"Spring Hill"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -2674,7 +2793,7 @@ func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 	return f(r)
 }
 
-func newCancelAppointmentTestHandlers(t *testing.T, patientID int, appointmentID int) (*Handlers, *int) {
+func newCancelAppointmentTestHandlers(t *testing.T, patientID int, appointmentID int, cancelStatus int) (*Handlers, *int) {
 	t.Helper()
 	future := time.Now().In(eastern).Add(48 * time.Hour)
 	futureMonth := time.Date(future.Year(), future.Month(), 1, 0, 0, 0, 0, eastern).Format("2006-01-02")
@@ -2709,7 +2828,8 @@ func newCancelAppointmentTestHandlers(t *testing.T, patientID int, appointmentID
 				}
 			case r.Method == http.MethodPut && strings.Contains(r.URL.Path, fmt.Sprintf("/scheduler/appointments/%d/cancel", appointmentID)):
 				cancelRequests++
-				response = `{}`
+				status = cancelStatus
+				response = `{"error":"patientId=17604634 token=secret-token provider-body=<private>"}`
 			default:
 				status = http.StatusInternalServerError
 				response = `{"error":"unexpected request"}`
@@ -2736,6 +2856,52 @@ func newCancelAppointmentTestHandlers(t *testing.T, patientID int, appointmentID
 		clients.NewAdvancedMDRestClient(httpClient),
 		"test-booking-secret",
 	), &cancelRequests
+}
+
+type providerFailure struct {
+	status int
+	body   string
+}
+
+func newProviderFailureTestHandlers(t *testing.T, fail func(*http.Request, []byte) *providerFailure) *Handlers {
+	t.Helper()
+	httpClient := &http.Client{
+		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			body, _ := io.ReadAll(r.Body)
+			contentType := r.Header.Get("Content-Type")
+
+			status := http.StatusOK
+			response := `{"PPMDResults":{"Results":{}}}`
+			switch {
+			case strings.Contains(contentType, "application/xml") && strings.Contains(r.URL.Host, "partnerlogin"):
+				response = `<PPMDResults><Results><usercontext webserver="https://mock.advancedmd.test/processrequest/api-801/APP"></usercontext></Results></PPMDResults>`
+			case strings.Contains(contentType, "application/xml"):
+				response = `<PPMDResults><Results success="1"><usercontext>test-token</usercontext></Results></PPMDResults>`
+			default:
+				if failure := fail(r, body); failure != nil {
+					status = failure.status
+					response = failure.body
+				}
+			}
+
+			return &http.Response{
+				StatusCode: status,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader(response)),
+				Request:    r,
+			}, nil
+		}),
+	}
+	authenticator := auth.NewAuthenticator(auth.Credentials{
+		Username: "user", Password: "pass", OfficeKey: "office", AppName: "app",
+	}, httpClient)
+
+	return NewHandlers(
+		auth.NewTokenManager(authenticator),
+		clients.NewAdvancedMDClient(httpClient),
+		clients.NewAdvancedMDRestClient(httpClient),
+		"test-booking-secret",
+	)
 }
 
 func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {
