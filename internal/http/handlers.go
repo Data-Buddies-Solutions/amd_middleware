@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"advancedmd-token-management/internal/auth"
@@ -36,10 +35,6 @@ type ErrorResponse struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
 }
-
-const maxAppointmentCommentLength = 1000
-const defaultSameStartCapacity = 1
-const schedulerSetupCacheTTL = 6 * time.Hour
 
 // PatientResolveRequest is the single patient-read request shape. It supports
 // pre-call phone lookup, verification by phone/name/DOB, and direct loading for
@@ -82,15 +77,10 @@ const (
 
 // Handlers holds the dependencies for HTTP handlers.
 type Handlers struct {
-	tokenManager        *auth.TokenManager
-	amdClient           *clients.AdvancedMDClient
-	amdRestClient       *clients.AdvancedMDRestClient
-	bookingTokenSecret  string
-	allowRawSlotBooking bool
-
-	schedulerSetupMu        sync.Mutex
-	schedulerSetup          *domain.SchedulerSetup
-	schedulerSetupExpiresAt time.Time
+	tokenManager       *auth.TokenManager
+	amdClient          *clients.AdvancedMDClient
+	amdRestClient      *clients.AdvancedMDRestClient
+	schedulingWorkflow *schedulingWorkflow
 }
 
 // NewHandlers creates a new Handlers instance.
@@ -99,17 +89,25 @@ func NewHandlers(tm *auth.TokenManager, amdClient *clients.AdvancedMDClient, amd
 	if len(bookingTokenSecret) > 0 {
 		secret = bookingTokenSecret[0]
 	}
-	return &Handlers{
-		tokenManager:       tm,
-		amdClient:          amdClient,
-		amdRestClient:      amdRestClient,
-		bookingTokenSecret: secret,
+	handlers := &Handlers{
+		tokenManager:  tm,
+		amdClient:     amdClient,
+		amdRestClient: amdRestClient,
 	}
+	handlers.schedulingWorkflow = newSchedulingWorkflow(tm, amdClient, amdRestClient, secret)
+	return handlers
 }
 
 // SetAllowRawSlotBooking enables the legacy raw scheduler field booking path.
 func (h *Handlers) SetAllowRawSlotBooking(allow bool) {
-	h.allowRawSlotBooking = allow
+	h.workflow().allowRawBooking = allow
+}
+
+func (h *Handlers) workflow() *schedulingWorkflow {
+	if h.schedulingWorkflow == nil {
+		h.schedulingWorkflow = newSchedulingWorkflow(h.tokenManager, h.amdClient, h.amdRestClient, "")
+	}
+	return h.schedulingWorkflow
 }
 
 // resolveOffice resolves an office name to its config.
@@ -133,16 +131,6 @@ func validateOptionalDOB(dob string) error {
 		return fmt.Errorf("dob must be a valid date")
 	}
 	return nil
-}
-
-func effectiveRoutingForDOB(office *domain.OfficeConfig, routing domain.RoutingRule, dob string) domain.RoutingRule {
-	if routing == domain.RoutingNotAccepted || routing == domain.RoutingOpticalOnly {
-		return routing
-	}
-	if domain.IsMinor(dob) {
-		return office.PediatricRouting
-	}
-	return routing
 }
 
 // HandleHealth returns a simple health check response.
@@ -206,6 +194,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	policy := domain.NewSchedulingPolicy(office)
 
 	insuranceMode := domain.InsuranceModeForCoverage(req.CoverageType)
 	if domain.IsSelfPayInsurance(req.Insurance) && strings.TrimSpace(req.SubscriberNum) == "" {
@@ -223,14 +212,14 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	if insuranceMode == domain.InsuranceModeVision && !officeSupportsRouting(office, domain.RoutingOpticalOnly) {
+	if insuranceMode == domain.InsuranceModeVision && !policy.SupportsRouting(domain.RoutingOpticalOnly) {
 		json.NewEncoder(w).Encode(AddPatientResponse{
 			Status:  "error",
 			Message: fmt.Sprintf("Routine vision coverage is not supported at %s. Route the patient to Spring Hill routine vision scheduling.", office.DisplayName),
 		})
 		return
 	}
-	if insuranceMode == domain.InsuranceModeMedical && !officeSupportsMedical(office) {
+	if insuranceMode == domain.InsuranceModeMedical && !policy.SupportsMedical() {
 		json.NewEncoder(w).Encode(AddPatientResponse{
 			Status:  "error",
 			Message: fmt.Sprintf("Medical coverage is not supported at %s. Use routine vision coverage for this office or route medical visits to a medical office.", office.DisplayName),
@@ -327,10 +316,9 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Pediatric override: under-18 patients → office pediatric routing
 	routing := insEntry.Routing
-	if insuranceMode == domain.InsuranceModeMedical && domain.IsMinor(normalizedDOB) && routing != domain.RoutingNotAccepted {
-		routing = office.PediatricRouting
+	if insuranceMode == domain.InsuranceModeMedical {
+		routing = policy.SchedulingRouting(routing, normalizedDOB)
 	}
 
 	json.NewEncoder(w).Encode(AddPatientResponse{
@@ -339,7 +327,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		Name:             patientName,
 		DOB:              normalizedDOB,
 		Routing:          string(routing),
-		AllowedProviders: office.ProvidersForRoutingAndDOB(routing, normalizedDOB),
+		AllowedProviders: policy.ProviderNames(routing, normalizedDOB),
 		PreauthRequired:  insEntry.PreauthRequired,
 		Message:          "Patient created and insurance attached successfully",
 	})
@@ -637,6 +625,7 @@ func (h *Handlers) buildResolvedPatientMatches(ctx context.Context, tokenData *d
 }
 
 func applyDemographicsToResolveResponse(resp *PatientResolveResponse, demoResult *clients.DemographicResult, office *domain.OfficeConfig, patientDOB string) {
+	policy := domain.NewSchedulingPolicy(office)
 	resp.InsuranceCarrier = demoResult.CarrierName
 	resp.InsPlanID = demoResult.InsPlanID
 	resp.RespPartyID = demoResult.RespPartyID
@@ -644,15 +633,13 @@ func applyDemographicsToResolveResponse(resp *PatientResolveResponse, demoResult
 	if demoResult.CarrierID != "" {
 		resp.InsuranceCarrierID = demoResult.CarrierID
 		routing, ambiguous := domain.RoutingForDemographicInsurance(demoResult.CarrierID, demoResult.CarrierName, office)
+		routing = policy.PatientRouting(routing, patientDOB)
 		resp.Routing = string(routing)
-		resp.AllowedProviders = office.ProvidersForRoutingAndDOB(routing, patientDOB)
+		resp.AllowedProviders = policy.ProviderNames(routing, patientDOB)
 		resp.RoutingAmbiguous = ambiguous
-	}
-
-	if domain.IsMinor(patientDOB) && resp.Routing != "" && resp.Routing != string(domain.RoutingNotAccepted) {
-		resp.Routing = string(office.PediatricRouting)
-		resp.AllowedProviders = office.ProvidersForRoutingAndDOB(office.PediatricRouting, patientDOB)
-		resp.RoutingAmbiguous = false
+		if domain.IsMinor(patientDOB) && routing != domain.RoutingNotAccepted {
+			resp.RoutingAmbiguous = false
+		}
 	}
 }
 
@@ -962,7 +949,8 @@ type BookAppointmentRequest struct {
 	AppointmentReason string `json:"appointmentReason,omitempty"`
 	ReferringDoctor   string `json:"referringDoctor,omitempty"`
 
-	bookingRequiresForce bool
+	bookingRequiresForce      bool
+	bookingAppointmentTypeIDs []int
 }
 
 // BookAppointmentResponse is returned after booking an appointment.
@@ -982,330 +970,27 @@ type BookAppointmentResponse struct {
 	Missing             []string `json:"missing,omitempty"`
 }
 
-func buildBookAppointmentReceipt(req BookAppointmentRequest, office *domain.OfficeConfig, appointmentID int) BookAppointmentResponse {
-	colIDStr := strconv.Itoa(req.ColumnID)
-	providerName := ""
-	if col, ok := office.Columns[colIDStr]; ok {
-		providerName = col.DisplayName
-	}
-	if providerName == "" {
-		providerName = office.ProviderDisplayName(strconv.Itoa(req.ProfileID))
-	}
-	appointmentTypeName, _ := office.AppointmentTypeName(req.AppointmentTypeID)
-
-	return BookAppointmentResponse{
-		Status:              "booked",
-		AppointmentID:       appointmentID,
-		PatientID:           req.PatientID,
-		PatientName:         normalizeBookingPatientName(req.PatientName),
-		ProviderName:        providerName,
-		LocationName:        office.DisplayName,
-		StartDatetime:       req.StartDatetime,
-		Duration:            req.Duration,
-		AppointmentTypeID:   req.AppointmentTypeID,
-		AppointmentTypeName: appointmentTypeName,
-		Message:             "Appointment booked successfully",
-	}
-}
-
-func normalizeBookingPatientName(name string) string {
-	name = strings.TrimSpace(name)
-	if name == "" {
-		return ""
-	}
-
-	if parts := strings.SplitN(name, ",", 2); len(parts) == 2 {
-		first := strings.TrimSpace(parts[1])
-		last := strings.TrimSpace(parts[0])
-		name = strings.TrimSpace(strings.Join([]string{first, last}, " "))
-	}
-
-	if name == strings.ToUpper(name) || name == strings.ToLower(name) {
-		return cases.Title(language.English).String(strings.ToLower(name))
-	}
-	return name
-}
-
-func buildBookingAppointmentComment(appointmentReason string, referringDoctor string) string {
-	appointmentReason = normalizeAppointmentCommentPart(appointmentReason)
-	referringDoctor = normalizeAppointmentCommentPart(referringDoctor)
-	if appointmentReason == "" && referringDoctor == "" {
-		return ""
-	}
-	if appointmentReason == "" {
-		appointmentReason = "none"
-	}
-	if referringDoctor == "" {
-		referringDoctor = "none"
-	}
-
-	lines := []string{
-		"Appointment reason: " + appointmentReason,
-		"Referring doctor: " + referringDoctor,
-		"- AI",
-	}
-
-	return strings.Join(lines, "\n")
-}
-
-func normalizeAppointmentCommentPart(value string) string {
-	return strings.TrimSpace(value)
-}
-
-// HandleBookAppointment books an appointment in AdvancedMD.
+// HandleBookAppointment books an appointment through the Scheduling Workflow.
 func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	var req BookAppointmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: "Invalid JSON body"})
+		return
+	}
+
+	response, workflowErr := h.workflow().Book(r.Context(), req, time.Now())
+	if workflowErr != nil {
 		json.NewEncoder(w).Encode(BookAppointmentResponse{
 			Status:  "error",
-			Message: "Invalid JSON body",
+			Outcome: workflowErr.outcome,
+			Message: workflowErr.message,
+			Missing: workflowErr.missing,
 		})
 		return
 	}
-
-	var office *domain.OfficeConfig
-	if req.Office != "" || req.BookingToken == "" {
-		var err error
-		office, err = resolveOffice(req.Office)
-		if err != nil {
-			json.NewEncoder(w).Encode(BookAppointmentResponse{
-				Status:  "error",
-				Message: err.Error(),
-			})
-			return
-		}
-	}
-	if req.BookingToken != "" {
-		tokenOffice, err := h.applyBookingToken(&req, office, time.Now().UTC())
-		if err != nil {
-			json.NewEncoder(w).Encode(BookAppointmentResponse{
-				Status:  "error",
-				Outcome: "invalid_booking_token",
-				Message: "Invalid or expired booking token. Please check availability again and choose a slot.",
-			})
-			return
-		}
-		office = tokenOffice
-	}
-
-	log.Printf("book-appointment: request office=%s routing=%q bookingToken=%t legacyRaw=%t typeId=%d",
-		office.ID, req.Routing, req.BookingToken != "", req.BookingToken == "", req.AppointmentTypeID)
-
-	// Validate required fields
-	if req.PatientID == "" {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: "patientId is required"})
-		return
-	}
-	if req.ColumnID == 0 {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: "columnId is required"})
-		return
-	}
-	if req.ProfileID == 0 {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: "profileId is required"})
-		return
-	}
-	if req.StartDatetime == "" {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: "startDatetime is required"})
-		return
-	}
-	if req.Duration == 0 {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: "duration is required"})
-		return
-	}
-	if err := validateOptionalDOB(req.DOB); err != nil {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: err.Error()})
-		return
-	}
-	appointmentComment := buildBookingAppointmentComment(req.AppointmentReason, req.ReferringDoctor)
-	if len([]rune(appointmentComment)) > maxAppointmentCommentLength {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("appointment comments must be %d characters or fewer", maxAppointmentCommentLength),
-		})
-		return
-	}
-
-	// Validate columnId is allowed for this office
-	colIDStr := strconv.Itoa(req.ColumnID)
-	if !office.IsAllowedColumn(colIDStr) {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("Column %d is not a valid provider column for %s", req.ColumnID, office.DisplayName),
-		})
-		return
-	}
-	column := office.Columns[colIDStr]
-	if column.ProfileID != strconv.Itoa(req.ProfileID) {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("Profile %d is not valid for column %d at %s", req.ProfileID, req.ColumnID, office.DisplayName),
-		})
-		return
-	}
-
-	// A Spring Hill routine-vision column is part of the office, but not part of
-	// normal medical routing. Require the same routing lane used for availability.
-	routingRule := domain.ParseRoutingRule(req.Routing)
-	routingRule = effectiveRoutingForDOB(office, routingRule, req.DOB)
-	if req.AppointmentTypeID == 0 {
-		resolution := domain.ResolveAppointmentTypeForIntent(office, routingRule, domain.AppointmentIntent{
-			VisitCategory: req.VisitCategory,
-			VisitKind:     req.VisitKind,
-			PatientStatus: req.PatientStatus,
-			AgeBand:       req.AgeBand,
-			DOB:           req.DOB,
-			IsPostOp:      req.IsPostOp,
-			VisitReason:   req.VisitReason,
-		})
-		if resolution.AppointmentTypeID == 0 {
-			message := resolution.Message
-			if message == "" {
-				message = "Could not resolve appointment type from booking intent."
-			}
-			json.NewEncoder(w).Encode(BookAppointmentResponse{
-				Status:  "error",
-				Outcome: "appointment_type_unresolved",
-				Message: message,
-				Missing: resolution.Missing,
-			})
-			return
-		}
-		req.AppointmentTypeID = resolution.AppointmentTypeID
-		log.Printf("book-appointment: resolved appointment type office=%s routing=%q typeId=%d typeName=%q",
-			office.ID, routingRule, resolution.AppointmentTypeID, resolution.AppointmentTypeName)
-	}
-	routingColumns := office.ColumnsForRouting(routingRule)
-	if routingColumns == nil {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("Cannot book appointment with routing %q at %s", routingRule, office.DisplayName),
-		})
-		return
-	}
-	if !routingColumns[colIDStr] {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("Column %d is not valid for routing %q at %s", req.ColumnID, routingRule, office.DisplayName),
-		})
-		return
-	}
-	// Resolve appointment type ID for current environment (prod IDs → env IDs)
-	envTypeID, ok := domain.ResolveAppointmentTypeID(req.AppointmentTypeID)
-	if !ok {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("Invalid appointment type ID: %d. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169", req.AppointmentTypeID),
-		})
-		return
-	}
-
-	// Resolve color from canonical (prod) type ID
-	color, ok := office.AppointmentColor(req.AppointmentTypeID)
-	if !ok {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("Invalid appointment type ID: %d", req.AppointmentTypeID),
-		})
-		return
-	}
-	if !office.AllowsAppointmentType(req.AppointmentTypeID, routingRule) {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Message: fmt.Sprintf("Appointment type %d is not valid for routing %q at %s", req.AppointmentTypeID, routingRule, office.DisplayName),
-		})
-		return
-	}
-	if !office.ColumnAllowsDOB(colIDStr, req.DOB) {
-		message := fmt.Sprintf("%s requires patient age %d or older", column.ShortName, column.MinAgeYears)
-		if req.DOB == "" {
-			message = fmt.Sprintf("%s requires patient DOB to verify age %d or older", column.ShortName, column.MinAgeYears)
-		}
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Message: message,
-		})
-		return
-	}
-
-	// Parse patient ID
-	patientIDInt, err := strconv.Atoi(req.PatientID)
-	if err != nil {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Message: "patientId must be numeric",
-		})
-		return
-	}
-	if req.BookingToken == "" && !h.allowRawSlotBooking {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Outcome: "booking_token_required",
-			Message: "bookingToken is required. Please check availability again and choose one of the returned slots.",
-		})
-		return
-	}
-
-	// Get auth token
-	tokenData, err := h.tokenManager.GetToken(r.Context())
-	if err != nil {
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Message: "Failed to get authentication token: " + err.Error(),
-		})
-		return
-	}
-
-	// Resolve facility ID from office config
-	facilityIDInt, _ := strconv.Atoi(office.FacilityID)
-
-	force := 0
-	if req.bookingRequiresForce && requiresForceForSameStart(office, colIDStr) {
-		force = 1
-	}
-
-	// Book via AMD REST API
-	apptID, err := h.amdRestClient.BookAppointment(r.Context(), tokenData, clients.BookAppointmentParams{
-		PatientID:     patientIDInt,
-		ColumnID:      req.ColumnID,
-		ProfileID:     req.ProfileID,
-		StartDatetime: req.StartDatetime,
-		Duration:      req.Duration,
-		AppointmentType: []struct {
-			ID int `json:"id"`
-		}{{ID: envTypeID}},
-		EpisodeID:  1,
-		FacilityID: facilityIDInt,
-		Color:      color,
-		Force:      force,
-		Comments:   appointmentComment,
-	})
-	if err != nil {
-		log.Printf("book-appointment: AMD error: %v", err)
-
-		// Handle 409 conflict errors with clear messages
-		errStr := err.Error()
-		if strings.Contains(errStr, "conflict") {
-			json.NewEncoder(w).Encode(BookAppointmentResponse{
-				Status:  "error",
-				Outcome: "slot_unavailable",
-				Message: "This time slot is no longer available. Please check availability again and choose a different slot.",
-			})
-			return
-		}
-
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Message: "Failed to book appointment: " + err.Error(),
-		})
-		return
-	}
-
-	log.Printf("book-appointment: success office=%s", office.ID)
-
-	receipt := buildBookAppointmentReceipt(req, office, apptID)
-	json.NewEncoder(w).Encode(receipt)
+	json.NewEncoder(w).Encode(response)
 }
 
 // AvailabilityRequest is the expected JSON body for availability lookup.
@@ -1318,615 +1003,22 @@ type AvailabilityRequest struct {
 	PreauthRequired bool   `json:"preauthRequired"` // Optional: if true, enforces 14-day minimum lead time
 }
 
-const availabilitySearchForwardDays = 14
-
-func availabilityDateShifted(requestedDate, searchStartDate, actualDate string) bool {
-	if actualDate != "" {
-		return actualDate != requestedDate
-	}
-	return searchStartDate != requestedDate
-}
-
-func noAvailabilityMessage(searchStartDate, searchEndDate string) string {
-	return fmt.Sprintf("No availability was found from %s through %s. Do not search this same window again unless the patient changes date, provider, office, or appointment type.", searchStartDate, searchEndDate)
-}
-
-func incompleteAvailabilityMessage(searchStartDate, searchEndDate string, unavailableDataChecks int) string {
-	return fmt.Sprintf("Availability could not be fully checked from %s through %s because appointment data was unavailable for %d provider-date checks. Retry once; if it still cannot be checked, ask for different preferences.", searchStartDate, searchEndDate, unavailableDataChecks)
-}
-
-func flattenAvailabilitySlots(providers []domain.ProviderAvailability) []domain.AvailabilitySlotOption {
-	var slots []domain.AvailabilitySlotOption
-	for _, provider := range providers {
-		if provider.TotalAvailable == 0 {
-			continue
-		}
-		for _, slot := range provider.Slots {
-			slots = append(slots, domain.AvailabilitySlotOption{
-				Provider:          provider.Name,
-				Time:              slot.Time,
-				DateTime:          slot.DateTime,
-				ColumnID:          provider.ColumnID,
-				ProfileID:         provider.ProfileID,
-				Duration:          provider.SlotDuration,
-				SameStartBooked:   slot.SameStartBooked,
-				SameStartCapacity: slot.SameStartCapacity,
-				RequiresForce:     slot.RequiresForce,
-			})
-		}
-	}
-	return slots
-}
-
-func filterColumnsForRouting(columns []domain.SchedulerColumn, office *domain.OfficeConfig, routing domain.RoutingRule) []domain.SchedulerColumn {
-	routingColumns := office.ColumnsForRouting(routing)
-	if routingColumns == nil {
-		return nil
-	}
-
-	filtered := make([]domain.SchedulerColumn, 0, len(columns))
-	for _, col := range columns {
-		if routingColumns[col.ID] {
-			filtered = append(filtered, col)
-		}
-	}
-	return filtered
-}
-
-func filterColumnsForDOB(columns []domain.SchedulerColumn, office *domain.OfficeConfig, dob string) []domain.SchedulerColumn {
-	filtered := make([]domain.SchedulerColumn, 0, len(columns))
-	for _, col := range columns {
-		if office.ColumnAllowsDOB(col.ID, dob) {
-			filtered = append(filtered, col)
-		}
-	}
-	return filtered
-}
-
-func columnMatchesProvider(office *domain.OfficeConfig, col domain.SchedulerColumn, profile domain.SchedulerProfile, requestedProvider string) bool {
-	needle := strings.ToUpper(domain.NormalizeForLookup(requestedProvider))
-	if needle == "" {
-		return true
-	}
-
-	candidates := []string{profile.Name, col.Name}
-	if officeCol, ok := office.Columns[col.ID]; ok {
-		candidates = append(candidates, officeCol.DisplayName, officeCol.ShortName)
-	}
-	for _, candidate := range candidates {
-		if strings.Contains(strings.ToUpper(domain.NormalizeForLookup(candidate)), needle) {
-			return true
-		}
-	}
-	return false
-}
-
-func officeSupportsRouting(office *domain.OfficeConfig, routing domain.RoutingRule) bool {
-	return len(office.ColumnsForRouting(routing)) > 0
-}
-
-func officeSupportsMedical(office *domain.OfficeConfig) bool {
-	return officeSupportsRouting(office, domain.RoutingAll) ||
-		officeSupportsRouting(office, domain.RoutingBachOnly) ||
-		officeSupportsRouting(office, domain.RoutingBachLicht)
-}
-
-func sameStartCapacityForColumnID(office *domain.OfficeConfig, columnID string) int {
-	if office == nil {
-		return defaultSameStartCapacity
-	}
-	col, ok := office.Columns[columnID]
-	if !ok || col.SameStartCapacity <= defaultSameStartCapacity {
-		return defaultSameStartCapacity
-	}
-	return col.SameStartCapacity
-}
-
-func sameStartCapacityForColumnAt(office *domain.OfficeConfig, columnID string, slotTime time.Time) int {
-	if office == nil {
-		return defaultSameStartCapacity
-	}
-	col, ok := office.Columns[columnID]
-	if !ok {
-		return defaultSameStartCapacity
-	}
-	capacity := col.SameStartCapacityAt(slotTime)
-	if capacity <= defaultSameStartCapacity {
-		return defaultSameStartCapacity
-	}
-	return capacity
-}
-
-func requiresForceForSameStart(office *domain.OfficeConfig, columnID string) bool {
-	return sameStartCapacityForColumnID(office, columnID) > defaultSameStartCapacity
-}
-
-func sameStartCapacityForColumn(office *domain.OfficeConfig, col domain.SchedulerColumn, slotTime time.Time) int {
-	return sameStartCapacityForColumnAt(office, col.ID, slotTime)
-}
-
-func (h *Handlers) getSchedulerSetup(ctx context.Context, tokenData *domain.TokenData, now time.Time) (*domain.SchedulerSetup, error) {
-	h.schedulerSetupMu.Lock()
-	defer h.schedulerSetupMu.Unlock()
-
-	if h.schedulerSetup != nil && now.Before(h.schedulerSetupExpiresAt) {
-		return h.schedulerSetup, nil
-	}
-
-	var (
-		setup *domain.SchedulerSetup
-		err   error
-	)
-	if h.amdClient == nil {
-		err = fmt.Errorf("scheduler setup client is not configured")
-	} else {
-		setup, err = h.amdClient.GetSchedulerSetup(ctx, tokenData)
-	}
-	if err != nil {
-		if h.schedulerSetup != nil {
-			log.Printf("WARNING: scheduler setup refresh failed; using cached setup: %v", err)
-			h.schedulerSetupExpiresAt = now.Add(time.Minute)
-			return h.schedulerSetup, nil
-		}
-		return nil, err
-	}
-
-	h.schedulerSetup = setup
-	h.schedulerSetupExpiresAt = now.Add(schedulerSetupCacheTTL)
-	return setup, nil
-}
-
-// HandleGetAvailability returns available appointment slots for providers.
+// HandleGetAvailability searches through the Scheduling Workflow.
 func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	// Parse request body
 	var req AvailabilityRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: "Invalid JSON body"})
 		return
 	}
 
-	// Validate required date field
-	if req.Date == "" {
-		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: "date is required (YYYY-MM-DD format)"})
+	response, workflowErr := h.workflow().Search(r.Context(), req, time.Now())
+	if workflowErr != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: workflowErr.message})
 		return
 	}
-	originalRequestedDate := req.Date
-
-	// Parse start date
-	startDate, err := time.Parse("2006-01-02", req.Date)
-	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: "Invalid date format. Use YYYY-MM-DD."})
-		return
-	}
-	if err := validateOptionalDOB(req.DOB); err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: err.Error()})
-		return
-	}
-
-	// Reject same-day or past date searches
-	todayEastern := time.Now().In(eastern)
-	todayStr := todayEastern.Format("2006-01-02")
-	if startDate.Format("2006-01-02") <= todayStr {
-		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: "Same-day and past-date appointments are not available. Please search for tomorrow or later."})
-		return
-	}
-
-	// Preauth: auto-advance to 14 days out if requested date is too soon
-	if req.PreauthRequired {
-		startDate, req.Date = enforcePreauthMinDate(startDate, time.Now().In(eastern))
-	}
-	searchStartDate := startDate.Format("2006-01-02")
-	maxDate := startDate.AddDate(0, 0, availabilitySearchForwardDays)
-	searchEndDate := maxDate.Format("2006-01-02")
-
-	// Resolve office config
-	office, err := resolveOffice(req.Office)
-	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			Status:  "error",
-			Message: err.Error(),
-		})
-		return
-	}
-
-	effectiveRouting := domain.ParseRoutingRule(req.Routing)
-	effectiveRouting = effectiveRoutingForDOB(office, effectiveRouting, req.DOB)
-
-	log.Printf("availability: date=%s provider=%q office=%s routing=%q effectiveRouting=%q preauthRequired=%v", req.Date, req.Provider, office.ID, req.Routing, effectiveRouting, req.PreauthRequired)
-
-	// Get auth token
-	tokenData, err := h.tokenManager.GetToken(r.Context())
-	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			Status:  "error",
-			Message: "Failed to get authentication token: " + err.Error(),
-		})
-		return
-	}
-
-	// Get scheduler setup from cache when fresh. Appointments and block
-	// holds below are still fetched live for availability freshness.
-	setup, err := h.getSchedulerSetup(r.Context(), tokenData, time.Now().UTC())
-	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			Status:  "error",
-			Message: "Failed to get scheduler setup: " + err.Error(),
-		})
-		return
-	}
-
-	// Build lookup maps
-	profileMap := make(map[string]domain.SchedulerProfile)
-	for _, p := range setup.Profiles {
-		profileMap[p.ID] = p
-	}
-
-	facilityMap := make(map[string]domain.SchedulerFacility)
-	for _, f := range setup.Facilities {
-		facilityMap[f.ID] = f
-	}
-
-	// Filter columns to office's allowed providers
-	var allowedColumns []domain.SchedulerColumn
-	for _, col := range setup.Columns {
-		if !office.IsAllowedColumn(col.ID) {
-			continue
-		}
-		if col.FacilityID != office.FacilityID {
-			continue
-		}
-		if req.Provider != "" {
-			profile, ok := profileMap[col.ProfileID]
-			if !ok || !columnMatchesProvider(office, col, profile, req.Provider) {
-				continue
-			}
-		}
-		allowedColumns = append(allowedColumns, col)
-	}
-
-	// Apply routing filter. Empty/unknown routing defaults to RoutingAll,
-	// which deliberately excludes Spring Hill's routine-vision column.
-	allowedColumns = filterColumnsForRouting(allowedColumns, office, effectiveRouting)
-	allowedColumns = filterColumnsForDOB(allowedColumns, office, req.DOB)
-
-	if len(allowedColumns) == 0 {
-		if req.Provider != "" {
-			json.NewEncoder(w).Encode(ErrorResponse{
-				Status: "error",
-				Message: fmt.Sprintf("No provider found matching %q. Valid providers: %s",
-					req.Provider, strings.Join(office.ValidProviderNames(), ", ")),
-			})
-			return
-		}
-		json.NewEncoder(w).Encode(domain.AvailabilityResponse{
-			Status:                domain.AvailabilityStatusSuccess,
-			Outcome:               domain.AvailabilityOutcomeNoEligibleProviders,
-			AvailabilityFound:     false,
-			RequestedDate:         originalRequestedDate,
-			ShouldRetrySameSearch: false,
-			NextAction:            domain.AvailabilityNextActionAskDifferentPreferences,
-			Message:               "No eligible providers found for this office, routing, provider, and DOB.",
-			Slots:                 []domain.AvailabilitySlotOption{},
-		})
-		return
-	}
-
-	nowEastern := time.Now().In(eastern)
-
-	// Try the requested date first, then auto-search forward up to 14 days
-	searchDate := startDate
-	var providers []domain.ProviderAvailability
-	searchIncomplete := false
-	unavailableDataChecks := 0
-
-	for !searchDate.After(maxDate) {
-		dateStr := searchDate.Format("2006-01-02")
-
-		// Only fetch columns that work this weekday — skip non-working providers
-		var workingColumnIDs []string
-		workingColumnSet := make(map[string]bool)
-		for _, col := range allowedColumns {
-			if col.WorksOnDay(searchDate.Weekday()) {
-				workingColumnIDs = append(workingColumnIDs, col.ID)
-				workingColumnSet[col.ID] = true
-			}
-		}
-		if len(workingColumnIDs) == 0 {
-			searchDate = searchDate.AddDate(0, 0, 1)
-			log.Printf("availability: no providers work on %s, skipping", dateStr)
-			continue
-		}
-
-		// Fetch appointments and block holds concurrently (independent data)
-		var appointmentsByColumn map[string][]domain.Appointment
-		var blockHoldsByColumn map[string][]domain.BlockHold
-		var fetchWg sync.WaitGroup
-		fetchWg.Add(2)
-		go func() {
-			defer fetchWg.Done()
-			appointmentsByColumn = h.amdRestClient.GetAppointmentsForColumns(r.Context(), tokenData, workingColumnIDs, dateStr)
-		}()
-		go func() {
-			defer fetchWg.Done()
-			blockHoldsByColumn = h.amdRestClient.GetBlockHoldsForColumns(r.Context(), tokenData, workingColumnIDs, dateStr)
-		}()
-		fetchWg.Wait()
-
-		// Calculate availability for each provider
-		providers = nil
-		for _, col := range allowedColumns {
-			if !workingColumnSet[col.ID] {
-				continue
-			}
-			// Skip columns where appointment data couldn't be fetched —
-			// safer to omit than to show all slots as available
-			if _, ok := appointmentsByColumn[col.ID]; !ok {
-				searchIncomplete = true
-				unavailableDataChecks++
-				log.Printf("availability: skipping column %s — appointment data unavailable", col.ID)
-				continue
-			}
-			profile := profileMap[col.ProfileID]
-			facility := facilityMap[col.FacilityID]
-
-			displayName := ""
-			if officeCol, ok := office.Columns[col.ID]; ok {
-				displayName = officeCol.DisplayName
-			}
-			if displayName == "" {
-				displayName = office.ProviderDisplayName(col.ProfileID)
-			}
-			if displayName == "" {
-				displayName = profile.Name
-			}
-
-			allSlots := calculateAvailableSlots(office, col, appointmentsByColumn[col.ID], blockHoldsByColumn[col.ID], searchDate, nowEastern)
-
-			colID, _ := strconv.Atoi(col.ID)
-			profID, _ := strconv.Atoi(col.ProfileID)
-
-			pa := domain.ProviderAvailability{
-				Name:           displayName,
-				ColumnID:       colID,
-				ProfileID:      profID,
-				Facility:       facility.Name,
-				SlotDuration:   col.Interval,
-				TotalAvailable: len(allSlots),
-			}
-
-			if len(allSlots) > 0 {
-				pa.FirstAvailable = allSlots[0].Time
-				pa.LastAvailable = allSlots[len(allSlots)-1].Time
-				pa.Slots = selectBalancedDisplaySlots(allSlots, 5)
-			} else {
-				pa.Slots = []domain.AvailableSlot{}
-			}
-
-			providers = append(providers, pa)
-		}
-
-		// Check if any provider has availability
-		hasAvailability := false
-		for _, p := range providers {
-			if p.TotalAvailable > 0 {
-				hasAvailability = true
-				break
-			}
-		}
-
-		if hasAvailability {
-			break
-		}
-
-		// No availability — try the next day
-		searchDate = searchDate.AddDate(0, 0, 1)
-		log.Printf("availability: no slots on %s, searching forward to %s", dateStr, searchDate.Format("2006-01-02"))
-	}
-
-	// Check if any provider has availability after the search loop
-	hasAnyAvailability := false
-	for _, p := range providers {
-		if p.TotalAvailable > 0 {
-			hasAnyAvailability = true
-			break
-		}
-	}
-
-	if !hasAnyAvailability {
-		if searchIncomplete {
-			json.NewEncoder(w).Encode(domain.AvailabilityResponse{
-				Status:                domain.AvailabilityStatusError,
-				Outcome:               domain.AvailabilityOutcomeSearchIncomplete,
-				AvailabilityFound:     false,
-				RequestedDate:         originalRequestedDate,
-				ShouldRetrySameSearch: true,
-				NextAction:            domain.AvailabilityNextActionRetryOnceThenAskPreferences,
-				SearchedFrom:          searchStartDate,
-				SearchedThrough:       searchEndDate,
-				Message:               incompleteAvailabilityMessage(searchStartDate, searchEndDate, unavailableDataChecks),
-				Slots:                 []domain.AvailabilitySlotOption{},
-			})
-			return
-		}
-
-		json.NewEncoder(w).Encode(domain.AvailabilityResponse{
-			Status:                domain.AvailabilityStatusSuccess,
-			Outcome:               domain.AvailabilityOutcomeNoAvailability,
-			AvailabilityFound:     false,
-			RequestedDate:         originalRequestedDate,
-			ShouldRetrySameSearch: false,
-			NextAction:            domain.AvailabilityNextActionAskDifferentPreferences,
-			SearchedFrom:          searchStartDate,
-			SearchedThrough:       searchEndDate,
-			Message:               noAvailabilityMessage(searchStartDate, searchEndDate),
-			Slots:                 []domain.AvailabilitySlotOption{},
-		})
-		return
-	}
-
-	actualDate := searchDate.Format("2006-01-02")
-	slots, err := h.addBookingTokens(flattenAvailabilitySlots(providers), office, effectiveRouting, time.Now().UTC())
-	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			Status:  "error",
-			Message: "Failed to create booking tokens: " + err.Error(),
-		})
-		return
-	}
-	json.NewEncoder(w).Encode(domain.AvailabilityResponse{
-		Status:                domain.AvailabilityStatusSuccess,
-		Outcome:               domain.AvailabilityOutcomeFound,
-		AvailabilityFound:     true,
-		RequestedDate:         originalRequestedDate,
-		ShouldRetrySameSearch: false,
-		NextAction:            domain.AvailabilityNextActionOfferSlots,
-		ActualDate:            actualDate,
-		DateShifted:           availabilityDateShifted(originalRequestedDate, searchStartDate, actualDate),
-		SearchedFrom:          searchStartDate,
-		SearchedThrough:       actualDate,
-		Slots:                 slots,
-	})
-}
-
-func selectBalancedDisplaySlots(slots []domain.AvailableSlot, limit int) []domain.AvailableSlot {
-	if limit <= 0 || len(slots) == 0 {
-		return []domain.AvailableSlot{}
-	}
-	if len(slots) <= limit {
-		return slots
-	}
-	if limit == 1 {
-		return slots[:1]
-	}
-
-	selected := make([]domain.AvailableSlot, 0, limit)
-	seenIndexes := make(map[int]bool, limit)
-	lastIndex := len(slots) - 1
-	for i := 0; i < limit; i++ {
-		// Evenly sample the chronological slot list, rounded to the nearest
-		// index. This keeps first/latest options while surfacing middle-day
-		// choices that first-N truncation would hide.
-		index := (i*lastIndex + (limit-1)/2) / (limit - 1)
-		if seenIndexes[index] {
-			continue
-		}
-		seenIndexes[index] = true
-		selected = append(selected, slots[index])
-	}
-
-	return selected
-}
-
-// calculateAvailableSlots generates available time slots for a column on a single day.
-// nowEastern is used to filter out past slots when the date is today.
-func calculateAvailableSlots(office *domain.OfficeConfig, col domain.SchedulerColumn, appointments []domain.Appointment, blockHolds []domain.BlockHold, date time.Time, nowEastern time.Time) []domain.AvailableSlot {
-	var slots []domain.AvailableSlot
-
-	// Skip if provider doesn't work this day
-	if !col.WorksOnDay(date.Weekday()) {
-		return slots
-	}
-
-	// Get work hours
-	workStart, workEnd, err := col.ParseWorkHours(date)
-	if err != nil {
-		return slots
-	}
-
-	// Determine cutoff for past slots: if date is today, skip slots before now + 30 min
-	today := nowEastern.Format("2006-01-02")
-	isToday := date.Format("2006-01-02") == today
-	cutoff := nowEastern.Add(30 * time.Minute)
-
-	interval := time.Duration(col.Interval) * time.Minute
-	if interval == 0 {
-		interval = 15 * time.Minute
-	}
-
-	for slotTime := workStart; slotTime.Before(workEnd); slotTime = slotTime.Add(interval) {
-		// Filter past slots
-		if isToday {
-			slotInEastern := time.Date(slotTime.Year(), slotTime.Month(), slotTime.Day(),
-				slotTime.Hour(), slotTime.Minute(), 0, 0, nowEastern.Location())
-			if slotInEastern.Before(cutoff) {
-				continue
-			}
-		}
-
-		if domain.IsBlockedByHold(slotTime, interval, blockHolds) {
-			continue
-		}
-
-		// AMD 4101: Block if any different-start appointment overlaps this slot's full booking range.
-		if hasDifferentStartOverlappingAppointment(slotTime, interval, appointments) {
-			continue
-		}
-
-		// AMD 4186: Check same-start-time appointment count against per-column capacity.
-		sameStartCount := countSameStartAppointments(slotTime, appointments)
-		sameStartCapacity := sameStartCapacityForColumn(office, col, slotTime)
-		if sameStartCount >= sameStartCapacity {
-			continue
-		}
-
-		slot := domain.AvailableSlot{
-			Time:     domain.FormatSlotTime(slotTime),
-			DateTime: domain.FormatSlotDateTime(slotTime),
-		}
-		if sameStartCount > 0 {
-			slot.SameStartBooked = sameStartCount
-			slot.SameStartCapacity = sameStartCapacity
-			slot.RequiresForce = requiresForceForSameStart(office, col.ID)
-		}
-		slots = append(slots, slot)
-	}
-
-	return slots
-}
-
-// hasDifferentStartOverlappingAppointment checks if a different-start appointment
-// overlaps the full booking range [slotTime, slotTime+slotDuration). Same-start
-// appointments are handled separately as per-column capacity because AMD's 4186
-// rule is distinct from 4101 duration-overlap blocking.
-func hasDifferentStartOverlappingAppointment(slotTime time.Time, slotDuration time.Duration, appointments []domain.Appointment) bool {
-	slotEnd := slotTime.Add(slotDuration)
-	for _, appt := range appointments {
-		if appt.StartDateTime.Equal(slotTime) {
-			continue
-		}
-		apptEnd := appt.StartDateTime.Add(time.Duration(appt.Duration) * time.Minute)
-		// Two intervals overlap when each starts before the other ends
-		if slotTime.Before(apptEnd) && appt.StartDateTime.Before(slotEnd) {
-			return true
-		}
-	}
-	return false
-}
-
-// countSameStartAppointments counts appointments that start at exactly the given slot time.
-// AMD returns error 4186 when this count exceeds maxApptsPerSlot.
-func countSameStartAppointments(slotTime time.Time, appointments []domain.Appointment) int {
-	count := 0
-	for _, appt := range appointments {
-		if appt.StartDateTime.Equal(slotTime) {
-			count++
-		}
-	}
-	return count
-}
-
-// enforcePreauthMinDate advances the requested date to 14 days from now if it's too soon.
-// Returns the (possibly advanced) date and its YYYY-MM-DD string.
-func enforcePreauthMinDate(requestedDate time.Time, now time.Time) (time.Time, string) {
-	// Truncate to date-only (midnight) so time-of-day doesn't affect the comparison
-	minDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, 14)
-	if requestedDate.Before(minDate) {
-		log.Printf("availability: preauth required — auto-advanced to %s (14-day minimum)", minDate.Format("2006-01-02"))
-		return minDate, minDate.Format("2006-01-02")
-	}
-	return requestedDate, requestedDate.Format("2006-01-02")
+	json.NewEncoder(w).Encode(response)
 }
 
 // UpdateInsuranceRequest is the expected JSON body for insurance updates.
@@ -1993,15 +1085,16 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 		})
 		return
 	}
+	policy := domain.NewSchedulingPolicy(office)
 	insuranceMode := domain.InsuranceModeForCoverage(req.CoverageType)
-	if insuranceMode == domain.InsuranceModeVision && !officeSupportsRouting(office, domain.RoutingOpticalOnly) {
+	if insuranceMode == domain.InsuranceModeVision && !policy.SupportsRouting(domain.RoutingOpticalOnly) {
 		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
 			Status:  "error",
 			Message: fmt.Sprintf("Routine vision coverage is not supported at %s. Route the patient to Spring Hill routine vision scheduling.", office.DisplayName),
 		})
 		return
 	}
-	if insuranceMode == domain.InsuranceModeMedical && !officeSupportsMedical(office) {
+	if insuranceMode == domain.InsuranceModeMedical && !policy.SupportsMedical() {
 		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
 			Status:  "error",
 			Message: fmt.Sprintf("Medical coverage is not supported at %s. Use routine vision coverage for this office or route medical visits to a medical office.", office.DisplayName),
@@ -2058,7 +1151,7 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 	}
 
 	routing := insEntry.Routing
-	routing = effectiveRoutingForDOB(office, routing, req.DOB)
+	routing = policy.SchedulingRouting(routing, req.DOB)
 	_, ambiguous := domain.RoutingForDemographicInsurance(insEntry.CarrierID, req.Insurance, office)
 
 	json.NewEncoder(w).Encode(UpdateInsuranceResponse{
@@ -2067,7 +1160,7 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 		OldInsurance:     req.OldInsurance,
 		NewInsurance:     req.Insurance,
 		Routing:          string(routing),
-		AllowedProviders: office.ProvidersForRoutingAndDOB(routing, req.DOB),
+		AllowedProviders: policy.ProviderNames(routing, req.DOB),
 		RoutingAmbiguous: ambiguous,
 		PreauthRequired:  insEntry.PreauthRequired,
 		Message:          "Insurance updated successfully",

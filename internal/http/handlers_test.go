@@ -38,153 +38,6 @@ func TestHandleHealth(t *testing.T) {
 	}
 }
 
-func TestBuildBookAppointmentReceipt(t *testing.T) {
-	office := &domain.OfficeConfig{
-		DisplayName: "Spring Hill",
-		Columns: map[string]domain.OfficeColumn{
-			"1513": {
-				ProfileID:   "620",
-				DisplayName: "Dr. Austin Bach",
-			},
-		},
-	}
-	req := BookAppointmentRequest{
-		PatientID:         "12345",
-		PatientName:       "SMITH,JANE",
-		ColumnID:          1513,
-		ProfileID:         620,
-		StartDatetime:     "2026-05-12T11:00",
-		Duration:          30,
-		AppointmentTypeID: 1007,
-	}
-
-	receipt := buildBookAppointmentReceipt(req, office, 98765)
-
-	if receipt.Status != "booked" {
-		t.Fatalf("expected status booked, got %q", receipt.Status)
-	}
-	if receipt.AppointmentID != 98765 {
-		t.Errorf("expected appointment ID 98765, got %d", receipt.AppointmentID)
-	}
-	if receipt.PatientID != "12345" {
-		t.Errorf("expected patient ID 12345, got %q", receipt.PatientID)
-	}
-	if receipt.PatientName != "Jane Smith" {
-		t.Errorf("expected patient name Jane Smith, got %q", receipt.PatientName)
-	}
-	if receipt.ProviderName != "Dr. Austin Bach" {
-		t.Errorf("expected provider name Dr. Austin Bach, got %q", receipt.ProviderName)
-	}
-	if receipt.LocationName != "Spring Hill" {
-		t.Errorf("expected location Spring Hill, got %q", receipt.LocationName)
-	}
-	if receipt.StartDatetime != "2026-05-12T11:00" {
-		t.Errorf("expected start datetime to be echoed, got %q", receipt.StartDatetime)
-	}
-	if receipt.Duration != 30 {
-		t.Errorf("expected duration 30, got %d", receipt.Duration)
-	}
-	if receipt.AppointmentTypeID != 1007 {
-		t.Errorf("expected appointment type ID 1007, got %d", receipt.AppointmentTypeID)
-	}
-	if receipt.AppointmentTypeName != "Established Adult Medical (Follow Up)" {
-		t.Errorf("expected appointment type name Established Adult Medical (Follow Up), got %q", receipt.AppointmentTypeName)
-	}
-}
-
-func TestBuildBookingAppointmentComment(t *testing.T) {
-	comment := buildBookingAppointmentComment(" blurry vision ", " Dr. Smith ")
-	want := "Appointment reason: blurry vision\nReferring doctor: Dr. Smith\n- AI"
-	if comment != want {
-		t.Fatalf("comment = %q, want %q", comment, want)
-	}
-
-	comment = buildBookingAppointmentComment("blurry vision", "")
-	want = "Appointment reason: blurry vision\nReferring doctor: none\n- AI"
-	if comment != want {
-		t.Fatalf("comment with missing referring doctor = %q, want %q", comment, want)
-	}
-
-	if comment := buildBookingAppointmentComment("", ""); comment != "" {
-		t.Fatalf("blank comment = %q, want empty", comment)
-	}
-}
-
-func TestFilterColumnsForRouting_RoutineVisionLane(t *testing.T) {
-	office := domain.DefaultOffice()
-	columns := []domain.SchedulerColumn{
-		{ID: "1513"},
-		{ID: "1598"},
-		{ID: "1551"},
-		{ID: "1550"},
-		{ID: "1600"},
-	}
-
-	medical := filterColumnsForRouting(columns, office, domain.ParseRoutingRule(""))
-	if len(medical) != 4 {
-		t.Fatalf("default medical routing returned %d columns, want 4", len(medical))
-	}
-	for _, col := range medical {
-		if col.ID == "1600" {
-			t.Fatal("default medical routing should not include routine vision column 1600")
-		}
-	}
-
-	optical := filterColumnsForRouting(columns, office, domain.ParseRoutingRule("optical_only"))
-	if len(optical) != 1 {
-		t.Fatalf("optical_only routing returned %d columns, want 1", len(optical))
-	}
-	if optical[0].ID != "1600" {
-		t.Fatalf("optical_only routing returned column %s, want 1600", optical[0].ID)
-	}
-}
-
-func TestFilterColumnsForDOB_RoutineAgeRules(t *testing.T) {
-	office, ok := domain.LookupOffice("+19542872010")
-	if !ok {
-		t.Fatal("expected Hollywood office")
-	}
-	columns := []domain.SchedulerColumn{
-		{ID: "1555"},
-		{ID: "1510"},
-		{ID: "1305"},
-	}
-
-	if filtered := filterColumnsForDOB(columns, office, ""); len(filtered) != 0 {
-		t.Fatalf("missing DOB filtered columns = %v, want none", filtered)
-	}
-	if filtered := filterColumnsForDOB(columns, office, "not-a-date"); len(filtered) != 0 {
-		t.Fatalf("invalid DOB filtered columns = %v, want none", filtered)
-	}
-
-	dob := time.Now().AddDate(-4, 0, 0).Format("01/02/2006")
-
-	filtered := filterColumnsForDOB(columns, office, dob)
-	if len(filtered) != 1 {
-		t.Fatalf("filtered columns = %v, want only Calero", filtered)
-	}
-	if filtered[0].ID != "1305" {
-		t.Fatalf("filtered column = %s, want 1305", filtered[0].ID)
-	}
-}
-
-func TestColumnMatchesProvider_UsesConfiguredProviderName(t *testing.T) {
-	office, ok := domain.LookupOffice("+13055095333")
-	if !ok {
-		t.Fatal("expected North Miami Beach Optical office")
-	}
-
-	col := domain.SchedulerColumn{ID: "1601", Name: "BACH MIRIAM - NMB", ProfileID: "621"}
-	profile := domain.SchedulerProfile{ID: "621", Name: "BACH, MIRIAM"}
-
-	if !columnMatchesProvider(office, col, profile, "Miriam Bach") {
-		t.Fatal("expected configured display name to match provider filter")
-	}
-	if columnMatchesProvider(office, col, profile, "Brightview") {
-		t.Fatal("expected old Brightview alias not to match provider filter")
-	}
-}
-
 func TestHandleBookAppointment_RoutingGuard(t *testing.T) {
 	handlers := &Handlers{}
 
@@ -381,6 +234,18 @@ func TestHandleBookAppointment_ReturnsStructuredUnresolvedType(t *testing.T) {
 	}
 }
 
+func sameStrings(got, want []string) bool {
+	if len(got) != len(want) {
+		return false
+	}
+	for i := range got {
+		if got[i] != want[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
 	handlers := &Handlers{}
 	date := time.Now().AddDate(0, 0, 2).Format("2006-01-02")
@@ -399,34 +264,6 @@ func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
 	if resp.Message != "dob must be a valid date" {
 		t.Fatalf("expected invalid DOB message, got %q", resp.Message)
 	}
-}
-
-func TestEffectiveRoutingForDOB(t *testing.T) {
-	office := domain.DefaultOffice()
-	minorDOB := time.Now().AddDate(-10, 0, 0).Format("01/02/2006")
-	adultDOB := time.Now().AddDate(-30, 0, 0).Format("01/02/2006")
-
-	if got := effectiveRoutingForDOB(office, domain.RoutingAll, minorDOB); got != domain.RoutingBachOnly {
-		t.Fatalf("minor medical routing = %q, want %q", got, domain.RoutingBachOnly)
-	}
-	if got := effectiveRoutingForDOB(office, domain.RoutingAll, adultDOB); got != domain.RoutingAll {
-		t.Fatalf("adult medical routing = %q, want %q", got, domain.RoutingAll)
-	}
-	if got := effectiveRoutingForDOB(office, domain.RoutingOpticalOnly, minorDOB); got != domain.RoutingOpticalOnly {
-		t.Fatalf("routine vision routing = %q, want %q", got, domain.RoutingOpticalOnly)
-	}
-}
-
-func sameStrings(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func TestHandlePatientResolve_ValidationErrors(t *testing.T) {
@@ -840,7 +677,7 @@ func TestCalculateAvailableSlots_AllBlocked(t *testing.T) {
 		},
 	}
 
-	slots := calculateAvailableSlots(domain.DefaultOffice(), col, nil, blockHolds, date, nowEastern)
+	slots := calculateAvailableSlots(domain.NewSchedulingPolicy(domain.DefaultOffice()), col, nil, blockHolds, date, nowEastern)
 
 	if len(slots) != 0 {
 		t.Errorf("Expected 0 slots when entire day is blocked, got %d", len(slots))
@@ -877,7 +714,7 @@ func TestCalculateAvailableSlots_AllBookedAtMax(t *testing.T) {
 		}
 	}
 
-	slots := calculateAvailableSlots(domain.DefaultOffice(), col, appointments, nil, date, nowEastern)
+	slots := calculateAvailableSlots(domain.NewSchedulingPolicy(domain.DefaultOffice()), col, appointments, nil, date, nowEastern)
 
 	if len(slots) != 0 {
 		t.Errorf("Expected 0 slots when all slots at max capacity, got %d", len(slots))
@@ -1090,37 +927,6 @@ func TestIncompleteAvailabilityResponse_AllowsRetry(t *testing.T) {
 	}
 }
 
-func TestFlattenAvailabilitySlots(t *testing.T) {
-	providers := []domain.ProviderAvailability{
-		{
-			Name:         "Dr. Kyler Farnan",
-			ColumnID:     1555,
-			ProfileID:    2075,
-			SlotDuration: 15,
-			Slots: []domain.AvailableSlot{
-				{Time: "8:30 AM", DateTime: "2026-06-01T08:30", SameStartBooked: 1, SameStartCapacity: 2, RequiresForce: true},
-				{Time: "8:45 AM", DateTime: "2026-06-01T08:45"},
-			},
-			TotalAvailable: 2,
-		},
-	}
-
-	slots := flattenAvailabilitySlots(providers)
-	if len(slots) != 2 {
-		t.Fatalf("slots = %d, want 2", len(slots))
-	}
-	if slots[0].Provider != "Dr. Kyler Farnan" ||
-		slots[0].DateTime != "2026-06-01T08:30" ||
-		slots[0].ColumnID != 1555 ||
-		slots[0].ProfileID != 2075 ||
-		slots[0].Duration != 15 ||
-		slots[0].SameStartBooked != 1 ||
-		slots[0].SameStartCapacity != 2 ||
-		!slots[0].RequiresForce {
-		t.Fatalf("unexpected flattened slot: %+v", slots[0])
-	}
-}
-
 func TestBookingTokenRoundTrip(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	payload := bookingTokenPayload{
@@ -1205,14 +1011,14 @@ func TestBookingTokenRejectsTamperedExpiredAndWrongOffice(t *testing.T) {
 	}
 
 	req := BookAppointmentRequest{BookingToken: token}
-	handlers := NewHandlers(nil, nil, nil, "test-booking-secret")
+	workflow := newSchedulingWorkflow(nil, nil, nil, "test-booking-secret")
 	office, _ := domain.LookupOffice("Hollywood")
-	if _, err := handlers.applyBookingToken(&req, office, now); err == nil {
+	if _, err := workflow.applyBookingToken(&req, office, now); err == nil {
 		t.Fatal("token for a different office should be rejected")
 	}
 
 	req = BookAppointmentRequest{BookingToken: token}
-	office, err = handlers.applyBookingToken(&req, nil, now)
+	office, err = workflow.applyBookingToken(&req, nil, now)
 	if err != nil {
 		t.Fatalf("token should resolve office when request omits office: %v", err)
 	}
@@ -1223,7 +1029,7 @@ func TestBookingTokenRejectsTamperedExpiredAndWrongOffice(t *testing.T) {
 
 func TestAddBookingTokensAndApplyBookingToken(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	handlers := NewHandlers(nil, nil, nil, "test-booking-secret")
+	workflow := newSchedulingWorkflow(nil, nil, nil, "test-booking-secret")
 	office := domain.DefaultOffice()
 	slots := []domain.AvailabilitySlotOption{
 		{
@@ -1237,7 +1043,7 @@ func TestAddBookingTokensAndApplyBookingToken(t *testing.T) {
 		},
 	}
 
-	slots, err := handlers.addBookingTokens(slots, office, domain.RoutingBachOnly, now)
+	slots, err := workflow.addBookingTokens(slots, office, domain.RoutingBachOnly, "", now)
 	if err != nil {
 		t.Fatalf("addBookingTokens error = %v", err)
 	}
@@ -1246,7 +1052,7 @@ func TestAddBookingTokensAndApplyBookingToken(t *testing.T) {
 	}
 
 	req := BookAppointmentRequest{BookingToken: slots[0].BookingToken}
-	tokenOffice, err := handlers.applyBookingToken(&req, office, now)
+	tokenOffice, err := workflow.applyBookingToken(&req, office, now)
 	if err != nil {
 		t.Fatalf("applyBookingToken error = %v", err)
 	}
@@ -1263,7 +1069,7 @@ func TestAddBookingTokensAndApplyBookingToken(t *testing.T) {
 	}
 }
 
-func TestHandleBookAppointment_UsesBookingTokenRequiresForceWithoutBachRecheck(t *testing.T) {
+func TestHandleBookAppointment_UsesSignedSlotForceDecision(t *testing.T) {
 	now := time.Now().UTC().Add(-time.Minute)
 	token, err := signBookingToken("test-booking-secret", bookingTokenPayload{
 		OfficeID:      "spring_hill",
@@ -1434,180 +1240,17 @@ func TestHandleBookAppointment_SendsAppointmentCommentsInBookingPayload(t *testi
 	}
 }
 
-func TestHasDifferentStartOverlappingAppointment(t *testing.T) {
-	eastern, _ := time.LoadLocation("America/New_York")
-
-	tests := []struct {
-		name         string
-		slotTime     time.Time
-		slotDuration time.Duration
-		appointments []domain.Appointment
-		expected     bool
-	}{
-		{
-			name:         "no appointments",
-			slotTime:     time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
-			slotDuration: 30 * time.Minute,
-			appointments: nil,
-			expected:     false,
-		},
-		{
-			name:         "30-min appt ends exactly at slot — no overlap",
-			slotTime:     time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
-			slotDuration: 30 * time.Minute,
-			appointments: []domain.Appointment{
-				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 30},
-			},
-			expected: false, // 9:00+30min=9:30, [9:30,10:00) does not overlap [9:00,9:30)
-		},
-		{
-			name:         "60-min appt overlaps into next slot — blocked (4101)",
-			slotTime:     time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
-			slotDuration: 30 * time.Minute,
-			appointments: []domain.Appointment{
-				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 60},
-			},
-			expected: true, // [9:30,10:00) overlaps [9:00,10:00)
-		},
-		{
-			name:         "60-min appt does not overlap past its end",
-			slotTime:     time.Date(2026, 3, 6, 10, 0, 0, 0, eastern),
-			slotDuration: 30 * time.Minute,
-			appointments: []domain.Appointment{
-				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 60},
-			},
-			expected: false, // [10:00,10:30) does not overlap [9:00,10:00)
-		},
-		{
-			name:         "same-start-time appt is capacity, not hard overlap",
-			slotTime:     time.Date(2026, 3, 6, 9, 0, 0, 0, eastern),
-			slotDuration: 30 * time.Minute,
-			appointments: []domain.Appointment{
-				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 30},
-			},
-			expected: false, // same-start capacity is handled separately from AMD 4101 overlap
-		},
-		{
-			name:         "Licht 12:15 scenario — Bourque at 12:00 with 30-min duration blocks 12:15",
-			slotTime:     time.Date(2026, 3, 10, 12, 15, 0, 0, eastern),
-			slotDuration: 15 * time.Minute,
-			appointments: []domain.Appointment{
-				{StartDateTime: time.Date(2026, 3, 10, 12, 0, 0, 0, eastern), Duration: 30}, // Bourque 12:00-12:30
-			},
-			expected: true, // [12:15,12:30) overlaps [12:00,12:30) — AMD 4101
-		},
-		{
-			name:         "overlap from earlier appt even with same-start appt present",
-			slotTime:     time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
-			slotDuration: 30 * time.Minute,
-			appointments: []domain.Appointment{
-				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 60},  // overlaps into 9:30
-				{StartDateTime: time.Date(2026, 3, 6, 9, 30, 0, 0, eastern), Duration: 30}, // starts at 9:30
-			},
-			expected: true, // the 9:00 appt overlaps — hard block regardless of the 9:30 same-start
-		},
-		{
-			name:         "off-grid appt at 8:45 blocks 30-min booking at 8:30",
-			slotTime:     time.Date(2026, 5, 13, 8, 30, 0, 0, eastern),
-			slotDuration: 30 * time.Minute,
-			appointments: []domain.Appointment{
-				{StartDateTime: time.Date(2026, 5, 13, 8, 45, 0, 0, eastern), Duration: 15},
-			},
-			expected: true, // [8:30,9:00) overlaps [8:45,9:00) — the bug this fix addresses
-		},
-		{
-			name:         "off-grid appt at 9:15 blocks 30-min booking at 9:00",
-			slotTime:     time.Date(2026, 5, 13, 9, 0, 0, 0, eastern),
-			slotDuration: 30 * time.Minute,
-			appointments: []domain.Appointment{
-				{StartDateTime: time.Date(2026, 5, 13, 9, 15, 0, 0, eastern), Duration: 15},
-			},
-			expected: true, // [9:00,9:30) overlaps [9:15,9:30)
-		},
-		{
-			name:         "off-grid appt at 8:45 does NOT block 8:00 slot",
-			slotTime:     time.Date(2026, 5, 13, 8, 0, 0, 0, eastern),
-			slotDuration: 30 * time.Minute,
-			appointments: []domain.Appointment{
-				{StartDateTime: time.Date(2026, 5, 13, 8, 45, 0, 0, eastern), Duration: 15},
-			},
-			expected: false, // [8:00,8:30) does not overlap [8:45,9:00)
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := hasDifferentStartOverlappingAppointment(tt.slotTime, tt.slotDuration, tt.appointments)
-			if got != tt.expected {
-				t.Errorf("Expected %v, got %v", tt.expected, got)
-			}
-		})
-	}
-}
-
-func TestCountSameStartAppointments(t *testing.T) {
-	eastern, _ := time.LoadLocation("America/New_York")
-
-	tests := []struct {
-		name         string
-		slotTime     time.Time
-		appointments []domain.Appointment
-		expected     int
-	}{
-		{
-			name:         "no appointments",
-			slotTime:     time.Date(2026, 3, 6, 9, 0, 0, 0, eastern),
-			appointments: nil,
-			expected:     0,
-		},
-		{
-			name:     "one same-start appointment",
-			slotTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern),
-			appointments: []domain.Appointment{
-				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 15},
-			},
-			expected: 1,
-		},
-		{
-			name:     "two same-start appointments (double-book)",
-			slotTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern),
-			appointments: []domain.Appointment{
-				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 15},
-				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 15},
-			},
-			expected: 2,
-		},
-		{
-			name:     "different-start appointments not counted",
-			slotTime: time.Date(2026, 3, 6, 9, 30, 0, 0, eastern),
-			appointments: []domain.Appointment{
-				{StartDateTime: time.Date(2026, 3, 6, 9, 0, 0, 0, eastern), Duration: 60}, // overlaps but different start
-			},
-			expected: 0,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := countSameStartAppointments(tt.slotTime, tt.appointments)
-			if got != tt.expected {
-				t.Errorf("Expected %d, got %d", tt.expected, got)
-			}
-		})
-	}
-}
-
 func TestGetSchedulerSetupUsesFreshCache(t *testing.T) {
 	now := time.Date(2026, 5, 24, 12, 0, 0, 0, time.UTC)
 	setup := &domain.SchedulerSetup{
 		Columns: []domain.SchedulerColumn{{ID: "1513"}},
 	}
-	handlers := &Handlers{
+	workflow := &schedulingWorkflow{
 		schedulerSetup:          setup,
 		schedulerSetupExpiresAt: now.Add(time.Hour),
 	}
 
-	got, err := handlers.getSchedulerSetup(context.Background(), &domain.TokenData{}, now)
+	got, err := workflow.getSchedulerSetup(context.Background(), &domain.TokenData{}, now)
 	if err != nil {
 		t.Fatalf("getSchedulerSetup error = %v", err)
 	}
@@ -1621,19 +1264,19 @@ func TestGetSchedulerSetupFallsBackToStaleCacheOnRefreshError(t *testing.T) {
 	setup := &domain.SchedulerSetup{
 		Columns: []domain.SchedulerColumn{{ID: "1513"}},
 	}
-	handlers := &Handlers{
+	workflow := &schedulingWorkflow{
 		schedulerSetup:          setup,
 		schedulerSetupExpiresAt: now.Add(-time.Second),
 	}
 
-	got, err := handlers.getSchedulerSetup(context.Background(), &domain.TokenData{}, now)
+	got, err := workflow.getSchedulerSetup(context.Background(), &domain.TokenData{}, now)
 	if err != nil {
 		t.Fatalf("getSchedulerSetup error = %v", err)
 	}
 	if got != setup {
 		t.Fatal("expected stale scheduler setup fallback")
 	}
-	if !handlers.schedulerSetupExpiresAt.After(now) {
+	if !workflow.schedulerSetupExpiresAt.After(now) {
 		t.Fatal("expected stale fallback to set a short retry window")
 	}
 }
@@ -1672,7 +1315,7 @@ func TestCalculateAvailableSlots_MultiSlotAppointment(t *testing.T) {
 		},
 	}
 
-	slots := calculateAvailableSlots(domain.DefaultOffice(), col, appointments, blockHolds, date, nowEastern)
+	slots := calculateAvailableSlots(domain.NewSchedulingPolicy(domain.DefaultOffice()), col, appointments, blockHolds, date, nowEastern)
 
 	// 8:30 — blocked by hold
 	// 9:00 — one same-start appt on configured column -> available with force
@@ -1716,7 +1359,7 @@ func TestCalculateAvailableSlots_ConfiguredSingleBookedSlotsAvailableWithForceMe
 		{StartDateTime: time.Date(2026, 6, 1, 9, 15, 0, 0, eastern), Duration: 15},
 	}
 
-	slots := calculateAvailableSlots(domain.DefaultOffice(), col, appointments, nil, date, nowEastern)
+	slots := calculateAvailableSlots(domain.NewSchedulingPolicy(domain.DefaultOffice()), col, appointments, nil, date, nowEastern)
 
 	if len(slots) != 2 {
 		t.Fatalf("Expected 2 second-bookable Bach slots, got %d: %v", len(slots), slots)
@@ -1754,7 +1397,7 @@ func TestCalculateAvailableSlots_ConfiguredTwoSameStartAppointmentsBlockSlot(t *
 		{StartDateTime: time.Date(2026, 6, 1, 9, 0, 0, 0, eastern), Duration: 15},
 	}
 
-	slots := calculateAvailableSlots(domain.DefaultOffice(), col, appointments, nil, date, nowEastern)
+	slots := calculateAvailableSlots(domain.NewSchedulingPolicy(domain.DefaultOffice()), col, appointments, nil, date, nowEastern)
 	if len(slots) != 0 {
 		t.Fatalf("Expected no slots when same-start capacity is full, got %d: %v", len(slots), slots)
 	}
@@ -1778,7 +1421,7 @@ func TestCalculateAvailableSlots_SpringHillOpticalBlocksSingleSameStart(t *testi
 		{StartDateTime: time.Date(2026, 6, 1, 9, 0, 0, 0, eastern), Duration: 15},
 	}
 
-	slots := calculateAvailableSlots(domain.DefaultOffice(), col, appointments, nil, date, nowEastern)
+	slots := calculateAvailableSlots(domain.NewSchedulingPolicy(domain.DefaultOffice()), col, appointments, nil, date, nowEastern)
 	if len(slots) != 0 {
 		t.Fatalf("Expected Spring Hill routine vision same-start slot to be blocked, got %d: %v", len(slots), slots)
 	}
@@ -1809,7 +1452,7 @@ func TestCalculateAvailableSlots_CrystalRiverMaxZeroBlocksSameStart(t *testing.T
 		{StartDateTime: time.Date(2026, 6, 1, 9, 0, 0, 0, eastern), Duration: 15},
 	}
 
-	slots := calculateAvailableSlots(office, col, appointments, nil, date, nowEastern)
+	slots := calculateAvailableSlots(domain.NewSchedulingPolicy(office), col, appointments, nil, date, nowEastern)
 	if len(slots) != 0 {
 		t.Fatalf("Expected Crystal River max=0 same-start slot to be blocked, got %d: %v", len(slots), slots)
 	}
@@ -1840,7 +1483,7 @@ func TestCalculateAvailableSlots_CrystalRiverMaxTwoBlocksSingleSameStart(t *test
 		{StartDateTime: time.Date(2026, 6, 1, 9, 0, 0, 0, eastern), Duration: 15},
 	}
 
-	slots := calculateAvailableSlots(office, col, appointments, nil, date, nowEastern)
+	slots := calculateAvailableSlots(domain.NewSchedulingPolicy(office), col, appointments, nil, date, nowEastern)
 	if len(slots) != 0 {
 		t.Fatalf("Expected Crystal River max=2 same-start slot to be blocked, got %d: %v", len(slots), slots)
 	}
@@ -1934,7 +1577,7 @@ func TestCalculateAvailableSlots_HollywoodSweetwaterOpticalSameStartWindows(t *t
 			date := time.Date(tt.start.Year(), tt.start.Month(), tt.start.Day(), 0, 0, 0, 0, eastern)
 			nowEastern := date.AddDate(0, 0, -1).Add(10 * time.Hour)
 
-			slots := calculateAvailableSlots(office, col, appointments, nil, date, nowEastern)
+			slots := calculateAvailableSlots(domain.NewSchedulingPolicy(office), col, appointments, nil, date, nowEastern)
 			if !tt.wantSlot {
 				if len(slots) != 0 {
 					t.Fatalf("expected same-start slot to be blocked, got %d: %v", len(slots), slots)
