@@ -46,6 +46,7 @@ advancedmd-token-management/
 |-- cmd/
 |   `-- api/
 |       `-- main.go
+|-- Dockerfile
 |-- docs/
 |   `-- advancedmd-api.md
 |-- internal/
@@ -82,34 +83,99 @@ advancedmd-token-management/
 | `ADVANCEDMD_OFFICE_KEY` | Yes | AdvancedMD office key |
 | `ADVANCEDMD_APP_NAME` | Yes | Registered AdvancedMD app name |
 | `API_SECRET` | Yes | Bearer token required by `/api/*` endpoints |
-| `BOOKING_TOKEN_SECRET` | No | HMAC secret for signed availability slot booking tokens; defaults to `API_SECRET` |
+| `BOOKING_TOKEN_SECRET` | No | HMAC secret for signed availability slot tokens; defaults to `API_SECRET`, but should be distinct in production |
 | `ALLOW_RAW_SLOT_BOOKING` | No | Temporary legacy escape hatch for booking without `bookingToken`; default `false` |
 | `PORT` | No | Server port, default `8080` |
 | `AMD_ENV` | No | `dev` uses dev office IDs; anything else uses prod |
 
-Run locally:
+Copy the example file and replace every placeholder. `.env` is ignored by both
+Git and Docker build context; never commit or bake credentials into an image.
+
+Run locally with Go:
 
 ```bash
-export ADVANCEDMD_USERNAME=...
-export ADVANCEDMD_PASSWORD=...
-export ADVANCEDMD_OFFICE_KEY=...
-export ADVANCEDMD_APP_NAME=...
-export API_SECRET=...
+cp .env.example .env
+set -a
+source .env
+set +a
 
 go run ./cmd/api
 ```
 
-Build:
+Build and run the container:
+
+```bash
+docker build -t abita-middleware:local .
+docker run --rm --env-file .env -p 8080:8080 abita-middleware:local
+curl http://localhost:8080/health
+```
+
+The image defaults to port `8080`. Setting `PORT` in `.env` also requires the
+host mapping to match, for example `-p 9090:9090` for `PORT=9090`.
+
+Build and test without a container:
 
 ```bash
 go build -o gateway ./cmd/api
-```
-
-Test:
-
-```bash
 go test ./...
 ```
+
+## Cloud Run
+
+The server listens on `0.0.0.0:$PORT`; Cloud Run injects `PORT` automatically,
+so do not set it as a service environment variable. The unauthenticated health
+endpoint is `GET /health`. All `/api/*` routes still require `API_SECRET`.
+
+Use these service-level settings:
+
+- Minimum instances: `1`
+- Maximum instances: `1`
+- CPU allocation: always allocated (CPU throttling disabled)
+- Startup and readiness probes: HTTP `GET /health` on port `8080`
+
+One instance is intentional. The AdvancedMD session token and scheduler setup
+cache live in memory, and the token manager refreshes in a background goroutine.
+Scaling to multiple instances would create independent token/cache state and
+duplicate refresh loops. Always-allocated CPU keeps that background refresh
+running between requests.
+
+Example build and deployment (replace project, region, repository, service
+account, and Secret Manager names):
+
+```bash
+PROJECT_ID=your-project
+REGION=us-east1
+REPOSITORY=services
+IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/abita-middleware:latest"
+
+gcloud builds submit --project "$PROJECT_ID" --tag "$IMAGE" .
+
+gcloud run deploy abita-middleware \
+  --project "$PROJECT_ID" \
+  --region "$REGION" \
+  --image "$IMAGE" \
+  --service-account "abita-middleware@$PROJECT_ID.iam.gserviceaccount.com" \
+  --min 1 \
+  --max 1 \
+  --no-cpu-throttling \
+  --port 8080 \
+  --startup-probe httpGet.path=/health,httpGet.port=8080 \
+  --readiness-probe httpGet.path=/health,httpGet.port=8080 \
+  --set-env-vars AMD_ENV=prod,ALLOW_RAW_SLOT_BOOKING=false \
+  --set-secrets ADVANCEDMD_USERNAME=advancedmd-username:latest,ADVANCEDMD_PASSWORD=advancedmd-password:latest,ADVANCEDMD_OFFICE_KEY=advancedmd-office-key:latest,ADVANCEDMD_APP_NAME=advancedmd-app-name:latest,API_SECRET=middleware-api-secret:latest,BOOKING_TOKEN_SECRET=booking-token-secret:latest \
+  --no-allow-unauthenticated
+```
+
+This example requires callers to have the Cloud Run Invoker role. If the
+external voice-agent caller cannot present Google IAM identity, explicitly use
+`--allow-unauthenticated`; application endpoints remain protected by
+`API_SECRET`, which must still come from Secret Manager.
+
+The runtime service account needs Secret Manager access to those six secrets.
+`ADVANCEDMD_USERNAME`, `ADVANCEDMD_PASSWORD`, `ADVANCEDMD_OFFICE_KEY`,
+`ADVANCEDMD_APP_NAME`, and `API_SECRET` are required by the process.
+`BOOKING_TOKEN_SECRET` technically falls back to `API_SECRET`, but a separate
+production secret limits cross-use between API authentication and signed tokens.
 
 ## Authentication
 

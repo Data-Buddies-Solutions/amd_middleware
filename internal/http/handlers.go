@@ -13,6 +13,7 @@ import (
 	"advancedmd-token-management/internal/auth"
 	"advancedmd-token-management/internal/clients"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/safeerrors"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -178,7 +179,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 
 	var req AddPatientRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("add-patient: failed to decode JSON: %v", err)
+		log.Printf("add-patient: failed to decode JSON")
 		json.NewEncoder(w).Encode(AddPatientResponse{
 			Status:  "error",
 			Message: "Invalid JSON body",
@@ -201,7 +202,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		req.SubscriberNum = "self pay"
 	}
 
-	log.Printf("add-patient: received request office=%s coverageType=%q", office.ID, req.CoverageType)
+	log.Printf("add-patient: received request office=%s coverageMode=%s", office.ID, insuranceMode)
 
 	// Validate required fields (aptSuite and email are optional)
 	missing := addPatientMissingFields(req)
@@ -238,9 +239,10 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 	// Get auth token
 	tokenData, err := h.tokenManager.GetToken(r.Context())
 	if err != nil {
+		log.Printf("add-patient: authentication failed category=%s", safeerrors.Classify(err))
 		json.NewEncoder(w).Encode(AddPatientResponse{
 			Status:  "error",
-			Message: "Failed to get authentication token: " + err.Error(),
+			Message: "Service authentication is temporarily unavailable. Please try again.",
 		})
 		return
 	}
@@ -262,7 +264,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		ProfileID: office.DefaultProfileID,
 	})
 	if err != nil {
-		log.Printf("add-patient: AMD error: %v", err)
+		log.Printf("add-patient: provider request failed category=%s", safeerrors.Classify(err))
 		if strings.Contains(err.Error(), "Duplicate name/DOB") {
 			json.NewEncoder(w).Encode(AddPatientResponse{
 				Status:  "error",
@@ -272,7 +274,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		}
 		json.NewEncoder(w).Encode(AddPatientResponse{
 			Status:  "error",
-			Message: "Failed to create patient: " + err.Error(),
+			Message: "Failed to create patient in AdvancedMD. Please try again or contact the office.",
 		})
 		return
 	}
@@ -306,12 +308,13 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 
 	// Attach insurance
 	if err := h.amdClient.AddInsurance(r.Context(), tokenData, rawPatientID, respPartyID, insEntry.CarrierID, req.SubscriberNum); err != nil {
+		log.Printf("add-patient: add insurance failed category=%s", safeerrors.Classify(err))
 		json.NewEncoder(w).Encode(AddPatientResponse{
 			Status:    "partial",
 			PatientID: strippedID,
 			Name:      patientName,
 			DOB:       normalizedDOB,
-			Message:   "Patient created but insurance failed: " + err.Error(),
+			Message:   "Patient created but insurance could not be attached. Please contact the office.",
 		})
 		return
 	}
@@ -419,9 +422,10 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 
 	tokenData, err := h.tokenManager.GetToken(r.Context())
 	if err != nil {
+		log.Printf("patient-resolve: authentication failed category=%s", safeerrors.Classify(err))
 		json.NewEncoder(w).Encode(PatientResolveResponse{
 			Status:  "error",
-			Message: "Failed to get authentication token: " + err.Error(),
+			Message: "Service authentication is temporarily unavailable. Please try again.",
 		})
 		return
 	}
@@ -434,9 +438,10 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 
 	patients, err := h.resolvePatientCandidates(r.Context(), tokenData, req)
 	if err != nil {
+		log.Printf("patient-resolve: lookup failed category=%s", safeerrors.Classify(err))
 		json.NewEncoder(w).Encode(PatientResolveResponse{
 			Status:  "error",
-			Message: err.Error(),
+			Message: "Failed to look up patient in AdvancedMD. Please try again.",
 		})
 		return
 	}
@@ -583,7 +588,7 @@ func (h *Handlers) resolveKnownPatient(ctx context.Context, tokenData *domain.To
 
 	demoResult, err := h.amdClient.GetDemographic(ctx, tokenData, req.PatientID)
 	if err != nil {
-		log.Printf("WARNING: patient-resolve: failed to get demographics for patientId %s: %v", req.PatientID, err)
+		log.Printf("WARNING: patient-resolve: failed to get demographics category=%s", safeerrors.Classify(err))
 	} else if demoResult != nil {
 		applyDemographicsToResolveResponse(&resp, demoResult, office, demoResult.DOB)
 		resp.DOB = demoResult.DOB
@@ -606,7 +611,7 @@ func (h *Handlers) buildResolvedPatient(ctx context.Context, tokenData *domain.T
 
 	demoResult, err := h.amdClient.GetDemographic(ctx, tokenData, patient.ID)
 	if err != nil {
-		log.Printf("WARNING: patient-resolve: failed to get demographics: %v", err)
+		log.Printf("WARNING: patient-resolve: failed to get demographics category=%s", safeerrors.Classify(err))
 	} else if demoResult != nil {
 		applyDemographicsToResolveResponse(&resp, demoResult, office, patient.DOB)
 	}
@@ -653,10 +658,10 @@ func attachAppointments(ctx context.Context, h *Handlers, tokenData *domain.Toke
 
 	appts, err := h.fetchUpcomingAppointments(ctx, tokenData, patientID, office)
 	if err != nil {
-		log.Printf("WARNING: patient-resolve: failed to get appointments: %v", err)
+		log.Printf("WARNING: patient-resolve: failed to get appointments category=%s", safeerrors.Classify(err))
 		resp.AppointmentsStatus = appointmentsStatusError
 		resp.Appointments = []PatientApptDetail{}
-		resp.AppointmentsMessage = "Failed to retrieve appointments: " + err.Error()
+		resp.AppointmentsMessage = "Failed to retrieve appointments from AdvancedMD. Please try again."
 		return
 	}
 
@@ -860,16 +865,17 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 	// Get auth token
 	tokenData, err := h.tokenManager.GetToken(r.Context())
 	if err != nil {
+		log.Printf("cancel-appointment: authentication failed category=%s", safeerrors.Classify(err))
 		json.NewEncoder(w).Encode(CancelAppointmentResponse{
 			Status:  "error",
-			Message: "Failed to get authentication token: " + err.Error(),
+			Message: "Service authentication is temporarily unavailable. Please try again.",
 		})
 		return
 	}
 
 	owningOffice, err := h.cancelableAppointmentOffice(r.Context(), tokenData, req.PatientID, req.AppointmentID, office)
 	if err != nil {
-		log.Printf("cancel-appointment: appointment ownership check failed: %v", err)
+		log.Printf("cancel-appointment: appointment ownership check failed category=%s", safeerrors.Classify(err))
 		json.NewEncoder(w).Encode(CancelAppointmentResponse{
 			Status:  "error",
 			Message: "Unable to verify appointment before cancellation. Please load appointments again and choose the appointment to cancel.",
@@ -888,10 +894,10 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 
 	// Cancel via AMD REST API
 	if err := h.amdRestClient.CancelAppointment(r.Context(), tokenData, req.AppointmentID); err != nil {
-		log.Printf("cancel-appointment: AMD error: %v", err)
+		log.Printf("cancel-appointment: provider request failed category=%s", safeerrors.Classify(err))
 		json.NewEncoder(w).Encode(CancelAppointmentResponse{
 			Status:  "error",
-			Message: "Failed to cancel appointment: " + err.Error(),
+			Message: "Failed to cancel appointment in AdvancedMD. Please try again or contact the office.",
 		})
 		return
 	}
@@ -1123,9 +1129,10 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 	// Get AMD token
 	tokenData, err := h.tokenManager.GetToken(r.Context())
 	if err != nil {
+		log.Printf("update-insurance: authentication failed category=%s", safeerrors.Classify(err))
 		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
 			Status:  "error",
-			Message: "Failed to get authentication token: " + err.Error(),
+			Message: "Service authentication is temporarily unavailable. Please try again.",
 		})
 		return
 	}
@@ -1133,9 +1140,10 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 	// End-date old plan if insplan ID provided
 	if req.InsPlanID != "" {
 		if err := h.amdClient.EndDateInsurance(r.Context(), tokenData, req.PatientID, req.InsPlanID); err != nil {
+			log.Printf("update-insurance: end-date failed category=%s", safeerrors.Classify(err))
 			json.NewEncoder(w).Encode(UpdateInsuranceResponse{
 				Status:  "error",
-				Message: "Failed to end-date existing insurance: " + err.Error(),
+				Message: "Failed to update existing insurance in AdvancedMD. Please try again or contact the office.",
 			})
 			return
 		}
@@ -1143,9 +1151,10 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 
 	// Add new insurance plan
 	if err := h.amdClient.AddInsurance(r.Context(), tokenData, req.PatientID, req.RespPartyID, insEntry.CarrierID, req.SubscriberNum); err != nil {
+		log.Printf("update-insurance: add insurance failed category=%s", safeerrors.Classify(err))
 		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
 			Status:  "error",
-			Message: "Failed to add new insurance: " + err.Error(),
+			Message: "Failed to attach new insurance in AdvancedMD. Please try again or contact the office.",
 		})
 		return
 	}

@@ -14,6 +14,7 @@ import (
 	"advancedmd-token-management/internal/config"
 	"advancedmd-token-management/internal/domain"
 	apphttp "advancedmd-token-management/internal/http"
+	"advancedmd-token-management/internal/safeerrors"
 )
 
 const version = "1.0.0"
@@ -57,7 +58,7 @@ func main() {
 	// Start token manager (loads cache and starts background refresh)
 	ctx := context.Background()
 	if err := tokenManager.Start(ctx); err != nil {
-		log.Fatalf("Failed to start token manager: %v", err)
+		log.Fatalf("Failed to start token manager: category=%s", safeerrors.Classify(err))
 	}
 	defer tokenManager.Stop()
 	log.Println("Token manager started")

@@ -1,0 +1,30 @@
+.git
+.gitignore
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local binaries and test output
+/api
+/gateway
+bin/
+*.test
+coverage*.out
+coverage/
+
+# Unrelated build artifacts
+build/
+dist/
+tmp/
+node_modules/
+
+# Editor and OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~

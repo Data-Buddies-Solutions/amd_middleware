@@ -13,6 +13,7 @@ import (
 	"advancedmd-token-management/internal/auth"
 	"advancedmd-token-management/internal/clients"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/safeerrors"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -91,18 +92,20 @@ func (w *schedulingWorkflow) Search(ctx context.Context, req AvailabilityRequest
 	policy := domain.NewSchedulingPolicy(office)
 	routing := policy.SchedulingRouting(domain.ParseRoutingRule(req.Routing), req.DOB)
 
-	log.Printf("availability: date=%s provider=%q office=%s routing=%q effectiveRouting=%q preauthRequired=%v", req.Date, req.Provider, office.ID, req.Routing, routing, req.PreauthRequired)
+	log.Printf("availability: date=%s providerFilter=%t office=%s effectiveRouting=%q preauthRequired=%v", req.Date, req.Provider != "", office.ID, routing, req.PreauthRequired)
 
 	tokenData, err := w.getToken(ctx)
 	if err != nil {
-		return empty, &workflowError{message: "Failed to get authentication token: " + err.Error()}
+		log.Printf("availability: authentication failed category=%s", safeerrors.Classify(err))
+		return empty, &workflowError{message: "Service authentication is temporarily unavailable. Please try again."}
 	}
 	setup, err := w.getSchedulerSetup(ctx, tokenData, now.UTC())
 	if err != nil {
-		return empty, &workflowError{message: "Failed to get scheduler setup: " + err.Error()}
+		log.Printf("availability: scheduler setup failed category=%s", safeerrors.Classify(err))
+		return empty, &workflowError{message: "Failed to load scheduler configuration from AdvancedMD. Please try again."}
 	}
 	if w.appointmentClient == nil {
-		return empty, &workflowError{message: "AdvancedMD appointment client is not configured"}
+		return empty, &workflowError{message: "Appointment scheduling is temporarily unavailable. Please try again."}
 	}
 
 	profileMap := make(map[string]domain.SchedulerProfile, len(setup.Profiles))
@@ -284,7 +287,7 @@ func (w *schedulingWorkflow) Book(ctx context.Context, req BookAppointmentReques
 		office = tokenOffice
 	}
 
-	log.Printf("book-appointment: request office=%s routing=%q bookingToken=%t legacyRaw=%t typeId=%d", office.ID, req.Routing, req.BookingToken != "", req.BookingToken == "", req.AppointmentTypeID)
+	log.Printf("book-appointment: request office=%s routingProvided=%t bookingToken=%t legacyRaw=%t typeId=%d", office.ID, req.Routing != "", req.BookingToken != "", req.BookingToken == "", req.AppointmentTypeID)
 
 	if req.PatientID == "" {
 		return BookAppointmentResponse{}, &workflowError{message: "patientId is required"}
@@ -348,10 +351,11 @@ func (w *schedulingWorkflow) Book(ctx context.Context, req BookAppointmentReques
 
 	tokenData, err := w.getToken(ctx)
 	if err != nil {
-		return BookAppointmentResponse{}, &workflowError{message: "Failed to get authentication token: " + err.Error()}
+		log.Printf("book-appointment: authentication failed category=%s", safeerrors.Classify(err))
+		return BookAppointmentResponse{}, &workflowError{message: "Service authentication is temporarily unavailable. Please try again."}
 	}
 	if w.appointmentClient == nil {
-		return BookAppointmentResponse{}, &workflowError{message: "Failed to book appointment: AdvancedMD appointment client is not configured"}
+		return BookAppointmentResponse{}, &workflowError{message: "Failed to book appointment in AdvancedMD. Please try again or contact the office."}
 	}
 
 	facilityID, _ := strconv.Atoi(office.FacilityID)
@@ -375,14 +379,15 @@ func (w *schedulingWorkflow) Book(ctx context.Context, req BookAppointmentReques
 		Comments:   appointmentComment,
 	})
 	if err != nil {
-		log.Printf("book-appointment: AMD error: %v", err)
-		if strings.Contains(err.Error(), "conflict") {
+		category := safeerrors.Classify(err)
+		log.Printf("book-appointment: provider request failed category=%s", category)
+		if category == safeerrors.CategoryConflict {
 			return BookAppointmentResponse{}, &workflowError{
 				outcome: "slot_unavailable",
 				message: "This time slot is no longer available. Please check availability again and choose a different slot.",
 			}
 		}
-		return BookAppointmentResponse{}, &workflowError{message: "Failed to book appointment: " + err.Error()}
+		return BookAppointmentResponse{}, &workflowError{message: "Failed to book appointment in AdvancedMD. Please try again or contact the office."}
 	}
 
 	log.Printf("book-appointment: success office=%s", office.ID)
@@ -414,7 +419,7 @@ func (w *schedulingWorkflow) getSchedulerSetup(ctx context.Context, tokenData *d
 	}
 	if err != nil {
 		if w.schedulerSetup != nil {
-			log.Printf("WARNING: scheduler setup refresh failed; using cached setup: %v", err)
+			log.Printf("WARNING: scheduler setup refresh failed; using cached setup category=%s", safeerrors.Classify(err))
 			w.schedulerSetupExpiresAt = now.Add(time.Minute)
 			return w.schedulerSetup, nil
 		}
