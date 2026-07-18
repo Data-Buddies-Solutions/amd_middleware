@@ -20,17 +20,21 @@ const (
 )
 
 type bookingTokenPayload struct {
-	Version       int    `json:"v"`
-	OfficeID      string `json:"officeId"`
-	Routing       string `json:"routing"`
-	ColumnID      int    `json:"columnId"`
-	ProfileID     int    `json:"profileId"`
-	StartDatetime string `json:"startDatetime"`
-	Duration      int    `json:"duration"`
-	RequiresForce bool   `json:"requiresForce,omitempty"`
-	Provider      string `json:"provider,omitempty"`
-	IssuedAt      int64  `json:"iat"`
-	ExpiresAt     int64  `json:"exp"`
+	Version            int    `json:"v"`
+	OfficeID           string `json:"officeId"`
+	Routing            string `json:"routing"`
+	ColumnID           int    `json:"columnId"`
+	ProfileID          int    `json:"profileId"`
+	StartDatetime      string `json:"startDatetime"`
+	Duration           int    `json:"duration"`
+	DOB                string `json:"dob,omitempty"`
+	AppointmentTypeIDs []int  `json:"appointmentTypeIds,omitempty"`
+	SameStartBooked    int    `json:"sameStartBooked,omitempty"`
+	SameStartCapacity  int    `json:"sameStartCapacity,omitempty"`
+	RequiresForce      bool   `json:"requiresForce,omitempty"`
+	Provider           string `json:"provider,omitempty"`
+	IssuedAt           int64  `json:"iat"`
+	ExpiresAt          int64  `json:"exp"`
 }
 
 var (
@@ -111,31 +115,36 @@ func payloadHasValidRouting(routing string) bool {
 	}
 }
 
-func (h *Handlers) bookingSecret() string {
-	if h == nil {
+func (w *schedulingWorkflow) bookingSecret() string {
+	if w == nil {
 		return ""
 	}
-	return h.bookingTokenSecret
+	return w.bookingTokenSecret
 }
 
-func (h *Handlers) addBookingTokens(slots []domain.AvailabilitySlotOption, office *domain.OfficeConfig, routing domain.RoutingRule, now time.Time) ([]domain.AvailabilitySlotOption, error) {
+func (w *schedulingWorkflow) addBookingTokens(slots []domain.AvailabilitySlotOption, office *domain.OfficeConfig, routing domain.RoutingRule, dob string, now time.Time) ([]domain.AvailabilitySlotOption, error) {
 	if len(slots) == 0 {
 		return slots, nil
 	}
 	issuedAt := now.Unix()
 	expiresAt := now.Add(bookingTokenTTL).Unix()
+	appointmentTypeIDs := domain.NewSchedulingPolicy(office).AllowedAppointmentTypeIDs(routing, dob)
 	for i := range slots {
-		token, err := signBookingToken(h.bookingSecret(), bookingTokenPayload{
-			OfficeID:      office.ID,
-			Routing:       string(routing),
-			ColumnID:      slots[i].ColumnID,
-			ProfileID:     slots[i].ProfileID,
-			StartDatetime: slots[i].DateTime,
-			Duration:      slots[i].Duration,
-			RequiresForce: slots[i].RequiresForce,
-			Provider:      slots[i].Provider,
-			IssuedAt:      issuedAt,
-			ExpiresAt:     expiresAt,
+		token, err := signBookingToken(w.bookingSecret(), bookingTokenPayload{
+			OfficeID:           office.ID,
+			Routing:            string(routing),
+			ColumnID:           slots[i].ColumnID,
+			ProfileID:          slots[i].ProfileID,
+			StartDatetime:      slots[i].DateTime,
+			Duration:           slots[i].Duration,
+			DOB:                domain.NormalizeDOB(dob),
+			AppointmentTypeIDs: appointmentTypeIDs,
+			SameStartBooked:    slots[i].SameStartBooked,
+			SameStartCapacity:  slots[i].SameStartCapacity,
+			RequiresForce:      slots[i].RequiresForce,
+			Provider:           slots[i].Provider,
+			IssuedAt:           issuedAt,
+			ExpiresAt:          expiresAt,
 		})
 		if err != nil {
 			return nil, err
@@ -145,8 +154,8 @@ func (h *Handlers) addBookingTokens(slots []domain.AvailabilitySlotOption, offic
 	return slots, nil
 }
 
-func (h *Handlers) applyBookingToken(req *BookAppointmentRequest, requestedOffice *domain.OfficeConfig, now time.Time) (*domain.OfficeConfig, error) {
-	payload, err := verifyBookingToken(h.bookingSecret(), req.BookingToken, now)
+func (w *schedulingWorkflow) applyBookingToken(req *BookAppointmentRequest, requestedOffice *domain.OfficeConfig, now time.Time) (*domain.OfficeConfig, error) {
+	payload, err := verifyBookingToken(w.bookingSecret(), req.BookingToken, now)
 	if err != nil {
 		return nil, err
 	}
@@ -157,12 +166,21 @@ func (h *Handlers) applyBookingToken(req *BookAppointmentRequest, requestedOffic
 	if requestedOffice != nil && requestedOffice.ID != office.ID {
 		return nil, errBookingTokenInvalid
 	}
+	if payload.DOB != "" && req.DOB != "" {
+		if _, valid := domain.AgeYears(req.DOB); valid && domain.NormalizeDOB(req.DOB) != payload.DOB {
+			return nil, errBookingTokenInvalid
+		}
+	}
 	req.ColumnID = payload.ColumnID
 	req.ProfileID = payload.ProfileID
 	req.StartDatetime = payload.StartDatetime
 	req.Duration = payload.Duration
 	req.Routing = payload.Routing
+	if payload.DOB != "" && (req.DOB == "" || domain.NormalizeDOB(req.DOB) == payload.DOB) {
+		req.DOB = payload.DOB
+	}
 	req.bookingRequiresForce = payload.RequiresForce
+	req.bookingAppointmentTypeIDs = append([]int(nil), payload.AppointmentTypeIDs...)
 	return office, nil
 }
 
