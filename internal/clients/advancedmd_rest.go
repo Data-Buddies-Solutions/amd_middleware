@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/safeerrors"
 )
 
 // ParseDateTime parses an AMD datetime string trying multiple known formats.
@@ -107,7 +108,7 @@ func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *d
 	for _, a := range amdAppts {
 		startTime, err := ParseDateTime(a.StartDateTime)
 		if err != nil {
-			log.Printf("WARNING: skipping appointment with invalid start time in column %s: %v", columnID, err)
+			log.Printf("WARNING: skipping appointment with invalid start time in column %s: category=%s", columnID, safeerrors.Classify(err))
 			continue
 		}
 
@@ -140,7 +141,7 @@ func (c *AdvancedMDRestClient) GetAppointmentsForColumns(ctx context.Context, to
 			mu.Lock()
 			defer mu.Unlock()
 			if err != nil {
-				log.Printf("WARNING: failed to get appointments for column %s: %v", id, err)
+				log.Printf("WARNING: failed to get appointments for column %s: category=%s", id, safeerrors.Classify(err))
 				return
 			}
 			result[id] = appts
@@ -207,7 +208,7 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 	for _, h := range amdHolds {
 		startTime, err := ParseDateTime(h.StartDateTime)
 		if err != nil {
-			log.Printf("WARNING: skipping block hold with invalid start time: %v", err)
+			log.Printf("WARNING: skipping block hold with invalid start time: category=%s", safeerrors.Classify(err))
 			continue
 		}
 
@@ -248,7 +249,7 @@ func (c *AdvancedMDRestClient) GetBlockHoldsForColumns(ctx context.Context, toke
 			mu.Lock()
 			defer mu.Unlock()
 			if err != nil {
-				log.Printf("WARNING: failed to get block holds for column %s: %v", id, err)
+				log.Printf("WARNING: failed to get block holds for column %s: category=%s", id, safeerrors.Classify(err))
 				return
 			}
 			result[id] = holds
