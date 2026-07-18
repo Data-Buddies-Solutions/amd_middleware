@@ -128,7 +128,7 @@ func (w *schedulingWorkflow) addBookingTokens(slots []domain.AvailabilitySlotOpt
 	}
 	issuedAt := now.Unix()
 	expiresAt := now.Add(bookingTokenTTL).Unix()
-	appointmentTypeIDs := domain.NewSchedulingPolicy(office).AllowedAppointmentTypeIDs(routing)
+	appointmentTypeIDs := domain.NewSchedulingPolicy(office).AllowedAppointmentTypeIDs(routing, dob)
 	for i := range slots {
 		token, err := signBookingToken(w.bookingSecret(), bookingTokenPayload{
 			OfficeID:           office.ID,

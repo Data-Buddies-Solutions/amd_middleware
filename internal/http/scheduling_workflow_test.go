@@ -42,9 +42,19 @@ func TestSchedulingWorkflow_SignedAvailableSlotBooksWithSamePolicyAndReceipt(t *
 		payload.DOB != "01/15/1980" ||
 		payload.Routing != string(domain.RoutingBachOnly) ||
 		!slices.Contains(payload.AppointmentTypeIDs, 1007) ||
+		slices.Contains(payload.AppointmentTypeIDs, 1004) ||
+		slices.Contains(payload.AppointmentTypeIDs, 1005) ||
 		payload.SameStartBooked != 1 ||
 		payload.SameStartCapacity != 2 {
 		t.Fatalf("signed slot policy = %#v, err = %v", payload, err)
+	}
+	_, workflowErr = workflow.Book(context.Background(), BookAppointmentRequest{
+		PatientID:         "123",
+		BookingToken:      slot.BookingToken,
+		AppointmentTypeID: 1004,
+	}, now.Add(time.Minute))
+	if workflowErr == nil {
+		t.Fatal("adult signed slot booked with pediatric appointment type")
 	}
 	_, workflowErr = workflow.Book(context.Background(), BookAppointmentRequest{
 		PatientID:         "123",

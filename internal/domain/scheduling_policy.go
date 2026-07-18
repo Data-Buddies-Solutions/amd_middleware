@@ -59,20 +59,36 @@ func (p SchedulingPolicy) ProviderNames(routing RoutingRule, dob string) []strin
 }
 
 // AllowedAppointmentTypeIDs returns the canonical appointment types accepted by
-// this office and routing lane.
-func (p SchedulingPolicy) AllowedAppointmentTypeIDs(routing RoutingRule) []int {
+// this office, routing lane, and patient DOB.
+func (p SchedulingPolicy) AllowedAppointmentTypeIDs(routing RoutingRule, dob string) []int {
 	if p.office == nil {
 		return nil
 	}
 
 	typeIDs := make([]int, 0, len(DefaultAppointmentTypeColors))
 	for typeID := range DefaultAppointmentTypeColors {
-		if p.office.AllowsAppointmentType(typeID, routing) {
+		if p.office.AllowsAppointmentType(typeID, routing) && appointmentTypeMatchesDOB(typeID, dob) {
 			typeIDs = append(typeIDs, typeID)
 		}
 	}
 	sort.Ints(typeIDs)
 	return typeIDs
+}
+
+func appointmentTypeMatchesDOB(typeID int, dob string) bool {
+	age, ok := AgeYears(dob)
+	if !ok {
+		return true
+	}
+
+	switch typeID {
+	case 1004, 1005, 4244, 4245:
+		return age < 18
+	case 1006, 1007, 1010, 3364:
+		return age >= 18
+	default:
+		return true
+	}
 }
 
 // EligibleColumns applies office, routing, DOB, and provider eligibility in one pass.
@@ -188,7 +204,7 @@ func (p SchedulingPolicy) PrepareBooking(req BookingPolicyRequest) (BookingPolic
 	if !ok {
 		return BookingPolicyDecision{}, &SchedulingPolicyError{Message: fmt.Sprintf("Invalid appointment type ID: %d", typeID)}
 	}
-	if !slices.Contains(p.AllowedAppointmentTypeIDs(routing), typeID) {
+	if !slices.Contains(p.AllowedAppointmentTypeIDs(routing, ""), typeID) {
 		return BookingPolicyDecision{}, &SchedulingPolicyError{Message: fmt.Sprintf("Appointment type %d is not valid for routing %q at %s", typeID, routing, p.office.DisplayName)}
 	}
 	if !p.office.ColumnAllowsDOB(columnID, req.DOB) {
@@ -197,6 +213,9 @@ func (p SchedulingPolicy) PrepareBooking(req BookingPolicyRequest) (BookingPolic
 			message = fmt.Sprintf("%s requires patient DOB to verify age %d or older", column.ShortName, column.MinAgeYears)
 		}
 		return BookingPolicyDecision{}, &SchedulingPolicyError{Message: message}
+	}
+	if !slices.Contains(p.AllowedAppointmentTypeIDs(routing, req.DOB), typeID) {
+		return BookingPolicyDecision{}, &SchedulingPolicyError{Message: fmt.Sprintf("Appointment type %d is not valid for routing %q at %s", typeID, routing, p.office.DisplayName)}
 	}
 	return BookingPolicyDecision{
 		Routing:           routing,
