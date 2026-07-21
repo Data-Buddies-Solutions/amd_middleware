@@ -39,6 +39,23 @@ func TestHandleHealth(t *testing.T) {
 	}
 }
 
+func TestApplyDemographicsToResolveResponsePreservesPreauthorization(t *testing.T) {
+	resp := PatientResolveResponse{}
+	applyDemographicsToResolveResponse(
+		&resp,
+		&clients.DemographicResult{
+			CarrierName: "Aetna HMO",
+			CarrierID:   "car40907",
+		},
+		domain.DefaultOffice(),
+		"01/01/1980",
+	)
+
+	if !resp.PreauthRequired {
+		t.Fatal("expected resolved Aetna HMO patient to require preauthorization")
+	}
+}
+
 func TestHandleBookAppointment_RoutingGuard(t *testing.T) {
 	handlers := &Handlers{}
 

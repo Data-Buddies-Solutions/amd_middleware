@@ -63,6 +63,7 @@ type PatientResolveResponse struct {
 	Routing             string                   `json:"routing,omitempty"`
 	AllowedProviders    []string                 `json:"allowedProviders,omitempty"`
 	RoutingAmbiguous    bool                     `json:"routingAmbiguous,omitempty"`
+	PreauthRequired     bool                     `json:"preauthRequired,omitempty"`
 	AppointmentsStatus  string                   `json:"appointmentsStatus,omitempty"`
 	Appointments        []PatientApptDetail      `json:"appointments"`
 	AppointmentsMessage string                   `json:"appointmentsMessage,omitempty"`
@@ -642,6 +643,9 @@ func applyDemographicsToResolveResponse(resp *PatientResolveResponse, demoResult
 		resp.Routing = string(routing)
 		resp.AllowedProviders = policy.ProviderNames(routing, patientDOB)
 		resp.RoutingAmbiguous = ambiguous
+		if entry, ok := domain.LookupInsuranceForCoverageAtOffice(demoResult.CarrierName, domain.InsuranceModeMedical, office); ok {
+			resp.PreauthRequired = entry.PreauthRequired
+		}
 		if domain.IsMinor(patientDOB) && routing != domain.RoutingNotAccepted {
 			resp.RoutingAmbiguous = false
 		}
