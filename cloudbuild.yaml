@@ -1,0 +1,28 @@
+steps:
+  - id: test
+    name: golang:1.26.4-alpine
+    entrypoint: /bin/sh
+    args:
+      - -c
+      - go test ./...
+
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --tag
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}:$COMMIT_SHA
+      - .
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}:$COMMIT_SHA
+
+substitutions:
+  _REGION: us-east4
+  _REPOSITORY: services
+  _IMAGE: abita-middleware
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s

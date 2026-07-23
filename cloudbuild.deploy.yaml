@@ -1,0 +1,51 @@
+steps:
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/google-cloud-cli:stable
+    entrypoint: /bin/bash
+    args:
+      - -ceu
+      - |
+        if [[ ! "${_IMAGE_TAG}" =~ ^[0-9a-f]{40}$ ]]; then
+          echo "_IMAGE_TAG must be a full 40-character Git commit SHA."
+          exit 1
+        fi
+
+        gcloud run deploy ${_SERVICE} \
+          --project=$PROJECT_ID \
+          --region=${_REGION} \
+          --platform=managed \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}:${_IMAGE_TAG} \
+          --service-account=${_RUNTIME_SERVICE_ACCOUNT} \
+          --execution-environment=gen2 \
+          --cpu=1 \
+          --memory=512Mi \
+          --min=1 \
+          --max=1 \
+          --concurrency=20 \
+          --timeout=60s \
+          --no-cpu-throttling \
+          --cpu-boost \
+          --port=8080 \
+          --startup-probe=httpGet.path=/health,httpGet.port=8080 \
+          --readiness-probe=httpGet.path=/health,httpGet.port=8080 \
+          --set-env-vars=AMD_ENV=prod,ALLOW_RAW_SLOT_BOOKING=false \
+          --set-secrets=ADVANCEDMD_USERNAME=advancedmd-username:2,ADVANCEDMD_PASSWORD=advancedmd-password:2,ADVANCEDMD_OFFICE_KEY=advancedmd-office-key:2,ADVANCEDMD_APP_NAME=advancedmd-app-name:2,API_SECRET=middleware-api-secret:1,BOOKING_TOKEN_SECRET=booking-token-secret:1 \
+          --network=acuity-prod \
+          --subnet=cloud-run-us-east4 \
+          --vpc-egress=all-traffic \
+          --ingress=all \
+          --allow-unauthenticated \
+          --quiet
+
+substitutions:
+  _IMAGE_TAG: DO_NOT_DEPLOY
+  _REGION: us-east4
+  _REPOSITORY: services
+  _IMAGE: abita-middleware
+  _SERVICE: abita-middleware
+  _RUNTIME_SERVICE_ACCOUNT: abita-middleware@acuity-health-prod.iam.gserviceaccount.com
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s
