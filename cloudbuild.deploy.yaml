@@ -34,7 +34,7 @@ steps:
           --subnet=cloud-run-us-east4 \
           --vpc-egress=all-traffic \
           --ingress=all \
-          --allow-unauthenticated \
+          --no-invoker-iam-check \
           --quiet
 
 substitutions:

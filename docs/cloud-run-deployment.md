@@ -29,6 +29,7 @@ The deploy trigger creates one production revision with:
 - 60-second request timeout
 - `/health` startup and readiness probes
 - Direct VPC egress through `acuity-prod` and `cloud-run-us-east4`
+- public access with the Cloud Run invoker IAM check disabled
 - explicit Secret Manager versions
 
 Do not use gradual traffic splitting. Deploy during low traffic, then verify:
