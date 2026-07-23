@@ -1,23 +1,28 @@
 # Cloud Run deployment
 
-Production builds and deployments are deliberately separate because each new
-Cloud Run revision starts the application and authenticates with AdvancedMD.
+Production deploys are automatic after the required tests and image build
+succeed. Each `main` build is one sequential pipeline, so a failed test, build,
+or image push cannot change Cloud Run.
 
-## Build
+## Automatic production pipeline
 
 The `abita-middleware-main-build` trigger runs for every push to `main`:
 
 1. Run `go test ./...`.
 2. Build the production `Dockerfile`.
 3. Push an immutable image tagged with the full Git commit SHA.
+4. Deploy that exact image to Cloud Run.
 
-The build trigger cannot deploy Cloud Run or read runtime secrets.
+The trigger can deploy Cloud Run but cannot read runtime secret values. The
+runtime service account reads the pinned Secret Manager versions when the
+container starts.
 
-## Deploy
+## Manual redeploy
 
 Run the `abita-middleware-production-deploy` manual trigger with
-`_IMAGE_TAG=<full 40-character commit SHA>`. The trigger rejects mutable tags
-and abbreviated SHAs.
+`_IMAGE_TAG=<full 40-character commit SHA>` to redeploy or roll back to an image
+that the automatic pipeline already built. The trigger rejects mutable tags and
+abbreviated SHAs.
 
 The deploy trigger creates one production revision with:
 
@@ -32,18 +37,15 @@ The deploy trigger creates one production revision with:
 - public access with the Cloud Run invoker IAM check disabled
 - explicit Secret Manager versions
 
-Do not use gradual traffic splitting. Deploy during low traffic, then verify:
+Do not use gradual traffic splitting. After a deployment, verify:
 
 1. Logs contain `Token refreshed successfully` and `Token manager started`.
 2. `GET /health` returns `{"status":"ok"}`.
 3. A synthetic read-only patient resolve returns HTTP 200.
 
-Only after those checks should the agent's `AMD_API_URL` change.
-
 ## Rollback
 
-If Cloud Run fails before the agent URL changes, delete the Cloud Run service
-and restart Railway so Railway obtains a fresh AdvancedMD token.
-
-If traffic has already moved, restore the Railway URL first, restart Railway,
-verify `/health`, and then delete or stop Cloud Run.
+Run the manual trigger with the last known-good full commit SHA. If Cloud Run
+itself is unavailable, reconnect and restart Railway, restore the Railway URL in
+the agent, and verify `/health`. Never leave Railway and Cloud Run running as
+long-lived AdvancedMD token owners.

@@ -14,13 +14,51 @@ steps:
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}:$COMMIT_SHA
       - .
 
-images:
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}:$COMMIT_SHA
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}:$COMMIT_SHA
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/google-cloud-cli:stable
+    entrypoint: /bin/bash
+    args:
+      - -ceu
+      - |
+        gcloud run deploy ${_SERVICE} \
+          --project=$PROJECT_ID \
+          --region=${_REGION} \
+          --platform=managed \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}:$COMMIT_SHA \
+          --service-account=${_RUNTIME_SERVICE_ACCOUNT} \
+          --execution-environment=gen2 \
+          --cpu=1 \
+          --memory=512Mi \
+          --min=1 \
+          --max=1 \
+          --concurrency=20 \
+          --timeout=60s \
+          --no-cpu-throttling \
+          --cpu-boost \
+          --port=8080 \
+          --startup-probe=httpGet.path=/health,httpGet.port=8080 \
+          --readiness-probe=httpGet.path=/health,httpGet.port=8080 \
+          --set-env-vars=AMD_ENV=prod,ALLOW_RAW_SLOT_BOOKING=false \
+          --set-secrets=ADVANCEDMD_USERNAME=advancedmd-username:2,ADVANCEDMD_PASSWORD=advancedmd-password:2,ADVANCEDMD_OFFICE_KEY=advancedmd-office-key:2,ADVANCEDMD_APP_NAME=advancedmd-app-name:2,API_SECRET=middleware-api-secret:2,BOOKING_TOKEN_SECRET=booking-token-secret:2 \
+          --network=acuity-prod \
+          --subnet=cloud-run-us-east4 \
+          --vpc-egress=all-traffic \
+          --ingress=all \
+          --no-invoker-iam-check \
+          --quiet
 
 substitutions:
   _REGION: us-east4
   _REPOSITORY: services
   _IMAGE: abita-middleware
+  _SERVICE: abita-middleware
+  _RUNTIME_SERVICE_ACCOUNT: abita-middleware@acuity-health-prod.iam.gserviceaccount.com
 
 options:
   logging: CLOUD_LOGGING_ONLY
