@@ -29,7 +29,7 @@ steps:
           --startup-probe=httpGet.path=/health,httpGet.port=8080 \
           --readiness-probe=httpGet.path=/health,httpGet.port=8080 \
           --set-env-vars=AMD_ENV=prod,ALLOW_RAW_SLOT_BOOKING=false \
-          --set-secrets=ADVANCEDMD_USERNAME=advancedmd-username:2,ADVANCEDMD_PASSWORD=advancedmd-password:2,ADVANCEDMD_OFFICE_KEY=advancedmd-office-key:2,ADVANCEDMD_APP_NAME=advancedmd-app-name:2,API_SECRET=middleware-api-secret:1,BOOKING_TOKEN_SECRET=booking-token-secret:1 \
+          --set-secrets=ADVANCEDMD_USERNAME=advancedmd-username:2,ADVANCEDMD_PASSWORD=advancedmd-password:2,ADVANCEDMD_OFFICE_KEY=advancedmd-office-key:2,ADVANCEDMD_APP_NAME=advancedmd-app-name:2,API_SECRET=middleware-api-secret:2,BOOKING_TOKEN_SECRET=booking-token-secret:2 \
           --network=acuity-prod \
           --subnet=cloud-run-us-east4 \
           --vpc-egress=all-traffic \
