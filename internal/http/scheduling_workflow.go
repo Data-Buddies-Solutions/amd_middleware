@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"advancedmd-token-management/internal/auth"
 	"advancedmd-token-management/internal/clients"
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/safeerrors"
+	"advancedmd-token-management/internal/session"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -26,7 +26,7 @@ const (
 )
 
 type schedulingWorkflow struct {
-	tokenManager       *auth.TokenManager
+	session            session.Session
 	setupClient        *clients.AdvancedMDClient
 	appointmentClient  *clients.AdvancedMDRestClient
 	bookingTokenSecret string
@@ -50,9 +50,9 @@ func invalidBookingTokenError() *workflowError {
 	}
 }
 
-func newSchedulingWorkflow(tokenManager *auth.TokenManager, setupClient *clients.AdvancedMDClient, appointmentClient *clients.AdvancedMDRestClient, bookingTokenSecret string) *schedulingWorkflow {
+func newSchedulingWorkflow(amdSession session.Session, setupClient *clients.AdvancedMDClient, appointmentClient *clients.AdvancedMDRestClient, bookingTokenSecret string) *schedulingWorkflow {
 	return &schedulingWorkflow{
-		tokenManager:       tokenManager,
+		session:            amdSession,
 		setupClient:        setupClient,
 		appointmentClient:  appointmentClient,
 		bookingTokenSecret: bookingTokenSecret,
@@ -395,10 +395,10 @@ func (w *schedulingWorkflow) Book(ctx context.Context, req BookAppointmentReques
 }
 
 func (w *schedulingWorkflow) getToken(ctx context.Context) (*domain.TokenData, error) {
-	if w.tokenManager == nil {
-		return nil, fmt.Errorf("token manager is not configured")
+	if w.session == nil {
+		return nil, fmt.Errorf("session is not configured")
 	}
-	return w.tokenManager.GetToken(ctx)
+	return w.session.Get(ctx)
 }
 
 func (w *schedulingWorkflow) getSchedulerSetup(ctx context.Context, tokenData *domain.TokenData, now time.Time) (*domain.SchedulerSetup, error) {

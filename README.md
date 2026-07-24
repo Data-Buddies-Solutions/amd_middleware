@@ -10,7 +10,11 @@ experiment has been removed.
 
 ## Current Capabilities
 
-- Caches AdvancedMD session tokens and refreshes them in the background.
+- Owns AdvancedMD credentials and token state in one explicit Session lifecycle.
+- Reuses fresh sessions, performs single-flight request-time authentication,
+  and keeps a usable last-known-good session when refresh temporarily fails.
+- Temporarily retains the existing background refresh while correctness moves
+  to request-time Session behavior.
 - Exposes authenticated JSON endpoints for the voice agent.
 - Resolves offices by trunk phone number, office name, or display name.
 - Keeps AMD facility IDs, scheduler columns, profile IDs, and routing tiers in
@@ -34,7 +38,7 @@ LiveKit agent
   -> POST /api/appointment/cancel
 
 AdvancedMD middleware
-  -> in-memory token manager with background refresh
+  -> in-memory Session owner with request-time fallback and background refresh
   -> AdvancedMD XMLRPC APIs for patients, demographics, scheduler setup
   -> AdvancedMD REST APIs for appointments, block holds, booking, cancellation
 ```
@@ -50,9 +54,6 @@ advancedmd-token-management/
 |-- docs/
 |   `-- advancedmd-api.md
 |-- internal/
-|   |-- auth/
-|   |   |-- authenticator.go
-|   |   `-- token_manager.go
 |   |-- clients/
 |   |   |-- advancedmd_rest.go
 |   |   `-- advancedmd_xmlrpc.go
@@ -64,6 +65,10 @@ advancedmd-token-management/
 |   |   |-- patient.go
 |   |   |-- scheduler.go
 |   |   `-- token.go
+|   |-- session/
+|   |   |-- authenticator.go
+|   |   |-- background.go
+|   |   `-- session.go
 |   `-- http/
 |       |-- handlers.go
 |       |-- middleware.go
@@ -123,21 +128,26 @@ go test ./...
 ## Cloud Run
 
 The server listens on `0.0.0.0:$PORT`; Cloud Run injects `PORT` automatically,
-so do not set it as a service environment variable. The unauthenticated health
-endpoint is `GET /health`. All `/api/*` routes still require `API_SECRET`.
+so do not set it as a service environment variable. `GET /live` reports process
+liveness, `GET /ready` reports local readiness, and the compatible `GET /health`
+route remains available. All `/api/*` routes still require `API_SECRET`.
 
 Use these service-level settings:
 
 - Minimum instances: `1`
 - Maximum instances: `1`
 - CPU allocation: always allocated (CPU throttling disabled)
-- Startup and readiness probes: HTTP `GET /health` on port `8080`
+- Startup probe: HTTP `GET /live` on port `8080`
+- Readiness probe: HTTP `GET /ready` on port `8080`
 
 One instance is intentional. The AdvancedMD session token and scheduler setup
-cache live in memory, and the token manager refreshes in a background goroutine.
-Scaling to multiple instances would create independent token/cache state and
-duplicate refresh loops. Always-allocated CPU keeps that background refresh
-running between requests.
+cache live in memory. The Session implementation is the only credential and
+token owner; it starts request-time authentication when needed and shares one
+in-flight login across concurrent callers. A session becomes stale after 19
+hours and is never treated as safe after the existing 20-hour production
+rotation boundary. The background refresh and always-allocated CPU remain
+temporarily unchanged for this release. Scaling to multiple instances would
+still create independent token/cache state and duplicate refresh loops.
 
 Example build and deployment (replace project, region, repository, service
 account, and Secret Manager names):
@@ -159,8 +169,8 @@ gcloud run deploy abita-middleware \
   --max 1 \
   --no-cpu-throttling \
   --port 8080 \
-  --startup-probe httpGet.path=/health,httpGet.port=8080 \
-  --readiness-probe httpGet.path=/health,httpGet.port=8080 \
+  --startup-probe httpGet.path=/live,httpGet.port=8080 \
+  --readiness-probe httpGet.path=/ready,httpGet.port=8080 \
   --set-env-vars AMD_ENV=prod,ALLOW_RAW_SLOT_BOOKING=false \
   --set-secrets ADVANCEDMD_USERNAME=advancedmd-username:latest,ADVANCEDMD_PASSWORD=advancedmd-password:latest,ADVANCEDMD_OFFICE_KEY=advancedmd-office-key:latest,ADVANCEDMD_APP_NAME=advancedmd-app-name:latest,API_SECRET=middleware-api-secret:latest,BOOKING_TOKEN_SECRET=booking-token-secret:latest \
   --no-allow-unauthenticated
@@ -179,15 +189,16 @@ production secret limits cross-use between API authentication and signed tokens.
 
 ## Authentication
 
-`GET /health` is unauthenticated. Every `/api/*` route requires:
+`GET /health`, `GET /live`, and `GET /ready` are unauthenticated. Every
+`/api/*` route requires:
 
 ```http
 Authorization: Bearer <API_SECRET>
 Content-Type: application/json
 ```
 
-The service performs AdvancedMD's two-step login internally and caches the token.
-Callers do not send AMD credentials or raw AMD session tokens.
+The Session module performs AdvancedMD's two-step login internally and caches
+the token. Callers do not send AMD credentials or raw AMD session tokens.
 
 ## Office Registry
 
@@ -297,10 +308,27 @@ medical routing, and Crystal River-specific types outside Crystal River.
 
 ### GET /health
 
-Returns:
+Compatibility alias for process liveness. Returns:
 
 ```json
 {"status":"ok"}
+```
+
+### GET /live
+
+Reports process liveness without calling AdvancedMD:
+
+```json
+{"status":"ok"}
+```
+
+### GET /ready
+
+Reports that local initialization completed and the process can accept traffic.
+AdvancedMD outages do not make this probe fail:
+
+```json
+{"status":"ready"}
 ```
 
 ### POST /api/patient/resolve

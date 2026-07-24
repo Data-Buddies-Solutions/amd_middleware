@@ -1,8 +1,9 @@
-// Package auth handles AdvancedMD authentication.
-package auth
+// Package session owns the AdvancedMD authentication and token lifecycle.
+package session
 
 import (
 	"bytes"
+	"context"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -51,22 +52,21 @@ type Fault struct {
 	Description string `xml:"detail>description"`
 }
 
-// Authenticator handles AdvancedMD 2-step authentication.
-type Authenticator struct {
+// advancedMDLogin is the private provider boundary used only by sessionImpl.
+type advancedMDLogin struct {
 	creds  Credentials
 	client *http.Client
 }
 
-// NewAuthenticator creates a new Authenticator with the given credentials and HTTP client.
-func NewAuthenticator(creds Credentials, client *http.Client) *Authenticator {
-	return &Authenticator{
+func newAdvancedMDLogin(creds Credentials, client *http.Client) *advancedMDLogin {
+	return &advancedMDLogin{
 		creds:  creds,
 		client: client,
 	}
 }
 
 // buildLoginXML creates the XML payload for AdvancedMD login requests.
-func (a *Authenticator) buildLoginXML() string {
+func (a *advancedMDLogin) buildLoginXML() string {
 	now := time.Now().Format("1/2/2006 3:04:05 PM")
 	return fmt.Sprintf(
 		`<ppmdmsg action="login" class="login" msgtime="%s" username="%s" psw="%s" officecode="%s" appname="%s"/>`,
@@ -89,25 +89,36 @@ func parseXMLResponse(body []byte) (*PPMDResults, error) {
 	return &result, nil
 }
 
-// GetWebserver performs Step 1 of the AdvancedMD login process.
-// Returns the account-specific webserver URL.
-func (a *Authenticator) GetWebserver() (string, error) {
-	url := "https://partnerlogin.advancedmd.com/practicemanager/xmlrpc/processrequest.aspx"
-
-	resp, err := a.client.Post(url, "application/xml", strings.NewReader(a.buildLoginXML()))
+func (a *advancedMDLogin) postLogin(ctx context.Context, url string) (*PPMDResults, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(a.buildLoginXML()))
 	if err != nil {
-		return "", fmt.Errorf("failed to send request: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/xml")
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read response: %w", err)
+		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	result, err := parseXMLResponse(body)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse XML response: %w", err)
+		return nil, fmt.Errorf("failed to parse XML response: %w", err)
+	}
+	return result, nil
+}
+
+// getWebserver performs Step 1 of the AdvancedMD login process.
+func (a *advancedMDLogin) getWebserver(ctx context.Context) (string, error) {
+	const url = "https://partnerlogin.advancedmd.com/practicemanager/xmlrpc/processrequest.aspx"
+	result, err := a.postLogin(ctx, url)
+	if err != nil {
+		return "", err
 	}
 
 	webserver := result.Results.UserContext.Webserver
@@ -118,25 +129,12 @@ func (a *Authenticator) GetWebserver() (string, error) {
 	return webserver, nil
 }
 
-// GetAuthToken performs Step 2 of the AdvancedMD login process.
-// Returns the session token from the account-specific webserver.
-func (a *Authenticator) GetAuthToken(webserverURL string) (string, error) {
+// getAuthToken performs Step 2 of the AdvancedMD login process.
+func (a *advancedMDLogin) getAuthToken(ctx context.Context, webserverURL string) (string, error) {
 	url := webserverURL + "/xmlrpc/processrequest.aspx"
-
-	resp, err := a.client.Post(url, "application/xml", strings.NewReader(a.buildLoginXML()))
+	result, err := a.postLogin(ctx, url)
 	if err != nil {
-		return "", fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read response: %w", err)
-	}
-
-	result, err := parseXMLResponse(body)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse XML response: %w", err)
+		return "", err
 	}
 
 	if result.Results.Success != "1" {
@@ -153,13 +151,13 @@ func (a *Authenticator) GetAuthToken(webserverURL string) (string, error) {
 }
 
 // Authenticate performs the complete 2-step AdvancedMD authentication flow.
-func (a *Authenticator) Authenticate() (token, webserverURL string, err error) {
-	webserverURL, err = a.GetWebserver()
+func (a *advancedMDLogin) Authenticate(ctx context.Context) (token, webserverURL string, err error) {
+	webserverURL, err = a.getWebserver(ctx)
 	if err != nil {
 		return "", "", fmt.Errorf("step 1 (get webserver) failed: %w", err)
 	}
 
-	token, err = a.GetAuthToken(webserverURL)
+	token, err = a.getAuthToken(ctx, webserverURL)
 	if err != nil {
 		return "", "", fmt.Errorf("step 2 (get token) failed: %w", err)
 	}

@@ -9,12 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"advancedmd-token-management/internal/auth"
 	"advancedmd-token-management/internal/clients"
 	"advancedmd-token-management/internal/config"
 	"advancedmd-token-management/internal/domain"
 	apphttp "advancedmd-token-management/internal/http"
-	"advancedmd-token-management/internal/safeerrors"
+	"advancedmd-token-management/internal/session"
 )
 
 const version = "1.0.0"
@@ -44,24 +43,19 @@ func main() {
 		},
 	}
 
-	// Initialize authenticator
-	authenticator := auth.NewAuthenticator(auth.Credentials{
+	// Initialize the single owner for AdvancedMD authentication and token state.
+	amdSession := session.NewSession(session.Credentials{
 		Username:  cfg.AdvancedMDUsername,
 		Password:  cfg.AdvancedMDPassword,
 		OfficeKey: cfg.AdvancedMDOfficeKey,
 		AppName:   cfg.AdvancedMDAppName,
 	}, httpClient)
 
-	// Initialize token manager
-	tokenManager := auth.NewTokenManager(authenticator)
-
-	// Start token manager (loads cache and starts background refresh)
-	ctx := context.Background()
-	if err := tokenManager.Start(ctx); err != nil {
-		log.Fatalf("Failed to start token manager: category=%s", safeerrors.Classify(err))
-	}
-	defer tokenManager.Stop()
-	log.Println("Token manager started")
+	// Preserve the production background refresh temporarily. Provider requests
+	// no longer depend on it because Session performs request-time recovery.
+	backgroundMaintenance := session.StartBackgroundMaintenance(amdSession)
+	defer backgroundMaintenance.Stop()
+	log.Println("Session background maintenance started")
 
 	// Initialize AdvancedMD XMLRPC client
 	amdClient := clients.NewAdvancedMDClient(httpClient)
@@ -70,7 +64,7 @@ func main() {
 	amdRestClient := clients.NewAdvancedMDRestClient(httpClient)
 
 	// Initialize handlers
-	handlers := apphttp.NewHandlers(tokenManager, amdClient, amdRestClient, cfg.BookingTokenSecret)
+	handlers := apphttp.NewHandlers(amdSession, amdClient, amdRestClient, cfg.BookingTokenSecret)
 	handlers.SetAllowRawSlotBooking(cfg.AllowRawSlotBooking)
 
 	// Create router

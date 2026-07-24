@@ -18,6 +18,7 @@ const (
 	CategoryNetwork         Category = "network"
 	CategoryConflict        Category = "conflict"
 	CategoryAuthentication  Category = "authentication"
+	CategoryUnavailable     Category = "unavailable"
 	CategoryUpstreamStatus  Category = "upstream_status"
 	CategoryInvalidResponse Category = "invalid_response"
 	CategoryInternal        Category = "internal"
@@ -47,6 +48,8 @@ func Classify(err error) Category {
 	switch {
 	case strings.Contains(message, "conflict"):
 		return CategoryConflict
+	case strings.Contains(message, "session unavailable"):
+		return CategoryUnavailable
 	case containsAny(message, "401", "403", "unauthorized", "forbidden", "credential", "login failed", "no token"):
 		return CategoryAuthentication
 	case strings.Contains(message, "unexpected status"):

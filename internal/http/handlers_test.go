@@ -14,18 +14,18 @@ import (
 	"testing"
 	"time"
 
-	"advancedmd-token-management/internal/auth"
 	"advancedmd-token-management/internal/clients"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/session"
 )
 
-func TestHandleHealth(t *testing.T) {
+func TestHandleLive(t *testing.T) {
 	handlers := &Handlers{}
 
-	req := httptest.NewRequest("GET", "/health", nil)
+	req := httptest.NewRequest("GET", "/live", nil)
 	w := httptest.NewRecorder()
 
-	handlers.HandleHealth(w, req)
+	handlers.HandleLive(w, req)
 
 	resp := w.Result()
 	if resp.StatusCode != http.StatusOK {
@@ -37,6 +37,42 @@ func TestHandleHealth(t *testing.T) {
 	if body["status"] != "ok" {
 		t.Errorf("Expected status 'ok', got '%s'", body["status"])
 	}
+}
+
+func TestPatientResolveKeepsStableResponseWhenSessionUnavailable(t *testing.T) {
+	handlers := NewHandlers(unavailableSession{}, nil, nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"patientId":"123"}`))
+	w := httptest.NewRecorder()
+
+	handlers.HandlePatientResolve(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status code = %d, want 200", w.Code)
+	}
+	var body ErrorResponse
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Status != "error" {
+		t.Fatalf("status = %q, want error", body.Status)
+	}
+	if body.Message != "Service authentication is temporarily unavailable. Please try again." {
+		t.Fatalf("message = %q", body.Message)
+	}
+}
+
+type unavailableSession struct{}
+
+func (unavailableSession) Get(context.Context) (*domain.TokenData, error) {
+	return nil, session.ErrSessionUnavailable
+}
+
+func (unavailableSession) Maintain(context.Context) error {
+	return session.ErrSessionUnavailable
+}
+
+func (unavailableSession) Status() session.SessionStatus {
+	return session.SessionStatus{State: session.SessionUnavailable}
 }
 
 func TestApplyDemographicsToResolveResponsePreservesPreauthorization(t *testing.T) {
@@ -1259,14 +1295,14 @@ func TestHandleBookAppointment_UsesSignedSlotForceDecision(t *testing.T) {
 			}, nil
 		}),
 	}
-	authenticator := auth.NewAuthenticator(auth.Credentials{
+	amdSession := session.NewSession(session.Credentials{
 		Username:  "user",
 		Password:  "pass",
 		OfficeKey: "office",
 		AppName:   "app",
 	}, httpClient)
 	handlers := NewHandlers(
-		auth.NewTokenManager(authenticator),
+		amdSession,
 		nil,
 		clients.NewAdvancedMDRestClient(httpClient),
 		"test-booking-secret",
@@ -1342,14 +1378,14 @@ func TestHandleBookAppointment_SendsAppointmentCommentsInBookingPayload(t *testi
 			}, nil
 		}),
 	}
-	authenticator := auth.NewAuthenticator(auth.Credentials{
+	amdSession := session.NewSession(session.Credentials{
 		Username:  "user",
 		Password:  "pass",
 		OfficeKey: "office",
 		AppName:   "app",
 	}, httpClient)
 	handlers := NewHandlers(
-		auth.NewTokenManager(authenticator),
+		amdSession,
 		nil,
 		clients.NewAdvancedMDRestClient(httpClient),
 		"test-booking-secret",
@@ -2124,18 +2160,35 @@ func TestAppointmentTypeNames(t *testing.T) {
 func TestRouter(t *testing.T) {
 	// Create minimal handlers for testing
 	amdClient := clients.NewAdvancedMDClient(&http.Client{})
-	handlers := NewHandlers(nil, amdClient, nil) // nil token manager - can't test full flow
+	handlers := NewHandlers(nil, amdClient, nil) // nil session - can't test full flow
 
 	router := NewRouter(handlers, "test-secret")
 
 	t.Run("health endpoint no auth", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/health", nil)
-		w := httptest.NewRecorder()
+		tests := []struct {
+			path       string
+			wantStatus string
+		}{
+			{path: "/health", wantStatus: "ok"},
+			{path: "/live", wantStatus: "ok"},
+			{path: "/ready", wantStatus: "ready"},
+		}
+		for _, tt := range tests {
+			req := httptest.NewRequest("GET", tt.path, nil)
+			w := httptest.NewRecorder()
 
-		router.ServeHTTP(w, req)
+			router.ServeHTTP(w, req)
 
-		if w.Code != http.StatusOK {
-			t.Errorf("Expected 200, got %d", w.Code)
+			if w.Code != http.StatusOK {
+				t.Errorf("%s: expected 200, got %d", tt.path, w.Code)
+				continue
+			}
+			var body map[string]string
+			if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+				t.Errorf("%s: decode response: %v", tt.path, err)
+			} else if body["status"] != tt.wantStatus {
+				t.Errorf("%s: status = %q, want %q", tt.path, body["status"], tt.wantStatus)
+			}
 		}
 	})
 
@@ -2177,9 +2230,9 @@ func TestRouter(t *testing.T) {
 	})
 
 	t.Run("api endpoints with auth", func(t *testing.T) {
-		// Skip this test - it requires a real token manager
+		// Skip this test - it requires a real session
 		// The important thing is that auth middleware works (tested above)
-		t.Skip("Requires non-nil token manager")
+		t.Skip("Requires non-nil session")
 	})
 }
 
@@ -2503,7 +2556,7 @@ func newCancelAppointmentTestHandlers(t *testing.T, patientID int, appointmentID
 			}, nil
 		}),
 	}
-	authenticator := auth.NewAuthenticator(auth.Credentials{
+	amdSession := session.NewSession(session.Credentials{
 		Username:  "user",
 		Password:  "pass",
 		OfficeKey: "office",
@@ -2511,7 +2564,7 @@ func newCancelAppointmentTestHandlers(t *testing.T, patientID int, appointmentID
 	}, httpClient)
 
 	return NewHandlers(
-		auth.NewTokenManager(authenticator),
+		amdSession,
 		nil,
 		clients.NewAdvancedMDRestClient(httpClient),
 		"test-booking-secret",
@@ -2552,12 +2605,12 @@ func newProviderFailureTestHandlers(t *testing.T, fail func(*http.Request, []byt
 			}, nil
 		}),
 	}
-	authenticator := auth.NewAuthenticator(auth.Credentials{
+	amdSession := session.NewSession(session.Credentials{
 		Username: "user", Password: "pass", OfficeKey: "office", AppName: "app",
 	}, httpClient)
 
 	return NewHandlers(
-		auth.NewTokenManager(authenticator),
+		amdSession,
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
 		"test-booking-secret",
@@ -2592,16 +2645,15 @@ func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {
 		}),
 	}
 
-	authenticator := auth.NewAuthenticator(auth.Credentials{
+	amdSession := session.NewSession(session.Credentials{
 		Username:  "user",
 		Password:  "pass",
 		OfficeKey: "office",
 		AppName:   "app",
 	}, httpClient)
-	tokenManager := auth.NewTokenManager(authenticator)
 
 	return NewHandlers(
-		tokenManager,
+		amdSession,
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
 	), &writes
@@ -2725,16 +2777,15 @@ func newPatientResolveTestHandlers(t *testing.T, appointmentStatus int) *Handler
 		}),
 	}
 
-	authenticator := auth.NewAuthenticator(auth.Credentials{
+	amdSession := session.NewSession(session.Credentials{
 		Username:  "user",
 		Password:  "pass",
 		OfficeKey: "office",
 		AppName:   "app",
 	}, httpClient)
-	tokenManager := auth.NewTokenManager(authenticator)
 
 	return NewHandlers(
-		tokenManager,
+		amdSession,
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
 		"test-booking-secret",

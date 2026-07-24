@@ -60,6 +60,11 @@ func buildEhrApiBase(webserverURL string) string {
 
 // BuildTokenData creates a complete TokenData struct with all pre-built URLs.
 func BuildTokenData(token, webserverURL string) *TokenData {
+	return BuildTokenDataAt(token, webserverURL, time.Now())
+}
+
+// BuildTokenDataAt creates token data with an explicit creation time.
+func BuildTokenDataAt(token, webserverURL string, createdAt time.Time) *TokenData {
 	return &TokenData{
 		Token:        "Bearer " + token,
 		CookieToken:  "token=" + token,
@@ -67,6 +72,6 @@ func BuildTokenData(token, webserverURL string) *TokenData {
 		XmlrpcURL:    buildXmlrpcURL(webserverURL),
 		RestApiBase:  buildRestApiBase(webserverURL),
 		EhrApiBase:   buildEhrApiBase(webserverURL),
-		CreatedAt:    time.Now().UTC().Format(time.RFC3339),
+		CreatedAt:    createdAt.UTC().Format(time.RFC3339),
 	}
 }
