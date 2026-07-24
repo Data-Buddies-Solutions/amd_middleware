@@ -11,8 +11,18 @@ AdvancedMD uses a two-step login:
 1. POST to `partnerlogin.advancedmd.com`.
 2. POST to the returned webserver URL.
 
-The middleware owns this flow through `internal/auth`. Tokens are cached in
-memory and refreshed by `TokenManager`.
+The middleware owns this flow through `internal/session`. The Session
+implementation is the only code that invokes login or mutates cached token
+state. It performs single-flight request-time authentication, preserves a
+still-usable last-known-good session after refresh failure, and reports
+uninitialized, refreshing, fresh, stale, degraded, or unavailable status
+without exposing credentials, tokens, or provider URLs.
+
+The existing 20-hour background maintenance loop remains temporarily. Session
+correctness no longer depends on it: the local freshness threshold is 19 hours,
+and the existing 20-hour production rotation boundary is the hard safety limit.
+These conservative local thresholds do not claim a longer undocumented
+provider token lifetime.
 
 Headers used downstream:
 

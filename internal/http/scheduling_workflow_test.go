@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"advancedmd-token-management/internal/auth"
 	"advancedmd-token-management/internal/clients"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/session"
 )
 
 func TestSchedulingWorkflow_SignedAvailableSlotBooksWithSamePolicyAndReceipt(t *testing.T) {
@@ -225,14 +225,14 @@ func newSchedulingWorkflowTestHarness(t *testing.T, now time.Time, searchDate st
 		}, nil
 	})}
 
-	authenticator := auth.NewAuthenticator(auth.Credentials{
+	amdSession := session.NewSession(session.Credentials{
 		Username:  "user",
 		Password:  "pass",
 		OfficeKey: "office",
 		AppName:   "app",
 	}, httpClient)
 	workflow := newSchedulingWorkflow(
-		auth.NewTokenManager(authenticator),
+		amdSession,
 		nil,
 		clients.NewAdvancedMDRestClient(httpClient),
 		"test-booking-secret",

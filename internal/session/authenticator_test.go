@@ -1,58 +1,13 @@
-package auth
+package session
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-func TestAuthenticator_GetWebserver(t *testing.T) {
-	// Mock server for step 1 - returns webserver URL
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify content type
-		if r.Header.Get("Content-Type") != "application/xml" {
-			t.Errorf("Expected Content-Type application/xml, got %s", r.Header.Get("Content-Type"))
-		}
-
-		// Return step 1 response with webserver URL
-		w.Header().Set("Content-Type", "application/xml")
-		w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
-			<PPMDResults>
-				<Results success="0">
-					<usercontext webserver="https://providerapi.advancedmd.com/processrequest/api-801/testapp"></usercontext>
-				</Results>
-				<Error>
-					<Fault>
-						<detail>
-							<code>-2147220476</code>
-							<description>redirect</description>
-						</detail>
-					</Fault>
-				</Error>
-			</PPMDResults>`))
-	}))
-	defer server.Close()
-
-	// Create authenticator with mock server
-	_ = &Authenticator{
-		creds: Credentials{
-			Username:  "testuser",
-			Password:  "testpass",
-			OfficeKey: "991TEST",
-			AppName:   "testapp",
-		},
-		client: server.Client(),
-	}
-
-	// Override the URL for testing - we need to actually call our mock
-	// In real tests we'd use dependency injection for the URL
-	t.Run("parses webserver URL from response", func(t *testing.T) {
-		// This test demonstrates the response parsing works
-		// A full integration test would hit the real endpoint
-	})
-}
-
-func TestAuthenticator_GetAuthToken(t *testing.T) {
+func TestAdvancedMDLoginGetsAuthToken(t *testing.T) {
 	// Mock server for step 2 - returns token
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/xml")
@@ -65,7 +20,7 @@ func TestAuthenticator_GetAuthToken(t *testing.T) {
 	}))
 	defer server.Close()
 
-	auth := &Authenticator{
+	login := &advancedMDLogin{
 		creds: Credentials{
 			Username:  "testuser",
 			Password:  "testpass",
@@ -75,7 +30,7 @@ func TestAuthenticator_GetAuthToken(t *testing.T) {
 		client: server.Client(),
 	}
 
-	token, err := auth.GetAuthToken(server.URL)
+	token, err := login.getAuthToken(context.Background(), server.URL)
 	if err != nil {
 		t.Fatalf("GetAuthToken failed: %v", err)
 	}
@@ -85,7 +40,7 @@ func TestAuthenticator_GetAuthToken(t *testing.T) {
 	}
 }
 
-func TestAuthenticator_GetAuthToken_Failure(t *testing.T) {
+func TestAdvancedMDLoginRejectsFailedAuthToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/xml")
 		w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
@@ -105,7 +60,7 @@ func TestAuthenticator_GetAuthToken_Failure(t *testing.T) {
 	}))
 	defer server.Close()
 
-	auth := &Authenticator{
+	login := &advancedMDLogin{
 		creds: Credentials{
 			Username:  "baduser",
 			Password:  "badpass",
@@ -115,7 +70,7 @@ func TestAuthenticator_GetAuthToken_Failure(t *testing.T) {
 		client: server.Client(),
 	}
 
-	_, err := auth.GetAuthToken(server.URL)
+	_, err := login.getAuthToken(context.Background(), server.URL)
 	if err == nil {
 		t.Error("Expected error for failed auth, got nil")
 	}

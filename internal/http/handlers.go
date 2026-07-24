@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"advancedmd-token-management/internal/auth"
 	"advancedmd-token-management/internal/clients"
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/safeerrors"
+	"advancedmd-token-management/internal/session"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -79,24 +79,24 @@ const (
 
 // Handlers holds the dependencies for HTTP handlers.
 type Handlers struct {
-	tokenManager       *auth.TokenManager
+	session            session.Session
 	amdClient          *clients.AdvancedMDClient
 	amdRestClient      *clients.AdvancedMDRestClient
 	schedulingWorkflow *schedulingWorkflow
 }
 
 // NewHandlers creates a new Handlers instance.
-func NewHandlers(tm *auth.TokenManager, amdClient *clients.AdvancedMDClient, amdRestClient *clients.AdvancedMDRestClient, bookingTokenSecret ...string) *Handlers {
+func NewHandlers(amdSession session.Session, amdClient *clients.AdvancedMDClient, amdRestClient *clients.AdvancedMDRestClient, bookingTokenSecret ...string) *Handlers {
 	secret := ""
 	if len(bookingTokenSecret) > 0 {
 		secret = bookingTokenSecret[0]
 	}
 	handlers := &Handlers{
-		tokenManager:  tm,
+		session:       amdSession,
 		amdClient:     amdClient,
 		amdRestClient: amdRestClient,
 	}
-	handlers.schedulingWorkflow = newSchedulingWorkflow(tm, amdClient, amdRestClient, secret)
+	handlers.schedulingWorkflow = newSchedulingWorkflow(amdSession, amdClient, amdRestClient, secret)
 	return handlers
 }
 
@@ -107,7 +107,7 @@ func (h *Handlers) SetAllowRawSlotBooking(allow bool) {
 
 func (h *Handlers) workflow() *schedulingWorkflow {
 	if h.schedulingWorkflow == nil {
-		h.schedulingWorkflow = newSchedulingWorkflow(h.tokenManager, h.amdClient, h.amdRestClient, "")
+		h.schedulingWorkflow = newSchedulingWorkflow(h.session, h.amdClient, h.amdRestClient, "")
 	}
 	return h.schedulingWorkflow
 }
@@ -135,10 +135,17 @@ func validateOptionalDOB(dob string) error {
 	return nil
 }
 
-// HandleHealth returns a simple health check response.
-func (h *Handlers) HandleHealth(w http.ResponseWriter, r *http.Request) {
+// HandleLive reports process liveness without calling AdvancedMD.
+func (h *Handlers) HandleLive(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"status":"ok"}`))
+}
+
+// HandleReady reports that local initialization completed and HTTP traffic can
+// be accepted. AdvancedMD session health remains a separate signal.
+func (h *Handlers) HandleReady(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"status":"ready"}`))
 }
 
 // AddPatientRequest is the expected JSON body for patient creation.
@@ -238,7 +245,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 	normalizedEmail := strings.TrimSpace(req.Email)
 
 	// Get auth token
-	tokenData, err := h.tokenManager.GetToken(r.Context())
+	tokenData, err := h.session.Get(r.Context())
 	if err != nil {
 		log.Printf("add-patient: authentication failed category=%s", safeerrors.Classify(err))
 		json.NewEncoder(w).Encode(AddPatientResponse{
@@ -421,7 +428,7 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	tokenData, err := h.tokenManager.GetToken(r.Context())
+	tokenData, err := h.session.Get(r.Context())
 	if err != nil {
 		log.Printf("patient-resolve: authentication failed category=%s", safeerrors.Classify(err))
 		json.NewEncoder(w).Encode(PatientResolveResponse{
@@ -867,7 +874,7 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Get auth token
-	tokenData, err := h.tokenManager.GetToken(r.Context())
+	tokenData, err := h.session.Get(r.Context())
 	if err != nil {
 		log.Printf("cancel-appointment: authentication failed category=%s", safeerrors.Classify(err))
 		json.NewEncoder(w).Encode(CancelAppointmentResponse{
@@ -1131,7 +1138,7 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Get AMD token
-	tokenData, err := h.tokenManager.GetToken(r.Context())
+	tokenData, err := h.session.Get(r.Context())
 	if err != nil {
 		log.Printf("update-insurance: authentication failed category=%s", safeerrors.Classify(err))
 		json.NewEncoder(w).Encode(UpdateInsuranceResponse{

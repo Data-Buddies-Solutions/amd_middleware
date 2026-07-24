@@ -32,16 +32,18 @@ The deploy trigger creates one production revision with:
 - always-allocated CPU
 - concurrency 20
 - 60-second request timeout
-- `/health` startup and readiness probes
+- `/live` startup and `/ready` readiness probes
 - Direct VPC egress through `acuity-prod` and `cloud-run-us-east4`
 - public access with the Cloud Run invoker IAM check disabled
 - explicit Secret Manager versions
 
 Do not use gradual traffic splitting. After a deployment, verify:
 
-1. Logs contain `Token refreshed successfully` and `Token manager started`.
-2. `GET /health` returns `{"status":"ok"}`.
-3. A synthetic read-only patient resolve returns HTTP 200.
+1. Logs contain `Session background maintenance started`.
+2. `GET /live` returns `{"status":"ok"}` and `GET /ready` returns
+   `{"status":"ready"}`.
+3. A synthetic read-only patient resolve returns HTTP 200 and exercises
+   request-time Session authentication when the revision is uninitialized.
 
 ## Rollback
 
