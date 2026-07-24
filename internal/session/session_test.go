@@ -173,6 +173,81 @@ func TestSessionUsesLastKnownGoodTokenWhenStaleRefreshFails(t *testing.T) {
 	}
 }
 
+func TestSessionReusesLastKnownGoodTokenBeforeDegradedRetry(t *testing.T) {
+	now := time.Date(2026, time.July, 24, 12, 0, 0, 0, time.UTC)
+	clock := &testClock{now: now}
+	loginCalls := 0
+	var session Session = newSession(loginAdapterFunc(func(context.Context) (string, string, error) {
+		loginCalls++
+		switch loginCalls {
+		case 1:
+			return "known-good", "https://provider.test/processrequest/api-801/app", nil
+		case 2:
+			return "", "", errors.New("temporary login failure")
+		default:
+			return "recovered-too-soon", "https://provider.test/processrequest/api-801/app", nil
+		}
+	}), clock.Now, sessionPolicy{
+		staleAfter:   time.Hour,
+		expiresAfter: 2 * time.Hour,
+		loginTimeout: time.Minute,
+	})
+
+	if _, err := session.Get(context.Background()); err != nil {
+		t.Fatalf("initial Get() error = %v", err)
+	}
+	clock.Advance(90 * time.Minute)
+	if _, err := session.Get(context.Background()); err != nil {
+		t.Fatalf("Get() with failed refresh error = %v", err)
+	}
+
+	token, err := session.Get(context.Background())
+	if err != nil {
+		t.Fatalf("Get() during degraded retry delay error = %v", err)
+	}
+	if token.Token != "Bearer known-good" {
+		t.Fatalf("Get() during degraded retry delay token = %q, want last-known-good token", token.Token)
+	}
+}
+
+func TestSessionRetriesDegradedAuthenticationAfterDelay(t *testing.T) {
+	now := time.Date(2026, time.July, 24, 12, 0, 0, 0, time.UTC)
+	clock := &testClock{now: now}
+	loginCalls := 0
+	var session Session = newSession(loginAdapterFunc(func(context.Context) (string, string, error) {
+		loginCalls++
+		switch loginCalls {
+		case 1:
+			return "known-good", "https://provider.test/processrequest/api-801/app", nil
+		case 2:
+			return "", "", errors.New("temporary login failure")
+		default:
+			return "recovered", "https://provider.test/processrequest/api-801/app", nil
+		}
+	}), clock.Now, sessionPolicy{
+		staleAfter:   time.Hour,
+		expiresAfter: 2 * time.Hour,
+		loginTimeout: time.Minute,
+	})
+
+	if _, err := session.Get(context.Background()); err != nil {
+		t.Fatalf("initial Get() error = %v", err)
+	}
+	clock.Advance(90 * time.Minute)
+	if _, err := session.Get(context.Background()); err != nil {
+		t.Fatalf("Get() with failed refresh error = %v", err)
+	}
+	clock.Advance(time.Minute)
+
+	token, err := session.Get(context.Background())
+	if err != nil {
+		t.Fatalf("Get() after degraded retry delay error = %v", err)
+	}
+	if token.Token != "Bearer recovered" {
+		t.Fatalf("Get() after degraded retry delay token = %q, want recovered token", token.Token)
+	}
+}
+
 func TestSessionStatusReportsSafeTimingWithoutSessionData(t *testing.T) {
 	now := time.Date(2026, time.July, 24, 12, 0, 0, 0, time.UTC)
 	clock := &testClock{now: now}
@@ -323,6 +398,71 @@ func TestSessionMaintenanceFailureKeepsUsableSessionDegraded(t *testing.T) {
 	}
 	if afterFailure.Token != original.Token {
 		t.Fatalf("maintenance failure replaced last-known-good token: %q", afterFailure.Token)
+	}
+}
+
+func TestSessionFreshGetDoesNotWaitForMaintenance(t *testing.T) {
+	now := time.Date(2026, time.July, 24, 12, 0, 0, 0, time.UTC)
+	clock := &testClock{now: now}
+	maintenanceStarted := make(chan struct{})
+	releaseMaintenance := make(chan struct{})
+	var loginCalls atomic.Int32
+	var session Session = newSession(loginAdapterFunc(func(ctx context.Context) (string, string, error) {
+		if loginCalls.Add(1) == 1 {
+			return "known-good", "https://provider.test/processrequest/api-801/app", nil
+		}
+		close(maintenanceStarted)
+		select {
+		case <-releaseMaintenance:
+			return "refreshed", "https://provider.test/processrequest/api-801/app", nil
+		case <-ctx.Done():
+			return "", "", ctx.Err()
+		}
+	}), clock.Now, sessionPolicy{
+		staleAfter:   time.Hour,
+		expiresAfter: 2 * time.Hour,
+		loginTimeout: time.Minute,
+	})
+
+	if _, err := session.Get(context.Background()); err != nil {
+		t.Fatalf("initial Get() error = %v", err)
+	}
+	maintenanceDone := make(chan error, 1)
+	go func() {
+		maintenanceDone <- session.Maintain(context.Background())
+	}()
+	<-maintenanceStarted
+
+	type getResult struct {
+		token string
+		err   error
+	}
+	getDone := make(chan getResult, 1)
+	go func() {
+		token, err := session.Get(context.Background())
+		result := getResult{err: err}
+		if token != nil {
+			result.token = token.Token
+		}
+		getDone <- result
+	}()
+
+	select {
+	case result := <-getDone:
+		close(releaseMaintenance)
+		if err := <-maintenanceDone; err != nil {
+			t.Fatalf("Maintain() error = %v", err)
+		}
+		if result.err != nil {
+			t.Fatalf("Get() during maintenance error = %v", result.err)
+		}
+		if result.token != "Bearer known-good" {
+			t.Fatalf("Get() during maintenance token = %q, want current fresh token", result.token)
+		}
+	case <-time.After(time.Second):
+		close(releaseMaintenance)
+		<-maintenanceDone
+		t.Fatal("Get() waited for maintenance despite a fresh cached token")
 	}
 }
 

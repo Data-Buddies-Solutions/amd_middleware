@@ -41,6 +41,9 @@ const (
 	DefaultSessionStaleAfter = DefaultSessionExpiresAfter - time.Hour
 	// DefaultSessionLoginTimeout bounds the complete two-step login flow.
 	DefaultSessionLoginTimeout = 60 * time.Second
+	// DefaultSessionRetryDelay prevents a degraded session from making every
+	// request wait on the same unavailable authentication dependency.
+	DefaultSessionRetryDelay = time.Minute
 )
 
 // ErrSessionUnavailable is returned when authentication failed and no
@@ -63,6 +66,7 @@ type sessionPolicy struct {
 	staleAfter   time.Duration
 	expiresAfter time.Duration
 	loginTimeout time.Duration
+	retryDelay   time.Duration
 }
 
 type sessionImpl struct {
@@ -73,6 +77,7 @@ type sessionImpl struct {
 	mu        sync.Mutex
 	tokenData *domain.TokenData
 	createdAt time.Time
+	retryAt   time.Time
 	state     SessionState
 	flight    *refreshFlight
 }
@@ -83,6 +88,9 @@ type refreshFlight struct {
 }
 
 func newSession(login loginAdapter, now func() time.Time, policy sessionPolicy) *sessionImpl {
+	if policy.retryDelay <= 0 {
+		policy.retryDelay = DefaultSessionRetryDelay
+	}
 	return &sessionImpl{
 		login:  login,
 		now:    now,
@@ -97,6 +105,7 @@ func NewSession(creds Credentials, client *http.Client) Session {
 		staleAfter:   DefaultSessionStaleAfter,
 		expiresAfter: DefaultSessionExpiresAfter,
 		loginTimeout: DefaultSessionLoginTimeout,
+		retryDelay:   DefaultSessionRetryDelay,
 	})
 }
 
@@ -121,9 +130,16 @@ func (s *sessionImpl) Maintain(ctx context.Context) error {
 
 func (s *sessionImpl) refresh(ctx context.Context, force bool) error {
 	s.mu.Lock()
-	if !force && s.statusLocked(s.now()).State == SessionFresh {
-		s.mu.Unlock()
-		return nil
+	if !force {
+		now := s.now()
+		if s.freshLocked(now) {
+			s.mu.Unlock()
+			return nil
+		}
+		if s.state == SessionDegraded && s.usableLocked(now) && now.Before(s.retryAt) {
+			s.mu.Unlock()
+			return nil
+		}
 	}
 	if active := s.flight; active != nil {
 		s.mu.Unlock()
@@ -148,23 +164,33 @@ func (s *sessionImpl) refresh(ctx context.Context, force bool) error {
 	s.flight = nil
 	close(active.done)
 	if err != nil {
-		if s.usableLocked(s.now()) {
+		now := s.now()
+		if s.usableLocked(now) {
 			s.state = SessionDegraded
+			s.retryAt = now.Add(s.policy.retryDelay)
 		} else {
 			s.tokenData = nil
 			s.createdAt = time.Time{}
+			s.retryAt = time.Time{}
 			s.state = SessionUnavailable
 		}
 		return err
 	}
 	s.createdAt = s.now()
 	s.tokenData = domain.BuildTokenDataAt(token, webserverURL, s.createdAt)
+	s.retryAt = time.Time{}
 	s.state = SessionFresh
 	return nil
 }
 
 func (s *sessionImpl) usableLocked(now time.Time) bool {
 	return s.tokenData != nil && now.Sub(s.createdAt) < s.policy.expiresAfter
+}
+
+func (s *sessionImpl) freshLocked(now time.Time) bool {
+	return s.state == SessionFresh &&
+		s.tokenData != nil &&
+		now.Sub(s.createdAt) < s.policy.staleAfter
 }
 
 func (s *sessionImpl) Status() SessionStatus {
