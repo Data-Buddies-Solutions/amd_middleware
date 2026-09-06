@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"sync"
 	"time"
 
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/safeerrors"
 )
 
 // ParseDateTime parses an AMD datetime string trying multiple known formats.
@@ -69,7 +71,7 @@ func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *d
 	url := fmt.Sprintf("https://%s/scheduler/appointments?columnId=%s&forView=day&isLegacy=true&startDate=%s",
 		tokenData.RestApiBase, columnID, startDate)
 
-	body, err := c.getResponseBody(ctx, tokenData, url)
+	body, err := c.getResponseBody(ctx, tokenData, url, "appointments")
 	if err != nil {
 		return nil, err
 	}
@@ -88,11 +90,8 @@ func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *d
 	for _, a := range amdAppts {
 		startTime, err := ParseDateTime(a.StartDateTime)
 		if err != nil {
-			return nil, fmt.Errorf("invalid response: appointment start time")
-		}
-
-		if a.Duration <= 0 {
-			return nil, fmt.Errorf("invalid response: appointment duration")
+			log.Printf("WARNING: skipping appointment with invalid start time in column %s: category=%s", columnID, safeerrors.Classify(err))
+			continue
 		}
 
 		appointments = append(appointments, domain.Appointment{
@@ -108,11 +107,31 @@ func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *d
 	return appointments, nil
 }
 
-// GetAppointmentsForColumns preserves partial data and returns the first failure.
-func (c *AdvancedMDRestClient) GetAppointmentsForColumns(ctx context.Context, tokenData *domain.TokenData, columnIDs []string, startDate string) (map[string][]domain.Appointment, error) {
-	return readColumns(ctx, columnIDs, func(ctx context.Context, id string) ([]domain.Appointment, error) {
-		return c.GetAppointments(ctx, tokenData, id, startDate)
-	})
+// GetAppointmentsForColumns fetches appointments for multiple columns concurrently.
+// Per-column errors are logged and the column is omitted from results (callers should
+// check key presence before using data — absent key means fetch failed).
+func (c *AdvancedMDRestClient) GetAppointmentsForColumns(ctx context.Context, tokenData *domain.TokenData, columnIDs []string, startDate string) map[string][]domain.Appointment {
+	result := make(map[string][]domain.Appointment)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	for _, colID := range columnIDs {
+		wg.Add(1)
+		go func(id string) {
+			defer wg.Done()
+			appts, err := c.GetAppointments(ctx, tokenData, id, startDate)
+			mu.Lock()
+			defer mu.Unlock()
+			if err != nil {
+				log.Printf("WARNING: failed to get appointments for column %s: category=%s", id, safeerrors.Classify(err))
+				return
+			}
+			result[id] = appts
+		}(colID)
+	}
+
+	wg.Wait()
+	return result
 }
 
 // AMDBlockHoldResponse represents a block hold from the REST API.
@@ -134,7 +153,7 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 	url := fmt.Sprintf("https://%s/scheduler/blockholds?columnId=%s&forView=day&startDate=%s",
 		tokenData.RestApiBase, columnID, startDate)
 
-	body, err := c.getResponseBody(ctx, tokenData, url)
+	body, err := c.getResponseBody(ctx, tokenData, url, "block holds")
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +172,8 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 	for _, h := range amdHolds {
 		startTime, err := ParseDateTime(h.StartDateTime)
 		if err != nil {
-			return nil, fmt.Errorf("invalid response: block hold start time")
+			log.Printf("WARNING: skipping block hold with invalid start time: category=%s", safeerrors.Classify(err))
+			continue
 		}
 
 		endTime, err := ParseDateTime(h.EndDateTime)
@@ -164,10 +184,6 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 		// not the end of this day's occurrence.
 		if h.Recurrence.RecurrenceType > 0 && h.Duration > 0 {
 			endTime = startTime.Add(time.Duration(h.Duration) * time.Minute)
-		}
-
-		if !endTime.After(startTime) {
-			return nil, fmt.Errorf("invalid response: block hold end time")
 		}
 
 		holds = append(holds, domain.BlockHold{
@@ -182,39 +198,30 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 	return holds, nil
 }
 
-// GetBlockHoldsForColumns preserves partial data and returns the first failure.
-func (c *AdvancedMDRestClient) GetBlockHoldsForColumns(ctx context.Context, tokenData *domain.TokenData, columnIDs []string, startDate string) (map[string][]domain.BlockHold, error) {
-	return readColumns(ctx, columnIDs, func(ctx context.Context, id string) ([]domain.BlockHold, error) {
-		return c.GetBlockHolds(ctx, tokenData, id, startDate)
-	})
-}
-
-// A failed column cancels sibling reads; callers must not treat partial data as
-// a complete schedule. Both occupancy endpoints use the same failure policy.
-func readColumns[T any](ctx context.Context, columnIDs []string, read func(context.Context, string) ([]T, error)) (map[string][]T, error) {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	result := make(map[string][]T, len(columnIDs))
+// GetBlockHoldsForColumns fetches block holds for multiple columns concurrently.
+// Per-column errors are logged and the column is omitted from results.
+func (c *AdvancedMDRestClient) GetBlockHoldsForColumns(ctx context.Context, tokenData *domain.TokenData, columnIDs []string, startDate string) map[string][]domain.BlockHold {
+	result := make(map[string][]domain.BlockHold)
 	var mu sync.Mutex
 	var wg sync.WaitGroup
-	var firstErr error
-	for _, id := range columnIDs {
-		wg.Go(func() {
-			rows, err := read(ctx, id)
+
+	for _, colID := range columnIDs {
+		wg.Add(1)
+		go func(id string) {
+			defer wg.Done()
+			holds, err := c.GetBlockHolds(ctx, tokenData, id, startDate)
 			mu.Lock()
 			defer mu.Unlock()
 			if err != nil {
-				if firstErr == nil {
-					firstErr = err
-					cancel()
-				}
+				log.Printf("WARNING: failed to get block holds for column %s: category=%s", id, safeerrors.Classify(err))
 				return
 			}
-			result[id] = rows
-		})
+			result[id] = holds
+		}(colID)
 	}
+
 	wg.Wait()
-	return result, firstErr
+	return result
 }
 
 // GetAppointmentsByMonth fetches all appointments for the given columns for a full month.
@@ -224,7 +231,7 @@ func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, token
 	url := fmt.Sprintf("https://%s/scheduler/appointments?columnId=%s&forView=month&isLegacy=true&startDate=%s",
 		tokenData.RestApiBase, columnIDs, startDate)
 
-	body, err := c.getResponseBody(ctx, tokenData, url)
+	body, err := c.getResponseBody(ctx, tokenData, url, "monthly appointments")
 	if err != nil {
 		return nil, err
 	}
@@ -360,7 +367,7 @@ func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData 
 	return nil
 }
 
-func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *domain.TokenData, url string) ([]byte, error) {
+func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *domain.TokenData, url, operation string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -376,15 +383,12 @@ func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *d
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, &HTTPStatusError{StatusCode: resp.StatusCode}
+		return nil, fmt.Errorf("unexpected status %d from AMD %s API", resp.StatusCode, operation)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-	if bytes.Equal(bytes.TrimSpace(body), []byte("null")) {
-		return nil, fmt.Errorf("invalid response: null schedule")
 	}
 	return body, nil
 }

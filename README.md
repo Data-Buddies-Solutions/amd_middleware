@@ -142,14 +142,6 @@ These rules are more important than any individual endpoint:
   appointment-type, and capacity decisions without performing I/O.
 - **Complete reads prove absence.** A missing record from a partial read is
   unknown, not absent.
-- **Provider failures stop schedule reads.** Malformed occupancy and failed
-  requests return an error and cancel sibling reads. Invalid scheduler setup
-  never replaces the last-known-good cache. Incomplete patient appointment
-  lookups return `appointmentsStatus=error`, including when no rows were returned.
-- **One request budget.** Authenticated API workflows have a 50-second deadline
-  within the server's 55-second write timeout. Provider mutations stop five
-  seconds before the workflow deadline so reconciliation can use the remaining
-  time. A write does not start if that reserve is all that remains.
 - **Ambiguous writes happen once.** The implementation reconciles through a
   read or returns `indeterminate_write`; callers must not retry automatically.
 - **A slot is a signed promise.** Availability signs the selected policy facts,
@@ -376,13 +368,10 @@ workflow policy.
 policy-permitted day. Supply the existing office, DOB, routing and
 preauthorization context. The response carries coverage dates, all signed slots,
 and booking-token expiry. Incomplete calendar reads return an explicit incomplete
-outcome. Provider request or parsing failures stop the operation and return a
-provider error; partial results are never presented as a complete inventory.
+outcome rather than presenting partial results as a complete inventory.
 
 Reads use the existing daily appointments/block-holds adapter with at most four
 concurrent days. Booking still validates the signed slot and current schedule.
-Request logs classify rate limiting as `rate_limited`; the operation does not retry it or
-continue scanning later dates. Successful reads still cover the entire window.
 Deploy this endpoint before the inventory-based agent; `/scheduler/availability`
 remains available for the deployed agent and rollback. Both paths share scheduling
 policy. This does not introduce pre-call fetching or a shared inventory cache.

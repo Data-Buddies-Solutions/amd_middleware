@@ -1276,7 +1276,7 @@ func newPatientResolveTestHandlers(
 						"startdatetime": %q,
 						"patientid": 123,
 						"columnid": 1513,
-						"provider": "BACH, AUSTIN",
+						"profile": "BACH, AUSTIN",
 						"facility": "ABITA EYE GROUP SPRING HILL",
 						"appointmenttypeids": [1007]
 					}]`, future.Format("2006-01-02T15:04:05"))

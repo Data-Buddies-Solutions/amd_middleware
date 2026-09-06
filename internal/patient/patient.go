@@ -936,9 +936,6 @@ func (p *patient) resolvePatient(ctx context.Context, candidate domain.Patient, 
 	result.Observation.DemographicDurationMS = demographicsRead.durationMS
 	result.Observation.AppointmentDurationMS = appointmentsRead.durationMS
 	result.Observation.AppointmentReads = appointmentsRead.read.ProviderReads
-	if appointmentsRead.err == nil && !appointmentsRead.read.Complete {
-		appointmentsRead.err = advancedmd.NewError(safeerrors.CategoryInvalidResponse)
-	}
 	result.Observation.AppointmentOutcome = appointmentLoadOutcome(
 		appointmentsRead.read.Appointments,
 		appointmentsRead.err,

@@ -951,11 +951,13 @@ func TestAdapterPreservesPartialScheduleReads(t *testing.T) {
 		ColumnIDs: []string{"1513", "1598"},
 		Date:      "2026-06-03",
 	})
-	if CategoryOf(err) != safeerrors.CategoryUpstreamStatus {
-		t.Fatalf("ReadSchedule error = %v, want provider failure", err)
+	if err != nil {
+		t.Fatalf("ReadSchedule error = %v", err)
 	}
-	if read.Columns["1513"].AppointmentsComplete {
-		t.Fatal("failed occupancy cannot be complete")
+	if read.Columns["1513"].AppointmentsComplete ||
+		!read.Columns["1513"].BlockHoldsComplete ||
+		!read.Columns["1598"].Complete() {
+		t.Fatalf("read = %#v, want one explicit partial column", read)
 	}
 }
 

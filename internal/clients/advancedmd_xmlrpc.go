@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"advancedmd-token-management/internal/domain"
-	"advancedmd-token-management/internal/safeerrors"
 )
 
 // AMDLookupRequest is the XMLRPC request format for lookuppatient.
@@ -94,19 +93,7 @@ type HTTPStatusError struct {
 }
 
 func (e *HTTPStatusError) Error() string {
-	return fmt.Sprintf("unexpected status %d", e.StatusCode)
-}
-
-// SafeCategory keeps status classification independent of error wording.
-func (e *HTTPStatusError) SafeCategory() safeerrors.Category {
-	switch e.StatusCode {
-	case http.StatusUnauthorized, http.StatusForbidden:
-		return safeerrors.CategoryAuthentication
-	case http.StatusTooManyRequests:
-		return safeerrors.CategoryRateLimited
-	default:
-		return safeerrors.CategoryUpstreamStatus
-	}
+	return fmt.Sprintf("unexpected XMLRPC status %d", e.StatusCode)
 }
 
 // NewAdvancedMDClient creates a new AdvancedMD XMLRPC client.
@@ -715,9 +702,9 @@ func bestPatientPhone(contact AMDContactInfo) string {
 type AMDSchedulerSetupResponse struct {
 	PPMDResults struct {
 		Results struct {
-			ColumnList   *AMDColumnList   `json:"columnlist"`
-			ProfileList  *AMDProfileList  `json:"profilelist"`
-			FacilityList *AMDFacilityList `json:"facilitylist"`
+			ColumnList   AMDColumnList   `json:"columnlist"`
+			ProfileList  AMDProfileList  `json:"profilelist"`
+			FacilityList AMDFacilityList `json:"facilitylist"`
 		} `json:"Results"`
 		Error interface{} `json:"Error"`
 	} `json:"PPMDResults"`
@@ -756,51 +743,18 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *dom
 		return nil, fmt.Errorf("getschedulersetup request failed: %w", err)
 	}
 
-	if err := checkXMLRPCError(body, "getschedulersetup"); err != nil {
-		return nil, err
-	}
-
 	var resp AMDSchedulerSetupResponse
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return nil, fmt.Errorf("failed to parse scheduler setup response: %w", err)
 	}
 
-	results := resp.PPMDResults.Results
-	if results.ColumnList == nil || results.ProfileList == nil || results.FacilityList == nil ||
-		!validSchedulerList(results.ColumnList.Columns) || !validSchedulerList(results.ProfileList.Profiles) || !validSchedulerList(results.FacilityList.Facilities) {
-		return nil, fmt.Errorf("invalid response: missing or malformed scheduler lists")
-	}
-
 	setup := &domain.SchedulerSetup{
-		Columns:    parseColumns(results.ColumnList.Columns),
-		Profiles:   parseProfiles(results.ProfileList.Profiles),
-		Facilities: parseFacilities(results.FacilityList.Facilities),
-	}
-
-	for _, column := range setup.Columns {
-		if column.ID == "" || column.ProfileID == "" || column.FacilityID == "" || column.Interval < 0 {
-			return nil, fmt.Errorf("invalid response: scheduler column")
-		}
+		Columns:    parseColumns(resp.PPMDResults.Results.ColumnList.Columns),
+		Profiles:   parseProfiles(resp.PPMDResults.Results.ProfileList.Profiles),
+		Facilities: parseFacilities(resp.PPMDResults.Results.FacilityList.Facilities),
 	}
 
 	return setup, nil
-}
-
-// AMD lists may be absent within an explicit empty list, single objects, or arrays.
-func validSchedulerList(value interface{}) bool {
-	switch value := value.(type) {
-	case nil, map[string]interface{}:
-		return true
-	case []interface{}:
-		for _, item := range value {
-			if _, ok := item.(map[string]interface{}); !ok {
-				return false
-			}
-		}
-		return true
-	default:
-		return false
-	}
 }
 
 // parseColumns converts the AMD column data to domain columns.
