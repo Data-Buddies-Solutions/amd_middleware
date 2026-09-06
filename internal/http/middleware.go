@@ -19,18 +19,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// WorkflowTimeout leaves five seconds before the server's write timeout for
-// response encoding and delivery. Provider calls inherit this total budget.
-const WorkflowTimeout = 50 * time.Second
-
-func workflowDeadline(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), WorkflowTimeout)
-		defer cancel()
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
 // contextKey is a type for context keys to avoid collisions.
 type contextKey string
 

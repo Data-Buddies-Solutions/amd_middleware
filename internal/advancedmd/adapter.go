@@ -101,12 +101,6 @@ func (a *Adapter) CreatePatient(ctx context.Context, command domain.PatientCreat
 	if err != nil {
 		return domain.CreatedPatient{}, err
 	}
-	ctx, cancel, err := mutationContext(ctx)
-	if err != nil {
-		return domain.CreatedPatient{}, err
-	}
-	defer cancel()
-
 	if a.xmlClient == nil {
 		return domain.CreatedPatient{}, NewError(safeerrors.CategoryInternal)
 	}
@@ -145,12 +139,6 @@ func (a *Adapter) AddPatientInsurance(ctx context.Context, command domain.Patien
 	if err != nil {
 		return err
 	}
-	ctx, cancel, err := mutationContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer cancel()
-
 	if a.xmlClient == nil {
 		return NewError(safeerrors.CategoryInternal)
 	}
@@ -172,12 +160,6 @@ func (a *Adapter) EndDatePatientInsurance(ctx context.Context, command domain.Pa
 	if err != nil {
 		return err
 	}
-	ctx, cancel, err := mutationContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer cancel()
-
 	if a.xmlClient == nil {
 		return NewError(safeerrors.CategoryInternal)
 	}
@@ -547,34 +529,18 @@ func (a *Adapter) ReadSchedule(ctx context.Context, query domain.ScheduleReadQue
 		return domain.ScheduleReadResult{}, NewError(safeerrors.CategoryInternal)
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
 	var appointments map[string][]domain.Appointment
 	var blockHolds map[string][]domain.BlockHold
 	var reads sync.WaitGroup
-	var mu sync.Mutex
-	var firstErr error
-	failed := func(err error) {
-		if err == nil {
-			return
-		}
-		mu.Lock()
-		defer mu.Unlock()
-		if firstErr == nil {
-			firstErr = err
-			cancel()
-		}
-	}
-	reads.Go(func() {
-		var err error
-		appointments, err = a.restClient.GetAppointmentsForColumns(ctx, token, query.ColumnIDs, query.Date)
-		failed(err)
-	})
-	reads.Go(func() {
-		var err error
-		blockHolds, err = a.restClient.GetBlockHoldsForColumns(ctx, token, query.ColumnIDs, query.Date)
-		failed(err)
-	})
+	reads.Add(2)
+	go func() {
+		defer reads.Done()
+		appointments = a.restClient.GetAppointmentsForColumns(ctx, token, query.ColumnIDs, query.Date)
+	}()
+	go func() {
+		defer reads.Done()
+		blockHolds = a.restClient.GetBlockHoldsForColumns(ctx, token, query.ColumnIDs, query.Date)
+	}()
 	reads.Wait()
 
 	result := domain.ScheduleReadResult{
@@ -590,7 +556,7 @@ func (a *Adapter) ReadSchedule(ctx context.Context, query domain.ScheduleReadQue
 			BlockHoldsComplete:   blockHoldsComplete,
 		}
 	}
-	return result, classify(firstErr)
+	return result, nil
 }
 
 func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, error) {
@@ -598,12 +564,6 @@ func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, er
 	if err != nil {
 		return 0, err
 	}
-	ctx, cancel, err := mutationContext(ctx)
-	if err != nil {
-		return 0, err
-	}
-	defer cancel()
-
 	if a.restClient == nil {
 		return 0, NewError(safeerrors.CategoryInternal)
 	}
@@ -649,12 +609,6 @@ func (a *Adapter) CancelAppointment(ctx context.Context, cancellation Cancellati
 	if err != nil {
 		return err
 	}
-	ctx, cancel, err := mutationContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer cancel()
-
 	if a.restClient == nil {
 		return NewError(safeerrors.CategoryInternal)
 	}
@@ -665,18 +619,10 @@ func (a *Adapter) CancelAppointment(ctx context.Context, cancellation Cancellati
 }
 
 func (a *Adapter) token(ctx context.Context) (*domain.TokenData, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, classify(err)
-	}
-
 	if a.session == nil {
 		return nil, NewError(safeerrors.CategoryUnavailable)
 	}
 	token, err := a.session.Get(ctx)
-	if ctx.Err() != nil {
-		return nil, classify(ctx.Err())
-	}
-
 	if err != nil {
 		return nil, NewError(safeerrors.CategoryUnavailable)
 	}

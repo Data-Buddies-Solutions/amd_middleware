@@ -76,10 +76,7 @@ func TestGetAppointmentsForColumns_Concurrent(t *testing.T) {
 	columnIDs := []string{"1513", "1551", "1550"}
 
 	start := time.Now()
-	result, err := client.GetAppointmentsForColumns(context.Background(), tokenData, columnIDs, "2026-03-03")
-	if err != nil {
-		t.Fatal(err)
-	}
+	result := client.GetAppointmentsForColumns(context.Background(), tokenData, columnIDs, "2026-03-03")
 	elapsed := time.Since(start)
 
 	// Verify all 3 columns returned
@@ -127,10 +124,7 @@ func TestGetBlockHoldsForColumns_Concurrent(t *testing.T) {
 	columnIDs := []string{"1513", "1551", "1550"}
 
 	start := time.Now()
-	result, err := client.GetBlockHoldsForColumns(context.Background(), tokenData, columnIDs, "2026-03-03")
-	if err != nil {
-		t.Fatal(err)
-	}
+	result := client.GetBlockHoldsForColumns(context.Background(), tokenData, columnIDs, "2026-03-03")
 	elapsed := time.Since(start)
 
 	if len(result) != 3 {
@@ -213,20 +207,32 @@ func TestGetBlockHolds_NonRecurringUsesEndDateTime(t *testing.T) {
 
 func TestGetAppointmentsForColumns_PartialFailure(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("columnId") == "1551" {
-			w.WriteHeader(http.StatusServiceUnavailable)
+		colID := r.URL.Query().Get("columnId")
+		if colID == "1551" {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("AMD is down"))
 			return
 		}
-		w.Write([]byte(`[]`))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]AMDAppointmentResponse{})
 	})
+
 	client, tokenData, cleanup := newTestRestClient(t, handler)
 	defer cleanup()
-	result, err := client.GetAppointmentsForColumns(context.Background(), tokenData, []string{"1513", "1551", "1550"}, "2026-03-03")
-	if err == nil {
-		t.Fatal("expected provider failure")
+
+	result := client.GetAppointmentsForColumns(context.Background(), tokenData, []string{"1513", "1551", "1550"}, "2026-03-03")
+
+	// Successful columns should be present
+	if _, ok := result["1513"]; !ok {
+		t.Error("Expected column 1513 in results (succeeded)")
 	}
+	if _, ok := result["1550"]; !ok {
+		t.Error("Expected column 1550 in results (succeeded)")
+	}
+
+	// Failed column should be absent
 	if _, ok := result["1551"]; ok {
-		t.Fatal("failed column must not be marked complete")
+		t.Error("Expected column 1551 to be absent from results (failed)")
 	}
 }
 
@@ -236,10 +242,7 @@ func TestGetAppointmentsForColumns_EmptyColumns(t *testing.T) {
 	}))
 	defer cleanup()
 
-	result, err := client.GetAppointmentsForColumns(context.Background(), tokenData, []string{}, "2026-03-03")
-	if err != nil {
-		t.Fatal(err)
-	}
+	result := client.GetAppointmentsForColumns(context.Background(), tokenData, []string{}, "2026-03-03")
 	if len(result) != 0 {
 		t.Errorf("Expected empty result, got %d entries", len(result))
 	}
@@ -256,10 +259,7 @@ func TestGetAppointmentsForColumns_SingleColumn(t *testing.T) {
 	client, tokenData, cleanup := newTestRestClient(t, handler)
 	defer cleanup()
 
-	result, err := client.GetAppointmentsForColumns(context.Background(), tokenData, []string{"1513"}, "2026-03-03")
-	if err != nil {
-		t.Fatal(err)
-	}
+	result := client.GetAppointmentsForColumns(context.Background(), tokenData, []string{"1513"}, "2026-03-03")
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 column, got %d", len(result))
 	}

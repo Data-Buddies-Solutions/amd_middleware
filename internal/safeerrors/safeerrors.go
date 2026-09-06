@@ -20,7 +20,6 @@ const (
 	CategoryRejected        Category = "rejected"
 	CategoryAuthentication  Category = "authentication"
 	CategoryUnavailable     Category = "unavailable"
-	CategoryRateLimited     Category = "rate_limited"
 	CategoryUpstreamStatus  Category = "upstream_status"
 	CategoryInvalidResponse Category = "invalid_response"
 	CategoryInternal        Category = "internal"
@@ -37,10 +36,6 @@ func Classify(err error) Category {
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return CategoryTimeout
-	}
-	var categorized interface{ SafeCategory() Category }
-	if errors.As(err, &categorized) {
-		return categorized.SafeCategory()
 	}
 	var netErr net.Error
 	if errors.As(err, &netErr) {
@@ -61,7 +56,7 @@ func Classify(err error) Category {
 	case strings.Contains(message, "unexpected status"),
 		strings.Contains(message, "unexpected xmlrpc status"):
 		return CategoryUpstreamStatus
-	case containsAny(message, "parse", "malformed", "invalid response", "unexpected response", "read response"):
+	case containsAny(message, "parse", "malformed", "unexpected response", "read response"):
 		return CategoryInvalidResponse
 	case containsAny(message, "request failed", "send request", "connection", "network"):
 		return CategoryNetwork

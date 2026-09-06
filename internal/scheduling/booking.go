@@ -256,9 +256,8 @@ func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingCont
 
 	demographics, err := s.records.GetPatientDemographics(ctx, booking.command.PatientID)
 	if err != nil {
-		return 0, categorizedProviderError(
+		return 0, categorizedError(
 			CategoryWriteFailed,
-			providerCategory(err),
 			"Unable to verify patient before booking. Please try again.",
 		)
 	}
@@ -357,9 +356,8 @@ func (s *service) revalidateBookingSlot(
 	command := booking.command
 	setup, err := s.records.GetSchedulerSetup(ctx)
 	if err != nil {
-		return time.Time{}, false, categorizedProviderError(
+		return time.Time{}, false, categorizedError(
 			CategoryWriteFailed,
-			providerCategory(err),
 			"Unable to revalidate the selected provider. Please check availability again.",
 		)
 	}
@@ -387,9 +385,8 @@ func (s *service) revalidateBookingSlot(
 		Date:      start.Format("2006-01-02"),
 	})
 	if err != nil {
-		return time.Time{}, false, categorizedProviderError(
+		return time.Time{}, false, categorizedError(
 			CategoryWriteFailed,
-			providerCategory(err),
 			"Unable to revalidate the selected slot. Please check availability again.",
 		)
 	}

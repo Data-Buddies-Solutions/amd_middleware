@@ -30,7 +30,6 @@ func NewRouter(handlers *Handlers, apiSecret string, maintenanceAuthorizer Maint
 	// API routes (auth required)
 	r.Route("/api", func(r chi.Router) {
 		r.Use(AuthMiddleware(apiSecret))
-		r.Use(workflowDeadline)
 
 		r.Post("/patient/resolve", handlers.HandlePatientResolve)
 		r.Post("/add-patient", handlers.HandleAddPatient)
