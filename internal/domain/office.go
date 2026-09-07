@@ -352,13 +352,8 @@ var devAppointmentTypes = map[int]int{
 	1007: 18,   // Established Adult Medical (Follow Up)
 	1005: 8,    // Established Pediatric Medical (Follow Up)
 	1008: 1627, // Post Op
-	1010: 1010, // New Adult Vision (no separate dev ID configured)
-	3364: 3364, // Established Adult Vision (no separate dev ID configured)
-	4244: 4244, // New Pediatric Vision (no separate dev ID configured)
-	4245: 4245, // Established Pediatric Vision (no separate dev ID configured)
-	6167: 6167, // Crystal River New Patient (prod IDs used in dev CR placeholder)
-	6168: 6168, // Crystal River Post Op (prod IDs used in dev CR placeholder)
-	6169: 6169, // Crystal River Established Patient (prod IDs used in dev CR placeholder)
+	// Vision and Crystal River have no configured sandbox mappings. Do not
+	// substitute production IDs: resolution must fail until verified mappings exist.
 }
 
 // isDevEnv tracks whether we're running in dev mode. Set by InitRegistry.
@@ -610,8 +605,6 @@ var prodOffices = map[string]*OfficeConfig{
 // devOffices contains office configs keyed by SIP trunk phone number (E.164).
 var devOffices = map[string]*OfficeConfig{
 	"+14843989071": devSpringHillOffice,
-	// TODO: clean up — placeholder number for Crystal River, uses prod IDs
-	"+16182265883": crystalRiverOffice,
 }
 
 // OfficeRegistry maps SIP trunk phone numbers (E.164) to office configurations.

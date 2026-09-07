@@ -231,11 +231,47 @@ func TestCanonicalAppointmentTypeID(t *testing.T) {
 	if got, ok := CanonicalAppointmentTypeID(18); !ok || got != 1007 {
 		t.Fatalf("dev CanonicalAppointmentTypeID(18) = (%d, %v), want (1007, true)", got, ok)
 	}
-	if got, ok := CanonicalAppointmentTypeID(1010); !ok || got != 1010 {
-		t.Fatalf("dev CanonicalAppointmentTypeID(1010) = (%d, %v), want (1010, true)", got, ok)
+	if got, ok := CanonicalAppointmentTypeID(1010); ok || got != 0 {
+		t.Fatalf("dev CanonicalAppointmentTypeID(1010) = (%d, %v), want (0, false)", got, ok)
 	}
 	if got, ok := CanonicalAppointmentTypeID(9999); ok || got != 0 {
 		t.Fatalf("dev CanonicalAppointmentTypeID(9999) = (%d, %v), want (0, false)", got, ok)
+	}
+}
+
+func TestSandboxRejectsUnmappedProductionIDs(t *testing.T) {
+	defer InitRegistry("prod")
+	InitRegistry("dev")
+	if office, ok := LookupOffice("spring_hill"); !ok || office != devSpringHillOffice {
+		t.Fatal("sandbox office ID must resolve to the sandbox Spring Hill config")
+	}
+	for _, selector := range []string{"crystal_river", "+16182265883"} {
+		if _, ok := LookupOffice(selector); ok {
+			t.Errorf("sandbox unexpectedly accepts production placeholder %q", selector)
+		}
+	}
+	unmapped := []int{1010, 3364, 4244, 4245, 6167, 6168, 6169}
+	for _, id := range unmapped {
+		if _, ok := ResolveAppointmentTypeID(id); ok {
+			t.Errorf("sandbox unexpectedly resolves unmapped production type %d", id)
+		}
+		if _, ok := CanonicalAppointmentTypeID(id); ok {
+			t.Errorf("sandbox unexpectedly canonicalizes unmapped type %d", id)
+		}
+	}
+	for canonical, sandbox := range map[int]int{1006: 12, 1004: 20, 1007: 18, 1005: 8, 1008: 1627} {
+		if got, ok := ResolveAppointmentTypeID(canonical); !ok || got != sandbox {
+			t.Errorf("sandbox medical mapping %d = (%d, %v), want %d", canonical, got, ok, sandbox)
+		}
+	}
+	InitRegistry("prod")
+	for _, id := range unmapped {
+		if got, ok := ResolveAppointmentTypeID(id); !ok || got != id {
+			t.Errorf("production mapping changed for type %d", id)
+		}
+	}
+	if office, ok := LookupOffice("crystal_river"); !ok || office != crystalRiverOffice {
+		t.Fatal("production Crystal River mapping changed")
 	}
 }
 

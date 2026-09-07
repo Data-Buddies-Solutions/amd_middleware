@@ -1,0 +1,86 @@
+name: Deploy staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      sandbox_idle:
+        description: Demos/tests and other sandbox API session owners are stopped
+        type: boolean
+        required: true
+        default: false
+  # Works before this workflow reaches main. Creating this tag acknowledges
+  # the same idle-session requirement as the manual input above.
+  push:
+    tags: [staging-*]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: middleware-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'push' || inputs.sandbox_idle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: staging
+      url: https://abita-middleware-sandbox-1006405058436.us-east4.run.app
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      IMAGE_REPOSITORY: us-east4-docker.pkg.dev/acuity-health-prod/middleware-sandbox/abita-middleware
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Test source and deployment guards
+        run: |
+          go test ./...
+          go vet ./...
+          bash scripts/deploy-sandbox-cloud-run_test.sh
+          python3 -m unittest discover -s scripts -p 'staging_deployment_test.py'
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: projects/1006405058436/locations/global/workloadIdentityPools/middleware-staging/providers/github
+          service_account: middleware-staging-deploy@acuity-health-prod.iam.gserviceaccount.com
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+      - name: Build exact Git source and push sandbox image
+        id: image
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          # The auth action writes a credential file into the workspace.
+          # Only committed Git files may enter the Docker build context.
+          context="$(mktemp -d)"
+          trap 'rm -rf -- "$context"' EXIT
+          git archive "$GITHUB_SHA" | tar -x -C "$context"
+          tag="$IMAGE_REPOSITORY:staging-$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          docker build --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --tag "$tag" "$context"
+          gcloud auth configure-docker us-east4-docker.pkg.dev --quiet
+          docker push "$tag"
+          digest="$(gcloud artifacts docker images describe "$tag" \
+            --project acuity-health-prod --format='value(image_summary.digest)')"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "image=$IMAGE_REPOSITORY@$digest" >> "$GITHUB_OUTPUT"
+      - name: Update existing sandbox and verify deployment
+        env:
+          STAGING_IMAGE: ${{ steps.image.outputs.image }}
+        run: python3 scripts/staging_deployment.py --deploy
+      - name: Upload sanitized deployment receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: staging-deployment-${{ github.run_id }}-${{ github.run_attempt }}
+          path: staging-deployment.json
+          if-no-files-found: ignore
