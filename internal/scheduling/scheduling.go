@@ -50,6 +50,7 @@ type AvailabilityTimePreference struct {
 // Scheduling is the complete scheduling boundary used by HTTP.
 type Scheduling interface {
 	Search(ctx context.Context, command SearchCommand) (domain.AvailabilityResponse, error)
+	List(ctx context.Context, command ListCommand) (domain.AvailabilityResponse, error)
 	Book(ctx context.Context, command BookCommand) (BookReceipt, error)
 	Cancel(ctx context.Context, command CancelCommand) (CancelReceipt, error)
 }
@@ -159,6 +160,32 @@ func NewWithConfig(
 }
 
 func (s *service) Search(ctx context.Context, command SearchCommand) (domain.AvailabilityResponse, error) {
+	return s.search(ctx, command, 0)
+}
+
+// ListCommand loads a complete inventory window for conversational selection.
+// Patient eligibility and booking policy are identical to Search.
+type ListCommand struct {
+	RangeDays       int    `json:"rangeDays,omitempty"`
+	Office          string `json:"office"`
+	DOB             string `json:"dob,omitempty"`
+	Routing         string `json:"routing"`
+	PreauthRequired bool   `json:"preauthRequired"`
+}
+
+func (s *service) List(ctx context.Context, command ListCommand) (domain.AvailabilityResponse, error) {
+	days := command.RangeDays
+	if days == 0 {
+		days = 14
+	}
+	if days != 14 && days != 30 && days != 90 {
+		return domain.AvailabilityResponse{}, schedulingError("rangeDays must be 14, 30, or 90")
+	}
+	return s.search(ctx, SearchCommand{Office: command.Office, DOB: command.DOB,
+		Routing: command.Routing, PreauthRequired: command.PreauthRequired}, days)
+}
+
+func (s *service) search(ctx context.Context, command SearchCommand, inventoryDays int) (domain.AvailabilityResponse, error) {
 	empty := domain.AvailabilityResponse{}
 	now := s.now()
 	nowEastern := now.In(eastern)
@@ -188,6 +215,9 @@ func (s *service) Search(ctx context.Context, command SearchCommand) (domain.Ava
 	}
 	searchStartDate := startDate.Format("2006-01-02")
 	maxDate := startDate.AddDate(0, 0, searchForwardDays)
+	if inventoryDays > 0 {
+		maxDate = startDate.AddDate(0, 0, inventoryDays-1)
+	}
 	searchEndDate := maxDate.Format("2006-01-02")
 
 	office, err := domain.ResolveOffice(command.Office)
@@ -231,6 +261,13 @@ func (s *service) Search(ctx context.Context, command SearchCommand) (domain.Ava
 		}, nil
 	}
 
+	var inventory map[string]domain.ScheduleReadResult
+	if inventoryDays > 0 {
+		inventory, err = s.readInventory(ctx, allowedColumns, startDate, maxDate)
+		if err != nil {
+			return empty, providerError(err, "Appointment scheduling is temporarily unavailable. Please try again.")
+		}
+	}
 	var slots []domain.AvailabilitySlotOption
 	searchIncomplete := false
 	unavailableDataChecks := 0
@@ -254,10 +291,11 @@ func (s *service) Search(ctx context.Context, command SearchCommand) (domain.Ava
 			continue
 		}
 
-		read, err := s.records.ReadSchedule(ctx, domain.ScheduleReadQuery{
-			ColumnIDs: workingColumnIDs,
-			Date:      date,
-		})
+		read := inventory[date]
+		var err error
+		if inventoryDays == 0 {
+			read, err = s.records.ReadSchedule(ctx, domain.ScheduleReadQuery{ColumnIDs: workingColumnIDs, Date: date})
+		}
 		if err != nil {
 			log.Printf("availability: schedule read failed category=%s", providerCategory(err))
 			return empty, providerError(
@@ -312,7 +350,9 @@ func (s *service) Search(ctx context.Context, command SearchCommand) (domain.Ava
 		}
 
 		sortAvailabilitySlots(daySlots)
-		if !hasPreference {
+		if inventoryDays > 0 {
+			slots = append(slots, daySlots...)
+		} else if !hasPreference {
 			if len(daySlots) > 0 {
 				slots = selectBroadAvailabilitySlots(daySlots)
 				break
@@ -339,6 +379,9 @@ func (s *service) Search(ctx context.Context, command SearchCommand) (domain.Ava
 	if hasPreference {
 		slots = selectPreferredAvailabilitySlots(candidates)
 	}
+	if inventoryDays > 0 && searchIncomplete {
+		return incompleteResponse(originalRequestedDate, searchStartDate, searchEndDate, unavailableDataChecks), nil
+	}
 	if len(slots) == 0 {
 		if searchIncomplete {
 			return incompleteResponse(
@@ -352,7 +395,7 @@ func (s *service) Search(ctx context.Context, command SearchCommand) (domain.Ava
 	}
 
 	actualDate := slots[0].DateTime[:len("2006-01-02")]
-	tokenIssuedAt := now.UTC()
+	tokenIssuedAt := s.now().UTC()
 	slots, tokenExpiresAt, err := s.signSlots(slots, office, routing, command.DOB, tokenIssuedAt)
 	if err != nil {
 		return empty, schedulingError("Failed to create booking tokens: " + err.Error())
@@ -720,7 +763,8 @@ func countSameStart(slotTime time.Time, appointments []domain.Appointment) int {
 }
 
 func enforcePreauthMinDate(requestedDate, now time.Time) time.Time {
-	minDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, 14)
+	// Match provider schedules: clinic calendar values encoded in UTC, not Eastern instants.
+	minDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, 14)
 	if requestedDate.Before(minDate) {
 		return minDate
 	}

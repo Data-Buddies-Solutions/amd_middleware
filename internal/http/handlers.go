@@ -6,22 +6,14 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
-	"time"
 
 	"advancedmd-token-management/internal/advancedmd"
-	"advancedmd-token-management/internal/clients"
 	"advancedmd-token-management/internal/domain"
 	patientmodule "advancedmd-token-management/internal/patient"
 	"advancedmd-token-management/internal/safeerrors"
 	schedulingmodule "advancedmd-token-management/internal/scheduling"
 	"advancedmd-token-management/internal/session"
-
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
-
-var eastern = domain.EasternLocation()
 
 // ErrorResponse is the JSON response structure for error conditions.
 // Returns 200 OK with status:"error" so ElevenLabs passes the message to the LLM.
@@ -76,30 +68,21 @@ type PatientCandidateResponse struct {
 
 // Handlers holds the dependencies for HTTP handlers.
 type Handlers struct {
-	session       session.Session
-	amdClient     *clients.AdvancedMDClient
-	amdRestClient *clients.AdvancedMDRestClient
-	patient       patientmodule.Patient
-	scheduling    schedulingmodule.Scheduling
+	session    session.Session
+	patient    patientmodule.Patient
+	scheduling schedulingmodule.Scheduling
 }
 
 // NewHandlers creates a new Handlers instance.
 func NewHandlers(
 	amdSession session.Session,
-	amdClient *clients.AdvancedMDClient,
-	amdRestClient *clients.AdvancedMDRestClient,
 	patient patientmodule.Patient,
 	scheduling schedulingmodule.Scheduling,
 ) *Handlers {
-	if patient == nil {
-		patient = patientmodule.New(advancedmd.NewAdapter(amdSession, amdClient, amdRestClient))
-	}
 	return &Handlers{
-		session:       amdSession,
-		amdClient:     amdClient,
-		amdRestClient: amdRestClient,
-		patient:       patient,
-		scheduling:    scheduling,
+		session:    amdSession,
+		patient:    patient,
+		scheduling: scheduling,
 	}
 }
 
@@ -390,124 +373,6 @@ func validatePatientResolveRequest(req PatientResolveRequest) string {
 	return "Provide patientId, phone, phone + firstName, phone + dob, or lastName + dob"
 }
 
-// fetchUpcomingAppointments retrieves future appointments for a patient ID
-// (current month + 5 months forward).
-func (h *Handlers) fetchUpcomingAppointments(ctx context.Context, tokenData *domain.TokenData, patientID string, office *domain.OfficeConfig) ([]PatientApptDetail, error) {
-	lookupOffices := domain.AppointmentLookupOffices(office)
-	details := make([]PatientApptDetail, 0)
-	for _, lookupOffice := range lookupOffices {
-		officeDetails, err := h.fetchUpcomingAppointmentsForOffice(ctx, tokenData, patientID, lookupOffice)
-		if err != nil {
-			return nil, err
-		}
-		details = append(details, officeDetails...)
-	}
-	return details, nil
-}
-
-func (h *Handlers) fetchUpcomingAppointmentsForOffice(ctx context.Context, tokenData *domain.TokenData, patientID string, office *domain.OfficeConfig) ([]PatientApptDetail, error) {
-	patientIDInt, err := strconv.Atoi(patientID)
-	if err != nil {
-		return nil, fmt.Errorf("patientId must be numeric: %w", err)
-	}
-
-	columnIDStr := strings.Join(office.AllowedColumnIDs(), "-")
-
-	now := time.Now().In(eastern)
-	cutoff := appointmentLookupCutoff(now)
-	thisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, eastern)
-
-	months := make([]time.Time, 6)
-	for i := range months {
-		months[i] = thisMonth.AddDate(0, i, 0)
-	}
-
-	type monthResult struct {
-		appts []clients.AMDAppointmentResponse
-		err   error
-	}
-	ch := make(chan monthResult, len(months))
-
-	for _, m := range months {
-		m := m
-		go func() {
-			appts, err := h.amdRestClient.GetAppointmentsByMonth(ctx, tokenData, columnIDStr, m.Format("2006-01-02"))
-			ch <- monthResult{appts, err}
-		}()
-	}
-
-	var allAppts []clients.AMDAppointmentResponse
-	for range months {
-		r := <-ch
-		if r.err != nil {
-			return nil, r.err
-		}
-		allAppts = append(allAppts, r.appts...)
-	}
-	var details []PatientApptDetail
-	for _, a := range allAppts {
-		if a.PatientID != patientIDInt {
-			continue
-		}
-
-		startTime, err := clients.ParseDateTime(a.StartDateTime)
-		if err != nil {
-			continue
-		}
-		if !startTime.After(cutoff) {
-			continue
-		}
-
-		appointmentTypeID := 0
-		typeName := ""
-		if len(a.AppointmentTypes) > 0 {
-			appointmentTypeID = a.AppointmentTypes[0]
-			if canonicalTypeID, ok := domain.CanonicalAppointmentTypeID(appointmentTypeID); ok {
-				appointmentTypeID = canonicalTypeID
-			}
-			if name, ok := office.AppointmentTypeName(appointmentTypeID); ok {
-				typeName = name
-			}
-		}
-
-		detail := PatientApptDetail{
-			ID:                a.ID,
-			Date:              startTime.Format("Monday, January 2, 2006"),
-			Time:              startTime.Format("3:04 PM"),
-			Provider:          office.FriendlyProviderName(a.Provider),
-			Type:              typeName,
-			AppointmentTypeID: appointmentTypeID,
-			Facility:          appointmentFacilityName(a.Facility, office),
-			OfficeID:          office.ID,
-			Office:            office.DisplayName,
-		}
-		details = append(details, detail)
-	}
-
-	return details, nil
-}
-
-func appointmentLookupCutoff(now time.Time) time.Time {
-	local := now.In(eastern)
-	return time.Date(local.Year(), local.Month(), local.Day(), local.Hour(), local.Minute(), local.Second(), 0, time.UTC)
-}
-
-// friendlyFacilityName cleans up AMD facility names to title case.
-func friendlyFacilityName(amdName string) string {
-	if amdName == "" {
-		return ""
-	}
-	return cases.Title(language.English).String(strings.ToLower(amdName))
-}
-
-func appointmentFacilityName(amdName string, office *domain.OfficeConfig) string {
-	facility := friendlyFacilityName(amdName)
-	if facility != "" {
-		return facility
-	}
-	return office.DisplayName
-}
-
 type CancelAppointmentRequest struct {
 	AppointmentID     int    `json:"appointmentId,omitempty"`
 	PatientID         string `json:"patientId,omitempty"`
@@ -658,6 +523,39 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	response, err := h.scheduling.Search(r.Context(), req)
+	if err != nil {
+		recordSchedulingError(r.Context(), err)
+		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: err.Error()})
+		return
+	}
+	if response.Status == domain.AvailabilityStatusError {
+		recordRequestOutcome(r.Context(), outcomeProviderFailure, safeerrors.CategoryInvalidResponse)
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+// HandleListAppointmentSlots loads an inventory window through the Scheduling module.
+func (h *Handlers) HandleListAppointmentSlots(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var req schedulingmodule.ListCommand
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
+		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: "Invalid JSON body"})
+		return
+	}
+
+	if h.scheduling == nil {
+		recordRequestOutcome(r.Context(), outcomeInternalFailure, safeerrors.CategoryNone)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			Status:  "error",
+			Message: "Appointment scheduling is temporarily unavailable. Please try again.",
+		})
+		return
+	}
+	response, err := h.scheduling.List(r.Context(), req)
 	if err != nil {
 		recordSchedulingError(r.Context(), err)
 		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: err.Error()})

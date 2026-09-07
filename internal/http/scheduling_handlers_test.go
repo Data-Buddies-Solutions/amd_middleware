@@ -219,6 +219,8 @@ func TestSchedulingHandlersMapStableErrorCategories(t *testing.T) {
 }
 
 type recordingScheduling struct {
+	listCommand    schedulingmodule.ListCommand
+	listCalls      int
 	searchCommand  schedulingmodule.SearchCommand
 	searchResponse domain.AvailabilityResponse
 	searchCalls    int
@@ -244,4 +246,43 @@ func (s *recordingScheduling) Book(_ context.Context, command schedulingmodule.B
 func (s *recordingScheduling) Cancel(_ context.Context, command schedulingmodule.CancelCommand) (schedulingmodule.CancelReceipt, error) {
 	s.cancelCommand = command
 	return s.cancelReceipt, s.cancelErr
+}
+
+func (s *recordingScheduling) List(ctx context.Context, command schedulingmodule.ListCommand) (domain.AvailabilityResponse, error) {
+	s.listCommand = command
+	s.listCalls++
+	return s.searchResponse, nil
+}
+
+func TestListSlotsRouteRequiresAuthenticationAndPreservesRange(t *testing.T) {
+	scheduler := &recordingScheduling{searchResponse: domain.AvailabilityResponse{Status: "success", Outcome: "no_availability", Slots: []domain.AvailabilitySlotOption{}}}
+	router := NewRouter(&Handlers{scheduling: scheduler}, "test-api-secret", nil)
+	for _, authenticated := range []bool{false, true} {
+		request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"rangeDays":30,"office":"Spring Hill","routing":"bach_only","dob":"01/15/1980","preauthRequired":true}`))
+		if authenticated {
+			request.Header.Set("Authorization", "test-api-secret")
+		}
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+		if !authenticated {
+			if response.Code != http.StatusUnauthorized || scheduler.listCalls != 0 {
+				t.Fatalf("unauthenticated status=%d calls=%d", response.Code, scheduler.listCalls)
+			}
+			continue
+		}
+		if response.Code != http.StatusOK || scheduler.listCalls != 1 || scheduler.listCommand.RangeDays != 30 || scheduler.listCommand.DOB != "01/15/1980" || !scheduler.listCommand.PreauthRequired {
+			t.Fatalf("status=%d command=%#v", response.Code, scheduler.listCommand)
+		}
+	}
+}
+
+func TestListSlotsRejectsOldPreferenceContract(t *testing.T) {
+	scheduler := &recordingScheduling{}
+	handlers := &Handlers{scheduling: scheduler}
+	request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"requestedDate":"2026-06-03"}`))
+	response := httptest.NewRecorder()
+	handlers.HandleListAppointmentSlots(response, request)
+	if scheduler.listCalls != 0 || !strings.Contains(response.Body.String(), "Invalid JSON body") {
+		t.Fatalf("old contract accepted: %s", response.Body.String())
+	}
 }

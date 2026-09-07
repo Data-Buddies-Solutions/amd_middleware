@@ -360,3 +360,18 @@ their owners:
 The executable source of truth is the owning module and its interface-level
 tests. Provider reference documents explain the adapter; they do not define
 workflow policy.
+
+### Conversational appointment inventory
+
+`POST /api/scheduler/slots` loads every eligible opening for `rangeDays` 14
+(default), 30, or 90. The window counts calendar dates from the earliest
+policy-permitted day. Supply the existing office, DOB, routing and
+preauthorization context. The response carries coverage dates, all signed slots,
+and booking-token expiry. Incomplete calendar reads return an explicit incomplete
+outcome rather than presenting partial results as a complete inventory.
+
+Reads use the existing daily appointments/block-holds adapter with at most four
+concurrent days. Booking still validates the signed slot and current schedule.
+Deploy this endpoint before the inventory-based agent; `/scheduler/availability`
+remains available for the deployed agent and rollback. Both paths share scheduling
+policy. This does not introduce pre-call fetching or a shared inventory cache.

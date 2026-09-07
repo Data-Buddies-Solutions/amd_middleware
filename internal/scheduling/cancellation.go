@@ -107,7 +107,7 @@ func (s *service) Cancel(ctx context.Context, command CancelCommand) (receipt Ca
 
 	read, err := s.records.ReadPatientAppointments(ctx, domain.PatientAppointmentsQuery{
 		PatientID: command.PatientID,
-		OfficeIDs: appointmentOfficeIDs(office),
+		OfficeIDs: domain.AppointmentLookupOfficeIDs(office),
 	})
 	telemetry.scheduleReads += read.ProviderReads
 	if err != nil {
@@ -317,15 +317,6 @@ func ownedAppointment(
 		return appointment, office, true, ok
 	}
 	return domain.PatientAppointment{}, nil, false, true
-}
-
-func appointmentOfficeIDs(office *domain.OfficeConfig) []string {
-	offices := domain.AppointmentLookupOffices(office)
-	officeIDs := make([]string, 0, len(offices))
-	for _, candidate := range offices {
-		officeIDs = append(officeIDs, candidate.ID)
-	}
-	return officeIDs
 }
 
 func cancellationReceipt(appointmentID int) CancelReceipt {

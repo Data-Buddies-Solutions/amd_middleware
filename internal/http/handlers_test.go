@@ -51,7 +51,7 @@ func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
 		PatientID: patientID,
 	})
 
-	router := NewRouter(NewHandlers(nil, nil, nil, nil, nil), "test-secret", nil)
+	router := NewRouter(NewHandlers(nil, nil, nil), "test-secret", nil)
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	w := httptest.NewRecorder()
 
@@ -71,7 +71,7 @@ func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
 
 func TestPatientResolveKeepsStableResponseWhenSessionUnavailable(t *testing.T) {
 	records := advancedmd.NewAdapter(unavailableSession{}, nil, nil)
-	handlers := NewHandlers(unavailableSession{}, nil, nil, patientmodule.New(records), nil)
+	handlers := NewHandlers(unavailableSession{}, patientmodule.New(records), nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"patientId":"123"}`))
 	w := httptest.NewRecorder()
 
@@ -102,7 +102,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 		CarrierName: "HUMANA MEDICARE",
 		CarrierID:   "car40906",
 	}
-	handlers := NewHandlers(nil, nil, nil, patientmodule.New(amd), nil)
+	handlers := NewHandlers(nil, patientmodule.New(amd), nil)
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -845,70 +845,8 @@ func TestRequestIDMiddleware(t *testing.T) {
 	})
 }
 
-func TestFriendlyProviderName(t *testing.T) {
-	office := domain.DefaultOffice()
-
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"BACH, AUSTIN", "Dr. Austin Bach"},
-		{"NOEL, DON HERSHELSON", "Dr. Noel"},
-		{"LICHT, JONATHAN", "Dr. Joseph Licht"},
-		{"UNKNOWN PROVIDER", "UNKNOWN PROVIDER"},
-		{"", ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			got := office.FriendlyProviderName(tt.input)
-			if got != tt.expected {
-				t.Errorf("FriendlyProviderName(%q) = %q, want %q", tt.input, got, tt.expected)
-			}
-		})
-	}
-}
-
-func TestAppointmentTypeNames(t *testing.T) {
-	office := domain.DefaultOffice()
-
-	tests := []struct {
-		typeID   int
-		expected string
-		found    bool
-	}{
-		{1006, "New Adult Medical", true},
-		{1004, "New Pediatric Medical", true},
-		{1007, "Established Adult Medical (Follow Up)", true},
-		{1005, "Established Pediatric Medical (Follow Up)", true},
-		{1008, "Post Op", true},
-		{1010, "New Adult Vision", true},
-		{3364, "Established Adult Vision", true},
-		{4244, "New Pediatric Vision", true},
-		{4245, "Established Pediatric Vision", true},
-		{6167, "Crystal River New Patient", true},
-		{6168, "Crystal River Post Op", true},
-		{6169, "Crystal River Established Patient", true},
-		{9999, "", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.expected, func(t *testing.T) {
-			got, ok := office.AppointmentTypeName(tt.typeID)
-			if ok != tt.found {
-				t.Errorf("AppointmentTypeName(%d) found=%v, want %v", tt.typeID, ok, tt.found)
-			}
-			if got != tt.expected {
-				t.Errorf("AppointmentTypeName(%d) = %q, want %q", tt.typeID, got, tt.expected)
-			}
-		})
-	}
-}
-
 func TestRouter(t *testing.T) {
-	// Create minimal handlers for testing
-	amdClient := clients.NewAdvancedMDClient(&http.Client{})
-	handlers := NewHandlers(nil, amdClient, nil, nil, nil) // nil session - can't test full flow
+	handlers := NewHandlers(nil, nil, nil)
 
 	router := NewRouter(handlers, "test-secret", nil)
 
@@ -975,12 +913,6 @@ func TestRouter(t *testing.T) {
 		if w.Code != http.StatusNotFound && w.Code != http.StatusMethodNotAllowed {
 			t.Errorf("Expected removed token endpoint to be unavailable, got %d", w.Code)
 		}
-	})
-
-	t.Run("api endpoints with auth", func(t *testing.T) {
-		// Skip this test - it requires a real session
-		// The important thing is that auth middleware works (tested above)
-		t.Skip("Requires non-nil session")
 	})
 }
 
@@ -1256,13 +1188,12 @@ func newProviderFailureTestHandlers(t *testing.T, fail func(*http.Request, []byt
 		Username: "user", Password: "pass", OfficeKey: "office", AppName: "app",
 	}, httpClient)
 
-	return NewHandlers(
+	records := advancedmd.NewAdapter(
 		amdSession,
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
-		nil,
-		nil,
 	)
+	return NewHandlers(amdSession, patientmodule.New(records), nil)
 }
 
 func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {
@@ -1300,13 +1231,12 @@ func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {
 		AppName:   "app",
 	}, httpClient)
 
-	return NewHandlers(
+	records := advancedmd.NewAdapter(
 		amdSession,
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
-		nil,
-		nil,
-	), &writes
+	)
+	return NewHandlers(amdSession, patientmodule.New(records), nil), &writes
 }
 
 func newPatientResolveTestHandlers(
@@ -1315,6 +1245,7 @@ func newPatientResolveTestHandlers(
 	observers ...func(*http.Request, []byte),
 ) *Handlers {
 	t.Helper()
+	eastern := domain.EasternLocation()
 	future := time.Now().In(eastern).Add(48 * time.Hour)
 	futureMonth := time.Date(future.Year(), future.Month(), 1, 0, 0, 0, 0, eastern).Format("2006-01-02")
 
@@ -1445,11 +1376,9 @@ func newPatientResolveTestHandlers(
 	amdRestClient := clients.NewAdvancedMDRestClient(httpClient)
 	records := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient)
 
-	return NewHandlers(
-		amdSession,
-		amdClient,
-		amdRestClient,
-		patientmodule.New(records),
-		nil,
-	)
+	return NewHandlers(amdSession, patientmodule.New(records), nil)
+}
+
+func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListCommand) (domain.AvailabilityResponse, error) {
+	return s.Search(ctx, schedulingmodule.SearchCommand{Office: command.Office})
 }

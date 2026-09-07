@@ -159,7 +159,7 @@ func TestCreateOwnsValidationAndOfficeResolution(t *testing.T) {
 func TestCreateReturnsStableRejectionWithoutRetry(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
-	amd.CreatePatientError = advancedmd.NewMutationError(advancedmd.MutationRejected)
+	amd.CreatePatientError = advancedmd.NewError(safeerrors.CategoryRejected)
 
 	got := patient.New(amd).Create(context.Background(), validCreateCommand())
 
@@ -178,7 +178,7 @@ func TestCreateReconcilesAmbiguousWriteAfterTransientReadFailure(t *testing.T) {
 	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
-	amd.CreatePatientError = advancedmd.NewMutationError(advancedmd.MutationAmbiguous)
+	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.PatientSearchSequence[search] = []advancedmdtest.PatientSearchStep{
 		{},
 		{Err: advancedmd.NewError(safeerrors.CategoryNetwork)},
@@ -211,7 +211,7 @@ func TestCreateReconcilesAmbiguousWriteAfterTransientReadFailure(t *testing.T) {
 func TestCreateKeepsEmptyReconciliationLookupIndeterminate(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
-	amd.CreatePatientError = advancedmd.NewMutationError(advancedmd.MutationAmbiguous)
+	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 
 	got := patient.New(amd).Create(context.Background(), validCreateCommand())
 
@@ -233,7 +233,7 @@ func TestCreatePollsUntilNewPatientBecomesVisible(t *testing.T) {
 	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
-	amd.CreatePatientError = advancedmd.NewMutationError(advancedmd.MutationAmbiguous)
+	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.PatientSearchSequence[search] = []advancedmdtest.PatientSearchStep{
 		{},
 		{},
@@ -264,7 +264,7 @@ func TestCreateKeepsUnidentifiablePostWriteMatchIndeterminate(t *testing.T) {
 	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
-	amd.CreatePatientError = advancedmd.NewMutationError(advancedmd.MutationAmbiguous)
+	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.PatientSearchSequence[search] = []advancedmdtest.PatientSearchStep{
 		{},
 		{Patients: []domain.Patient{
@@ -309,7 +309,7 @@ func TestCreateDoesNotAdoptPreexistingPatientAfterAmbiguousWrite(t *testing.T) {
 		Phone:     "(954)287-2010",
 	}
 	amd := advancedmdtest.NewAdapter()
-	amd.CreatePatientError = advancedmd.NewMutationError(advancedmd.MutationAmbiguous)
+	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.PatientSearches[search] = []domain.Patient{existing}
 	amd.Demographics["123"] = domain.PatientDemographics{RespPartyID: "resp456"}
 
@@ -337,7 +337,7 @@ func TestCreateDoesNotAdoptPreexistingPatientWhoseLookupDetailsChanged(t *testin
 		Phone:     "(954)287-2010",
 	}
 	amd := advancedmdtest.NewAdapter()
-	amd.CreatePatientError = advancedmd.NewMutationError(advancedmd.MutationAmbiguous)
+	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.PatientSearchSequence[search] = []advancedmdtest.PatientSearchStep{{
 		Patients: []domain.Patient{{
 			ID:        "123",
@@ -412,7 +412,7 @@ func TestCreateReturnsIndeterminateWhenReconciliationCannotProveOutcome(t *testi
 	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
-	amd.CreatePatientError = advancedmd.NewMutationError(advancedmd.MutationAmbiguous)
+	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.PatientSearchSequence[search] = []advancedmdtest.PatientSearchStep{
 		{},
 		{Err: advancedmd.NewError(safeerrors.CategoryNetwork)},
@@ -441,7 +441,7 @@ func TestCreateReconcilesAmbiguousInsuranceAttachment(t *testing.T) {
 		RespPartyID: "resp456",
 		Name:        "DOE,JANE",
 	}
-	amd.AddInsuranceError = advancedmd.NewMutationError(advancedmd.MutationAmbiguous)
+	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.Demographics["123"] = domain.PatientDemographics{
 		CarrierName:         "HUMANA MEDICARE",
 		CarrierID:           "car308175",
@@ -494,7 +494,7 @@ func TestUpdateInsuranceReturnsExistingSuccessContract(t *testing.T) {
 func TestUpdateInsuranceReturnsStableRejectionWithoutRetry(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
-	amd.AddInsuranceError = advancedmd.NewMutationError(advancedmd.MutationRejected)
+	amd.AddInsuranceError = advancedmd.NewError(safeerrors.CategoryRejected)
 
 	command := validUpdateInsuranceCommand()
 	command.InsPlanID = ""
@@ -511,7 +511,7 @@ func TestUpdateInsuranceReturnsStableRejectionWithoutRetry(t *testing.T) {
 func TestUpdateInsuranceReconcilesAmbiguousWriteAfterTransientReadFailure(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
-	amd.AddInsuranceError = advancedmd.NewMutationError(advancedmd.MutationAmbiguous)
+	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.DemographicErrorSequence["123"] = []error{
 		advancedmd.NewError(safeerrors.CategoryTimeout),
 		nil,
@@ -543,7 +543,7 @@ func TestUpdateInsuranceReconcilesAmbiguousWriteAfterTransientReadFailure(t *tes
 func TestUpdateInsuranceReconcilesAmbiguousEndDateBeforeAddingReplacement(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
-	amd.EndInsuranceError = advancedmd.NewMutationError(advancedmd.MutationAmbiguous)
+	amd.EndInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.Demographics["123"] = domain.PatientDemographics{
 		RespPartyID:         "resp123",
 		InsuranceStateKnown: true,
@@ -562,7 +562,7 @@ func TestUpdateInsuranceReconcilesAmbiguousEndDateBeforeAddingReplacement(t *tes
 func TestUpdateInsuranceReturnsReconciledFailureWhenDemographicsProveNoWrite(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
-	amd.AddInsuranceError = advancedmd.NewMutationError(advancedmd.MutationAmbiguous)
+	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.Demographics["123"] = domain.PatientDemographics{
 		CarrierName:         "AETNA",
 		CarrierID:           "car40887",
@@ -585,7 +585,7 @@ func TestUpdateInsuranceReturnsReconciledFailureWhenDemographicsProveNoWrite(t *
 func TestUpdateInsuranceDoesNotAcceptPreexistingSameCarrierAsReconciledSuccess(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
-	amd.AddInsuranceError = advancedmd.NewMutationError(advancedmd.MutationAmbiguous)
+	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.Demographics["123"] = domain.PatientDemographics{
 		CarrierID:           "car308175",
 		InsPlanID:           "ins456",
@@ -606,7 +606,7 @@ func TestUpdateInsuranceDoesNotAcceptPreexistingSameCarrierAsReconciledSuccess(t
 func TestUpdateInsuranceReturnsIndeterminateWhenDemographicsCannotProveOutcome(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
-	amd.AddInsuranceError = advancedmd.NewMutationError(advancedmd.MutationAmbiguous)
+	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.DemographicErrors["123"] = advancedmd.NewError(safeerrors.CategoryNetwork)
 
 	command := validUpdateInsuranceCommand()
@@ -624,7 +624,7 @@ func TestUpdateInsuranceReturnsIndeterminateWhenDemographicsCannotProveOutcome(t
 func TestUpdateInsuranceReturnsIndeterminateWhenInsuranceStateIsIncomplete(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
-	amd.AddInsuranceError = advancedmd.NewMutationError(advancedmd.MutationAmbiguous)
+	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.Demographics["123"] = domain.PatientDemographics{
 		CarrierID: "car308175",
 		InsPlanID: "ins456",

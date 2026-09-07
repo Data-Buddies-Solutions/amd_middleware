@@ -36,8 +36,6 @@ func TestCancellationTokenCancelsPairedOfficeAppointmentWithoutRediscovery(t *te
 	tokens := scheduling.NewAppointmentTokens("test-scheduling-secret", func() time.Time { return now })
 	handlers := NewHandlers(
 		nil,
-		nil,
-		nil,
 		patient.NewWithAppointmentTokens(records, tokens),
 		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 	)
@@ -125,8 +123,6 @@ func TestPatientResolutionIssuesOneDistinctTokenPerAppointment(t *testing.T) {
 	tokens := scheduling.NewAppointmentTokens("test-scheduling-secret", func() time.Time { return now })
 	handlers := NewHandlers(
 		nil,
-		nil,
-		nil,
 		patient.NewWithAppointmentTokens(records, tokens),
 		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 	)
@@ -186,7 +182,7 @@ func TestPatientResolutionKeepsCancellationTokenOptionalForOlderComposition(t *t
 			Complete: true,
 		},
 	}
-	handlers := NewHandlers(nil, nil, nil, patient.New(records), nil)
+	handlers := NewHandlers(nil, patient.New(records), nil)
 
 	recorder := postJSON(t, handlers.HandlePatientResolve, "/api/patient/resolve", map[string]any{
 		"patientId": "12345",
@@ -219,8 +215,6 @@ func TestPresentEmptyCancellationTokenDoesNotFallBackToRediscovery(t *testing.T)
 		},
 	}
 	handlers := NewHandlers(
-		nil,
-		nil,
 		nil,
 		patient.New(records),
 		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
@@ -314,8 +308,6 @@ func TestCancellationTokenRejectionsPerformNoProviderOperations(t *testing.T) {
 			}
 			handlers := NewHandlers(
 				nil,
-				nil,
-				nil,
 				patient.New(records),
 				scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 			)
@@ -359,8 +351,6 @@ func TestCancellationAndBookingTokensAreNotInterchangeable(t *testing.T) {
 	})
 	handlers := NewHandlers(
 		nil,
-		nil,
-		nil,
 		patient.New(records),
 		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 	)
@@ -395,8 +385,6 @@ func TestCancellationTelemetryReportsOperationBudgetWithoutSensitiveValues(t *te
 		Office:   "Spring Hill",
 	})
 	handlers := NewHandlers(
-		nil,
-		nil,
 		nil,
 		patient.New(records),
 		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
@@ -465,8 +453,6 @@ func TestLegacyCancellationTelemetryReportsProviderReadCount(t *testing.T) {
 	}
 	handlers := NewHandlers(
 		nil,
-		nil,
-		nil,
 		patient.New(records),
 		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 	)
@@ -519,8 +505,6 @@ func TestCancellationHTTPContractSupportsTokenOnlyAndTokenlessLegacyRequests(t *
 		token := issueCancellationToken(t, "test-scheduling-secret", now, "12345", appointment)
 		handlers := NewHandlers(
 			nil,
-			nil,
-			nil,
 			patient.New(records),
 			scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 		)
@@ -548,8 +532,6 @@ func TestCancellationHTTPContractSupportsTokenOnlyAndTokenlessLegacyRequests(t *
 			},
 		}
 		handlers := NewHandlers(
-			nil,
-			nil,
 			nil,
 			patient.New(records),
 			scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
@@ -587,8 +569,6 @@ func TestTokenCancellationPreservesAmbiguousWriteReconciliation(t *testing.T) {
 		Office:   "Crystal River",
 	})
 	handlers := NewHandlers(
-		nil,
-		nil,
 		nil,
 		patient.New(records),
 		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),

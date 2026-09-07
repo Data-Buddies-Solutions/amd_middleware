@@ -75,13 +75,7 @@ func main() {
 	)
 
 	// Initialize handlers
-	handlers := apphttp.NewHandlers(
-		amdSession,
-		amdClient,
-		amdRestClient,
-		patients,
-		scheduler,
-	)
+	handlers := apphttp.NewHandlers(amdSession, patients, scheduler)
 
 	// Create router
 	maintenanceAuthorizer := apphttp.NewMaintenanceAuthorizer(

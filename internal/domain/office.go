@@ -261,9 +261,9 @@ func LookupOfficeByID(officeID string) (*OfficeConfig, bool) {
 	return nil, false
 }
 
-// AppointmentLookupOffices returns the nearby-office group used when loading a
+// AppointmentLookupOfficeIDs returns the nearby-office IDs used when loading a
 // resolved patient's upcoming appointments.
-func AppointmentLookupOffices(office *OfficeConfig) []*OfficeConfig {
+func AppointmentLookupOfficeIDs(office *OfficeConfig) []string {
 	if office == nil {
 		return nil
 	}
@@ -276,7 +276,7 @@ func AppointmentLookupOffices(office *OfficeConfig) []*OfficeConfig {
 		officeIDs = []string{"hollywood", "sweetwater"}
 	}
 
-	offices := make([]*OfficeConfig, 0, len(officeIDs))
+	lookupIDs := make([]string, 0, len(officeIDs))
 	seen := make(map[*OfficeConfig]bool, len(officeIDs))
 	for _, officeID := range officeIDs {
 		lookupOffice, ok := LookupOfficeByID(officeID)
@@ -287,12 +287,12 @@ func AppointmentLookupOffices(office *OfficeConfig) []*OfficeConfig {
 			continue
 		}
 		seen[lookupOffice] = true
-		offices = append(offices, lookupOffice)
+		lookupIDs = append(lookupIDs, lookupOffice.ID)
 	}
-	if len(offices) == 0 {
-		return []*OfficeConfig{office}
+	if len(lookupIDs) == 0 {
+		return []string{office.ID}
 	}
-	return offices
+	return lookupIDs
 }
 
 // PreservedAppointmentTypeFallbackColor is used when a signed existing type has

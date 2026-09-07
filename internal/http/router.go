@@ -34,6 +34,7 @@ func NewRouter(handlers *Handlers, apiSecret string, maintenanceAuthorizer Maint
 		r.Post("/patient/resolve", handlers.HandlePatientResolve)
 		r.Post("/add-patient", handlers.HandleAddPatient)
 		r.Post("/scheduler/availability", handlers.HandleGetAvailability)
+		r.Post("/scheduler/slots", handlers.HandleListAppointmentSlots)
 		r.Post("/appointment/book", handlers.HandleBookAppointment)
 		r.Post("/appointment/cancel", handlers.HandleCancelAppointment)
 		r.Post("/patient/update-insurance", handlers.HandleUpdateInsurance)

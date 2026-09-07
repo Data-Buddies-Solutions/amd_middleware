@@ -25,10 +25,6 @@ const (
 	MutationAmbiguous MutationFailure = "ambiguous_write"
 )
 
-type MutationError struct {
-	failure MutationFailure
-}
-
 func NewError(category safeerrors.Category) error {
 	return &Error{category: category}
 }
@@ -39,16 +35,8 @@ func NewAmbiguousWriteError(category safeerrors.Category) error {
 	return &Error{category: category, ambiguousWrite: true}
 }
 
-func NewMutationError(failure MutationFailure) error {
-	return &MutationError{failure: failure}
-}
-
 func (e *Error) Error() string {
 	return string(e.category)
-}
-
-func (e *MutationError) Error() string {
-	return string(e.failure)
 }
 
 func CategoryOf(err error) safeerrors.Category {
@@ -67,10 +55,6 @@ func IsAmbiguousWrite(err error) bool {
 }
 
 func MutationFailureOf(err error) MutationFailure {
-	var classified *MutationError
-	if errors.As(err, &classified) {
-		return classified.failure
-	}
 	if IsAmbiguousWrite(err) {
 		return MutationAmbiguous
 	}

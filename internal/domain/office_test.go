@@ -73,7 +73,7 @@ func TestDefaultOffice(t *testing.T) {
 	}
 }
 
-func TestAppointmentLookupOffices(t *testing.T) {
+func TestAppointmentLookupOfficeIDs(t *testing.T) {
 	tests := []struct {
 		name   string
 		office *OfficeConfig
@@ -89,13 +89,13 @@ func TestAppointmentLookupOffices(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := AppointmentLookupOffices(tt.office)
+			got := AppointmentLookupOfficeIDs(tt.office)
 			if len(got) != len(tt.want) {
-				t.Fatalf("AppointmentLookupOffices() len = %d, want %d: %+v", len(got), len(tt.want), got)
+				t.Fatalf("AppointmentLookupOfficeIDs() len = %d, want %d: %+v", len(got), len(tt.want), got)
 			}
 			for i, wantID := range tt.want {
-				if got[i].ID != wantID {
-					t.Fatalf("AppointmentLookupOffices()[%d].ID = %q, want %q", i, got[i].ID, wantID)
+				if got[i] != wantID {
+					t.Fatalf("AppointmentLookupOfficeIDs()[%d] = %q, want %q", i, got[i], wantID)
 				}
 			}
 		})
@@ -182,28 +182,21 @@ func TestOfficeConfig_FriendlyProviderName(t *testing.T) {
 
 	tests := []struct {
 		input string
-		want  []string
+		want  string
 	}{
-		{"BACH, AUSTIN", []string{"Dr. Austin Bach"}},
-		{"LICHT, JONATHAN", []string{"Dr. Joseph Licht"}},
-		{"NOEL, DON HERSHELSON", []string{"Dr. Noel"}},
-		{"OTERO, MELISSA", []string{"Dr. Melissa Otero"}},
-		{"UNKNOWN", []string{"UNKNOWN"}},
-		{"", []string{""}},
+		{"BACH, AUSTIN", "Dr. Austin Bach"},
+		{"LICHT, JONATHAN", "Dr. Joseph Licht"},
+		{"NOEL, DON HERSHELSON", "Dr. Noel"},
+		{"OTERO, MELISSA", "Dr. Melissa Otero"},
+		{"UNKNOWN", "UNKNOWN"},
+		{"", ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
 			got := office.FriendlyProviderName(tt.input)
-			valid := false
-			for _, w := range tt.want {
-				if got == w {
-					valid = true
-					break
-				}
-			}
-			if !valid {
-				t.Errorf("FriendlyProviderName(%q) = %q, want one of %v", tt.input, got, tt.want)
+			if got != tt.want {
+				t.Errorf("FriendlyProviderName(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
@@ -622,5 +615,41 @@ func TestInitRegistry(t *testing.T) {
 	office = DefaultOffice()
 	if office.FacilityID != "1568" {
 		t.Errorf("default FacilityID = %q, want %q", office.FacilityID, "1568")
+	}
+}
+
+func TestAppointmentTypeNames(t *testing.T) {
+	office := DefaultOffice()
+
+	tests := []struct {
+		typeID   int
+		expected string
+		found    bool
+	}{
+		{1006, "New Adult Medical", true},
+		{1004, "New Pediatric Medical", true},
+		{1007, "Established Adult Medical (Follow Up)", true},
+		{1005, "Established Pediatric Medical (Follow Up)", true},
+		{1008, "Post Op", true},
+		{1010, "New Adult Vision", true},
+		{3364, "Established Adult Vision", true},
+		{4244, "New Pediatric Vision", true},
+		{4245, "Established Pediatric Vision", true},
+		{6167, "Crystal River New Patient", true},
+		{6168, "Crystal River Post Op", true},
+		{6169, "Crystal River Established Patient", true},
+		{9999, "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expected, func(t *testing.T) {
+			got, ok := office.AppointmentTypeName(tt.typeID)
+			if ok != tt.found {
+				t.Errorf("AppointmentTypeName(%d) found=%v, want %v", tt.typeID, ok, tt.found)
+			}
+			if got != tt.expected {
+				t.Errorf("AppointmentTypeName(%d) = %q, want %q", tt.typeID, got, tt.expected)
+			}
+		})
 	}
 }

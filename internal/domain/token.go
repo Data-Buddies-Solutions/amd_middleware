@@ -32,46 +32,16 @@ type TokenData struct {
 	CreatedAt string `json:"createdAt"`
 }
 
-// stripProtocol removes the https:// prefix from a URL.
-func stripProtocol(url string) string {
-	return strings.TrimPrefix(url, "https://")
-}
-
-// buildXmlrpcURL constructs the XMLRPC API endpoint path from the webserver URL.
-// Input:  https://providerapi.advancedmd.com/processrequest/api-801/YOURAPP
-// Output: providerapi.advancedmd.com/processrequest/api-801/YOURAPP/xmlrpc/processrequest.aspx
-func buildXmlrpcURL(webserverURL string) string {
-	return stripProtocol(webserverURL + "/xmlrpc/processrequest.aspx")
-}
-
-// buildRestApiBase constructs the Practice Manager REST API base path.
-// Input:  https://providerapi.advancedmd.com/processrequest/api-801/YOURAPP
-// Output: providerapi.advancedmd.com/api/api-801/YOURAPP
-func buildRestApiBase(webserverURL string) string {
-	return stripProtocol(strings.Replace(webserverURL, "/processrequest/", "/api/", 1))
-}
-
-// buildEhrApiBase constructs the EHR REST API base path.
-// Input:  https://providerapi.advancedmd.com/processrequest/api-801/YOURAPP
-// Output: providerapi.advancedmd.com/ehr-api/api-801/YOURAPP
-func buildEhrApiBase(webserverURL string) string {
-	return stripProtocol(strings.Replace(webserverURL, "/processrequest/", "/ehr-api/", 1))
-}
-
-// BuildTokenData creates a complete TokenData struct with all pre-built URLs.
-func BuildTokenData(token, webserverURL string) *TokenData {
-	return BuildTokenDataAt(token, webserverURL, time.Now())
-}
-
 // BuildTokenDataAt creates token data with an explicit creation time.
 func BuildTokenDataAt(token, webserverURL string, createdAt time.Time) *TokenData {
+	base := strings.TrimPrefix(webserverURL, "https://")
 	return &TokenData{
 		Token:        "Bearer " + token,
 		CookieToken:  "token=" + token,
-		WebserverURL: stripProtocol(webserverURL),
-		XmlrpcURL:    buildXmlrpcURL(webserverURL),
-		RestApiBase:  buildRestApiBase(webserverURL),
-		EhrApiBase:   buildEhrApiBase(webserverURL),
+		WebserverURL: base,
+		XmlrpcURL:    base + "/xmlrpc/processrequest.aspx",
+		RestApiBase:  strings.Replace(base, "/processrequest/", "/api/", 1),
+		EhrApiBase:   strings.Replace(base, "/processrequest/", "/ehr-api/", 1),
 		CreatedAt:    createdAt.UTC().Format(time.RFC3339),
 	}
 }

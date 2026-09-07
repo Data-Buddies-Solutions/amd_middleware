@@ -4,6 +4,7 @@ package advancedmdtest
 
 import (
 	"context"
+	"sync"
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
@@ -26,6 +27,7 @@ type PatientSearchStep struct {
 
 // Adapter returns caller-controlled domain results without provider I/O.
 type Adapter struct {
+	scheduleMu               sync.Mutex
 	PatientSearches          map[domain.PatientSearch][]domain.Patient
 	PatientErrors            map[domain.PatientSearch]error
 	PatientSearchSequence    map[domain.PatientSearch][]PatientSearchStep
@@ -185,6 +187,8 @@ func (a *Adapter) GetSchedulerSetup(_ context.Context) (domain.SchedulerSetup, e
 }
 
 func (a *Adapter) ReadSchedule(_ context.Context, query domain.ScheduleReadQuery) (domain.ScheduleReadResult, error) {
+	a.scheduleMu.Lock()
+	defer a.scheduleMu.Unlock()
 	query.ColumnIDs = append([]string(nil), query.ColumnIDs...)
 	a.ScheduleReadQueries = append(a.ScheduleReadQueries, query)
 	if err := a.ScheduleReadErrors[query.Date]; err != nil {

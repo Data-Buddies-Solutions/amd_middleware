@@ -768,18 +768,12 @@ func parseColumns(data interface{}) []domain.SchedulerColumn {
 	switch v := data.(type) {
 	case map[string]interface{}:
 		// Single column
-		col := parseColumnFromMap(v)
-		if col != nil {
-			columns = append(columns, *col)
-		}
+		columns = append(columns, parseColumnFromMap(v))
 	case []interface{}:
 		// Array of columns
 		for _, item := range v {
 			if m, ok := item.(map[string]interface{}); ok {
-				col := parseColumnFromMap(m)
-				if col != nil {
-					columns = append(columns, *col)
-				}
+				columns = append(columns, parseColumnFromMap(m))
 			}
 		}
 	}
@@ -788,8 +782,8 @@ func parseColumns(data interface{}) []domain.SchedulerColumn {
 }
 
 // parseColumnFromMap extracts a SchedulerColumn from a map.
-func parseColumnFromMap(m map[string]interface{}) *domain.SchedulerColumn {
-	col := &domain.SchedulerColumn{
+func parseColumnFromMap(m map[string]interface{}) domain.SchedulerColumn {
+	col := domain.SchedulerColumn{
 		ID:         stripPrefix(getString(m, "@id"), "col"),
 		Name:       getString(m, "@name"),
 		ProfileID:  stripPrefix(getString(m, "@profile"), "prof"),
@@ -897,12 +891,8 @@ func parseFacilities(data interface{}) []domain.SchedulerFacility {
 
 // getString safely extracts a string from a map.
 func getString(m map[string]interface{}, key string) string {
-	if v, ok := m[key]; ok {
-		if s, ok := v.(string); ok {
-			return s
-		}
-	}
-	return ""
+	s, _ := m[key].(string)
+	return s
 }
 
 // getInt safely extracts an int from a map (handles string or number).
