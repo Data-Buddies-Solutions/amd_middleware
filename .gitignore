@@ -15,6 +15,8 @@ Thumbs.db
 
 # Local tool state
 .clawpatch/
+scripts/__pycache__/
+staging-deployment.json
 
 # Go
 gateway

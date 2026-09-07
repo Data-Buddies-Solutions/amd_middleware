@@ -47,3 +47,6 @@ jobs:
 
       - name: Sandbox deployment script test
         run: bash scripts/deploy-sandbox-cloud-run_test.sh
+
+      - name: Staging deployment verification test
+        run: python3 -m unittest discover -s scripts -p 'staging_deployment_test.py'

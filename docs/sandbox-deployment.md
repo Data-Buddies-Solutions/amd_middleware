@@ -125,3 +125,100 @@ credentials work but synthetic data, mappings, or agent routing remain unverifie
 Rollback is sandbox-only: stop demo/test traffic, deploy the previously verified
 sandbox image digest and pinned secret versions with this script, then repeat
 the read-only checks. Never fall back to the production service or credentials.
+
+## GitHub staging deployments
+
+`.github/workflows/staging.yml` deploys only the existing
+`acuity-health-prod/us-east4/abita-middleware-sandbox`. It tests the exact Git SHA,
+builds a context from `git archive` (excluding Actions credentials and local files),
+pushes to the separate `middleware-sandbox` Artifact Registry repository, and
+updates only the service image and `source-sha` label. Existing runtime settings,
+secret versions, identity, network, and traffic allocation are checked before
+and after the update. No production workflow, Cloud Build trigger, or production
+IAM policy participates in this path.
+
+Stop sandbox demos/tests and any other owner of the sandbox AdvancedMD session
+before requesting a deployment. GitHub serializes these deployments, but cannot
+detect an independently running developer process. Inspect recent sandbox
+request logs before proceeding. Avoid simultaneous manual Cloud Run changes.
+
+The on-demand entry point while this PR is unmerged is a unique `staging-*` tag:
+
+```bash
+# Replace REVIEWED_FULL_SHA with the reviewed commit. Tag creation confirms idle use.
+git tag staging-YYYYMMDD-N REVIEWED_FULL_SHA
+git push origin refs/tags/staging-YYYYMMDD-N
+```
+
+Creating the tag deploys that exact commit; it does not merge into `main`.
+Never move or reuse a staging tag. After the workflow reaches the default branch,
+GitHub also exposes **Actions → Deploy staging → Run workflow**, with an explicit
+idle-session acknowledgement. Select `main`, `dev`, `codex/sandbox-middleware`,
+or a `staging-*` tag. The selected ref is the source; there is no separate input
+that can silently change the SHA associated with the GitHub deployment.
+See [GitHub manual workflow requirements](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow).
+
+Each run appears in the GitHub **staging** environment and uploads a sanitized
+`staging-deployment.json` receipt, also included in the run summary. It records
+the full source SHA, immutable image digest, previous/current revision, previous
+image, `/live`, `/ready`, missing-token rejection, and API-token validation.
+API-token validation sends invalid JSON, which is rejected before provider access.
+A green deployment means ready service plus working middleware authentication;
+synthetic patient lookup and usable provider availability remain explicitly
+pending until an already verified live synthetic fixture is supplied and the
+read-only verification gate above is completed. It does not mean a successful
+provider workflow. Failed verification fails the GitHub deployment; it does not
+silently roll back or declare the provider healthy. Use the previous image in
+the receipt for a deliberate sandbox-only rollback, then repeat verification.
+
+### CI identity and resource scope
+
+The dedicated WIF pool is `middleware-staging`, provider `github`, project number
+`1006405058436`. The deployer is
+`middleware-staging-deploy@acuity-health-prod.iam.gserviceaccount.com`.
+There are no service-account keys or personal Google credentials in Actions.
+The provider requires repository ID `1131211316`, owner ID `247211163`, the exact
+`repo:Data-Buddies-Solutions/amd_middleware:environment:staging` subject, this
+workflow's path, and one of the allowed refs listed above. GitHub's staging
+environment branch/tag policy enforces the same ref allowlist.
+
+The deployer has only resource-level grants:
+
+| Resource | Role |
+| --- | --- |
+| `abita-middleware-sandbox` Cloud Run service | `roles/run.developer` |
+| `abita-middleware-sandbox` runtime service account | `roles/iam.serviceAccountUser` |
+| `middleware-sandbox` Artifact Registry repository | `roles/artifactregistry.writer` |
+| `middleware-sandbox-api-secret` secret | `roles/secretmanager.secretAccessor` |
+
+The staging WIF subject has `roles/iam.workloadIdentityUser` on this deployer.
+There are no project-wide grants to the deployer, no production resource grants,
+and no changes to the pre-existing `github-actions` WIF pool/provider. The Security
+Token Service API is enabled for OIDC exchange. The dedicated image repository
+uses immutable tags, with source SHA, run ID, and attempt in every tag.
+
+## Original deployment provenance, verified 2026-09-07
+
+The original service was already running the PR #165 source; no source repair was
+needed. Provenance was established from the archived build contents, not the
+image tag alone:
+
+| Evidence | Value |
+| --- | --- |
+| Git source | `e82f49fb3f0dd2fed416c7a80560e51dc2051cc5` |
+| Cloud Build, `us-east4` | `1b5c1d55-3f7a-4cc6-9a6c-691373fa85b8` (SUCCESS, 2026-09-04) |
+| Original image digest | `sha256:37c6426ac71725f0f738068b7fd7a42a19261252e41153fd96d240521bf94b34` |
+| Original revision | `abita-middleware-sandbox-00001-vjr` |
+| Source archive generation | `1788556711346414` |
+| Source archive SHA-256 | `d840624b190f23c1248ae0a1ff204c3319d9126def4cd99a13cd38d4f72d14a8` |
+
+The archive is
+`gs://acuity-health-prod_us-east4_cloudbuild/source/1788556704.069481-b16af29b17fd482a86310ed501e12002.tgz`.
+All 86 uploaded Git files matched this commit byte for byte; the sole omitted
+tracked file was `.gitignore`, and there were no added or modified archive files.
+Cloud Build's generation-pinned source hash matched the downloaded archive.
+Its result digest matched the image used by the ready revision receiving 100%
+of sandbox traffic. `/live`, `/ready`, missing-token 401, and authenticated
+invalid-JSON rejection passed. No verified live synthetic patient was available,
+so patient lookup and usable availability were not tested. This is historical
+evidence; current image/revision proof lives in the staging deployment receipts.
