@@ -4,6 +4,18 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [2.5.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v2.4.1...v2.5.0) (2026-09-07)
+
+
+### Features
+
+* add isolated sandbox deployment and GitHub tracking ([#165](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/165)) ([f8b1457](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/f8b14574b4075fecfd4ca3123be7e054ca040f25))
+
+
+### Bug Fixes
+
+* revert provider workflow regression ([#171](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/171)) ([12f4b4b](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/12f4b4b23e75142f4acce4afb37e2054de0419ea))
+
 ## [2.4.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v2.4.0...v2.4.1) (2026-09-06)
 
 
