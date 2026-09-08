@@ -4,6 +4,17 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [3.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v2.5.1...v3.0.0) (2026-09-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **scheduling:** `/api/scheduler/slots` no longer accepts 30- or 90-day ranges. Use `startDate` to choose a different 14-day window.
+
+### Bug Fixes
+
+* **scheduling:** bound availability to 14-day date windows ([#175](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/175)) ([3439a37](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/3439a3754af04dd85bb73e5c1e907055cb787e95))
+
 ## [2.5.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v2.5.0...v2.5.1) (2026-09-08)
 
 
