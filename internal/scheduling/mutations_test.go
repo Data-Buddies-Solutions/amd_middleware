@@ -56,6 +56,48 @@ func TestBookRejectsInvalidSignedSlotBeforeWrite(t *testing.T) {
 	}
 }
 
+func TestBookIncompleteRevalidationCanRetryWithoutClaimingSlotConflict(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		columns map[string]domain.ColumnSchedule
+	}{
+		{"appointments unavailable", map[string]domain.ColumnSchedule{
+			"1513": {BlockHoldsComplete: true},
+		}},
+		{"block holds unavailable", map[string]domain.ColumnSchedule{
+			"1513": {AppointmentsComplete: true},
+		}},
+		{"provider column missing", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			now := mutationTestNow()
+			records := bookingRecords()
+			records.BookAppointmentID = 98765
+			records.ScheduleReads["2026-06-03"] = domain.ScheduleReadResult{Columns: tc.columns}
+			command := signedBookCommand(t, now)
+			scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
+
+			_, err := scheduler.Book(context.Background(), command)
+			if scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed ||
+				scheduling.ProviderFailureOf(err) != safeerrors.CategoryInvalidResponse {
+				t.Fatalf("Book error = %v, category = %q, provider failure = %q; want retryable provider-read failure", err, scheduling.CategoryOf(err), scheduling.ProviderFailureOf(err))
+			}
+			if err.Error() != "Unable to verify the selected time because appointment data is incomplete. Please try once more or contact the office." {
+				t.Fatalf("Book message = %q, want an explanation of failed verification", err.Error())
+			}
+			if len(records.Bookings) != 0 {
+				t.Fatalf("provider bookings = %d, want none before complete verification", len(records.Bookings))
+			}
+
+			records.ScheduleReads["2026-06-03"] = completeRead("1513", nil, nil)
+			receipt, err := scheduler.Book(context.Background(), command)
+			if err != nil || receipt.Status != "booked" || len(records.Bookings) != 1 {
+				t.Fatalf("retry receipt = %#v, error = %v, provider bookings = %d; want one successful booking", receipt, err, len(records.Bookings))
+			}
+		})
+	}
+}
+
 func TestBookPreservesAnyAppointmentTypeFromSignedRescheduleToken(t *testing.T) {
 	now := mutationTestNow()
 	records := bookingRecords()

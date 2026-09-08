@@ -1,11 +1,13 @@
 package clients
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -233,6 +235,54 @@ func TestGetAppointmentsForColumns_PartialFailure(t *testing.T) {
 	// Failed column should be absent
 	if _, ok := result["1551"]; ok {
 		t.Error("Expected column 1551 to be absent from results (failed)")
+	}
+}
+
+func TestScheduleReadLogsUpstreamStatus(t *testing.T) {
+	for _, tc := range []struct {
+		operation string
+		status    int
+		read      func(*AdvancedMDRestClient, *domain.TokenData) error
+	}{
+		{"appointments", http.StatusTooManyRequests, func(c *AdvancedMDRestClient, token *domain.TokenData) error {
+			_, err := c.GetAppointments(context.Background(), token, "1513", "2026-03-03")
+			return err
+		}},
+		{"block holds", http.StatusServiceUnavailable, func(c *AdvancedMDRestClient, token *domain.TokenData) error {
+			_, err := c.GetBlockHolds(context.Background(), token, "1513", "2026-03-03")
+			return err
+		}},
+		{"monthly appointments", http.StatusForbidden, func(c *AdvancedMDRestClient, token *domain.TokenData) error {
+			_, err := c.GetAppointmentsByMonth(context.Background(), token, "1513", "2026-03-01")
+			return err
+		}},
+	} {
+		t.Run(tc.operation, func(t *testing.T) {
+			var logs bytes.Buffer
+			previousWriter := log.Writer()
+			log.SetOutput(&logs)
+			t.Cleanup(func() { log.SetOutput(previousWriter) })
+
+			const responseBody = "synthetic-private-response-marker"
+			client, token, cleanup := newTestRestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tc.status)
+				fmt.Fprint(w, responseBody)
+			}))
+			t.Cleanup(cleanup)
+
+			if err := tc.read(client, token); err == nil {
+				t.Fatal("expected upstream response to remain an error")
+			}
+			want := fmt.Sprintf("provider=advancedmd operation=%q upstream_http_status=%d", tc.operation, tc.status)
+			if !strings.Contains(logs.String(), want) {
+				t.Errorf("missing upstream diagnostic %q", want)
+			}
+			for _, sensitive := range []string{responseBody, token.Token, token.RestApiBase} {
+				if strings.Contains(logs.String(), sensitive) {
+					t.Error("upstream diagnostic included sensitive response or request data")
+				}
+			}
+		})
 	}
 }
 
