@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [2.5.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v2.5.0...v2.5.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* **scheduling:** distinguish failed revalidation from slot conflicts ([#173](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/173)) ([2fa7d8d](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/2fa7d8d5a7e6019fc5e03eb5f0d976573623b2b0))
+
 ## [2.5.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v2.4.1...v2.5.0) (2026-09-07)
 
 
