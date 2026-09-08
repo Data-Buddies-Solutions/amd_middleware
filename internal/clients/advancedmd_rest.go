@@ -383,6 +383,10 @@ func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *d
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		log.Printf(
+			"WARNING: provider=advancedmd operation=%q upstream_http_status=%d",
+			operation, resp.StatusCode,
+		)
 		return nil, fmt.Errorf("unexpected status %d from AMD %s API", resp.StatusCode, operation)
 	}
 

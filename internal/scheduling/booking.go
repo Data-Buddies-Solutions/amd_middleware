@@ -391,8 +391,14 @@ func (s *service) revalidateBookingSlot(
 		)
 	}
 	schedule := read.Columns[strconv.Itoa(command.ColumnID)]
-	if !schedule.Complete() ||
-		domain.IsBlockedByHold(start, duration, schedule.BlockHolds) ||
+	if !schedule.Complete() {
+		return time.Time{}, false, categorizedProviderError(
+			CategoryWriteFailed,
+			safeerrors.CategoryInvalidResponse,
+			"Unable to verify the selected time because appointment data is incomplete. Please try once more or contact the office.",
+		)
+	}
+	if domain.IsBlockedByHold(start, duration, schedule.BlockHolds) ||
 		hasDifferentStartOverlap(start, duration, schedule.Appointments) {
 		return time.Time{}, false, slotUnavailableError()
 	}
