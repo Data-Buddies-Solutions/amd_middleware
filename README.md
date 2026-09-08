@@ -363,9 +363,11 @@ workflow policy.
 
 ### Conversational appointment inventory
 
-`POST /api/scheduler/slots` loads every eligible opening for `rangeDays` 14
-(default), 30, or 90. The window counts calendar dates from the earliest
-policy-permitted day. Supply the existing office, DOB, routing and
+`POST /api/scheduler/slots` loads every eligible opening in one 14-calendar-day
+window. Optional `startDate` (YYYY-MM-DD) selects a future window; omission starts
+tomorrow, adjusted for preauthorization. `rangeDays` may be omitted or 14; 30/90-day
+scans are rejected. For the next window, use the day after `searchedThrough`.
+Only configured provider working dates are read. Supply the existing office, DOB, routing and
 preauthorization context. The response carries coverage dates, all signed slots,
 and booking-token expiry. Incomplete calendar reads return an explicit incomplete
 outcome rather than presenting partial results as a complete inventory.
