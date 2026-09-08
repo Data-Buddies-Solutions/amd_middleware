@@ -166,6 +166,7 @@ func (s *service) Search(ctx context.Context, command SearchCommand) (domain.Ava
 // ListCommand loads a complete inventory window for conversational selection.
 // Patient eligibility and booking policy are identical to Search.
 type ListCommand struct {
+	StartDate       string `json:"startDate,omitempty"`
 	RangeDays       int    `json:"rangeDays,omitempty"`
 	Office          string `json:"office"`
 	DOB             string `json:"dob,omitempty"`
@@ -178,11 +179,11 @@ func (s *service) List(ctx context.Context, command ListCommand) (domain.Availab
 	if days == 0 {
 		days = 14
 	}
-	if days != 14 && days != 30 && days != 90 {
-		return domain.AvailabilityResponse{}, schedulingError("rangeDays must be 14, 30, or 90")
+	if days != 14 {
+		return domain.AvailabilityResponse{}, schedulingError("rangeDays must be 14; use startDate to search a different window")
 	}
 	return s.search(ctx, SearchCommand{Office: command.Office, DOB: command.DOB,
-		Routing: command.Routing, PreauthRequired: command.PreauthRequired}, days)
+		RequestedDate: command.StartDate, Routing: command.Routing, PreauthRequired: command.PreauthRequired}, days)
 }
 
 func (s *service) search(ctx context.Context, command SearchCommand, inventoryDays int) (domain.AvailabilityResponse, error) {
@@ -202,7 +203,7 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 	if err := validatePreferredTime(command.PreferredTime); err != nil {
 		return empty, schedulingError(err.Error())
 	}
-	hasPreference := command.RequestedDate != "" || command.PreferredTime != nil
+	hasPreference := inventoryDays == 0 && (command.RequestedDate != "" || command.PreferredTime != nil)
 	if err := domain.ValidateOptionalDOB(command.DOB); err != nil {
 		return empty, schedulingError(err.Error())
 	}

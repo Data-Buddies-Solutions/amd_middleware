@@ -11,9 +11,9 @@ import (
 )
 
 func TestListLoadsEveryEligibleSlotAcrossCalendarWindow(t *testing.T) {
-	// Eastern clock crosses a month, and the 90-day case crosses a DST boundary.
+	// The 14-day window crosses a month and a DST boundary.
 	now := time.Date(2026, 10, 25, 15, 0, 0, 0, time.UTC)
-	for _, days := range []int{0, 14, 30, 90} {
+	for _, days := range []int{0, 14} {
 		t.Run(fmt.Sprint(days), func(t *testing.T) {
 			count := days
 			if count == 0 {
@@ -65,11 +65,58 @@ func TestListIncompleteCalendarCannotClaimCompleteInventory(t *testing.T) {
 }
 
 func TestListRejectsUnsupportedRangeBeforeProviderRead(t *testing.T) {
-	for _, days := range []int{-1, 1, 15, 31, 91} {
+	for _, days := range []int{-1, 1, 15, 30, 31, 90, 91} {
 		records := recordsWithSetup()
 		_, err := scheduling.New(records, "test-secret", time.Now).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", RangeDays: days})
 		if err == nil || records.SchedulerSetupCalls != 0 {
 			t.Fatalf("range %d: error=%v setup reads=%d", days, err, records.SchedulerSetupCalls)
+		}
+	}
+}
+
+func TestListStartsAtRequestedDateWithoutReadingInterveningDates(t *testing.T) {
+	now := time.Date(2026, 9, 8, 12, 0, 0, 0, time.UTC)
+	first := time.Date(2026, 11, 2, 0, 0, 0, 0, time.UTC)
+	column := testColumn("1513", "620", "1568", "09:00", "10:00", 15)
+	column.Workweek = 62 // Monday through Friday.
+	records := recordsWithSetup(column)
+	for day := 0; day < 28; day++ {
+		records.ScheduleReads[first.AddDate(0, 0, day).Format("2006-01-02")] = completeRead("1513", nil, nil)
+	}
+	scheduler := scheduling.New(records, "test-secret", func() time.Time { return now })
+	for _, offset := range []int{0, 14} {
+		start := first.AddDate(0, 0, offset)
+		end := start.AddDate(0, 0, 13)
+		before := len(records.ScheduleReadQueries)
+		result, err := scheduler.List(context.Background(), scheduling.ListCommand{
+			Office: "Spring Hill", Routing: "bach_only", StartDate: start.Format("2006-01-02"),
+		})
+		if err != nil || result.Outcome != domain.AvailabilityOutcomeFound || len(result.Slots) != 40 {
+			t.Fatalf("result=%#v error=%v; want all 40 slots in this window", result, err)
+		}
+		if result.SearchedFrom != start.Format("2006-01-02") || result.SearchedThrough != end.Format("2006-01-02") {
+			t.Fatalf("wrong coverage: %s..%s", result.SearchedFrom, result.SearchedThrough)
+		}
+		queries := records.ScheduleReadQueries[before:]
+		if len(queries) != 10 {
+			t.Fatalf("schedule reads=%d, want ten working dates", len(queries))
+		}
+		for _, query := range queries {
+			date, _ := time.Parse("2006-01-02", query.Date)
+			if date.Before(start) || date.After(end) || date.Weekday() == time.Saturday || date.Weekday() == time.Sunday {
+				t.Fatalf("unexpected provider read: %s", query.Date)
+			}
+		}
+	}
+}
+
+func TestListRejectsInvalidOrPastStartBeforeProviderRead(t *testing.T) {
+	now := time.Date(2026, 9, 8, 12, 0, 0, 0, time.UTC)
+	for _, start := range []string{"2026-09-08", "2026-09-07", "2026-02-30", "November"} {
+		records := recordsWithSetup()
+		_, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", StartDate: start})
+		if err == nil || records.SchedulerSetupCalls != 0 || len(records.ScheduleReadQueries) != 0 {
+			t.Fatalf("start %q: error=%v setup reads=%d schedule reads=%d", start, err, records.SchedulerSetupCalls, len(records.ScheduleReadQueries))
 		}
 	}
 }

@@ -254,11 +254,11 @@ func (s *recordingScheduling) List(ctx context.Context, command schedulingmodule
 	return s.searchResponse, nil
 }
 
-func TestListSlotsRouteRequiresAuthenticationAndPreservesRange(t *testing.T) {
+func TestListSlotsRouteRequiresAuthenticationAndPreservesWindow(t *testing.T) {
 	scheduler := &recordingScheduling{searchResponse: domain.AvailabilityResponse{Status: "success", Outcome: "no_availability", Slots: []domain.AvailabilitySlotOption{}}}
 	router := NewRouter(&Handlers{scheduling: scheduler}, "test-api-secret", nil)
 	for _, authenticated := range []bool{false, true} {
-		request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"rangeDays":30,"office":"Spring Hill","routing":"bach_only","dob":"01/15/1980","preauthRequired":true}`))
+		request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"startDate":"2026-11-02","rangeDays":14,"office":"Spring Hill","routing":"bach_only","dob":"01/15/1980","preauthRequired":true}`))
 		if authenticated {
 			request.Header.Set("Authorization", "test-api-secret")
 		}
@@ -270,7 +270,7 @@ func TestListSlotsRouteRequiresAuthenticationAndPreservesRange(t *testing.T) {
 			}
 			continue
 		}
-		if response.Code != http.StatusOK || scheduler.listCalls != 1 || scheduler.listCommand.RangeDays != 30 || scheduler.listCommand.DOB != "01/15/1980" || !scheduler.listCommand.PreauthRequired {
+		if response.Code != http.StatusOK || scheduler.listCalls != 1 || scheduler.listCommand.RangeDays != 14 || scheduler.listCommand.StartDate != "2026-11-02" || scheduler.listCommand.DOB != "01/15/1980" || !scheduler.listCommand.PreauthRequired {
 			t.Fatalf("status=%d command=%#v", response.Code, scheduler.listCommand)
 		}
 	}

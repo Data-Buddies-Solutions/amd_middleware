@@ -538,6 +538,8 @@ func TestPatientResolveLogsDoNotExposePatientIDOrProviderError(t *testing.T) {
 	w := httptest.NewRecorder()
 	handlers.HandlePatientResolve(w, req)
 
+	// Stop capture before reading; other provider reads can finish after the response.
+	log.SetOutput(previousWriter)
 	got := logs.String()
 	for _, forbidden := range []string{"17604634", "status 500", "appointment failure"} {
 		if strings.Contains(got, forbidden) {
