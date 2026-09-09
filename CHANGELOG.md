@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [3.0.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v3.0.0...v3.0.1) (2026-09-09)
+
+
+### Bug Fixes
+
+* **observability:** preserve correlated provider error diagnostics ([#177](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/177)) ([4af7054](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/4af7054eeabd97da8dc6e03ab611c253fb994c09))
+
 ## [3.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v2.5.1...v3.0.0) (2026-09-08)
 
 
