@@ -93,8 +93,8 @@ func TestRequestLogIsStructuredAndPHISafe(t *testing.T) {
 	if requestID, ok := entry["request_id"].(string); !ok || !strings.HasPrefix(requestID, "external-") {
 		t.Errorf("request_id = %v, want hashed external ID", entry["request_id"])
 	}
-	if len(entry) != 7 {
-		t.Errorf("log fields = %v, want six base fields plus patient-resolution stages", entry)
+	if len(entry) != 8 {
+		t.Errorf("log fields = %v, want seven base fields plus patient-resolution stages", entry)
 	}
 	for _, line := range strings.Split(strings.TrimSpace(logs.String()), "\n") {
 		if !json.Valid([]byte(line)) {

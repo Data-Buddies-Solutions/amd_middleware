@@ -67,7 +67,9 @@ type AMDAppointmentResponse struct {
 
 // GetAppointments fetches appointments for a column within a date range.
 // startDate should be in YYYY-MM-DD format.
-func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *domain.TokenData, columnID string, startDate string) ([]domain.Appointment, error) {
+func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *domain.TokenData, columnID string, startDate string) (appointmentsResult []domain.Appointment, resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, "get_appointments")
+	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/appointments?columnId=%s&forView=day&isLegacy=true&startDate=%s",
 		tokenData.RestApiBase, columnID, startDate)
 
@@ -149,7 +151,9 @@ type AMDBlockHoldResponse struct {
 
 // GetBlockHolds fetches block holds for a column within a date range.
 // startDate should be in YYYY-MM-DD format.
-func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *domain.TokenData, columnID string, startDate string) ([]domain.BlockHold, error) {
+func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *domain.TokenData, columnID string, startDate string) (holdsResult []domain.BlockHold, resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, "get_block_holds")
+	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/blockholds?columnId=%s&forView=day&startDate=%s",
 		tokenData.RestApiBase, columnID, startDate)
 
@@ -227,7 +231,9 @@ func (c *AdvancedMDRestClient) GetBlockHoldsForColumns(ctx context.Context, toke
 // GetAppointmentsByMonth fetches all appointments for the given columns for a full month.
 // columnIDs should be dash-separated (e.g., "1513-1550-1551").
 // startDate should be the first of the month in YYYY-MM-DD format.
-func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, tokenData *domain.TokenData, columnIDs string, startDate string) ([]AMDAppointmentResponse, error) {
+func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, tokenData *domain.TokenData, columnIDs string, startDate string) (appointmentsResult []AMDAppointmentResponse, resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, "get_appointments_by_month")
+	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/appointments?columnId=%s&forView=month&isLegacy=true&startDate=%s",
 		tokenData.RestApiBase, columnIDs, startDate)
 
@@ -268,7 +274,9 @@ type BookAppointmentResponse struct {
 
 // BookAppointment creates an appointment via AMD's REST API.
 // Returns the appointment ID on success.
-func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *domain.TokenData, params BookAppointmentParams) (int, error) {
+func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *domain.TokenData, params BookAppointmentParams) (appointmentIDResult int, resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, "book_appointment")
+	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/Appointments", tokenData.RestApiBase)
 
 	bodyBytes, err := json.Marshal(params)
@@ -293,11 +301,12 @@ func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *d
 		)
 	}
 	defer resp.Body.Close()
+	observeProviderStatus(ctx, resp.StatusCode)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return 0, newMutationError(
 			mutationDispositionForStatus(resp.StatusCode),
-			fmt.Errorf("unexpected status %d from AMD booking API", resp.StatusCode),
+			&HTTPStatusError{StatusCode: resp.StatusCode},
 		)
 	}
 
@@ -327,7 +336,9 @@ func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *d
 }
 
 // CancelAppointment cancels an appointment via AMD's REST API.
-func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData *domain.TokenData, appointmentID int) error {
+func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData *domain.TokenData, appointmentID int) (resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, "cancel_appointment")
+	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/appointments/%d/cancel",
 		tokenData.RestApiBase, appointmentID)
 
@@ -356,11 +367,12 @@ func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData 
 		)
 	}
 	defer resp.Body.Close()
+	observeProviderStatus(ctx, resp.StatusCode)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return newMutationError(
 			mutationDispositionForStatus(resp.StatusCode),
-			fmt.Errorf("unexpected status %d from AMD cancellation API", resp.StatusCode),
+			&HTTPStatusError{StatusCode: resp.StatusCode},
 		)
 	}
 
@@ -381,13 +393,14 @@ func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *d
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
+	observeProviderStatus(ctx, resp.StatusCode)
 
 	if resp.StatusCode != http.StatusOK {
 		log.Printf(
 			"WARNING: provider=advancedmd operation=%q upstream_http_status=%d",
 			operation, resp.StatusCode,
 		)
-		return nil, fmt.Errorf("unexpected status %d from AMD %s API", resp.StatusCode, operation)
+		return nil, &HTTPStatusError{StatusCode: resp.StatusCode}
 	}
 
 	body, err := io.ReadAll(resp.Body)

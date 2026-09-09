@@ -274,6 +274,8 @@ Operational routes have separate contracts:
 Agent-readable business failures intentionally remain JSON tool results, often
 with HTTP 200 and `status: "error"`. Transport authentication failures use
 HTTP 401, and maintenance failures use a redacted HTTP 503.
+[Provider error diagnostics](docs/error-diagnostics.md) preserve request correlation,
+provider operation/status/code, and recovered failures without exposing payloads.
 
 ## Source map
 
