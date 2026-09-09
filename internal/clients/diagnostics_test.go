@@ -7,10 +7,69 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/safeerrors"
 )
+
+func TestPatientLookupDiagnostics(t *testing.T) {
+	for _, lookup := range []string{"name", "phone"} {
+		for _, test := range []struct {
+			name, body, category, code string
+			status                     int
+		}{
+			{name: "http status", status: 503, body: "patient-secret", category: "upstream_status"},
+			{name: "rejection", status: 200, body: `{"PPMDResults":{"Error":{"Fault":{"faultcode":"42","description":"patient-secret"}}}}`, category: "rejected", code: "42"},
+			{name: "malformed", status: 200, body: "patient-secret", category: "invalid_response"},
+			{name: "timeout", category: "timeout"},
+			{name: "no matches", status: 200, body: `{"PPMDResults":{"Results":{"patientlist":{"@itemcount":"0"}}}}`},
+		} {
+			t.Run(lookup+"/"+test.name, func(t *testing.T) {
+				provider := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(test.status)
+					_, _ = w.Write([]byte(test.body))
+				}))
+				defer provider.Close()
+				ctx, diagnostics := safeerrors.WithDiagnostics(context.Background())
+				if test.name == "timeout" {
+					var cancel context.CancelFunc
+					ctx, cancel = context.WithDeadline(ctx, time.Now().Add(-time.Second))
+					defer cancel()
+				}
+				client := NewAdvancedMDClient(provider.Client())
+				token := &domain.TokenData{XmlrpcURL: strings.TrimPrefix(provider.URL, "https://")}
+				var err error
+				if lookup == "phone" {
+					_, err = client.LookupPatientByPhone(ctx, token, "2025550100")
+				} else {
+					_, err = client.LookupPatient(ctx, token, "Synthetic", "Patient")
+				}
+				if (err != nil) != (test.category != "") {
+					t.Fatalf("error = %v, want category %q", err, test.category)
+				}
+				failures, count := diagnostics.Snapshot()
+				if test.category == "" {
+					if count != 0 || len(failures) != 0 {
+						t.Fatalf("successful lookup diagnostics = %+v, count = %d", failures, count)
+					}
+					return
+				}
+				if count != 1 || len(failures) != 1 {
+					t.Fatalf("diagnostics = %+v, count = %d", failures, count)
+				}
+				got := failures[0]
+				if got.Operation != "lookuppatient" || string(got.Category) != test.category || got.HTTPStatus != test.status || got.Code != test.code || got.DurationMS < 0 {
+					t.Fatalf("diagnostic = %+v", got)
+				}
+				encoded, _ := json.Marshal(got)
+				if strings.Contains(string(encoded), "patient-secret") || strings.Contains(string(encoded), "2025550100") || strings.Contains(string(encoded), "Synthetic") {
+					t.Fatalf("unsafe diagnostic: %s", encoded)
+				}
+			})
+		}
+	}
+}
 
 func TestProviderDiagnosticsPreserveStatusAndNumericFaultWithoutPayload(t *testing.T) {
 	for _, test := range []struct {

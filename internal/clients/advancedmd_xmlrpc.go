@@ -168,12 +168,7 @@ func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *
 		},
 	}
 
-	body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
-	if err != nil {
-		return nil, err
-	}
-
-	return parseLookupResponse(body)
+	return c.doPatientLookup(ctx, tokenData, payload)
 }
 
 // doPatientLookup executes a lookuppatient request and parses the response.
