@@ -72,14 +72,17 @@ type patientResolutionLogEntry struct {
 }
 
 type requestLogEntry struct {
-	RequestID         string                     `json:"request_id"`
-	RouteTemplate     string                     `json:"route_template"`
-	Outcome           outcomeCategory            `json:"outcome_category"`
-	LatencyMS         int64                      `json:"latency_ms"`
-	SessionState      session.SessionState       `json:"session_state"`
-	ProviderFailure   safeerrors.Category        `json:"provider_failure_category"`
-	Cancellation      *cancellationLogEntry      `json:"cancellation,omitempty"`
-	PatientResolution *patientResolutionLogEntry `json:"patient_resolution,omitempty"`
+	RequestID          string                          `json:"request_id"`
+	RouteTemplate      string                          `json:"route_template"`
+	Outcome            outcomeCategory                 `json:"outcome_category"`
+	LatencyMS          int64                           `json:"latency_ms"`
+	SessionState       session.SessionState            `json:"session_state"`
+	ProviderFailure    safeerrors.Category             `json:"provider_failure_category"`
+	Cancellation       *cancellationLogEntry           `json:"cancellation,omitempty"`
+	PatientResolution  *patientResolutionLogEntry      `json:"patient_resolution,omitempty"`
+	ProviderErrors     []safeerrors.ProviderDiagnostic `json:"provider_errors,omitempty"`
+	ProviderErrorCount int                             `json:"provider_error_count,omitempty"`
+	HTTPStatus         int                             `json:"http_status"`
 }
 
 var requestLogMu sync.Mutex
@@ -113,7 +116,7 @@ func RequestIDMiddleware(next http.Handler) http.Handler {
 		if requestID == "" {
 			requestID = uuid.New().String()
 			logRequestID = requestID
-		} else {
+		} else if parsed, err := uuid.Parse(requestID); err != nil || parsed.String() != requestID || parsed.Version() != 4 {
 			digest := sha256.Sum256([]byte(requestID))
 			logRequestID = fmt.Sprintf("external-%x", digest[:8])
 		}
@@ -135,9 +138,10 @@ func LoggingMiddleware(amdSession session.Session) func(http.Handler) http.Handl
 			start := time.Now()
 			state := &requestLogState{providerFailure: safeerrors.CategoryNone}
 			ctx := context.WithValue(r.Context(), requestLogKey, state)
+			ctx, diagnostics := safeerrors.WithDiagnostics(ctx)
 
 			// Capture status only. Request/response bodies may contain PHI.
-			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK, state: state, diagnostics: diagnostics}
 
 			next.ServeHTTP(wrapped, r.WithContext(ctx))
 
@@ -148,15 +152,19 @@ func LoggingMiddleware(amdSession session.Session) func(http.Handler) http.Handl
 			if routeTemplate == "" {
 				routeTemplate = "unmatched"
 			}
+			providerErrors, providerErrorCount := diagnostics.Snapshot()
 			writeRequestLog(requestLogEntry{
-				RequestID:         GetLogRequestID(r.Context()),
-				RouteTemplate:     routeTemplate,
-				Outcome:           state.outcome,
-				LatencyMS:         time.Since(start).Milliseconds(),
-				SessionState:      requestSessionState(amdSession),
-				ProviderFailure:   state.providerFailure,
-				Cancellation:      state.cancellation,
-				PatientResolution: state.patientResolve,
+				RequestID:          GetLogRequestID(r.Context()),
+				RouteTemplate:      routeTemplate,
+				Outcome:            state.outcome,
+				LatencyMS:          time.Since(start).Milliseconds(),
+				SessionState:       requestSessionState(amdSession),
+				ProviderFailure:    state.providerFailure,
+				Cancellation:       state.cancellation,
+				PatientResolution:  state.patientResolve,
+				ProviderErrors:     providerErrors,
+				ProviderErrorCount: providerErrorCount,
+				HTTPStatus:         wrapped.statusCode,
 			})
 		})
 	}
@@ -262,15 +270,41 @@ func writeRequestLog(entry requestLogEntry) {
 // responseWriter wraps http.ResponseWriter to capture the status code.
 type responseWriter struct {
 	http.ResponseWriter
-	statusCode int
+	statusCode  int
+	wroteHeader bool
+	state       *requestLogState
+	diagnostics *safeerrors.Diagnostics
 }
 
 func (rw *responseWriter) WriteHeader(code int) {
+	if rw.wroteHeader {
+		return
+	}
+	rw.wroteHeader = true
 	rw.statusCode = code
+	if rw.state != nil {
+		outcome := rw.state.outcome
+		if outcome == "" {
+			outcome = outcomeForStatus(code)
+		}
+		rw.Header().Set("X-Abita-Outcome", string(outcome))
+		rw.Header().Set("X-Abita-Error-Category", string(rw.state.providerFailure))
+	}
+	if rw.diagnostics != nil {
+		failures, count := rw.diagnostics.Snapshot()
+		if count > 0 {
+			encoded, _ := json.Marshal(failures)
+			rw.Header().Set("X-Abita-Provider-Errors", string(encoded))
+			rw.Header().Set("X-Abita-Provider-Error-Count", fmt.Sprint(count))
+		}
+	}
 	rw.ResponseWriter.WriteHeader(code)
 }
 
 func (rw *responseWriter) Write(b []byte) (int, error) {
+	if !rw.wroteHeader {
+		rw.WriteHeader(http.StatusOK)
+	}
 	return rw.ResponseWriter.Write(b)
 }
 

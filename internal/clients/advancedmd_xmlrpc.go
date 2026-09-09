@@ -81,6 +81,7 @@ type AdvancedMDClient struct {
 // intentionally carries no provider body or patient data.
 type ProviderRejectionError struct {
 	operation string
+	code      string
 }
 
 func (e *ProviderRejectionError) Error() string {
@@ -124,6 +125,7 @@ func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *domai
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
+	observeProviderStatus(ctx, resp.StatusCode)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -175,7 +177,9 @@ func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *
 }
 
 // doPatientLookup executes a lookuppatient request and parses the response.
-func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domain.TokenData, payload interface{}) ([]domain.Patient, error) {
+func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domain.TokenData, payload interface{}) (patientsResult []domain.Patient, resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, "lookuppatient")
+	defer func() { finish(resultErr) }()
 	body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
 	if err != nil {
 		return nil, err
@@ -244,7 +248,9 @@ type AddPatientParams struct {
 
 // AddPatient creates a new patient in AdvancedMD.
 // Returns the raw patient ID (with "pat" prefix), responsible party ID, and patient name.
-func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.TokenData, params AddPatientParams) (string, string, string, error) {
+func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.TokenData, params AddPatientParams) (patientIDResult string, partyIDResult string, nameResult string, resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, "addpatient")
+	defer func() { finish(resultErr) }()
 	name := params.LastName + "," + params.FirstName
 	msgTime := time.Now().Format("01/02/2006 03:04:05 PM")
 
@@ -293,7 +299,7 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.Tok
 	}
 
 	if rejectedByProvider(body) {
-		return "", "", "", &ProviderRejectionError{operation: "addpatient"}
+		return "", "", "", providerRejection("addpatient", body)
 	}
 
 	// Try single patient response first (most likely for addpatient)
@@ -318,7 +324,9 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.Tok
 }
 
 // AddInsurance attaches an insurance record to an existing patient in AdvancedMD.
-func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.TokenData, patientID, respPartyID, carrierID, subscriberNum string) error {
+func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.TokenData, patientID, respPartyID, carrierID, subscriberNum string) (resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, "addinsurance")
+	defer func() { finish(resultErr) }()
 	msgTime := time.Now().Format("01/02/2006 03:04:05 PM")
 
 	payload := map[string]interface{}{
@@ -359,7 +367,9 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.T
 
 // EndDateInsurance terminates an existing insurance plan by setting its end date to today.
 // Uses the addinsurance action with the existing insplan ID — only @id and @enddate are needed.
-func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *domain.TokenData, patientID, insPlanID string) error {
+func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *domain.TokenData, patientID, insPlanID string) (resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, "enddateinsurance")
+	defer func() { finish(resultErr) }()
 	msgTime := time.Now().Format("01/02/2006 03:04:05 PM")
 	today := time.Now().Format("01/02/2006")
 
@@ -417,7 +427,7 @@ func checkXMLRPCMutationResponse(body []byte, operation string) error {
 		return err
 	}
 	if providerErrorPresent(response.PPMDResults.Error) {
-		return &ProviderRejectionError{operation: operation}
+		return providerRejection(operation, body)
 	}
 	if len(response.PPMDResults.Results) == 0 || string(response.PPMDResults.Results) == "null" {
 		return fmt.Errorf("%s returned unexpected response", operation)
@@ -473,7 +483,7 @@ func checkXMLRPCError(body []byte, operation string) error {
 	if !providerErrorPresent(response.PPMDResults.Error) {
 		return nil
 	}
-	return &ProviderRejectionError{operation: operation}
+	return providerRejection(operation, body)
 }
 
 // DemographicResult holds parsed insurance info from getdemographic.
@@ -530,7 +540,9 @@ type AMDCarrier struct {
 
 // GetDemographic fetches patient demographic info including insurance.
 // Returns a DemographicResult with carrier info, active insplan ID, and resp party ID.
-func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *domain.TokenData, patientID string) (*DemographicResult, error) {
+func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *domain.TokenData, patientID string) (demographicResult *DemographicResult, resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, "getdemographic")
+	defer func() { finish(resultErr) }()
 	msgTime := time.Now().Format("01/02/2006 03:04:05 PM")
 
 	payload := map[string]interface{}{
@@ -552,7 +564,7 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *domain
 		return nil, err
 	}
 	if providerErrorPresent(envelope.PPMDResults.Error) {
-		return nil, &ProviderRejectionError{operation: "getdemographic"}
+		return nil, providerRejection("getdemographic", body)
 	}
 	if len(envelope.PPMDResults.Results) == 0 || string(envelope.PPMDResults.Results) == "null" {
 		return nil, fmt.Errorf("getdemographic returned unexpected response")
@@ -726,7 +738,9 @@ type AMDFacilityList struct {
 }
 
 // GetSchedulerSetup retrieves the scheduler configuration from AdvancedMD.
-func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *domain.TokenData) (*domain.SchedulerSetup, error) {
+func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *domain.TokenData) (setupResult *domain.SchedulerSetup, resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, "getschedulersetup")
+	defer func() { finish(resultErr) }()
 	msgTime := time.Now().Format("01/02/2006 03:04:05 PM")
 
 	payload := map[string]interface{}{
