@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [3.1.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v3.1.1...v3.1.2) (2026-09-10)
+
+
+### Bug Fixes
+
+* **patient:** retain candidates when provider undercounts results ([#183](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/183)) ([57bdf85](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/57bdf8521d599a7209d3532004f20579775067a0))
+
 ## [3.1.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v3.1.0...v3.1.1) (2026-09-10)
 
 
