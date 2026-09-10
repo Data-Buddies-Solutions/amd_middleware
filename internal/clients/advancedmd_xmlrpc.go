@@ -273,10 +273,12 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domai
 			return domain.PatientCandidateRead{}, fmt.Errorf("patient lookup changed during pagination")
 		}
 		if page == pageCount {
-			if len(patients) != total {
+			if len(patients) < total {
 				return domain.PatientCandidateRead{}, fmt.Errorf("incomplete patient lookup results")
 			}
-			return domain.PatientCandidateRead{Patients: patients, Complete: true}, nil
+			// AMD can underreport itemcount even after every page has been read.
+			// Keep all candidates, but an inconsistent count cannot prove completeness.
+			return domain.PatientCandidateRead{Patients: patients, Complete: len(patients) == total}, nil
 		}
 	}
 	return domain.PatientCandidateRead{}, fmt.Errorf("patient lookup exceeded page limit")
