@@ -1096,6 +1096,9 @@ func notFoundMessage(command ResolveCommand) string {
 }
 
 func multipleMatchesMessage(command ResolveCommand, count int) string {
+	if command.FirstName != "" && command.DOB != "" && command.Phone == "" && command.LastName == "" {
+		return fmt.Sprintf("Found %d patients with that first name and DOB.", count)
+	}
 	if command.Phone != "" && command.FirstName != "" && command.DOB == "" {
 		return fmt.Sprintf("Found %d patients with that name and phone number. Please provide date of birth.", count)
 	}

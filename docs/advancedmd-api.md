@@ -67,7 +67,17 @@ Minimum request shape:
 
 When first name is known, middleware sends `@name` as `LastName,FirstName` so
 AMD filters common last names server-side. Phone lookups use AMD's phone lookup
-path and middleware filters by DOB when DOB is supplied.
+path and middleware filters by DOB when DOB is supplied. First-name/DOB fallback
+sends `@name` as `,FirstName`, then requires an exact first-name match and matching
+DOB before resolving a unique patient.
+
+Name and phone lookups request each `@page` through the returned `@pagecount`,
+up to 100 pages. `@itemcount` is the total across pages. Changed totals, missing
+or repeated patient IDs, malformed metadata, page failures, and incomplete
+results return an error instead of a partial patient list. Legacy responses
+without page metadata must match their item count when supplied. Sandbox reads
+verified page numbering and complete traversal; production behavior remains to
+be checked after deployment.
 
 Implementation:
 

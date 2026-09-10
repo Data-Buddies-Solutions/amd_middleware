@@ -1213,6 +1213,9 @@ func TestResolveFirstNameDOBDoesNotPromoteAmbiguousOrPrefixMatches(t *testing.T)
 			if got.PatientID != "" {
 				t.Fatal("ambiguous or non-matching record was promoted")
 			}
+			if test.name == "collision" && got.Message != "Found 2 patients with that first name and DOB." {
+				t.Fatalf("misleading collision message: %s", got.Message)
+			}
 		})
 	}
 }
