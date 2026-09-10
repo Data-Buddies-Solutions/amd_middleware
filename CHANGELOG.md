@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [3.1.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v3.1.0...v3.1.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* **patient:** paginate candidate lookups before resolution ([#181](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/181)) ([1b2289c](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/1b2289c002435e3bd463f46610453ed95f0b2e53))
+
 ## [3.1.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v3.0.1...v3.1.0) (2026-09-10)
 
 
