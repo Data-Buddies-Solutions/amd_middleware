@@ -379,3 +379,23 @@ concurrent days. Booking still validates the signed slot and current schedule.
 Deploy this endpoint before the inventory-based agent; `/scheduler/availability`
 remains available for the deployed agent and rollback. Both paths share scheduling
 policy. This does not introduce pre-call fetching or a shared inventory cache.
+
+## First-name/DOB candidate search
+
+`POST /api/patient/resolve` accepts `firstName` + valid `dob` without surname.
+This path returns `{status: "candidates", source: "first_name", complete, matches}`
+and never hydrates a singleton. The agent owns first-name/DOB matching and
+activation; it requests `patientId` only after selecting a unique candidate.
+Existing phone, full-name, and patient-ID paths retain their contracts.
+
+The AdvancedMD seam retrieves `lookuppatient` with `@name: ",FirstName"` and
+preserves pagination/count evidence. Completeness requires explicit page 1,
+pagecount 1 (or 0 for empty), matching itemcount, and valid distinct identity
+records. Extra pages or missing/inconsistent metadata remain incomplete; this
+version does not traverse extra pages. First-and-middle provider names are split
+at the retrieval boundary consistently with phone bootstrap. No fuzzy identity
+policy is added to middleware.
+
+DEV read-only probes returned complete single-page sets for CODEX (3), COD (3),
+Jane (4), John (2), and a nonexistent-first-name control (0). This is not a
+production retrieval proof. Release this contract before its paired agent change.

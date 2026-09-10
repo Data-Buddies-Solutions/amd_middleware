@@ -157,7 +157,36 @@ func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *domain.
 		},
 	}
 
-	return c.doPatientLookup(ctx, tokenData, reqBody)
+	read, err := c.doPatientLookup(ctx, tokenData, reqBody)
+	return read.Patients, err
+}
+
+// LookupPatientCandidates returns only the provider's name-prefix candidates.
+// A candidate result is complete only after explicit pagination/count metadata
+// proves every page was read and all records have valid identity fields.
+func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *domain.TokenData, firstName string) (read domain.PatientCandidateRead, resultErr error) {
+	read, err := c.doPatientLookup(ctx, tokenData, AMDLookupRequest{PPMDMsg: AMDLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName}})
+	if err != nil {
+		return read, err
+	}
+	seen := make(map[string]bool)
+	for index, patient := range read.Patients {
+		parts := strings.SplitN(patient.FullName, ",", 2)
+		if len(parts) == 2 {
+			patient.LastName = strings.TrimSpace(parts[0])
+			// AMD's comma suffix is first-and-middle, as in phone bootstrap.
+			if names := strings.Fields(parts[1]); len(names) > 0 {
+				patient.FirstName = names[0]
+			}
+			read.Patients[index].LastName = patient.LastName
+			read.Patients[index].FirstName = patient.FirstName
+		}
+		if patient.ID == "" || patient.FirstName == "" || patient.LastName == "" || patient.DOB == "" || domain.ValidateOptionalDOB(patient.DOB) != nil || seen[patient.ID] {
+			read.Complete = false
+		}
+		seen[patient.ID] = true
+	}
+	return read, nil
 }
 
 // LookupPatientByPhone searches for patients by phone number.
@@ -167,11 +196,12 @@ func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *
 		Action: "lookuppatient", Class: "api", Phone: phone,
 	}}
 
-	return c.doPatientLookup(ctx, tokenData, payload)
+	read, err := c.doPatientLookup(ctx, tokenData, payload)
+	return read.Patients, err
 }
 
 // doPatientLookup executes a lookuppatient request and parses the response.
-func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domain.TokenData, payload AMDLookupRequest) (patientsResult []domain.Patient, resultErr error) {
+func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domain.TokenData, payload AMDLookupRequest) (read domain.PatientCandidateRead, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "lookuppatient")
 	defer func() { finish(resultErr) }()
 	const maxLookupPages = 100
@@ -182,12 +212,13 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domai
 		payload.PPMDMsg.Page = page
 		body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
 		if err != nil {
-			return nil, err
+			return domain.PatientCandidateRead{}, err
 		}
-		batch, err := parseLookupResponse(body)
+		pageRead, err := parseLookupResponse(body)
 		if err != nil {
-			return nil, err
+			return domain.PatientCandidateRead{}, err
 		}
+		batch := pageRead.Patients
 		var envelope struct {
 			Results struct {
 				Data struct {
@@ -200,12 +231,12 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domai
 			} `json:"PPMDResults"`
 		}
 		if err := json.Unmarshal(body, &envelope); err != nil {
-			return nil, fmt.Errorf("invalid patient lookup pagination")
+			return domain.PatientCandidateRead{}, fmt.Errorf("invalid patient lookup pagination")
 		}
 		meta := envelope.Results.Data.List
 		for _, patient := range batch {
 			if patient.ID == "" || seen[patient.ID] {
-				return nil, fmt.Errorf("patient lookup returned missing or repeated patient ID")
+				return domain.PatientCandidateRead{}, fmt.Errorf("patient lookup returned missing or repeated patient ID")
 			}
 			seen[patient.ID] = true
 			patients = append(patients, patient)
@@ -215,78 +246,103 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domai
 			if meta.Total != "" {
 				total, err := strconv.Atoi(meta.Total)
 				if err != nil || total != len(patients) {
-					return nil, fmt.Errorf("incomplete legacy patient lookup results")
+					return domain.PatientCandidateRead{}, fmt.Errorf("incomplete legacy patient lookup results")
 				}
 			}
-			return patients, nil
+			return domain.PatientCandidateRead{Patients: patients, Complete: false}, nil
 		}
 		currentPage, pageErr := strconv.Atoi(meta.Page)
 		pageCount, countErr := strconv.Atoi(meta.Pages)
 		total, totalErr := strconv.Atoi(meta.Total)
 		if pageErr != nil || countErr != nil || totalErr != nil || currentPage != page || pageCount < 0 || pageCount > maxLookupPages || total < 0 {
-			return nil, fmt.Errorf("invalid or excessive patient lookup pagination")
+			return domain.PatientCandidateRead{}, fmt.Errorf("invalid or excessive patient lookup pagination")
 		}
 		if page == 1 && total == 0 && len(batch) == 0 && pageCount <= 1 {
-			return patients, nil
+			if !pageRead.Complete {
+				return domain.PatientCandidateRead{}, fmt.Errorf("contradictory empty patient lookup")
+			}
+			return domain.PatientCandidateRead{Patients: patients, Complete: true}, nil
 		}
 		if pageCount < page || len(batch) == 0 {
-			return nil, fmt.Errorf("incomplete patient lookup page")
+			return domain.PatientCandidateRead{}, fmt.Errorf("incomplete patient lookup page")
 		}
 		if page == 1 {
 			expectedPages, expectedTotal = pageCount, total
 		}
 		if pageCount != expectedPages || total != expectedTotal {
-			return nil, fmt.Errorf("patient lookup changed during pagination")
+			return domain.PatientCandidateRead{}, fmt.Errorf("patient lookup changed during pagination")
 		}
 		if page == pageCount {
 			if len(patients) != total {
-				return nil, fmt.Errorf("incomplete patient lookup results")
+				return domain.PatientCandidateRead{}, fmt.Errorf("incomplete patient lookup results")
 			}
-			return patients, nil
+			return domain.PatientCandidateRead{Patients: patients, Complete: true}, nil
 		}
 	}
-	return nil, fmt.Errorf("patient lookup exceeded page limit")
+	return domain.PatientCandidateRead{}, fmt.Errorf("patient lookup exceeded page limit")
 }
 
-// parseLookupResponse handles AMD's single-vs-array patient response format.
-func parseLookupResponse(body []byte) ([]domain.Patient, error) {
-	var envelope struct {
-		PPMDResults struct {
+// parseLookupResponse decodes records and pagination together. The patient field
+// can contain one object or an array; existing lookup callers use only Patients.
+func parseLookupResponse(body []byte) (domain.PatientCandidateRead, error) {
+	var response struct {
+		PPMDResults *struct {
 			Results struct {
-				PatientList struct {
-					ItemCount string `json:"@itemcount"`
+				PatientList *struct {
+					ItemCount string          `json:"@itemcount"`
+					Page      string          `json:"@page"`
+					PageCount string          `json:"@pagecount"`
+					Patients  json.RawMessage `json:"patient"`
 				} `json:"patientlist"`
 			} `json:"Results"`
 			Error interface{} `json:"Error"`
 		} `json:"PPMDResults"`
 	}
-	if err := json.Unmarshal(body, &envelope); err != nil {
-		return nil, fmt.Errorf("failed to parse lookup response: %w", err)
+	var read domain.PatientCandidateRead
+	if err := json.Unmarshal(body, &response); err != nil {
+		return read, fmt.Errorf("failed to parse lookup response: %w", err)
 	}
-	if err := checkXMLRPCError(body, "lookuppatient"); err != nil {
-		return nil, err
+	if response.PPMDResults == nil {
+		return read, fmt.Errorf("lookuppatient returned unexpected response")
 	}
-	if envelope.PPMDResults.Results.PatientList.ItemCount == "0" {
-		return []domain.Patient{}, nil
+	if providerErrorPresent(response.PPMDResults.Error) {
+		return read, providerRejection("lookuppatient", body)
 	}
-
-	// Try array response first
-	var arrayResp AMDLookupResponse
-	if err := json.Unmarshal(body, &arrayResp); err == nil {
-		if arrayResp.PPMDResults.Results.PatientList.Patients != nil {
-			return convertPatients(arrayResp.PPMDResults.Results.PatientList.Patients), nil
+	list := response.PPMDResults.Results.PatientList
+	if list == nil {
+		return read, fmt.Errorf("lookuppatient returned malformed patientlist")
+	}
+	raw := bytes.TrimSpace(list.Patients)
+	count, countErr := strconv.Atoi(list.ItemCount)
+	pages, pageErr := strconv.Atoi(list.PageCount)
+	if list.ItemCount == "0" {
+		// Preserve legacy empty reads, but contradictory records cannot prove absence.
+		read.Patients = []domain.Patient{}
+		empty := len(raw) == 0 || bytes.Equal(raw, []byte("null")) || bytes.Equal(raw, []byte("[]"))
+		read.Complete = empty && list.Page == "1" && pageErr == nil && (pages == 0 || pages == 1)
+		return read, nil
+	}
+	var patients []AMDPatient
+	switch {
+	case len(raw) > 0 && raw[0] == '[':
+		if err := json.Unmarshal(raw, &patients); err != nil {
+			return read, fmt.Errorf("lookuppatient returned malformed patient array: %w", err)
 		}
-	}
-
-	// Try single patient response
-	var singleResp AMDLookupResponseSingle
-	if err := json.Unmarshal(body, &singleResp); err == nil {
-		if singleResp.PPMDResults.Results.PatientList.Patient.ID != "" {
-			return convertPatients([]AMDPatient{singleResp.PPMDResults.Results.PatientList.Patient}), nil
+	case len(raw) > 0 && raw[0] == '{':
+		var patient AMDPatient
+		if err := json.Unmarshal(raw, &patient); err != nil {
+			return read, fmt.Errorf("lookuppatient returned malformed patient: %w", err)
 		}
+		if patient.ID == "" {
+			return read, fmt.Errorf("lookuppatient returned a patient without an ID")
+		}
+		patients = []AMDPatient{patient}
+	default:
+		return read, fmt.Errorf("lookuppatient returned malformed patientlist")
 	}
-
-	return nil, fmt.Errorf("lookuppatient returned malformed patientlist")
+	read.Patients = convertPatients(patients)
+	read.Complete = countErr == nil && pageErr == nil && list.Page == "1" && pages == 1 && count == len(patients)
+	return read, nil
 }
 
 // AddPatientParams holds the parameters for creating a new patient.

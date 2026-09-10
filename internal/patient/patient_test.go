@@ -3,6 +3,7 @@ package patient_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -807,12 +808,6 @@ func TestResolveSelectsPatientByVerifiedDemographics(t *testing.T) {
 		wantID  string
 	}{
 		{
-			name:    "first name and DOB without surname",
-			command: patient.ResolveCommand{FirstName: "Jane", DOB: "01/15/1980", OfficeID: office.ID},
-			search:  domain.PatientSearch{FirstName: "Jane"},
-			wantID:  "123",
-		},
-		{
 			name:    "phone and first name",
 			command: patient.ResolveCommand{Phone: "555-222-3333", FirstName: "Janet", OfficeID: office.ID},
 			search:  domain.PatientSearch{Phone: "5552223333"},
@@ -1189,33 +1184,26 @@ func assertResolveResult(t *testing.T, got, want patient.ResolveResult) {
 	}
 }
 
-func TestResolveFirstNameDOBDoesNotPromoteAmbiguousOrPrefixMatches(t *testing.T) {
+func TestFirstNameDOBReturnsCandidatesWithoutHydration(t *testing.T) {
 	domain.InitRegistry("")
-	office, _ := domain.LookupOffice("Spring Hill")
-	for _, test := range []struct {
-		name       string
-		candidates []domain.Patient
-		status     patient.Status
-	}{
-		{"prefix", []domain.Patient{{ID: "1", FirstName: "JANET", DOB: "01/15/1980"}}, patient.StatusNotFound},
-		{"collision", []domain.Patient{{ID: "1", FirstName: "JANE", DOB: "01/15/1980"}, {ID: "2", FirstName: "JANE", DOB: "01/15/1980"}}, patient.StatusMultipleMatches},
-	} {
-		t.Run(test.name, func(t *testing.T) {
+	for _, complete := range []bool{true, false} {
+		for _, count := range []int{0, 1, 2} {
 			amd := advancedmdtest.NewAdapter()
-			amd.PatientSearches[domain.PatientSearch{FirstName: "Jane"}] = test.candidates
-			got, err := patient.New(amd).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "01/15/1980", OfficeID: office.ID})
+			rows := []domain.Patient{}
+			for i := 0; i < count; i++ {
+				rows = append(rows, domain.Patient{ID: fmt.Sprint(i + 1), FirstName: "Jane", LastName: "Meyer", FullName: "MEYER,JANE", DOB: "01/01/1980"})
+			}
+			amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Patients: rows, Complete: complete}
+			result, err := patient.New(amd).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "01/01/1980", OfficeID: "spring_hill"})
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got.Status != test.status {
-				t.Fatalf("status=%s want %s", got.Status, test.status)
+			if result.Status != patient.StatusCandidates || result.Source != "first_name" || result.Complete == nil || *result.Complete != complete || len(result.Matches) != count {
+				t.Fatalf("incorrect candidate contract for count=%d complete=%v", count, complete)
 			}
-			if got.PatientID != "" {
-				t.Fatal("ambiguous or non-matching record was promoted")
+			if amd.SearchPatientCalls != 1 || amd.DemographicCalls != 0 || amd.AppointmentReadCalls != 0 {
+				t.Fatal("candidate retrieval must use one search and zero hydration reads")
 			}
-			if test.name == "collision" && got.Message != "Found 2 patients with that first name and DOB." {
-				t.Fatalf("misleading collision message: %s", got.Message)
-			}
-		})
+		}
 	}
 }

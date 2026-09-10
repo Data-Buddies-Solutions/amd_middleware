@@ -36,6 +36,8 @@ type PatientResolveRequest struct {
 
 // PatientResolveResponse is returned by /api/patient/resolve.
 type PatientResolveResponse struct {
+	Source              string                     `json:"source,omitempty"`
+	Complete            *bool                      `json:"complete,omitempty"`
 	Status              string                     `json:"status"`
 	PatientID           string                     `json:"patientId,omitempty"`
 	Name                string                     `json:"name,omitempty"`
@@ -53,7 +55,7 @@ type PatientResolveResponse struct {
 	Appointments        []PatientApptDetail        `json:"appointments"`
 	AppointmentsMessage string                     `json:"appointmentsMessage,omitempty"`
 	Message             string                     `json:"message,omitempty"`
-	Matches             []PatientCandidateResponse `json:"matches,omitempty"`
+	Matches             []PatientCandidateResponse `json:"matches"`
 }
 
 // PatientCandidateResponse is the private, lightweight identity selection
@@ -328,6 +330,8 @@ func patientResolveResponse(result patientmodule.ResolveResult) PatientResolveRe
 		}
 	}
 	return PatientResolveResponse{
+		Source:              result.Source,
+		Complete:            result.Complete,
 		Status:              string(result.Status),
 		PatientID:           result.PatientID,
 		Name:                result.Name,
@@ -368,6 +372,9 @@ func validatePatientResolveRequest(req PatientResolveRequest) string {
 		return ""
 	}
 	if (req.FirstName != "" || req.LastName != "") && req.DOB != "" {
+		if err := domain.ValidateOptionalDOB(req.DOB); err != nil {
+			return err.Error()
+		}
 		return ""
 	}
 	return "Provide patientId, phone, phone + firstName, phone + dob, firstName + dob, or lastName + dob"

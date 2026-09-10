@@ -68,8 +68,8 @@ Minimum request shape:
 When first name is known, middleware sends `@name` as `LastName,FirstName` so
 AMD filters common last names server-side. Phone lookups use AMD's phone lookup
 path and middleware filters by DOB when DOB is supplied. First-name/DOB fallback
-sends `@name` as `,FirstName`, then requires an exact first-name match and matching
-DOB before resolving a unique patient.
+sends `@name` as `,FirstName` and returns the complete candidate set. The voice
+agent owns first-name/DOB matching and loads the selected chart by ID.
 
 Name and phone lookups request each `@page` through the returned `@pagecount`,
 up to 100 pages. `@itemcount` is the total across pages. Changed totals, missing

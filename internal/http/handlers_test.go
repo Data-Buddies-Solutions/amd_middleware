@@ -1384,3 +1384,48 @@ func newPatientResolveTestHandlers(
 func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListCommand) (domain.AvailabilityResponse, error) {
 	return s.Search(ctx, schedulingmodule.SearchCommand{Office: command.Office})
 }
+
+func TestFirstNameDOBHTTPContract(t *testing.T) {
+	domain.InitRegistry("")
+	amd := advancedmdtest.NewAdapter()
+	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true, Patients: []domain.Patient{{ID: "1", FirstName: "Jane", LastName: "Meyer", DOB: "01/01/1980"}}}
+	handler := NewHandlers(nil, patientmodule.New(amd), nil)
+	for _, tc := range []struct {
+		body  string
+		valid bool
+	}{
+		{`{"firstName":"Jane","dob":"01/01/1980","office":"spring_hill"}`, true},
+		{`{"firstName":"Jane","office":"spring_hill"}`, false},
+		{`{"firstName":"Jane","dob":"02/30/1980","office":"spring_hill"}`, false},
+	} {
+		writer := httptest.NewRecorder()
+		handler.HandlePatientResolve(writer, httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(tc.body)))
+		var body map[string]any
+		if err := json.Unmarshal(writer.Body.Bytes(), &body); err != nil {
+			t.Fatal(err)
+		}
+		if tc.valid {
+			if body["status"] != "candidates" || body["source"] != "first_name" || body["complete"] != true || body["patientId"] != nil {
+				t.Fatal("invalid candidate-only envelope")
+			}
+			if len(body["matches"].([]any)) != 1 {
+				t.Fatal("missing candidate")
+			}
+		} else if body["status"] != "error" {
+			t.Fatal("accepted incomplete/invalid identity")
+		}
+	}
+	if amd.SearchPatientCalls != 1 || amd.DemographicCalls != 0 || amd.AppointmentReadCalls != 0 {
+		t.Fatal("HTTP candidate search hydrated a chart")
+	}
+	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true}
+	writer := httptest.NewRecorder()
+	handler.HandlePatientResolve(writer, httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"firstName":"Jane","dob":"01/01/1980","office":"spring_hill"}`)))
+	var body map[string]any
+	if err := json.Unmarshal(writer.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if matches, ok := body["matches"].([]any); !ok || len(matches) != 0 {
+		t.Fatal("empty candidate result must retain an array")
+	}
+}

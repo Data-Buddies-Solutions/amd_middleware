@@ -15,7 +15,7 @@ func lookupPageFixture(page, pages, total int, id string) map[string]any {
 	}}}}
 }
 
-func TestLookupPatientReadsLaterPages(t *testing.T) {
+func TestLookupPatientCandidatesReadsLaterPages(t *testing.T) {
 	reads := 0
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
@@ -34,10 +34,14 @@ func TestLookupPatientReadsLaterPages(t *testing.T) {
 	})
 	client, token, cleanup := newTestXMLRPCClient(t, handler)
 	defer cleanup()
-	patients, err := client.LookupPatient(context.Background(), token, "", "Jane")
+	read, err := client.LookupPatientCandidates(context.Background(), token, "Jane")
 	if err != nil {
 		t.Fatal(err)
 	}
+	if !read.Complete {
+		t.Fatal("all pages should be complete")
+	}
+	patients := read.Patients
 	if reads != 2 || len(patients) != 2 || patients[1].ID != "2" {
 		t.Fatalf("reads=%d patients=%d; later page missing", reads, len(patients))
 	}

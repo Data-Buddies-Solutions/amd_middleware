@@ -54,6 +54,12 @@ type PatientSearch struct {
 	LastName  string
 }
 
+// PatientCandidateRead preserves whether all pages and records were observed.
+type PatientCandidateRead struct {
+	Patients []Patient
+	Complete bool
+}
+
 // PatientDemographics contains the patient fields returned by the authoritative
 // demographic read.
 type PatientDemographics struct {
