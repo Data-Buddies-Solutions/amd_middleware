@@ -375,7 +375,7 @@ func TestHandlePatientResolve_PhoneOnlyLoadsAppointments(t *testing.T) {
 	}
 }
 
-func TestHandlePatientResolve_PhoneOnlyMultipleMatchesReturnsCandidatesWithoutHydration(t *testing.T) {
+func TestHandlePatientResolve_PhoneCountUnderrunReturnsAllCandidatesWithoutHydration(t *testing.T) {
 	var mu sync.Mutex
 	demographicReads := 0
 	appointmentReads := 0
@@ -406,12 +406,15 @@ func TestHandlePatientResolve_PhoneOnlyMultipleMatchesReturnsCandidatesWithoutHy
 	if body.Status != "multiple_matches" {
 		t.Fatalf("status = %q, want multiple_matches; body = %+v", body.Status, body)
 	}
-	if len(body.Matches) != 2 {
-		t.Fatalf("matches = %+v, want two lightweight candidates", body.Matches)
+	if len(body.Matches) != 5 {
+		t.Fatalf("matches = %+v, want all five lightweight candidates", body.Matches)
 	}
 	want := []map[string]any{
 		{"status": "candidate", "patientId": "123", "firstName": "JANE", "lastName": "DOE", "dob": "01/15/1980"},
 		{"status": "candidate", "patientId": "456", "firstName": "JOHN", "lastName": "DOE", "dob": "03/20/1982"},
+		{"status": "candidate", "patientId": "789", "firstName": "ALEX", "lastName": "DOE", "dob": "01/15/1980"},
+		{"status": "candidate", "patientId": "790", "firstName": "SAM", "lastName": "DOE", "dob": "01/15/1980"},
+		{"status": "candidate", "patientId": "791", "firstName": "ROBIN", "lastName": "DOE", "dob": "01/15/1980"},
 	}
 	for i := range want {
 		if !reflect.DeepEqual(body.Matches[i], want[i]) {
@@ -1292,7 +1295,9 @@ func newPatientResolveTestHandlers(
 					"PPMDResults": {
 						"Results": {
 							"patientlist": {
-								"@itemcount": "2",
+								"@itemcount": "4",
+								"@page": "1",
+								"@pagecount": "1",
 								"patient": [
 									{
 										"@id": "pat123",
@@ -1305,7 +1310,10 @@ func newPatientResolveTestHandlers(
 										"@name": "DOE,JOHN",
 										"@dob": "03/20/1982",
 										"contactinfo": {"@cellphone": "850-373-0000"}
-									}
+									},
+									{"@id":"pat789","@name":"DOE,ALEX","@dob":"01/15/1980"},
+									{"@id":"pat790","@name":"DOE,SAM","@dob":"01/15/1980"},
+									{"@id":"pat791","@name":"DOE,ROBIN","@dob":"01/15/1980"}
 								]
 							}
 						}

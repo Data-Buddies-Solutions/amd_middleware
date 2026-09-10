@@ -98,3 +98,62 @@ func TestLookupPatientRejectsIncompletePages(t *testing.T) {
 		})
 	}
 }
+
+func TestLookupPatientRetainsRecordsWhenReportedCountIsTooLow(t *testing.T) {
+	for _, pages := range []int{1, 2} {
+		for _, lookup := range []string{"phone", "first_name"} {
+			t.Run(fmt.Sprintf("%s_%d_pages", lookup, pages), func(t *testing.T) {
+				reads := 0
+				client, token, cleanup := newTestXMLRPCClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					var request AMDLookupRequest
+					if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+						t.Fatal(err)
+					}
+					reads++
+					if request.PPMDMsg.Page != reads || reads > pages {
+						t.Fatalf("unexpected page %d", request.PPMDMsg.Page)
+					}
+					first, last := 1, 5
+					if pages == 2 {
+						if reads == 1 {
+							last = 3
+						} else {
+							first = 4
+						}
+					}
+					rows := []map[string]any{}
+					for id := first; id <= last; id++ {
+						rows = append(rows, map[string]any{"@id": fmt.Sprintf("pat%d", id), "@name": "EXAMPLE,JANE", "@dob": "01/15/1980"})
+					}
+					fixture := lookupPageFixture(reads, pages, 4, "unused")
+					fixture["PPMDResults"].(map[string]any)["Results"].(map[string]any)["patientlist"].(map[string]any)["patient"] = rows
+					json.NewEncoder(w).Encode(fixture)
+				}))
+				defer cleanup()
+				if lookup == "phone" {
+					patients, err := client.LookupPatientByPhone(context.Background(), token, "5551234567")
+					if err != nil {
+						t.Fatal(err)
+					}
+					if len(patients) != 5 || patients[4].ID != "5" {
+						t.Fatal("phone lookup lost returned candidates")
+					}
+				} else {
+					read, err := client.LookupPatientCandidates(context.Background(), token, "Jane")
+					if err != nil {
+						t.Fatal(err)
+					}
+					if len(read.Patients) != 5 || read.Patients[4].ID != "5" {
+						t.Fatal("first-name lookup lost returned candidates")
+					}
+					if read.Complete {
+						t.Fatal("inconsistent count must not prove completeness for first-name resolution")
+					}
+				}
+				if reads != pages {
+					t.Fatalf("read %d pages, want %d", reads, pages)
+				}
+			})
+		}
+	}
+}
