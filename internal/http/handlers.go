@@ -367,10 +367,10 @@ func validatePatientResolveRequest(req PatientResolveRequest) string {
 		}
 		return ""
 	}
-	if req.LastName != "" && req.DOB != "" {
+	if (req.FirstName != "" || req.LastName != "") && req.DOB != "" {
 		return ""
 	}
-	return "Provide patientId, phone, phone + firstName, phone + dob, or lastName + dob"
+	return "Provide patientId, phone, phone + firstName, phone + dob, firstName + dob, or lastName + dob"
 }
 
 type CancelAppointmentRequest struct {

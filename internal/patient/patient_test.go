@@ -807,6 +807,12 @@ func TestResolveSelectsPatientByVerifiedDemographics(t *testing.T) {
 		wantID  string
 	}{
 		{
+			name:    "first name and DOB without surname",
+			command: patient.ResolveCommand{FirstName: "Jane", DOB: "01/15/1980", OfficeID: office.ID},
+			search:  domain.PatientSearch{FirstName: "Jane"},
+			wantID:  "123",
+		},
+		{
 			name:    "phone and first name",
 			command: patient.ResolveCommand{Phone: "555-222-3333", FirstName: "Janet", OfficeID: office.ID},
 			search:  domain.PatientSearch{Phone: "5552223333"},
@@ -1180,5 +1186,33 @@ func assertResolveResult(t *testing.T, got, want patient.ResolveResult) {
 		if got.Appointments[i] != want.Appointments[i] {
 			t.Fatalf("Appointments = %+v, want %+v", got.Appointments, want.Appointments)
 		}
+	}
+}
+
+func TestResolveFirstNameDOBDoesNotPromoteAmbiguousOrPrefixMatches(t *testing.T) {
+	domain.InitRegistry("")
+	office, _ := domain.LookupOffice("Spring Hill")
+	for _, test := range []struct {
+		name       string
+		candidates []domain.Patient
+		status     patient.Status
+	}{
+		{"prefix", []domain.Patient{{ID: "1", FirstName: "JANET", DOB: "01/15/1980"}}, patient.StatusNotFound},
+		{"collision", []domain.Patient{{ID: "1", FirstName: "JANE", DOB: "01/15/1980"}, {ID: "2", FirstName: "JANE", DOB: "01/15/1980"}}, patient.StatusMultipleMatches},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			amd := advancedmdtest.NewAdapter()
+			amd.PatientSearches[domain.PatientSearch{FirstName: "Jane"}] = test.candidates
+			got, err := patient.New(amd).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "01/15/1980", OfficeID: office.ID})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.Status != test.status {
+				t.Fatalf("status=%s want %s", got.Status, test.status)
+			}
+			if got.PatientID != "" {
+				t.Fatal("ambiguous or non-matching record was promoted")
+			}
+		})
 	}
 }

@@ -872,7 +872,13 @@ func selectPatients(patients []domain.Patient, command ResolveCommand) []domain.
 	for _, candidate := range matches {
 		candidateFirstName := strings.ToUpper(domain.StripDiacritics(candidate.FirstName))
 		requestFirstName := strings.ToUpper(domain.StripDiacritics(command.FirstName))
-		if strings.HasPrefix(candidateFirstName, requestFirstName) {
+		// Practice-wide first-name/DOB resolution requires the whole first name.
+		// Keep existing prefix behavior for phone and surname-scoped requests.
+		matchesFirstName := strings.HasPrefix(candidateFirstName, requestFirstName)
+		if command.Phone == "" && command.LastName == "" {
+			matchesFirstName = candidateFirstName == requestFirstName
+		}
+		if matchesFirstName {
 			firstNameMatches = append(firstNameMatches, candidate)
 		}
 	}

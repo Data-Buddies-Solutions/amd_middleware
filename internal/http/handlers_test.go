@@ -285,13 +285,13 @@ func TestHandlePatientResolve_ValidationErrors(t *testing.T) {
 			name:        "missing lookup fields",
 			method:      "POST",
 			body:        `{"dob":"01/15/1980"}`,
-			expectedMsg: "Provide patientId, phone, phone + firstName, phone + dob, or lastName + dob",
+			expectedMsg: "Provide patientId, phone, phone + firstName, phone + dob, firstName + dob, or lastName + dob",
 		},
 		{
 			name:        "missing dob",
 			method:      "POST",
 			body:        `{"lastName":"Smith"}`,
-			expectedMsg: "Provide patientId, phone, phone + firstName, phone + dob, or lastName + dob",
+			expectedMsg: "Provide patientId, phone, phone + firstName, phone + dob, firstName + dob, or lastName + dob",
 		},
 		{
 			name:        "non-numeric patientId",
