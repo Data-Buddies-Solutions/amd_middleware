@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -157,6 +158,41 @@ func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *domain.
 	return c.doPatientLookup(ctx, tokenData, reqBody)
 }
 
+// LookupPatientCandidates returns only the provider's name-prefix candidates.
+// A first-page result is complete only when explicit pagination/count metadata
+// proves that there are no omitted pages or malformed records. Larger/unknown
+// result sets stay incomplete; a partial singleton must never select a chart.
+func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *domain.TokenData, firstName string) (read domain.PatientCandidateRead, resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, "lookuppatient")
+	defer func() { finish(resultErr) }()
+	body, err := c.doXMLRPCRequest(ctx, tokenData, AMDLookupRequest{PPMDMsg: AMDLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName}})
+	if err != nil {
+		return read, err
+	}
+	read, err = parseLookupResponse(body)
+	if err != nil {
+		return read, err
+	}
+	seen := make(map[string]bool)
+	for index, patient := range read.Patients {
+		parts := strings.SplitN(patient.FullName, ",", 2)
+		if len(parts) == 2 {
+			patient.LastName = strings.TrimSpace(parts[0])
+			// AMD's comma suffix is first-and-middle, as in phone bootstrap.
+			if names := strings.Fields(parts[1]); len(names) > 0 {
+				patient.FirstName = names[0]
+			}
+			read.Patients[index].LastName = patient.LastName
+			read.Patients[index].FirstName = patient.FirstName
+		}
+		if patient.ID == "" || patient.FirstName == "" || patient.LastName == "" || patient.DOB == "" || domain.ValidateOptionalDOB(patient.DOB) != nil || seen[patient.ID] {
+			read.Complete = false
+		}
+		seen[patient.ID] = true
+	}
+	return read, nil
+}
+
 // LookupPatientByPhone searches for patients by phone number.
 // Phone should be digits only (e.g., "7863344429").
 func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *domain.TokenData, phone string) ([]domain.Patient, error) {
@@ -180,48 +216,71 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domai
 		return nil, err
 	}
 
-	return parseLookupResponse(body)
+	read, err := parseLookupResponse(body)
+	return read.Patients, err
 }
 
-// parseLookupResponse handles AMD's single-vs-array patient response format.
-func parseLookupResponse(body []byte) ([]domain.Patient, error) {
-	var envelope struct {
-		PPMDResults struct {
+// parseLookupResponse decodes records and pagination together. The patient field
+// can contain one object or an array; existing lookup callers use only Patients.
+func parseLookupResponse(body []byte) (domain.PatientCandidateRead, error) {
+	var response struct {
+		PPMDResults *struct {
 			Results struct {
-				PatientList struct {
-					ItemCount string `json:"@itemcount"`
+				PatientList *struct {
+					ItemCount string          `json:"@itemcount"`
+					Page      string          `json:"@page"`
+					PageCount string          `json:"@pagecount"`
+					Patients  json.RawMessage `json:"patient"`
 				} `json:"patientlist"`
 			} `json:"Results"`
 			Error interface{} `json:"Error"`
 		} `json:"PPMDResults"`
 	}
-	if err := json.Unmarshal(body, &envelope); err != nil {
-		return nil, fmt.Errorf("failed to parse lookup response: %w", err)
+	var read domain.PatientCandidateRead
+	if err := json.Unmarshal(body, &response); err != nil {
+		return read, fmt.Errorf("failed to parse lookup response: %w", err)
 	}
-	if err := checkXMLRPCError(body, "lookuppatient"); err != nil {
-		return nil, err
+	if response.PPMDResults == nil {
+		return read, fmt.Errorf("lookuppatient returned unexpected response")
 	}
-	if envelope.PPMDResults.Results.PatientList.ItemCount == "0" {
-		return []domain.Patient{}, nil
+	if providerErrorPresent(response.PPMDResults.Error) {
+		return read, providerRejection("lookuppatient", body)
 	}
-
-	// Try array response first
-	var arrayResp AMDLookupResponse
-	if err := json.Unmarshal(body, &arrayResp); err == nil {
-		if arrayResp.PPMDResults.Results.PatientList.Patients != nil {
-			return convertPatients(arrayResp.PPMDResults.Results.PatientList.Patients), nil
+	list := response.PPMDResults.Results.PatientList
+	if list == nil {
+		return read, fmt.Errorf("lookuppatient returned malformed patientlist")
+	}
+	raw := bytes.TrimSpace(list.Patients)
+	count, countErr := strconv.Atoi(list.ItemCount)
+	pages, pageErr := strconv.Atoi(list.PageCount)
+	if list.ItemCount == "0" {
+		// Preserve legacy empty reads, but contradictory records cannot prove absence.
+		read.Patients = []domain.Patient{}
+		empty := len(raw) == 0 || bytes.Equal(raw, []byte("null")) || bytes.Equal(raw, []byte("[]"))
+		read.Complete = empty && list.Page == "1" && pageErr == nil && (pages == 0 || pages == 1)
+		return read, nil
+	}
+	var patients []AMDPatient
+	switch {
+	case len(raw) > 0 && raw[0] == '[':
+		if err := json.Unmarshal(raw, &patients); err != nil {
+			return read, fmt.Errorf("lookuppatient returned malformed patient array: %w", err)
 		}
-	}
-
-	// Try single patient response
-	var singleResp AMDLookupResponseSingle
-	if err := json.Unmarshal(body, &singleResp); err == nil {
-		if singleResp.PPMDResults.Results.PatientList.Patient.ID != "" {
-			return convertPatients([]AMDPatient{singleResp.PPMDResults.Results.PatientList.Patient}), nil
+	case len(raw) > 0 && raw[0] == '{':
+		var patient AMDPatient
+		if err := json.Unmarshal(raw, &patient); err != nil {
+			return read, fmt.Errorf("lookuppatient returned malformed patient: %w", err)
 		}
+		if patient.ID == "" {
+			return read, fmt.Errorf("lookuppatient returned a patient without an ID")
+		}
+		patients = []AMDPatient{patient}
+	default:
+		return read, fmt.Errorf("lookuppatient returned malformed patientlist")
 	}
-
-	return nil, fmt.Errorf("lookuppatient returned malformed patientlist")
+	read.Patients = convertPatients(patients)
+	read.Complete = countErr == nil && pageErr == nil && list.Page == "1" && pages == 1 && count == len(patients)
+	return read, nil
 }
 
 // AddPatientParams holds the parameters for creating a new patient.

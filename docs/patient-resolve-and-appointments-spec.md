@@ -57,11 +57,20 @@ Valid identity input shapes:
 - `phone` + `firstName`: phone lookup filtered by first name.
 - `phone` + `dob`: phone lookup filtered by DOB.
 - `phone` + `firstName` + `dob`: phone lookup filtered by both.
+- `firstName` + `dob` without phone/surname: returns `status: candidates`,
+  `source: first_name`, explicit `complete`, and a `matches` array (including an
+  empty array). It retrieves first-name-prefix candidates without hydration or
+  matching policy. The agent owns exact first-name/DOB selection and surname
+  disambiguation, then requests the selected patient ID. Additional/missing pages,
+  count inconsistencies, invalid identity rows, or duplicate IDs make this result
+  incomplete. An incomplete list cannot establish a unique patient or not-found.
 - `lastName` + `dob`: name lookup filtered by DOB.
 - `lastName` + `firstName` + `dob`: narrower name lookup filtered by DOB.
 - `patientId`: direct load/appointment refresh for an already verified patient.
 
-Appointment loading is always part of a verified single-patient resolve. A
+First-name/DOB candidate retrieval defers demographics and appointments, even
+for a singleton. Other existing paths are unchanged. Appointment loading is
+always part of a verified single-patient resolve. A
 multiple-match response defers all demographic and appointment hydration until
 the client selects one candidate through the existing private `patientId` path.
 Clients should not send an appointment-loading toggle.

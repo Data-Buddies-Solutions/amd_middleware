@@ -3,6 +3,7 @@ package patient_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -1179,6 +1180,30 @@ func assertResolveResult(t *testing.T, got, want patient.ResolveResult) {
 	for i := range want.Appointments {
 		if got.Appointments[i] != want.Appointments[i] {
 			t.Fatalf("Appointments = %+v, want %+v", got.Appointments, want.Appointments)
+		}
+	}
+}
+
+func TestFirstNameDOBReturnsCandidatesWithoutHydration(t *testing.T) {
+	domain.InitRegistry("")
+	for _, complete := range []bool{true, false} {
+		for _, count := range []int{0, 1, 2} {
+			amd := advancedmdtest.NewAdapter()
+			rows := []domain.Patient{}
+			for i := 0; i < count; i++ {
+				rows = append(rows, domain.Patient{ID: fmt.Sprint(i + 1), FirstName: "Jane", LastName: "Meyer", FullName: "MEYER,JANE", DOB: "01/01/1980"})
+			}
+			amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Patients: rows, Complete: complete}
+			result, err := patient.New(amd).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "01/01/1980", OfficeID: "spring_hill"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.Status != patient.StatusCandidates || result.Source != "first_name" || result.Complete == nil || *result.Complete != complete || len(result.Matches) != count {
+				t.Fatalf("incorrect candidate contract for count=%d complete=%v", count, complete)
+			}
+			if amd.SearchPatientCalls != 1 || amd.DemographicCalls != 0 || amd.AppointmentReadCalls != 0 {
+				t.Fatal("candidate retrieval must use one search and zero hydration reads")
+			}
 		}
 	}
 }
