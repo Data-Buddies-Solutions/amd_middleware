@@ -22,6 +22,7 @@ type Status string
 const (
 	StatusVerified        Status = "verified"
 	StatusCandidate       Status = "candidate"
+	StatusCandidates      Status = "candidates"
 	StatusMultipleMatches Status = "multiple_matches"
 	StatusNotFound        Status = "not_found"
 )
@@ -98,6 +99,8 @@ type Candidate struct {
 
 // ResolveResult is one complete Acuity patient resolution outcome.
 type ResolveResult struct {
+	Source              string
+	Complete            *bool
 	Status              Status
 	ProviderFailure     safeerrors.Category
 	PatientID           string
@@ -789,6 +792,24 @@ func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveR
 	}
 	if command.PatientID != "" {
 		return p.resolvePatient(ctx, domain.Patient{ID: command.PatientID}, "", office)
+	}
+
+	if command.Phone == "" && command.LastName == "" && command.FirstName != "" && command.DOB != "" {
+		if err := domain.ValidateOptionalDOB(command.DOB); err != nil {
+			return ResolveResult{}, advancedmd.NewError(safeerrors.CategoryRejected)
+		}
+		started := time.Now()
+		read, err := p.advancedMD.ReadPatientCandidates(ctx, domain.StripDiacritics(command.FirstName))
+		observation := ResolutionObservation{Recorded: true, PatientSearchDurationMS: time.Since(started).Milliseconds(), PatientSearchReads: 1, OfficeGroupSize: len(domain.AppointmentLookupOfficeIDs(office)), AppointmentOutcome: "deferred", CandidateCountBucket: candidateCountBucket(len(read.Patients))}
+		if err != nil {
+			return ResolveResult{Observation: observation}, err
+		}
+		matches := make([]Candidate, 0, len(read.Patients))
+		for _, row := range read.Patients {
+			matches = append(matches, Candidate{Status: StatusCandidate, PatientID: row.ID, FirstName: patientFirstName(row), LastName: patientLastName(row), DOB: row.DOB})
+		}
+		// The agent owns first-name/DOB matching and activation, even for a singleton.
+		return ResolveResult{Status: StatusCandidates, Source: "first_name", Complete: &read.Complete, Matches: matches, Appointments: []Appointment{}, Observation: observation}, nil
 	}
 
 	search := patientSearch(command)

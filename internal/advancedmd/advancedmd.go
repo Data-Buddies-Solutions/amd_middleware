@@ -70,6 +70,7 @@ func MutationFailureOf(err error) MutationFailure {
 // Implementations own authentication, provider endpoints, request formats, and
 // response parsing.
 type PatientRecords interface {
+	ReadPatientCandidates(ctx context.Context, firstName string) (domain.PatientCandidateRead, error)
 	SearchPatients(ctx context.Context, search domain.PatientSearch) ([]domain.Patient, error)
 	GetPatientDemographics(ctx context.Context, patientID string) (domain.PatientDemographics, error)
 	ReadPatientAppointments(ctx context.Context, query domain.PatientAppointmentsQuery) (AppointmentRead, error)

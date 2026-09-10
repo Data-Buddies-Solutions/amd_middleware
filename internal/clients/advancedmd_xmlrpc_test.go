@@ -846,3 +846,53 @@ func TestConvertPatients_PrefersCellPhone(t *testing.T) {
 		t.Errorf("Phone = %q, want cell phone", got)
 	}
 }
+
+func TestLookupPatientCandidatesCompleteness(t *testing.T) {
+	row := `{"@id":"pat1","@name":"MEYER,JANE","@dob":"01/01/1980"}`
+	for _, tc := range []struct {
+		name, metadata, rows string
+		complete             bool
+	}{
+		{"single", `"@itemcount":"1","@page":"1","@pagecount":"1"`, row, true},
+		{"middle names", `"@itemcount":"2","@page":"1","@pagecount":"1"`, `[{"@id":"pat1","@name":"MEYER,JANE ANN","@dob":"01/01/1980"},{"@id":"pat2","@name":"MEYER,JANE BETH","@dob":"01/01/1980"}]`, true},
+		{"empty", `"@itemcount":"0","@page":"1","@pagecount":"0"`, `[]`, true},
+		{"missing metadata", `"@itemcount":"1"`, row, false},
+		{"more pages", `"@itemcount":"1","@page":"1","@pagecount":"2"`, row, false},
+		{"count mismatch", `"@itemcount":"2","@page":"1","@pagecount":"1"`, row, false},
+		{"contradictory empty", `"@itemcount":"0","@page":"1","@pagecount":"0"`, row, false},
+		{"duplicate ID", `"@itemcount":"2","@page":"1","@pagecount":"1"`, `[` + row + `,` + row + `]`, false},
+		{"missing DOB", `"@itemcount":"1","@page":"1","@pagecount":"1"`, `{"@id":"pat1","@name":"MEYER,JANE"}`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			calls := 0
+			client, token, cleanup := newTestXMLRPCClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls++
+				var request AMDLookupRequest
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+					t.Fatal(err)
+				}
+				if request.PPMDMsg.Name != ",Jane" {
+					t.Errorf("unexpected name query")
+				}
+				w.Write([]byte(`{"PPMDResults":{"Results":{"patientlist":{` + tc.metadata + `,"patient":` + tc.rows + `}}}}`))
+			}))
+			defer cleanup()
+			read, err := client.LookupPatientCandidates(context.Background(), token, "Jane")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if read.Complete != tc.complete {
+				t.Errorf("complete=%v want %v", read.Complete, tc.complete)
+			}
+			if tc.complete && len(read.Patients) > 0 && read.Patients[0].LastName != "MEYER" {
+				t.Error("missing surname")
+			}
+			if tc.name == "middle names" && (len(read.Patients) != 2 || read.Patients[0].FirstName != "JANE" || read.Patients[1].FirstName != "JANE") {
+				t.Fatal("first-and-middle parsing lost collision")
+			}
+			if calls != 1 {
+				t.Errorf("requests=%d", calls)
+			}
+		})
+	}
+}
