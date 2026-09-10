@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [3.1.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v3.0.1...v3.1.0) (2026-09-10)
+
+
+### Features
+
+* **patient:** return complete first-name lookup candidates ([#179](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/179)) ([89a5eff](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/89a5effc292887e6a540af0472e320c4dddb6622))
+
 ## [3.0.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v3.0.0...v3.0.1) (2026-09-09)
 
 
