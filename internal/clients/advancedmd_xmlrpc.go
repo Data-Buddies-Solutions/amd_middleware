@@ -24,7 +24,9 @@ type AMDLookupRequest struct {
 type AMDLookupMsg struct {
 	Action string `json:"@action"`
 	Class  string `json:"@class"`
-	Name   string `json:"@name"`
+	Name   string `json:"@name,omitempty"`
+	Phone  string `json:"@phone,omitempty"`
+	Page   int    `json:"@page,omitempty"`
 }
 
 // AMDLookupResponse represents the AdvancedMD lookuppatient response (array format).
@@ -155,21 +157,15 @@ func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *domain.
 		},
 	}
 
-	return c.doPatientLookup(ctx, tokenData, reqBody)
+	read, err := c.doPatientLookup(ctx, tokenData, reqBody)
+	return read.Patients, err
 }
 
 // LookupPatientCandidates returns only the provider's name-prefix candidates.
-// A first-page result is complete only when explicit pagination/count metadata
-// proves that there are no omitted pages or malformed records. Larger/unknown
-// result sets stay incomplete; a partial singleton must never select a chart.
+// A candidate result is complete only after explicit pagination/count metadata
+// proves every page was read and all records have valid identity fields.
 func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *domain.TokenData, firstName string) (read domain.PatientCandidateRead, resultErr error) {
-	ctx, finish := beginProviderOperation(ctx, "lookuppatient")
-	defer func() { finish(resultErr) }()
-	body, err := c.doXMLRPCRequest(ctx, tokenData, AMDLookupRequest{PPMDMsg: AMDLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName}})
-	if err != nil {
-		return read, err
-	}
-	read, err = parseLookupResponse(body)
+	read, err := c.doPatientLookup(ctx, tokenData, AMDLookupRequest{PPMDMsg: AMDLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName}})
 	if err != nil {
 		return read, err
 	}
@@ -196,28 +192,94 @@ func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenDat
 // LookupPatientByPhone searches for patients by phone number.
 // Phone should be digits only (e.g., "7863344429").
 func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *domain.TokenData, phone string) ([]domain.Patient, error) {
-	payload := map[string]interface{}{
-		"ppmdmsg": map[string]interface{}{
-			"@action": "lookuppatient",
-			"@class":  "api",
-			"@phone":  phone,
-		},
-	}
+	payload := AMDLookupRequest{PPMDMsg: AMDLookupMsg{
+		Action: "lookuppatient", Class: "api", Phone: phone,
+	}}
 
-	return c.doPatientLookup(ctx, tokenData, payload)
+	read, err := c.doPatientLookup(ctx, tokenData, payload)
+	return read.Patients, err
 }
 
 // doPatientLookup executes a lookuppatient request and parses the response.
-func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domain.TokenData, payload interface{}) (patientsResult []domain.Patient, resultErr error) {
+func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domain.TokenData, payload AMDLookupRequest) (read domain.PatientCandidateRead, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "lookuppatient")
 	defer func() { finish(resultErr) }()
-	body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
-	if err != nil {
-		return nil, err
+	const maxLookupPages = 100
+	patients := []domain.Patient{}
+	seen := map[string]bool{}
+	expectedPages, expectedTotal := 0, 0
+	for page := 1; page <= maxLookupPages; page++ {
+		payload.PPMDMsg.Page = page
+		body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
+		if err != nil {
+			return domain.PatientCandidateRead{}, err
+		}
+		pageRead, err := parseLookupResponse(body)
+		if err != nil {
+			return domain.PatientCandidateRead{}, err
+		}
+		batch := pageRead.Patients
+		var envelope struct {
+			Results struct {
+				Data struct {
+					List struct {
+						Page  string `json:"@page"`
+						Pages string `json:"@pagecount"`
+						Total string `json:"@itemcount"`
+					} `json:"patientlist"`
+				} `json:"Results"`
+			} `json:"PPMDResults"`
+		}
+		if err := json.Unmarshal(body, &envelope); err != nil {
+			return domain.PatientCandidateRead{}, fmt.Errorf("invalid patient lookup pagination")
+		}
+		meta := envelope.Results.Data.List
+		for _, patient := range batch {
+			if patient.ID == "" || seen[patient.ID] {
+				return domain.PatientCandidateRead{}, fmt.Errorf("patient lookup returned missing or repeated patient ID")
+			}
+			seen[patient.ID] = true
+			patients = append(patients, patient)
+		}
+		// Legacy single-page responses omit both pagination fields.
+		if page == 1 && meta.Page == "" && meta.Pages == "" {
+			if meta.Total != "" {
+				total, err := strconv.Atoi(meta.Total)
+				if err != nil || total != len(patients) {
+					return domain.PatientCandidateRead{}, fmt.Errorf("incomplete legacy patient lookup results")
+				}
+			}
+			return domain.PatientCandidateRead{Patients: patients, Complete: false}, nil
+		}
+		currentPage, pageErr := strconv.Atoi(meta.Page)
+		pageCount, countErr := strconv.Atoi(meta.Pages)
+		total, totalErr := strconv.Atoi(meta.Total)
+		if pageErr != nil || countErr != nil || totalErr != nil || currentPage != page || pageCount < 0 || pageCount > maxLookupPages || total < 0 {
+			return domain.PatientCandidateRead{}, fmt.Errorf("invalid or excessive patient lookup pagination")
+		}
+		if page == 1 && total == 0 && len(batch) == 0 && pageCount <= 1 {
+			if !pageRead.Complete {
+				return domain.PatientCandidateRead{}, fmt.Errorf("contradictory empty patient lookup")
+			}
+			return domain.PatientCandidateRead{Patients: patients, Complete: true}, nil
+		}
+		if pageCount < page || len(batch) == 0 {
+			return domain.PatientCandidateRead{}, fmt.Errorf("incomplete patient lookup page")
+		}
+		if page == 1 {
+			expectedPages, expectedTotal = pageCount, total
+		}
+		if pageCount != expectedPages || total != expectedTotal {
+			return domain.PatientCandidateRead{}, fmt.Errorf("patient lookup changed during pagination")
+		}
+		if page == pageCount {
+			if len(patients) != total {
+				return domain.PatientCandidateRead{}, fmt.Errorf("incomplete patient lookup results")
+			}
+			return domain.PatientCandidateRead{Patients: patients, Complete: true}, nil
+		}
 	}
-
-	read, err := parseLookupResponse(body)
-	return read.Patients, err
+	return domain.PatientCandidateRead{}, fmt.Errorf("patient lookup exceeded page limit")
 }
 
 // parseLookupResponse decodes records and pagination together. The patient field

@@ -852,16 +852,17 @@ func TestLookupPatientCandidatesCompleteness(t *testing.T) {
 	for _, tc := range []struct {
 		name, metadata, rows string
 		complete             bool
+		wantError            bool
 	}{
-		{"single", `"@itemcount":"1","@page":"1","@pagecount":"1"`, row, true},
-		{"middle names", `"@itemcount":"2","@page":"1","@pagecount":"1"`, `[{"@id":"pat1","@name":"MEYER,JANE ANN","@dob":"01/01/1980"},{"@id":"pat2","@name":"MEYER,JANE BETH","@dob":"01/01/1980"}]`, true},
-		{"empty", `"@itemcount":"0","@page":"1","@pagecount":"0"`, `[]`, true},
-		{"missing metadata", `"@itemcount":"1"`, row, false},
-		{"more pages", `"@itemcount":"1","@page":"1","@pagecount":"2"`, row, false},
-		{"count mismatch", `"@itemcount":"2","@page":"1","@pagecount":"1"`, row, false},
-		{"contradictory empty", `"@itemcount":"0","@page":"1","@pagecount":"0"`, row, false},
-		{"duplicate ID", `"@itemcount":"2","@page":"1","@pagecount":"1"`, `[` + row + `,` + row + `]`, false},
-		{"missing DOB", `"@itemcount":"1","@page":"1","@pagecount":"1"`, `{"@id":"pat1","@name":"MEYER,JANE"}`, false},
+		{"single", `"@itemcount":"1","@page":"1","@pagecount":"1"`, row, true, false},
+		{"middle names", `"@itemcount":"2","@page":"1","@pagecount":"1"`, `[{"@id":"pat1","@name":"MEYER,JANE ANN","@dob":"01/01/1980"},{"@id":"pat2","@name":"MEYER,JANE BETH","@dob":"01/01/1980"}]`, true, false},
+		{"empty", `"@itemcount":"0","@page":"1","@pagecount":"0"`, `[]`, true, false},
+		{"missing metadata", `"@itemcount":"1"`, row, false, false},
+		{"more pages", `"@itemcount":"1","@page":"1","@pagecount":"2"`, row, false, true},
+		{"count mismatch", `"@itemcount":"2","@page":"1","@pagecount":"1"`, row, false, true},
+		{"contradictory empty", `"@itemcount":"0","@page":"1","@pagecount":"0"`, row, false, true},
+		{"duplicate ID", `"@itemcount":"2","@page":"1","@pagecount":"1"`, `[` + row + `,` + row + `]`, false, true},
+		{"missing DOB", `"@itemcount":"1","@page":"1","@pagecount":"1"`, `{"@id":"pat1","@name":"MEYER,JANE"}`, false, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			calls := 0
@@ -878,6 +879,12 @@ func TestLookupPatientCandidatesCompleteness(t *testing.T) {
 			}))
 			defer cleanup()
 			read, err := client.LookupPatientCandidates(context.Background(), token, "Jane")
+			if tc.wantError {
+				if err == nil || read.Complete || len(read.Patients) != 0 {
+					t.Fatal("malformed lookup must fail without partial candidates")
+				}
+				return
+			}
 			if err != nil {
 				t.Fatal(err)
 			}
