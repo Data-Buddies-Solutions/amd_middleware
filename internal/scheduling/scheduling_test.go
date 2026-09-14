@@ -186,8 +186,8 @@ func TestSearchReturnsClosestRealSlotsAcrossTheWindow(t *testing.T) {
 		result.Slots[1].DateTime != "2026-06-04T14:00" {
 		t.Fatalf("slots = %#v, want exact slot followed by closest real fallback", result.Slots)
 	}
-	if result.SearchedThrough != "2026-06-18" {
-		t.Fatalf("searched through = %q, want complete preference window", result.SearchedThrough)
+	if result.SearchedThrough != "2026-06-04" {
+		t.Fatalf("searched through = %q, want last date needed to determine the best offers", result.SearchedThrough)
 	}
 }
 
@@ -730,5 +730,24 @@ func completeRead(columnID string, appointments []domain.Appointment, blockHolds
 				BlockHoldsComplete:   true,
 			},
 		},
+	}
+}
+
+func TestSearchStopsWhenLaterDatesCannotImproveAlternatives(t *testing.T) {
+	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "10:00", 15))
+	records.ScheduleReads["2026-06-02"] = completeRead("1513", nil, []domain.BlockHold{{StartDateTime: time.Date(2026, 6, 2, 9, 0, 0, 0, time.UTC), EndDateTime: time.Date(2026, 6, 2, 10, 0, 0, 0, time.UTC)}})
+	for day := 3; day <= 16; day++ {
+		records.ScheduleReads[time.Date(2026, 6, day, 0, 0, 0, 0, time.UTC).Format("2006-01-02")] = completeRead("1513", nil, nil)
+	}
+	result, err := scheduling.New(domain.NewOfficeCatalog(""), records, "secret", func() time.Time { return now }).Search(context.Background(), scheduling.SearchCommand{Office: "spring_hill", Routing: "bach_only", RequestedDate: "2026-06-02"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Slots) != 2 || result.Slots[0].DateTime != "2026-06-03T09:00" || result.Slots[1].DateTime != "2026-06-03T09:15" {
+		t.Fatalf("wrong alternatives: %+v", result.Slots)
+	}
+	if len(records.ScheduleReadQueries) != 2 {
+		t.Fatalf("provider day reads=%d, want 2", len(records.ScheduleReadQueries))
 	}
 }

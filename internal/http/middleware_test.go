@@ -3,6 +3,7 @@ package http
 import (
 	"advancedmd-token-management/internal/domain"
 	"bytes"
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -471,4 +472,33 @@ func decodeLastLogEntry(t *testing.T, output string) map[string]any {
 		t.Fatalf("last log line is not JSON: %q: %v", lines[len(lines)-1], err)
 	}
 	return entry
+}
+
+func TestRequestDeadlineBoundsWorkflowAndPreservesEarlierDeadline(t *testing.T) {
+	for _, shorter := range []bool{false, true} {
+		parent := context.Background()
+		cancel := func() {}
+		if shorter {
+			parent, cancel = context.WithTimeout(parent, time.Second)
+		}
+		var requestContext context.Context
+		before := time.Now()
+		requestDeadline(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { requestContext = r.Context() })).ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil).WithContext(parent))
+		deadline, ok := requestContext.Deadline()
+		if !ok {
+			t.Fatal("workflow deadline missing")
+		}
+		if shorter {
+			want, _ := parent.Deadline()
+			if !deadline.Equal(want) {
+				t.Fatal("caller deadline was extended")
+			}
+		} else if deadline.Before(before.Add(RequestTimeout)) || deadline.After(time.Now().Add(RequestTimeout)) {
+			t.Fatalf("unexpected deadline=%v", deadline)
+		}
+		if requestContext.Err() != context.Canceled || parent.Err() != nil {
+			t.Fatalf("request=%v parent=%v", requestContext.Err(), parent.Err())
+		}
+		cancel()
+	}
 }

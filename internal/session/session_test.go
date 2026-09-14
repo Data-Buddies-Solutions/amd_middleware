@@ -499,6 +499,8 @@ func TestSessionRetriesAfterUnavailableAuthentication(t *testing.T) {
 		t.Fatalf("state after failed initial login = %q, want %q", got, SessionUnavailable)
 	}
 
+	clock.Advance(DefaultSessionRetryDelay)
+
 	token, err := session.Get(context.Background())
 	if err != nil {
 		t.Fatalf("recovery Get() error = %v", err)
@@ -685,4 +687,23 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
 	return f(request)
+}
+
+func TestUnavailableSessionHonorsRetryCooldown(t *testing.T) {
+	clock := &testClock{now: time.Date(2026, 9, 14, 0, 0, 0, 0, time.UTC)}
+	calls := 0
+	s := newSession(loginAdapterFunc(func(context.Context) (string, string, error) { calls++; return "", "", errors.New("offline") }), clock.Now, sessionPolicy{loginTimeout: time.Second, retryDelay: time.Minute})
+	for i := 0; i < 10; i++ {
+		if _, err := s.Get(context.Background()); !errors.Is(err, ErrSessionUnavailable) {
+			t.Fatalf("error=%v", err)
+		}
+	}
+	if calls != 1 {
+		t.Fatalf("login attempts=%d, want 1", calls)
+	}
+	clock.Advance(time.Minute)
+	s.Get(context.Background())
+	if calls != 2 {
+		t.Fatalf("login attempts after cooldown=%d, want 2", calls)
+	}
 }

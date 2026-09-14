@@ -3,14 +3,13 @@ package scheduling
 import (
 	"context"
 	"sync"
-	"time"
 
 	"advancedmd-token-management/internal/domain"
 )
 
 // readInventory bounds day-level concurrency. Each adapter read already fetches
 // the day's eligible columns concurrently; never fan out the entire horizon.
-func (s *service) readInventory(ctx context.Context, columns []domain.SchedulerColumn, start, end time.Time) (map[string]domain.ScheduleReadResult, error) {
+func (s *service) readInventory(ctx context.Context, days []domain.ScheduleReadQuery) (map[string]domain.ScheduleReadResult, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	queries := make(chan domain.ScheduleReadQuery)
@@ -41,18 +40,9 @@ func (s *service) readInventory(ctx context.Context, columns []domain.SchedulerC
 		}()
 	}
 dates:
-	for date := start; !date.After(end); date = date.AddDate(0, 0, 1) {
-		var ids []string
-		for _, column := range columns {
-			if column.WorksOnDay(date.Weekday()) {
-				ids = append(ids, column.ID)
-			}
-		}
-		if len(ids) == 0 {
-			continue
-		}
+	for _, query := range days {
 		select {
-		case queries <- domain.ScheduleReadQuery{ColumnIDs: ids, Date: date.Format("2006-01-02")}:
+		case queries <- query:
 		case <-ctx.Done():
 			break dates
 		}

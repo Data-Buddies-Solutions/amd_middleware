@@ -24,7 +24,7 @@ import (
 const version = "1.0.0"
 
 func main() {
-	// Configure logger to write to stdout (Railway interprets stderr as error-level)
+	// Emit redacted structured logs to stdout.
 	log.SetFlags(0)
 	log.SetOutput(safelog.NewWriter(os.Stdout))
 	log.Printf("Starting gateway v%s", version)
@@ -89,7 +89,7 @@ func main() {
 		Addr:         ":" + cfg.Port,
 		Handler:      router,
 		ReadTimeout:  15 * time.Second,
-		WriteTimeout: session.DefaultSessionLoginTimeout + 5*time.Second,
+		WriteTimeout: apphttp.RequestTimeout + 5*time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 

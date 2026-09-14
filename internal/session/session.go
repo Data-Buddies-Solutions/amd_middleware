@@ -136,9 +136,13 @@ func (s *sessionImpl) refresh(ctx context.Context, force bool) error {
 			s.mu.Unlock()
 			return nil
 		}
-		if s.state == SessionDegraded && s.usableLocked(now) && now.Before(s.retryAt) {
+		if now.Before(s.retryAt) {
+			usable := s.usableLocked(now)
 			s.mu.Unlock()
-			return nil
+			if usable {
+				return nil
+			}
+			return ErrSessionUnavailable
 		}
 	}
 	if active := s.flight; active != nil {
@@ -172,7 +176,7 @@ func (s *sessionImpl) refresh(ctx context.Context, force bool) error {
 		} else {
 			s.tokenData = nil
 			s.createdAt = time.Time{}
-			s.retryAt = time.Time{}
+			s.retryAt = now.Add(s.policy.retryDelay)
 			s.state = SessionUnavailable
 		}
 		return err

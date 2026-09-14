@@ -117,6 +117,12 @@ func (a *Adapter) GetPatientDemographics(ctx context.Context, patientID string) 
 }
 
 func (a *Adapter) CreatePatient(ctx context.Context, command domain.PatientCreate) (domain.CreatedPatient, error) {
+	ctx, cancel := mutationContext(ctx)
+	defer cancel()
+	if err := ctx.Err(); err != nil {
+		return domain.CreatedPatient{}, classify(err)
+	}
+
 	token, err := a.token(ctx)
 	if err != nil {
 		return domain.CreatedPatient{}, err
@@ -155,6 +161,12 @@ func (a *Adapter) CreatePatient(ctx context.Context, command domain.PatientCreat
 }
 
 func (a *Adapter) AddPatientInsurance(ctx context.Context, command domain.PatientInsurance) error {
+	ctx, cancel := mutationContext(ctx)
+	defer cancel()
+	if err := ctx.Err(); err != nil {
+		return classify(err)
+	}
+
 	token, err := a.token(ctx)
 	if err != nil {
 		return err
@@ -176,6 +188,12 @@ func (a *Adapter) AddPatientInsurance(ctx context.Context, command domain.Patien
 }
 
 func (a *Adapter) EndDatePatientInsurance(ctx context.Context, command domain.PatientInsuranceEnd) error {
+	ctx, cancel := mutationContext(ctx)
+	defer cancel()
+	if err := ctx.Err(); err != nil {
+		return classify(err)
+	}
+
 	token, err := a.token(ctx)
 	if err != nil {
 		return err
@@ -597,6 +615,12 @@ func (a *Adapter) ReadSchedule(ctx context.Context, query domain.ScheduleReadQue
 }
 
 func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, error) {
+	ctx, cancel := mutationContext(ctx)
+	defer cancel()
+	if err := ctx.Err(); err != nil {
+		return 0, classify(err)
+	}
+
 	token, err := a.token(ctx)
 	if err != nil {
 		return 0, err
@@ -642,6 +666,12 @@ func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, er
 }
 
 func (a *Adapter) CancelAppointment(ctx context.Context, cancellation Cancellation) error {
+	ctx, cancel := mutationContext(ctx)
+	defer cancel()
+	if err := ctx.Err(); err != nil {
+		return classify(err)
+	}
+
 	token, err := a.token(ctx)
 	if err != nil {
 		return err
@@ -717,3 +747,13 @@ func friendlyFacilityName(name string) string {
 
 var _ PatientRecords = (*Adapter)(nil)
 var _ SchedulingRecords = (*Adapter)(nil)
+
+// Provider writes stop before the request deadline so workflows can reconcile
+// an ambiguous response using the original context. An already exhausted
+// mutation budget is rejected before authentication or a provider write.
+func mutationContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	if deadline, ok := ctx.Deadline(); ok {
+		return context.WithDeadline(ctx, deadline.Add(-5*time.Second))
+	}
+	return context.WithCancel(ctx)
+}

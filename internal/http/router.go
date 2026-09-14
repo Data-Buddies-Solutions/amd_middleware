@@ -1,11 +1,25 @@
 package http
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 )
+
+// RequestTimeout bounds the whole API workflow; the server leaves additional
+// time to encode and deliver its outcome.
+const RequestTimeout = 50 * time.Second
+
+func requestDeadline(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), RequestTimeout)
+		defer cancel()
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
 
 // NewRouter creates and configures the HTTP router.
 func NewRouter(handlers *Handlers, apiSecret string, maintenanceAuthorizer MaintenanceAuthorizer) http.Handler {
@@ -30,6 +44,7 @@ func NewRouter(handlers *Handlers, apiSecret string, maintenanceAuthorizer Maint
 	// API routes (auth required)
 	r.Route("/api", func(r chi.Router) {
 		r.Use(AuthMiddleware(apiSecret))
+		r.Use(requestDeadline)
 
 		r.Post("/patient/resolve", handlers.HandlePatientResolve)
 		r.Post("/add-patient", handlers.HandleAddPatient)
