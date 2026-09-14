@@ -157,3 +157,29 @@ func TestLookupPatientRetainsRecordsWhenReportedCountIsTooLow(t *testing.T) {
 		}
 	}
 }
+
+func TestFullNameLookupDoesNotResolveAnUnprovenCandidateSet(t *testing.T) {
+	for _, mode := range []string{"undercount", "missing_dob", "missing_pagination"} {
+		t.Run(mode, func(t *testing.T) {
+			client, token, cleanup := newTestXMLRPCClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fixture := lookupPageFixture(1, 1, 1, "1")
+				list := fixture["PPMDResults"].(map[string]any)["Results"].(map[string]any)["patientlist"].(map[string]any)
+				switch mode {
+				case "undercount":
+					list["@itemcount"] = "0"
+				case "missing_dob":
+					delete(list["patient"].(map[string]any), "@dob")
+				case "missing_pagination":
+					delete(list, "@page")
+					delete(list, "@pagecount")
+				}
+				json.NewEncoder(w).Encode(fixture)
+			}))
+			defer cleanup()
+			patients, err := client.LookupPatient(context.Background(), token, "Example", "Jane")
+			if err == nil || len(patients) != 0 {
+				t.Fatal("unproven search must not authorize patient selection or registration")
+			}
+		})
+	}
+}

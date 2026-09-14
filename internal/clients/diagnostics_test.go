@@ -23,7 +23,7 @@ func TestPatientLookupDiagnostics(t *testing.T) {
 			{name: "rejection", status: 200, body: `{"PPMDResults":{"Error":{"Fault":{"faultcode":"42","description":"patient-secret"}}}}`, category: "rejected", code: "42"},
 			{name: "malformed", status: 200, body: "patient-secret", category: "invalid_response"},
 			{name: "timeout", category: "timeout"},
-			{name: "no matches", status: 200, body: `{"PPMDResults":{"Results":{"patientlist":{"@itemcount":"0"}}}}`},
+			{name: "no matches", status: 200, body: `{"PPMDResults":{"Results":{"patientlist":{"@itemcount":"0","@page":"1","@pagecount":"1"}}}}`},
 		} {
 			t.Run(lookup+"/"+test.name, func(t *testing.T) {
 				provider := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

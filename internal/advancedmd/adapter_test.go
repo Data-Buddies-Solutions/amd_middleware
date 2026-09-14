@@ -83,7 +83,7 @@ func TestAdapterSearchPatientsByNameUsesControlledXMLRPCServer(t *testing.T) {
 		w.Write([]byte(`{
 			"PPMDResults": {
 				"Results": {
-					"patientlist": {"@itemcount": "0"}
+					"patientlist": {"@itemcount": "0", "@page": "1", "@pagecount": "1"}
 				}
 			}
 		}`))

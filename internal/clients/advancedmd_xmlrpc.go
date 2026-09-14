@@ -158,7 +158,22 @@ func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *domain.
 	}
 
 	read, err := c.doPatientLookup(ctx, tokenData, reqBody)
-	return read.Patients, err
+	if err != nil {
+		return nil, err
+	}
+	// Full-name fallback may authorize chart selection or new registration.
+	// Unlike phone preloading, it must prove the candidate set is complete.
+	if lastName != "" && firstName != "" {
+		if !read.Complete {
+			return nil, fmt.Errorf("incomplete full-name patient lookup")
+		}
+		for _, patient := range read.Patients {
+			if patient.FullName == "" || patient.DOB == "" || domain.ValidateOptionalDOB(patient.DOB) != nil {
+				return nil, fmt.Errorf("incomplete full-name patient identity")
+			}
+		}
+	}
+	return read.Patients, nil
 }
 
 // LookupPatientCandidates returns only the provider's name-prefix candidates.
