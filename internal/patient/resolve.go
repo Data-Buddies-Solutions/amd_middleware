@@ -214,6 +214,15 @@ func (p *patient) resolvePatient(ctx context.Context, candidate domain.Patient, 
 		return result, nil
 	}
 
+	if !appointmentsRead.read.Complete {
+		result.ProviderFailure = safeerrors.CategoryInvalidResponse
+		result.AppointmentsStatus = AppointmentsError
+		result.AppointmentsMessage = "Appointment data was incomplete. Please load appointments again."
+		result.Message = "Patient verified, appointment lookup unavailable"
+		result.Observation.AppointmentOutcome = "incomplete"
+		return result, nil
+	}
+
 	for _, appointment := range appointmentsRead.read.Appointments {
 		cancellationToken := ""
 		rescheduleToken := ""

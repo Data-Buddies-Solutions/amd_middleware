@@ -476,7 +476,7 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.T
 		return fmt.Errorf("addinsurance request failed: %w", err)
 	}
 
-	if err := checkXMLRPCMutationResponse(body, "addinsurance"); err != nil {
+	if err := checkXMLRPCResults(body, "addinsurance"); err != nil {
 		return err
 	}
 
@@ -514,7 +514,7 @@ func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *doma
 		return fmt.Errorf("enddate insurance request failed: %w", err)
 	}
 
-	if err := checkXMLRPCMutationResponse(body, "enddate insurance"); err != nil {
+	if err := checkXMLRPCResults(body, "enddate insurance"); err != nil {
 		return err
 	}
 
@@ -539,7 +539,7 @@ func parseXMLRPCEnvelope(body []byte, operation string) (*xmlRPCEnvelope, error)
 	return &response, nil
 }
 
-func checkXMLRPCMutationResponse(body []byte, operation string) error {
+func checkXMLRPCResults(body []byte, operation string) error {
 	response, err := parseXMLRPCEnvelope(body, operation)
 	if err != nil {
 		return err
@@ -873,6 +873,27 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *dom
 	body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
 	if err != nil {
 		return nil, fmt.Errorf("getschedulersetup request failed: %w", err)
+	}
+
+	if err := checkXMLRPCResults(body, "getschedulersetup"); err != nil {
+		return nil, err
+	}
+	// Validate the envelope, not every provider field: AMD includes inactive and
+	// non-bookable columns whose optional settings are legitimately absent.
+	response, _ := parseXMLRPCEnvelope(body, "getschedulersetup")
+	var results map[string]json.RawMessage
+	if err := json.Unmarshal(response.PPMDResults.Results, &results); err != nil {
+		return nil, fmt.Errorf("failed to parse scheduler results: %w", err)
+	}
+	hasColumns := false
+	for name := range results {
+		if strings.EqualFold(name, "columnlist") {
+			hasColumns = true
+			break
+		}
+	}
+	if !hasColumns {
+		return nil, fmt.Errorf("scheduler setup returned unexpected response: missing columnlist")
 	}
 
 	var resp AMDSchedulerSetupResponse
