@@ -26,7 +26,7 @@ flowchart LR
     subgraph app["One Go deployable"]
         http["HTTP module<br/>authenticate · decode · map"]
         patient["Patient module<br/>Resolve · Create · UpdateInsurance"]
-        scheduling["Scheduling module<br/>Search · Book · Cancel"]
+        scheduling["Scheduling module<br/>Search · List · Book · Cancel"]
         policy["Domain policy<br/>office · routing · eligibility"]
         session["Session module<br/>Get · Maintain · Status"]
         records["Records interfaces<br/>PatientRecords · SchedulingRecords"]
@@ -292,6 +292,22 @@ internal/clients/                provider transport implementations
 internal/safeerrors/             PHI-safe error classification
 internal/config/                 runtime configuration
 ```
+
+Office policy is selected once in `main.go` with `domain.NewOfficeCatalog` and
+passed to the modules that need it. The catalog owns office IDs, phone aliases,
+and environment selection; lookups return independent copies. Office and
+insurance tables live in `office_data.go` and `insurance_data.go`, with policy
+logic alongside them.
+
+Patient operations live in `resolve.go`, `create.go`, and `insurance.go`.
+Scheduling keeps recommendation and inventory orchestration in `availability.go`,
+ranking in `ranking.go`, slot calculation/signing in `slots.go`, and setup-cache
+refresh in `setup.go`. Booking and cancellation remain in the same module so
+fresh validation and ambiguous-write reconciliation share scheduling policy.
+
+API workflows have a 50-second deadline. Provider mutations stop five seconds
+before that deadline, leaving the original context available for reconciliation.
+The HTTP server allows another five seconds for delivering the response.
 
 ## Run locally
 

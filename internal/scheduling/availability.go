@@ -70,7 +70,13 @@ func (s *service) List(ctx context.Context, command ListCommand) (domain.Availab
 	if command.RangeDays != 0 && command.RangeDays != 14 {
 		return domain.AvailabilityResponse{}, schedulingError("rangeDays must be 14; use startDate to search a different window")
 	}
-	plan, err := s.prepareAvailability(ctx, SearchCommand{Office: command.Office, DOB: command.DOB, RequestedDate: command.StartDate, Routing: command.Routing, PreauthRequired: command.PreauthRequired}, 14)
+	plan, err := s.prepareAvailability(ctx, SearchCommand{
+		Office:          command.Office,
+		DOB:             command.DOB,
+		RequestedDate:   command.StartDate,
+		Routing:         command.Routing,
+		PreauthRequired: command.PreauthRequired,
+	}, 14)
 	if err != nil {
 		return domain.AvailabilityResponse{}, err
 	}
@@ -104,7 +110,6 @@ type availabilityPlan struct {
 }
 
 func (s *service) prepareAvailability(ctx context.Context, command SearchCommand, days int) (*availabilityPlan, error) {
-	var empty *availabilityPlan
 	now := s.now()
 	nowEastern := now.In(eastern)
 	requestedDate := command.RequestedDate
@@ -115,17 +120,17 @@ func (s *service) prepareAvailability(ctx context.Context, command SearchCommand
 
 	startDate, err := time.Parse("2006-01-02", requestedDate)
 	if err != nil {
-		return empty, schedulingError("Invalid date format. Use YYYY-MM-DD.")
+		return nil, schedulingError("Invalid date format. Use YYYY-MM-DD.")
 	}
 	if err := validatePreferredTime(command.PreferredTime); err != nil {
-		return empty, schedulingError(err.Error())
+		return nil, schedulingError(err.Error())
 	}
 	if err := domain.ValidateOptionalDOB(command.DOB); err != nil {
-		return empty, schedulingError(err.Error())
+		return nil, schedulingError(err.Error())
 	}
 
 	if startDate.Format("2006-01-02") <= nowEastern.Format("2006-01-02") {
-		return empty, schedulingError("Same-day and past-date appointments are not available. Please search for tomorrow or later.")
+		return nil, schedulingError("Same-day and past-date appointments are not available. Please search for tomorrow or later.")
 	}
 	if command.PreauthRequired {
 		startDate = enforcePreauthMinDate(startDate, nowEastern)
@@ -134,7 +139,7 @@ func (s *service) prepareAvailability(ctx context.Context, command SearchCommand
 
 	office, err := s.offices.ResolveOffice(command.Office)
 	if err != nil {
-		return empty, schedulingError(err.Error())
+		return nil, schedulingError(err.Error())
 	}
 	policy := domain.NewSchedulingPolicy(office)
 	routing := policy.SchedulingRouting(domain.ParseRoutingRule(command.Routing), command.DOB)
@@ -142,7 +147,7 @@ func (s *service) prepareAvailability(ctx context.Context, command SearchCommand
 	setup, err := s.schedulerSetup(ctx, now.UTC())
 	if err != nil {
 		log.Printf("availability: scheduler setup failed category=%s", providerCategory(err))
-		return empty, providerError(
+		return nil, providerError(
 			err,
 			"Failed to load scheduler configuration from AdvancedMD. Please try again.",
 		)
@@ -155,7 +160,7 @@ func (s *service) prepareAvailability(ctx context.Context, command SearchCommand
 	allowedColumns := policy.EligibleColumns(setup.Columns, profileMap, routing, command.DOB, command.Provider)
 	if len(allowedColumns) == 0 {
 		if command.Provider != "" {
-			return empty, schedulingError(fmt.Sprintf(
+			return nil, schedulingError(fmt.Sprintf(
 				"No provider found matching %q. Valid providers: %s",
 				command.Provider,
 				strings.Join(office.ValidProviderNames(), ", "),
@@ -163,7 +168,18 @@ func (s *service) prepareAvailability(ctx context.Context, command SearchCommand
 		}
 	}
 
-	return &availabilityPlan{command: command, requestedDate: originalRequestedDate, start: startDate, end: maxDate, nowEastern: nowEastern, office: office, policy: policy, routing: routing, columns: allowedColumns, profiles: profileMap}, nil
+	return &availabilityPlan{
+		command:       command,
+		requestedDate: originalRequestedDate,
+		start:         startDate,
+		end:           maxDate,
+		nowEastern:    nowEastern,
+		office:        office,
+		policy:        policy,
+		routing:       routing,
+		columns:       allowedColumns,
+		profiles:      profileMap,
+	}, nil
 }
 
 func (p *availabilityPlan) queries() []domain.ScheduleReadQuery {
@@ -205,7 +221,17 @@ func (p *availabilityPlan) slots(query domain.ScheduleReadQuery, read domain.Sch
 		columnID, _ := strconv.Atoi(column.ID)
 		profileID, _ := strconv.Atoi(column.ProfileID)
 		for _, slot := range availableSlots(p.policy, column, schedule.Appointments, schedule.BlockHolds, date, p.nowEastern) {
-			slots = append(slots, domain.AvailabilitySlotOption{Provider: displayName, Time: slot.Time, DateTime: slot.DateTime, ColumnID: columnID, ProfileID: profileID, Duration: column.Interval, SameStartBooked: slot.SameStartBooked, SameStartCapacity: slot.SameStartCapacity, RequiresForce: slot.RequiresForce})
+			slots = append(slots, domain.AvailabilitySlotOption{
+				Provider:          displayName,
+				Time:              slot.Time,
+				DateTime:          slot.DateTime,
+				ColumnID:          columnID,
+				ProfileID:         profileID,
+				Duration:          column.Interval,
+				SameStartBooked:   slot.SameStartBooked,
+				SameStartCapacity: slot.SameStartCapacity,
+				RequiresForce:     slot.RequiresForce,
+			})
 		}
 	}
 	sortAvailabilitySlots(slots)
@@ -218,7 +244,14 @@ func (p *availabilityPlan) incomplete(missing int) domain.AvailabilityResponse {
 
 func (s *service) availabilityResponse(p *availabilityPlan, slots []domain.AvailabilitySlotOption, searchedThrough string) (domain.AvailabilityResponse, error) {
 	if len(p.columns) == 0 {
-		return domain.AvailabilityResponse{Status: domain.AvailabilityStatusSuccess, Outcome: domain.AvailabilityOutcomeNoEligibleProviders, RequestedDate: p.requestedDate, NextAction: domain.AvailabilityNextActionAskDifferentPreferences, Message: "No eligible providers found for this office, routing, provider, and DOB.", Slots: []domain.AvailabilitySlotOption{}}, nil
+		return domain.AvailabilityResponse{
+			Status:        domain.AvailabilityStatusSuccess,
+			Outcome:       domain.AvailabilityOutcomeNoEligibleProviders,
+			RequestedDate: p.requestedDate,
+			NextAction:    domain.AvailabilityNextActionAskDifferentPreferences,
+			Message:       "No eligible providers found for this office, routing, provider, and DOB.",
+			Slots:         []domain.AvailabilitySlotOption{},
+		}, nil
 	}
 	if len(slots) == 0 {
 		return noneResponse(p.requestedDate, p.start.Format("2006-01-02"), p.end.Format("2006-01-02")), nil
@@ -228,7 +261,19 @@ func (s *service) availabilityResponse(p *availabilityPlan, slots []domain.Avail
 	if err != nil {
 		return domain.AvailabilityResponse{}, schedulingError("Failed to create booking tokens: " + err.Error())
 	}
-	return domain.AvailabilityResponse{Status: domain.AvailabilityStatusSuccess, Outcome: domain.AvailabilityOutcomeFound, AvailabilityFound: true, RequestedDate: p.requestedDate, NextAction: domain.AvailabilityNextActionOfferSlots, ActualDate: actualDate, DateShifted: availabilityDateShifted(p.requestedDate, p.start.Format("2006-01-02"), actualDate), SearchedFrom: p.start.Format("2006-01-02"), SearchedThrough: searchedThrough, BookingTokenExpiresAt: expires.Format(time.RFC3339), Slots: slots}, nil
+	return domain.AvailabilityResponse{
+		Status:                domain.AvailabilityStatusSuccess,
+		Outcome:               domain.AvailabilityOutcomeFound,
+		AvailabilityFound:     true,
+		RequestedDate:         p.requestedDate,
+		NextAction:            domain.AvailabilityNextActionOfferSlots,
+		ActualDate:            actualDate,
+		DateShifted:           availabilityDateShifted(p.requestedDate, p.start.Format("2006-01-02"), actualDate),
+		SearchedFrom:          p.start.Format("2006-01-02"),
+		SearchedThrough:       searchedThrough,
+		BookingTokenExpiresAt: expires.Format(time.RFC3339),
+		Slots:                 slots,
+	}, nil
 }
 
 func enforcePreauthMinDate(requestedDate, now time.Time) time.Time {

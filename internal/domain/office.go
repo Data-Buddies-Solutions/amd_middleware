@@ -276,17 +276,12 @@ func (c *OfficeCatalog) AppointmentLookupOfficeIDs(office *OfficeConfig) []strin
 	}
 
 	lookupIDs := make([]string, 0, len(officeIDs))
-	seen := make(map[string]bool, len(officeIDs))
 	for _, officeID := range officeIDs {
-		lookupOffice, ok := c.LookupOfficeByID(officeID)
+		_, ok := c.offices[officeID]
 		if !ok {
 			continue
 		}
-		if seen[lookupOffice.ID] {
-			continue
-		}
-		seen[lookupOffice.ID] = true
-		lookupIDs = append(lookupIDs, lookupOffice.ID)
+		lookupIDs = append(lookupIDs, officeID)
 	}
 	if len(lookupIDs) == 0 {
 		return []string{office.ID}

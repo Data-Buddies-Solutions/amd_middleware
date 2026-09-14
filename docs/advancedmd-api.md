@@ -16,7 +16,9 @@ implementation is the only code that invokes login or mutates cached token
 state. It performs single-flight request-time authentication, preserves a
 still-usable last-known-good session after refresh failure, and reports
 uninitialized, refreshing, fresh, stale, degraded, or unavailable status
-without exposing credentials, tokens, or provider URLs.
+without exposing credentials, tokens, or provider URLs. Failed authentication
+uses a one-minute retry cooldown even when no usable token exists; explicit
+maintenance can still force recovery.
 
 AdvancedMD documents that the token expires 24 hours after issuance. The
 Session starts proactive recovery at 20 hours and treats 24 hours as the hard
@@ -171,10 +173,15 @@ Important fields:
 | `columnsetting.@maxapptsperslot` | Same-start capacity |
 
 The middleware does not expose every AMD column. It filters to office-owned
-columns listed in `internal/domain/office.go`.
+columns listed in `internal/domain/office_data.go`.
 
 Scheduler setup is cached in process for six hours because provider columns,
 profile IDs, facilities, work hours, and slot intervals are relatively static.
+Refresh runs outside the cache mutex; waiting requests can cancel. Failed
+refreshes retry after one minute and may reuse setup only while it is less than
+24 hours old. Missing/error envelopes are rejected before caching, while existing
+singleton/array and field-capitalization variants remain supported.
+
 Actual appointments and block holds are still fetched live for each availability
 search. `internal/scheduling` owns this cache, column and provider eligibility,
 search completeness, slot selection, and signed-slot creation.
