@@ -382,7 +382,9 @@ func TestRoutingForDemographicInsurance_HollywoodSweetwaterABachPolicy(t *testin
 }
 
 func TestColumnsForRouting(t *testing.T) {
-	office := DefaultOffice()
+	offices := NewOfficeCatalog("")
+
+	office := offices.DefaultOffice()
 
 	tests := []struct {
 		name    string
@@ -419,7 +421,9 @@ func TestColumnsForRouting(t *testing.T) {
 }
 
 func TestProvidersForRouting(t *testing.T) {
-	office := DefaultOffice()
+	offices := NewOfficeCatalog("")
+
+	office := offices.DefaultOffice()
 
 	tests := []struct {
 		name      string

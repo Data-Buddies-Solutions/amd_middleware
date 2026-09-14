@@ -30,7 +30,7 @@ func main() {
 	log.Printf("Starting gateway v%s", version)
 
 	// Initialize office registry based on AMD_ENV
-	domain.InitRegistry(os.Getenv("AMD_ENV"))
+	offices := domain.NewOfficeCatalog(os.Getenv("AMD_ENV"))
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -64,10 +64,10 @@ func main() {
 	amdRestClient := clients.NewAdvancedMDRestClient(httpClient)
 
 	// Compose the patient workflow over the domain-oriented AdvancedMD seam.
-	patientRecords := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient)
-	appointmentTokens := scheduling.NewAppointmentTokens(cfg.BookingTokenSecret, time.Now)
-	patients := patient.NewWithAppointmentTokens(patientRecords, appointmentTokens)
-	scheduler := scheduling.NewWithConfig(
+	patientRecords := advancedmd.NewAdapter(offices, amdSession, amdClient, amdRestClient)
+	appointmentTokens := scheduling.NewAppointmentTokens(offices, cfg.BookingTokenSecret, time.Now)
+	patients := patient.NewWithAppointmentTokens(offices, patientRecords, appointmentTokens)
+	scheduler := scheduling.NewWithConfig(offices,
 		patientRecords,
 		cfg.BookingTokenSecret,
 		time.Now,
@@ -75,7 +75,7 @@ func main() {
 	)
 
 	// Initialize handlers
-	handlers := apphttp.NewHandlers(amdSession, patients, scheduler)
+	handlers := apphttp.NewHandlers(offices, amdSession, patients, scheduler)
 
 	// Create router
 	maintenanceAuthorizer := apphttp.NewMaintenanceAuthorizer(

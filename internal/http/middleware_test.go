@@ -1,6 +1,7 @@
 package http
 
 import (
+	"advancedmd-token-management/internal/domain"
 	"bytes"
 	"encoding/json"
 	"log"
@@ -51,13 +52,15 @@ func TestRequestIDMiddlewareHashesCallerValueForLogs(t *testing.T) {
 }
 
 func TestRequestLogIsStructuredAndPHISafe(t *testing.T) {
+	offices := domain.NewOfficeCatalog("")
+
 	var logs bytes.Buffer
 	previousWriter := log.Writer()
 	log.SetOutput(safelog.NewWriter(&logs))
 	t.Cleanup(func() { log.SetOutput(previousWriter) })
 
 	router := NewRouter(
-		NewHandlers(unavailableSession{}, patientmodule.New(advancedmd.NewAdapter(unavailableSession{}, nil, nil)), nil),
+		NewHandlers(offices, unavailableSession{}, patientmodule.New(offices, advancedmd.NewAdapter(offices, unavailableSession{}, nil, nil)), nil),
 		"test-secret",
 		nil,
 	)
@@ -109,12 +112,14 @@ func TestRequestLogIsStructuredAndPHISafe(t *testing.T) {
 }
 
 func TestRequestLogUsesSafeFallbackForUnmatchedRoute(t *testing.T) {
+	offices := domain.NewOfficeCatalog("")
+
 	var logs bytes.Buffer
 	previousWriter := log.Writer()
 	log.SetOutput(&logs)
 	t.Cleanup(func() { log.SetOutput(previousWriter) })
 
-	router := NewRouter(NewHandlers(nil, nil, nil), "test-secret", nil)
+	router := NewRouter(NewHandlers(offices, nil, nil, nil), "test-secret", nil)
 	req := httptest.NewRequest(http.MethodGet, "/patients/17604634", nil)
 	w := httptest.NewRecorder()
 
@@ -168,6 +173,8 @@ func TestRequestLogRecoversPanicWithoutLoggingRawError(t *testing.T) {
 }
 
 func TestRequestLogRecordsInvalidJSONWithoutInspectingBodies(t *testing.T) {
+	offices := domain.NewOfficeCatalog("")
+
 	paths := []string{
 		"/api/patient/resolve",
 		"/api/add-patient",
@@ -183,7 +190,7 @@ func TestRequestLogRecordsInvalidJSONWithoutInspectingBodies(t *testing.T) {
 			log.SetOutput(&logs)
 			t.Cleanup(func() { log.SetOutput(previousWriter) })
 
-			router := NewRouter(NewHandlers(nil, nil, nil), "test-secret", nil)
+			router := NewRouter(NewHandlers(offices, nil, nil, nil), "test-secret", nil)
 			req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{"patientId":"17604634"`))
 			req.Header.Set("Authorization", "Bearer test-secret")
 			w := httptest.NewRecorder()
@@ -205,6 +212,8 @@ func TestRequestLogRecordsInvalidJSONWithoutInspectingBodies(t *testing.T) {
 }
 
 func TestRequestLogPreservesAvailabilityProviderFailureCategory(t *testing.T) {
+	offices := domain.NewOfficeCatalog("")
+
 	var logs bytes.Buffer
 	previousWriter := log.Writer()
 	log.SetOutput(&logs)
@@ -213,8 +222,8 @@ func TestRequestLogPreservesAvailabilityProviderFailureCategory(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	records := advancedmdtest.NewAdapter()
 	records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryAuthentication)
-	scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now })
-	router := NewRouter(&Handlers{scheduling: scheduler}, "test-secret", nil)
+	scheduler := schedulingmodule.New(offices, records, "test-booking-secret", func() time.Time { return now })
+	router := NewRouter(&Handlers{offices: offices, scheduling: scheduler}, "test-secret", nil)
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/api/scheduler/availability",
@@ -235,6 +244,8 @@ func TestRequestLogPreservesAvailabilityProviderFailureCategory(t *testing.T) {
 }
 
 func TestRequestLogCategorizesPatientMutationFailures(t *testing.T) {
+	offices := domain.NewOfficeCatalog("")
+
 	patients := &patientStub{
 		createResult: patientmodule.CreateResult{
 			Status:  patientmodule.CreateStatusError,
@@ -245,7 +256,7 @@ func TestRequestLogCategorizesPatientMutationFailures(t *testing.T) {
 			Outcome: patientmodule.MutationRejected,
 		},
 	}
-	router := NewRouter(&Handlers{patient: patients}, "test-secret", nil)
+	router := NewRouter(&Handlers{offices: offices, patient: patients}, "test-secret", nil)
 	tests := []struct {
 		path            string
 		body            string
@@ -291,6 +302,8 @@ func TestRequestLogCategorizesPatientMutationFailures(t *testing.T) {
 }
 
 func TestRequestLogPreservesPartialPatientProviderFailure(t *testing.T) {
+	offices := domain.NewOfficeCatalog("")
+
 	var logs bytes.Buffer
 	previousWriter := log.Writer()
 	log.SetOutput(&logs)
@@ -302,7 +315,7 @@ func TestRequestLogPreservesPartialPatientProviderFailure(t *testing.T) {
 		Appointments:       []patientmodule.Appointment{},
 		ProviderFailure:    safeerrors.CategoryUpstreamStatus,
 	}}
-	router := NewRouter(&Handlers{patient: patients}, "test-secret", nil)
+	router := NewRouter(&Handlers{offices: offices, patient: patients}, "test-secret", nil)
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/api/patient/resolve",
@@ -323,6 +336,8 @@ func TestRequestLogPreservesPartialPatientProviderFailure(t *testing.T) {
 }
 
 func TestRequestLogTreatsSuccessfulPatientResolveAsSuccess(t *testing.T) {
+	offices := domain.NewOfficeCatalog("")
+
 	var logs bytes.Buffer
 	previousWriter := log.Writer()
 	log.SetOutput(&logs)
@@ -331,7 +346,7 @@ func TestRequestLogTreatsSuccessfulPatientResolveAsSuccess(t *testing.T) {
 	patients := &patientStub{resolveResult: patientmodule.ResolveResult{
 		Status: patientmodule.StatusVerified,
 	}}
-	router := NewRouter(&Handlers{patient: patients}, "test-secret", nil)
+	router := NewRouter(&Handlers{offices: offices, patient: patients}, "test-secret", nil)
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/api/patient/resolve",

@@ -23,6 +23,7 @@ var eastern = domain.EasternLocation()
 
 // Adapter is the production adapter for AdvancedMD domain records.
 type Adapter struct {
+	offices    *domain.OfficeCatalog
 	session    session.Session
 	xmlClient  *clients.AdvancedMDClient
 	restClient *clients.AdvancedMDRestClient
@@ -30,6 +31,7 @@ type Adapter struct {
 }
 
 func NewAdapter(
+	offices *domain.OfficeCatalog,
 	amdSession session.Session,
 	xmlClient *clients.AdvancedMDClient,
 	restClient *clients.AdvancedMDRestClient,
@@ -40,6 +42,7 @@ func NewAdapter(
 		now = clock[0]
 	}
 	return &Adapter{
+		offices:    offices,
 		session:    amdSession,
 		xmlClient:  xmlClient,
 		restClient: restClient,
@@ -120,7 +123,7 @@ func (a *Adapter) CreatePatient(ctx context.Context, command domain.PatientCreat
 	if a.xmlClient == nil {
 		return domain.CreatedPatient{}, NewError(safeerrors.CategoryInternal)
 	}
-	office, ok := domain.LookupOfficeByID(command.OfficeID)
+	office, ok := a.offices.LookupOfficeByID(command.OfficeID)
 	if !ok {
 		return domain.CreatedPatient{}, NewError(safeerrors.CategoryInternal)
 	}
@@ -210,7 +213,7 @@ func (a *Adapter) ReadPatientAppointmentsForMonth(
 		Complete:     true,
 	}
 	for _, officeID := range query.OfficeIDs {
-		office, ok := domain.LookupOfficeByID(officeID)
+		office, ok := a.offices.LookupOfficeByID(officeID)
 		if !ok {
 			return read, NewError(safeerrors.CategoryInternal)
 		}
@@ -244,7 +247,7 @@ func (a *Adapter) readPatientAppointments(ctx context.Context, query domain.Pati
 		return AppointmentRead{}, NewError(safeerrors.CategoryInternal)
 	}
 
-	lookup, err := newAppointmentLookup(query.OfficeIDs)
+	lookup, err := a.newAppointmentLookup(query.OfficeIDs)
 	if err != nil {
 		return AppointmentRead{}, err
 	}
@@ -319,7 +322,7 @@ type appointmentLookup struct {
 	officeByColumn map[int]*domain.OfficeConfig
 }
 
-func newAppointmentLookup(officeIDs []string) (appointmentLookup, error) {
+func (a *Adapter) newAppointmentLookup(officeIDs []string) (appointmentLookup, error) {
 	lookup := appointmentLookup{
 		columnIDs:      make([]string, 0),
 		officeByColumn: make(map[int]*domain.OfficeConfig),
@@ -331,7 +334,7 @@ func newAppointmentLookup(officeIDs []string) (appointmentLookup, error) {
 		}
 		seenOffices[officeID] = true
 
-		office, ok := domain.LookupOfficeByID(officeID)
+		office, ok := a.offices.LookupOfficeByID(officeID)
 		if !ok {
 			return appointmentLookup{}, NewError(safeerrors.CategoryInternal)
 		}
@@ -398,7 +401,7 @@ func patientAppointmentRead(
 		typeName := ""
 		if len(raw.AppointmentTypes) > 0 {
 			providerTypeID := raw.AppointmentTypes[0]
-			canonicalID, ok := domain.CanonicalAppointmentTypeID(providerTypeID)
+			canonicalID, ok := office.CanonicalAppointmentTypeID(providerTypeID)
 			if !ok && providerTypeID <= 0 {
 				read.Complete = false
 			} else if ok {
@@ -476,7 +479,7 @@ func (a *Adapter) ReadAppointmentState(
 	if a.restClient == nil || query.AppointmentID <= 0 || query.Start.IsZero() {
 		return AppointmentState{}, NewError(safeerrors.CategoryInternal)
 	}
-	office, ok := domain.LookupOfficeByID(query.OfficeID)
+	office, ok := a.offices.LookupOfficeByID(query.OfficeID)
 	if !ok {
 		return AppointmentState{}, NewError(safeerrors.CategoryInternal)
 	}
@@ -583,7 +586,7 @@ func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, er
 	if a.restClient == nil {
 		return 0, NewError(safeerrors.CategoryInternal)
 	}
-	office, ok := domain.LookupOfficeByID(booking.OfficeID)
+	office, ok := a.offices.LookupOfficeByID(booking.OfficeID)
 	if !ok {
 		return 0, NewError(safeerrors.CategoryInternal)
 	}

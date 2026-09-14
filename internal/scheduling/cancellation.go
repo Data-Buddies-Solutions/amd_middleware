@@ -97,7 +97,7 @@ func (s *service) Cancel(ctx context.Context, command CancelCommand) (receipt Ca
 	if _, err := strconv.Atoi(command.PatientID); err != nil {
 		return CancelReceipt{}, schedulingError("patientId must be numeric")
 	}
-	office, err := domain.ResolveOffice(command.Office)
+	office, err := s.offices.ResolveOffice(command.Office)
 	if err != nil {
 		return CancelReceipt{}, schedulingError(err.Error())
 	}
@@ -107,13 +107,13 @@ func (s *service) Cancel(ctx context.Context, command CancelCommand) (receipt Ca
 
 	read, err := s.records.ReadPatientAppointments(ctx, domain.PatientAppointmentsQuery{
 		PatientID: command.PatientID,
-		OfficeIDs: domain.AppointmentLookupOfficeIDs(office),
+		OfficeIDs: s.offices.AppointmentLookupOfficeIDs(office),
 	})
 	telemetry.scheduleReads += read.ProviderReads
 	if err != nil {
 		return CancelReceipt{}, ownershipCheckError()
 	}
-	appointment, owningOffice, found, knownOffice := ownedAppointment(
+	appointment, owningOffice, found, knownOffice := s.ownedAppointment(
 		read.Appointments,
 		command.AppointmentID,
 		office,
@@ -162,12 +162,12 @@ func (s *service) cancelWithToken(
 	if command.AppointmentID != 0 && command.AppointmentID != policy.AppointmentID {
 		return CancelReceipt{}, invalidCancellationTokenError()
 	}
-	office, ok := domain.LookupOfficeByID(policy.OfficeID)
+	office, ok := s.offices.LookupOfficeByID(policy.OfficeID)
 	if !ok {
 		return CancelReceipt{}, invalidCancellationTokenError()
 	}
 	if command.Office != "" {
-		requestedOffice, err := domain.ResolveOffice(command.Office)
+		requestedOffice, err := s.offices.ResolveOffice(command.Office)
 		if err != nil || requestedOffice.ID != office.ID {
 			return CancelReceipt{}, invalidCancellationTokenError()
 		}
@@ -301,7 +301,7 @@ func ownershipCheckError() error {
 	)
 }
 
-func ownedAppointment(
+func (s *service) ownedAppointment(
 	appointments []domain.PatientAppointment,
 	appointmentID int,
 	requestedOffice *domain.OfficeConfig,
@@ -313,7 +313,7 @@ func ownedAppointment(
 		if appointment.OfficeID == "" {
 			return appointment, requestedOffice, true, true
 		}
-		office, ok := domain.LookupOfficeByID(appointment.OfficeID)
+		office, ok := s.offices.LookupOfficeByID(appointment.OfficeID)
 		return appointment, office, true, ok
 	}
 	return domain.PatientAppointment{}, nil, false, true

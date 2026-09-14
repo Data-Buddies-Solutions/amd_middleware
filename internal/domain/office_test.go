@@ -6,6 +6,8 @@ import (
 )
 
 func TestLookupOffice(t *testing.T) {
+	offices := NewOfficeCatalog("")
+
 	tests := []struct {
 		name   string
 		input  string
@@ -32,20 +34,22 @@ func TestLookupOffice(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			office, ok := LookupOffice(tt.input)
+			office, ok := offices.LookupOffice(tt.input)
 			if ok != tt.wantOK {
-				t.Errorf("LookupOffice(%q) ok = %v, want %v", tt.input, ok, tt.wantOK)
+				t.Errorf("offices.LookupOffice(%q) ok = %v, want %v", tt.input, ok, tt.wantOK)
 				return
 			}
 			if ok && office.ID != tt.wantID {
-				t.Errorf("LookupOffice(%q).ID = %q, want %q", tt.input, office.ID, tt.wantID)
+				t.Errorf("offices.LookupOffice(%q).ID = %q, want %q", tt.input, office.ID, tt.wantID)
 			}
 		})
 	}
 }
 
 func TestValidOfficeNamesUnique(t *testing.T) {
-	names := ValidOfficeNames()
+	offices := NewOfficeCatalog("")
+
+	names := offices.ValidOfficeNames()
 	seen := make(map[string]bool)
 	for _, name := range names {
 		if seen[name] {
@@ -61,19 +65,23 @@ func TestValidOfficeNamesUnique(t *testing.T) {
 }
 
 func TestDefaultOffice(t *testing.T) {
-	office := DefaultOffice()
+	offices := NewOfficeCatalog("")
+
+	office := offices.DefaultOffice()
 	if office == nil {
-		t.Fatal("DefaultOffice() returned nil")
+		t.Fatal("offices.DefaultOffice() returned nil")
 	}
 	if office.ID != "spring_hill" {
-		t.Errorf("DefaultOffice().ID = %q, want %q", office.ID, "spring_hill")
+		t.Errorf("offices.DefaultOffice().ID = %q, want %q", office.ID, "spring_hill")
 	}
 	if office.FacilityID != "1568" {
-		t.Errorf("DefaultOffice().FacilityID = %q, want %q", office.FacilityID, "1568")
+		t.Errorf("offices.DefaultOffice().FacilityID = %q, want %q", office.FacilityID, "1568")
 	}
 }
 
 func TestAppointmentLookupOfficeIDs(t *testing.T) {
+	offices := NewOfficeCatalog("")
+
 	tests := []struct {
 		name   string
 		office *OfficeConfig
@@ -89,13 +97,13 @@ func TestAppointmentLookupOfficeIDs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := AppointmentLookupOfficeIDs(tt.office)
+			got := offices.AppointmentLookupOfficeIDs(tt.office)
 			if len(got) != len(tt.want) {
-				t.Fatalf("AppointmentLookupOfficeIDs() len = %d, want %d: %+v", len(got), len(tt.want), got)
+				t.Fatalf("offices.AppointmentLookupOfficeIDs() len = %d, want %d: %+v", len(got), len(tt.want), got)
 			}
 			for i, wantID := range tt.want {
 				if got[i] != wantID {
-					t.Fatalf("AppointmentLookupOfficeIDs()[%d] = %q, want %q", i, got[i], wantID)
+					t.Fatalf("offices.AppointmentLookupOfficeIDs()[%d] = %q, want %q", i, got[i], wantID)
 				}
 			}
 		})
@@ -103,7 +111,9 @@ func TestAppointmentLookupOfficeIDs(t *testing.T) {
 }
 
 func TestOfficeConfig_IsAllowedColumn(t *testing.T) {
-	office := DefaultOffice()
+	offices := NewOfficeCatalog("")
+
+	office := offices.DefaultOffice()
 
 	tests := []struct {
 		columnID string
@@ -129,7 +139,9 @@ func TestOfficeConfig_IsAllowedColumn(t *testing.T) {
 }
 
 func TestOfficeConfig_AllowedColumnIDs(t *testing.T) {
-	office := DefaultOffice()
+	offices := NewOfficeCatalog("")
+
+	office := offices.DefaultOffice()
 	ids := office.AllowedColumnIDs()
 
 	if len(ids) != 5 {
@@ -149,7 +161,9 @@ func TestOfficeConfig_AllowedColumnIDs(t *testing.T) {
 }
 
 func TestOfficeConfig_ProviderDisplayName(t *testing.T) {
-	office := DefaultOffice()
+	offices := NewOfficeCatalog("")
+
+	office := offices.DefaultOffice()
 
 	tests := []struct {
 		profileID string
@@ -178,7 +192,9 @@ func TestOfficeConfig_ProviderDisplayName(t *testing.T) {
 }
 
 func TestOfficeConfig_FriendlyProviderName(t *testing.T) {
-	office := DefaultOffice()
+	offices := NewOfficeCatalog("")
+
+	office := offices.DefaultOffice()
 
 	tests := []struct {
 		input string
@@ -203,7 +219,9 @@ func TestOfficeConfig_FriendlyProviderName(t *testing.T) {
 }
 
 func TestOfficeConfig_AppointmentColor(t *testing.T) {
-	office := DefaultOffice()
+	offices := NewOfficeCatalog("")
+
+	office := offices.DefaultOffice()
 
 	color, ok := office.AppointmentColor(1006)
 	if !ok || color != "RED" {
@@ -217,60 +235,57 @@ func TestOfficeConfig_AppointmentColor(t *testing.T) {
 }
 
 func TestCanonicalAppointmentTypeID(t *testing.T) {
-	defer InitRegistry("prod")
-
-	InitRegistry("prod")
-	if got, ok := CanonicalAppointmentTypeID(1007); !ok || got != 1007 {
-		t.Fatalf("prod CanonicalAppointmentTypeID(1007) = (%d, %v), want (1007, true)", got, ok)
+	offices := NewOfficeCatalog("prod")
+	if got, ok := offices.DefaultOffice().CanonicalAppointmentTypeID(1007); !ok || got != 1007 {
+		t.Fatalf("prod offices.DefaultOffice().CanonicalAppointmentTypeID(1007) = (%d, %v), want (1007, true)", got, ok)
 	}
-	if got, ok := CanonicalAppointmentTypeID(18); ok || got != 0 {
-		t.Fatalf("prod CanonicalAppointmentTypeID(18) = (%d, %v), want (0, false)", got, ok)
+	if got, ok := offices.DefaultOffice().CanonicalAppointmentTypeID(18); ok || got != 0 {
+		t.Fatalf("prod offices.DefaultOffice().CanonicalAppointmentTypeID(18) = (%d, %v), want (0, false)", got, ok)
 	}
 
-	InitRegistry("dev")
-	if got, ok := CanonicalAppointmentTypeID(18); !ok || got != 1007 {
-		t.Fatalf("dev CanonicalAppointmentTypeID(18) = (%d, %v), want (1007, true)", got, ok)
+	offices = NewOfficeCatalog("dev")
+	if got, ok := offices.DefaultOffice().CanonicalAppointmentTypeID(18); !ok || got != 1007 {
+		t.Fatalf("dev offices.DefaultOffice().CanonicalAppointmentTypeID(18) = (%d, %v), want (1007, true)", got, ok)
 	}
-	if got, ok := CanonicalAppointmentTypeID(1010); ok || got != 0 {
-		t.Fatalf("dev CanonicalAppointmentTypeID(1010) = (%d, %v), want (0, false)", got, ok)
+	if got, ok := offices.DefaultOffice().CanonicalAppointmentTypeID(1010); ok || got != 0 {
+		t.Fatalf("dev offices.DefaultOffice().CanonicalAppointmentTypeID(1010) = (%d, %v), want (0, false)", got, ok)
 	}
-	if got, ok := CanonicalAppointmentTypeID(9999); ok || got != 0 {
-		t.Fatalf("dev CanonicalAppointmentTypeID(9999) = (%d, %v), want (0, false)", got, ok)
+	if got, ok := offices.DefaultOffice().CanonicalAppointmentTypeID(9999); ok || got != 0 {
+		t.Fatalf("dev offices.DefaultOffice().CanonicalAppointmentTypeID(9999) = (%d, %v), want (0, false)", got, ok)
 	}
 }
 
 func TestSandboxRejectsUnmappedProductionIDs(t *testing.T) {
-	defer InitRegistry("prod")
-	InitRegistry("dev")
-	if office, ok := LookupOffice("spring_hill"); !ok || office != devSpringHillOffice {
+	offices := NewOfficeCatalog("dev")
+	if office, ok := offices.LookupOffice("spring_hill"); !ok || office.FacilityID != devSpringHillOffice.FacilityID {
 		t.Fatal("sandbox office ID must resolve to the sandbox Spring Hill config")
 	}
 	for _, selector := range []string{"crystal_river", "+16182265883"} {
-		if _, ok := LookupOffice(selector); ok {
+		if _, ok := offices.LookupOffice(selector); ok {
 			t.Errorf("sandbox unexpectedly accepts production placeholder %q", selector)
 		}
 	}
 	unmapped := []int{1010, 3364, 4244, 4245, 6167, 6168, 6169}
 	for _, id := range unmapped {
-		if _, ok := ResolveAppointmentTypeID(id); ok {
+		if _, ok := offices.DefaultOffice().ResolveAppointmentTypeID(id); ok {
 			t.Errorf("sandbox unexpectedly resolves unmapped production type %d", id)
 		}
-		if _, ok := CanonicalAppointmentTypeID(id); ok {
+		if _, ok := offices.DefaultOffice().CanonicalAppointmentTypeID(id); ok {
 			t.Errorf("sandbox unexpectedly canonicalizes unmapped type %d", id)
 		}
 	}
 	for canonical, sandbox := range map[int]int{1006: 12, 1004: 20, 1007: 18, 1005: 8, 1008: 1627} {
-		if got, ok := ResolveAppointmentTypeID(canonical); !ok || got != sandbox {
+		if got, ok := offices.DefaultOffice().ResolveAppointmentTypeID(canonical); !ok || got != sandbox {
 			t.Errorf("sandbox medical mapping %d = (%d, %v), want %d", canonical, got, ok, sandbox)
 		}
 	}
-	InitRegistry("prod")
+	offices = NewOfficeCatalog("prod")
 	for _, id := range unmapped {
-		if got, ok := ResolveAppointmentTypeID(id); !ok || got != id {
+		if got, ok := offices.DefaultOffice().ResolveAppointmentTypeID(id); !ok || got != id {
 			t.Errorf("production mapping changed for type %d", id)
 		}
 	}
-	if office, ok := LookupOffice("crystal_river"); !ok || office != crystalRiverOffice {
+	if office, ok := offices.LookupOffice("crystal_river"); !ok || office.FacilityID != crystalRiverOffice.FacilityID {
 		t.Fatal("production Crystal River mapping changed")
 	}
 }
@@ -559,13 +574,14 @@ func TestOfficeConfig_RoutineAgeRules(t *testing.T) {
 	}
 }
 
-func TestInitRegistry(t *testing.T) {
+func TestOfficeCatalogEnvironment(t *testing.T) {
+	offices := NewOfficeCatalog("")
+
 	// Ensure we restore prod after this test
-	defer InitRegistry("prod")
 
 	// Dev environment
-	InitRegistry("dev")
-	office, ok := LookupOffice("+14843989071")
+	offices = NewOfficeCatalog("dev")
+	office, ok := offices.LookupOffice("+14843989071")
 	if !ok {
 		t.Fatal("dev registry should have +14843989071")
 	}
@@ -580,23 +596,23 @@ func TestInitRegistry(t *testing.T) {
 	}
 
 	// Prod phone should not exist in dev registry
-	_, ok = LookupOffice("+17275919997")
+	_, ok = offices.LookupOffice("+17275919997")
 	if ok {
 		t.Error("dev registry should NOT have prod phone +17275919997")
 	}
 
 	// DefaultOffice works in dev
-	devDefault := DefaultOffice()
+	devDefault := offices.DefaultOffice()
 	if devDefault == nil {
-		t.Fatal("DefaultOffice() returned nil in dev mode")
+		t.Fatal("offices.DefaultOffice() returned nil in dev mode")
 	}
 	if devDefault.FacilityID != "1032" {
-		t.Errorf("dev DefaultOffice().FacilityID = %q, want %q", devDefault.FacilityID, "1032")
+		t.Errorf("dev offices.DefaultOffice().FacilityID = %q, want %q", devDefault.FacilityID, "1032")
 	}
 
 	// Prod environment
-	InitRegistry("prod")
-	office = DefaultOffice()
+	offices = NewOfficeCatalog("prod")
+	office = offices.DefaultOffice()
 	if office.FacilityID != "1568" {
 		t.Errorf("prod FacilityID = %q, want %q", office.FacilityID, "1568")
 	}
@@ -611,15 +627,17 @@ func TestInitRegistry(t *testing.T) {
 	}
 
 	// Default (empty string) = prod
-	InitRegistry("")
-	office = DefaultOffice()
+	offices = NewOfficeCatalog("")
+	office = offices.DefaultOffice()
 	if office.FacilityID != "1568" {
 		t.Errorf("default FacilityID = %q, want %q", office.FacilityID, "1568")
 	}
 }
 
 func TestAppointmentTypeNames(t *testing.T) {
-	office := DefaultOffice()
+	offices := NewOfficeCatalog("")
+
+	office := offices.DefaultOffice()
 
 	tests := []struct {
 		typeID   int
@@ -651,5 +669,55 @@ func TestAppointmentTypeNames(t *testing.T) {
 				t.Errorf("AppointmentTypeName(%d) = %q, want %q", tt.typeID, got, tt.expected)
 			}
 		})
+	}
+}
+
+func TestOfficeCatalogOwnsIndependentPolicy(t *testing.T) {
+	t.Parallel()
+	prod, dev := NewOfficeCatalog("prod"), NewOfficeCatalog("dev")
+	for _, tc := range []struct {
+		name            string
+		catalog         *OfficeCatalog
+		facility        string
+		appointmentType int
+	}{
+		{"prod", prod, "1568", 1007}, {"dev", dev, "1032", 18},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			office := tc.catalog.DefaultOffice()
+			if office.FacilityID != tc.facility {
+				t.Fatalf("facility=%s", office.FacilityID)
+			}
+			if id, ok := office.ResolveAppointmentTypeID(1007); !ok || id != tc.appointmentType {
+				t.Fatalf("type=%d valid=%v", id, ok)
+			}
+			office.DisplayName = "changed"
+			for id := range office.Columns {
+				delete(office.Columns, id)
+			}
+			for rule, columns := range office.RoutingTiers {
+				if len(columns) > 0 {
+					columns[0] = "changed"
+				}
+				delete(office.RoutingTiers, rule)
+			}
+			again := tc.catalog.DefaultOffice()
+			if again.DisplayName == "changed" || len(again.Columns) == 0 || len(again.RoutingTiers) == 0 {
+				t.Fatal("caller mutated catalog")
+			}
+		})
+	}
+	office, _ := prod.LookupOffice("hollywood")
+	for id, column := range office.Columns {
+		if len(column.SameStartWindows) == 0 {
+			continue
+		}
+		original := column.SameStartWindows[0]
+		column.SameStartWindows[0].StartMinute = -1
+		again, _ := prod.LookupOffice("hollywood")
+		if again.Columns[id].SameStartWindows[0] != original {
+			t.Fatal("caller mutated nested policy")
+		}
 	}
 }

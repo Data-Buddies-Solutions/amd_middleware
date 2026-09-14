@@ -70,6 +70,7 @@ type PatientCandidateResponse struct {
 
 // Handlers holds the dependencies for HTTP handlers.
 type Handlers struct {
+	offices    *domain.OfficeCatalog
 	session    session.Session
 	patient    patientmodule.Patient
 	scheduling schedulingmodule.Scheduling
@@ -77,11 +78,13 @@ type Handlers struct {
 
 // NewHandlers creates a new Handlers instance.
 func NewHandlers(
+	offices *domain.OfficeCatalog,
 	amdSession session.Session,
 	patient patientmodule.Patient,
 	scheduling schedulingmodule.Scheduling,
 ) *Handlers {
 	return &Handlers{
+		offices:    offices,
 		session:    amdSession,
 		patient:    patient,
 		scheduling: scheduling,
@@ -245,7 +248,7 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	office, err := domain.ResolveOffice(req.Office)
+	office, err := h.offices.ResolveOffice(req.Office)
 	if err != nil {
 		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
 		json.NewEncoder(w).Encode(PatientResolveResponse{

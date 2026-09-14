@@ -172,7 +172,9 @@ func TestIsBlockedByHold_EmptyHolds(t *testing.T) {
 }
 
 func TestIsAllowedColumn(t *testing.T) {
-	office := DefaultOffice()
+	offices := NewOfficeCatalog("")
+
+	office := offices.DefaultOffice()
 
 	tests := []struct {
 		columnID string

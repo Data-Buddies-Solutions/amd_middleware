@@ -119,6 +119,7 @@ func MissingOf(err error) []string {
 }
 
 type service struct {
+	offices            *domain.OfficeCatalog
 	records            advancedmd.SchedulingRecords
 	bookingTokenSecret string
 	appointmentTokens  *AppointmentTokens
@@ -136,12 +137,13 @@ type Config struct {
 }
 
 // New constructs Scheduling with compatibility behavior disabled.
-func New(records advancedmd.SchedulingRecords, bookingTokenSecret string, now func() time.Time) Scheduling {
-	return NewWithConfig(records, bookingTokenSecret, now, Config{})
+func New(offices *domain.OfficeCatalog, records advancedmd.SchedulingRecords, bookingTokenSecret string, now func() time.Time) Scheduling {
+	return NewWithConfig(offices, records, bookingTokenSecret, now, Config{})
 }
 
 // NewWithConfig constructs the single owner for scheduling behavior.
 func NewWithConfig(
+	offices *domain.OfficeCatalog,
 	records advancedmd.SchedulingRecords,
 	bookingTokenSecret string,
 	now func() time.Time,
@@ -151,9 +153,10 @@ func NewWithConfig(
 		now = time.Now
 	}
 	return &service{
+		offices:            offices,
 		records:            records,
 		bookingTokenSecret: bookingTokenSecret,
-		appointmentTokens:  NewAppointmentTokens(bookingTokenSecret, now),
+		appointmentTokens:  NewAppointmentTokens(offices, bookingTokenSecret, now),
 		allowRawBooking:    config.AllowRawBooking,
 		now:                now,
 	}
@@ -221,7 +224,7 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 	}
 	searchEndDate := maxDate.Format("2006-01-02")
 
-	office, err := domain.ResolveOffice(command.Office)
+	office, err := s.offices.ResolveOffice(command.Office)
 	if err != nil {
 		return empty, schedulingError(err.Error())
 	}

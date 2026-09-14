@@ -3,6 +3,8 @@ package scheduling
 import (
 	"context"
 	"fmt"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"log"
 	"slices"
 	"strconv"
@@ -12,9 +14,6 @@ import (
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/safeerrors"
-
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 const maxAppointmentCommentLength = 1000
@@ -182,12 +181,12 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 		if err != nil {
 			return bookingContext{}, invalidBookingTokenError()
 		}
-		office, ok := domain.LookupOfficeByID(token.OfficeID)
+		office, ok := s.offices.LookupOfficeByID(token.OfficeID)
 		if !ok {
 			return bookingContext{}, invalidBookingTokenError()
 		}
 		if command.Office != "" {
-			requestedOffice, err := domain.ResolveOffice(command.Office)
+			requestedOffice, err := s.offices.ResolveOffice(command.Office)
 			if err != nil || requestedOffice.ID != office.ID {
 				return bookingContext{}, invalidBookingTokenError()
 			}
@@ -206,7 +205,7 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 		booking.token = token
 		booking.office = office
 	} else {
-		office, err := domain.ResolveOffice(command.Office)
+		office, err := s.offices.ResolveOffice(command.Office)
 		if err != nil {
 			return bookingContext{}, schedulingError(err.Error())
 		}
@@ -424,7 +423,7 @@ func (s *service) revalidateBookingSlot(
 func (s *service) reconcileBooking(ctx context.Context, prepared preparedBooking) (BookReceipt, error) {
 	read, err := s.records.ReadPatientAppointmentsForMonth(ctx, advancedmd.AppointmentMonthQuery{
 		PatientID: prepared.command.PatientID,
-		OfficeIDs: domain.AppointmentLookupOfficeIDs(prepared.office),
+		OfficeIDs: s.offices.AppointmentLookupOfficeIDs(prepared.office),
 		Month:     prepared.start,
 	})
 	if err != nil {

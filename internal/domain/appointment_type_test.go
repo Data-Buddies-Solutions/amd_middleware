@@ -3,12 +3,14 @@ package domain
 import "testing"
 
 func TestResolveAppointmentTypeForIntent(t *testing.T) {
-	springHill := DefaultOffice()
-	crystalRiver, ok := LookupOffice("Crystal River")
+	offices := NewOfficeCatalog("")
+
+	springHill := offices.DefaultOffice()
+	crystalRiver, ok := offices.LookupOffice("Crystal River")
 	if !ok {
 		t.Fatal("Crystal River office not found")
 	}
-	northMiamiBeachOptical, ok := LookupOffice("North Miami Beach Optical")
+	northMiamiBeachOptical, ok := offices.LookupOffice("North Miami Beach Optical")
 	if !ok {
 		t.Fatal("North Miami Beach Optical office not found")
 	}
@@ -234,7 +236,9 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 }
 
 func TestResolveAppointmentTypeForIntent_SpringHillUnderSevenRoutineVision(t *testing.T) {
-	got := ResolveAppointmentTypeForIntent(DefaultOffice(), RoutingOpticalOnly, AppointmentIntent{
+	offices := NewOfficeCatalog("")
+
+	got := ResolveAppointmentTypeForIntent(offices.DefaultOffice(), RoutingOpticalOnly, AppointmentIntent{
 		VisitCategory: AppointmentVisitRoutineVision,
 		PatientStatus: AppointmentPatientNew,
 		AgeBand:       AppointmentAgePediatric,

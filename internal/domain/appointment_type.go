@@ -122,7 +122,7 @@ func ResolveAppointmentTypeForIntent(office *OfficeConfig, routing RoutingRule, 
 func resolvedAppointmentType(typeID int) AppointmentTypeResolution {
 	return AppointmentTypeResolution{
 		AppointmentTypeID:   typeID,
-		AppointmentTypeName: DefaultAppointmentTypeNames[typeID],
+		AppointmentTypeName: appointmentTypeNames[typeID],
 	}
 }
 

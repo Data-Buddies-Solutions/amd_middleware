@@ -26,7 +26,9 @@ import (
 )
 
 func TestHandleLive(t *testing.T) {
-	handlers := &Handlers{}
+	offices := domain.NewOfficeCatalog("")
+
+	handlers := &Handlers{offices: offices}
 
 	req := httptest.NewRequest("GET", "/live", nil)
 	w := httptest.NewRecorder()
@@ -46,12 +48,14 @@ func TestHandleLive(t *testing.T) {
 }
 
 func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
+	offices := domain.NewOfficeCatalog("")
+
 	const patientID = "patient-identifier-must-not-appear"
-	patientmodule.New(advancedmdtest.NewAdapter()).UpdateInsurance(context.Background(), patientmodule.UpdateInsuranceCommand{
+	patientmodule.New(offices, advancedmdtest.NewAdapter()).UpdateInsurance(context.Background(), patientmodule.UpdateInsuranceCommand{
 		PatientID: patientID,
 	})
 
-	router := NewRouter(NewHandlers(nil, nil, nil), "test-secret", nil)
+	router := NewRouter(NewHandlers(offices, nil, nil, nil), "test-secret", nil)
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	w := httptest.NewRecorder()
 
@@ -70,8 +74,10 @@ func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
 }
 
 func TestPatientResolveKeepsStableResponseWhenSessionUnavailable(t *testing.T) {
-	records := advancedmd.NewAdapter(unavailableSession{}, nil, nil)
-	handlers := NewHandlers(unavailableSession{}, patientmodule.New(records), nil)
+	offices := domain.NewOfficeCatalog("")
+
+	records := advancedmd.NewAdapter(offices, unavailableSession{}, nil, nil)
+	handlers := NewHandlers(offices, unavailableSession{}, patientmodule.New(offices, records), nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"patientId":"123"}`))
 	w := httptest.NewRecorder()
 
@@ -93,7 +99,7 @@ func TestPatientResolveKeepsStableResponseWhenSessionUnavailable(t *testing.T) {
 }
 
 func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
-	domain.InitRegistry("")
+	offices := domain.NewOfficeCatalog("")
 	amd := advancedmdtest.NewAdapter()
 	amd.PatientSearches[domain.PatientSearch{Phone: "9542872010"}] = []domain.Patient{{
 		ID: "123", FullName: "DOE,JANE", DOB: "01/15/1980", Phone: "850-373-3869",
@@ -102,7 +108,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 		CarrierName: "HUMANA MEDICARE",
 		CarrierID:   "car40906",
 	}
-	handlers := NewHandlers(nil, patientmodule.New(amd), nil)
+	handlers := NewHandlers(offices, nil, patientmodule.New(offices, amd), nil)
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -142,7 +148,9 @@ func (unavailableSession) Status() session.SessionStatus {
 }
 
 func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
-	handlers := &Handlers{scheduling: schedulingStub{err: errors.New("dob must be a valid date")}}
+	offices := domain.NewOfficeCatalog("")
+
+	handlers := &Handlers{offices: offices, scheduling: schedulingStub{err: errors.New("dob must be a valid date")}}
 	date := time.Now().AddDate(0, 0, 2).Format("2006-01-02")
 	body := fmt.Sprintf(`{"requestedDate":%q,"office":"Hollywood","routing":"optical_only","dob":"not-a-date"}`, date)
 	req := httptest.NewRequest("POST", "/api/scheduler/availability", bytes.NewBufferString(body))
@@ -162,6 +170,8 @@ func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
 }
 
 func TestHandleGetAvailabilityMapsSchedulingResult(t *testing.T) {
+	offices := domain.NewOfficeCatalog("")
+
 	scheduler := schedulingStub{
 		result: domain.AvailabilityResponse{
 			Status:                domain.AvailabilityStatusSuccess,
@@ -184,7 +194,7 @@ func TestHandleGetAvailabilityMapsSchedulingResult(t *testing.T) {
 			}},
 		},
 	}
-	handlers := &Handlers{scheduling: scheduler}
+	handlers := &Handlers{offices: offices, scheduling: scheduler}
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/api/scheduler/availability",
@@ -206,7 +216,9 @@ func TestHandleGetAvailabilityMapsSchedulingResult(t *testing.T) {
 }
 
 func TestAvailabilityRouteRetainsAuthenticationAndResponseContract(t *testing.T) {
-	handlers := &Handlers{scheduling: schedulingStub{
+	offices := domain.NewOfficeCatalog("")
+
+	handlers := &Handlers{offices: offices, scheduling: schedulingStub{
 		result: domain.AvailabilityResponse{
 			Status:                domain.AvailabilityStatusSuccess,
 			Outcome:               domain.AvailabilityOutcomeNoAvailability,
@@ -267,7 +279,9 @@ func (s schedulingStub) Cancel(context.Context, schedulingmodule.CancelCommand) 
 }
 
 func TestHandlePatientResolve_ValidationErrors(t *testing.T) {
-	handlers := &Handlers{}
+	offices := domain.NewOfficeCatalog("")
+
+	handlers := &Handlers{offices: offices}
 
 	tests := []struct {
 		name        string
@@ -591,6 +605,8 @@ func TestProviderFailuresAreRedactedFromResponsesAndLogs(t *testing.T) {
 }
 
 func TestPatientMutationRoutesCallPatientInterface(t *testing.T) {
+	offices := domain.NewOfficeCatalog("")
+
 	service := &patientStub{
 		createResult: patientmodule.CreateResult{
 			Status:    patientmodule.CreateStatusCreated,
@@ -607,7 +623,7 @@ func TestPatientMutationRoutesCallPatientInterface(t *testing.T) {
 			Message:      "Insurance updated successfully",
 		},
 	}
-	handlers := &Handlers{patient: service}
+	handlers := &Handlers{offices: offices, patient: service}
 
 	t.Run("create", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/add-patient", strings.NewReader(`{
@@ -695,7 +711,9 @@ func assertRedacted(t *testing.T, response, logs string, forbidden ...string) {
 }
 
 func TestHandleAddPatient_RoutineVisionRequiresOpticalOffice(t *testing.T) {
-	handlers := &Handlers{patient: patientmodule.New(advancedmdtest.NewAdapter())}
+	offices := domain.NewOfficeCatalog("")
+
+	handlers := &Handlers{offices: offices, patient: patientmodule.New(offices, advancedmdtest.NewAdapter())}
 	req := httptest.NewRequest("POST", "/api/add-patient", bytes.NewBufferString(`{
 		"firstName":"Jane",
 		"lastName":"Doe",
@@ -729,7 +747,9 @@ func TestHandleAddPatient_RoutineVisionRequiresOpticalOffice(t *testing.T) {
 }
 
 func TestHandleAddPatient_RoutineOnlyOfficeRejectsMedical(t *testing.T) {
-	handlers := &Handlers{patient: patientmodule.New(advancedmdtest.NewAdapter())}
+	offices := domain.NewOfficeCatalog("")
+
+	handlers := &Handlers{offices: offices, patient: patientmodule.New(offices, advancedmdtest.NewAdapter())}
 	req := httptest.NewRequest("POST", "/api/add-patient", bytes.NewBufferString(`{
 		"firstName":"Jane",
 		"lastName":"Doe",
@@ -851,7 +871,9 @@ func TestRequestIDMiddleware(t *testing.T) {
 }
 
 func TestRouter(t *testing.T) {
-	handlers := NewHandlers(nil, nil, nil)
+	offices := domain.NewOfficeCatalog("")
+
+	handlers := NewHandlers(offices, nil, nil, nil)
 
 	router := NewRouter(handlers, "test-secret", nil)
 
@@ -952,7 +974,9 @@ func TestPatientApptDetail_IncludesID(t *testing.T) {
 }
 
 func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
-	handlers := &Handlers{patient: patientmodule.New(advancedmdtest.NewAdapter())}
+	offices := domain.NewOfficeCatalog("")
+
+	handlers := &Handlers{offices: offices, patient: patientmodule.New(offices, advancedmdtest.NewAdapter())}
 
 	tests := []struct {
 		name        string
@@ -1161,6 +1185,8 @@ type providerFailure struct {
 }
 
 func newProviderFailureTestHandlers(t *testing.T, fail func(*http.Request, []byte) *providerFailure) *Handlers {
+	offices := domain.NewOfficeCatalog("")
+
 	t.Helper()
 	httpClient := &http.Client{
 		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
@@ -1193,15 +1219,17 @@ func newProviderFailureTestHandlers(t *testing.T, fail func(*http.Request, []byt
 		Username: "user", Password: "pass", OfficeKey: "office", AppName: "app",
 	}, httpClient)
 
-	records := advancedmd.NewAdapter(
+	records := advancedmd.NewAdapter(offices,
 		amdSession,
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
 	)
-	return NewHandlers(amdSession, patientmodule.New(records), nil)
+	return NewHandlers(offices, amdSession, patientmodule.New(offices, records), nil)
 }
 
 func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {
+	offices := domain.NewOfficeCatalog("")
+
 	t.Helper()
 	writes := []string{}
 	httpClient := &http.Client{
@@ -1236,12 +1264,12 @@ func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {
 		AppName:   "app",
 	}, httpClient)
 
-	records := advancedmd.NewAdapter(
+	records := advancedmd.NewAdapter(offices,
 		amdSession,
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
 	)
-	return NewHandlers(amdSession, patientmodule.New(records), nil), &writes
+	return NewHandlers(offices, amdSession, patientmodule.New(offices, records), nil), &writes
 }
 
 func newPatientResolveTestHandlers(
@@ -1249,6 +1277,8 @@ func newPatientResolveTestHandlers(
 	appointmentStatus int,
 	observers ...func(*http.Request, []byte),
 ) *Handlers {
+	offices := domain.NewOfficeCatalog("")
+
 	t.Helper()
 	eastern := domain.EasternLocation()
 	future := time.Now().In(eastern).Add(48 * time.Hour)
@@ -1384,9 +1414,9 @@ func newPatientResolveTestHandlers(
 	}, httpClient)
 	amdClient := clients.NewAdvancedMDClient(httpClient)
 	amdRestClient := clients.NewAdvancedMDRestClient(httpClient)
-	records := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient)
+	records := advancedmd.NewAdapter(offices, amdSession, amdClient, amdRestClient)
 
-	return NewHandlers(amdSession, patientmodule.New(records), nil)
+	return NewHandlers(offices, amdSession, patientmodule.New(offices, records), nil)
 }
 
 func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListCommand) (domain.AvailabilityResponse, error) {
@@ -1394,10 +1424,10 @@ func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListC
 }
 
 func TestFirstNameDOBHTTPContract(t *testing.T) {
-	domain.InitRegistry("")
+	offices := domain.NewOfficeCatalog("")
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true, Patients: []domain.Patient{{ID: "1", FirstName: "Jane", LastName: "Meyer", DOB: "01/01/1980"}}}
-	handler := NewHandlers(nil, patientmodule.New(amd), nil)
+	handler := NewHandlers(offices, nil, patientmodule.New(offices, amd), nil)
 	for _, tc := range []struct {
 		body  string
 		valid bool

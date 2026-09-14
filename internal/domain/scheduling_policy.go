@@ -65,8 +65,8 @@ func (p SchedulingPolicy) AllowedAppointmentTypeIDs(routing RoutingRule, dob str
 		return nil
 	}
 
-	typeIDs := make([]int, 0, len(DefaultAppointmentTypeColors))
-	for typeID := range DefaultAppointmentTypeColors {
+	typeIDs := make([]int, 0, len(appointmentTypeColors))
+	for typeID := range appointmentTypeColors {
 		if p.office.AllowsAppointmentType(typeID, routing) && appointmentTypeMatchesDOB(typeID, dob) {
 			typeIDs = append(typeIDs, typeID)
 		}
@@ -201,7 +201,7 @@ func (p SchedulingPolicy) PrepareBooking(req BookingPolicyRequest) (BookingPolic
 		return BookingPolicyDecision{}, &SchedulingPolicyError{Message: fmt.Sprintf("Column %d is not valid for routing %q at %s", req.ColumnID, routing, p.office.DisplayName)}
 	}
 
-	environmentTypeID, ok := ResolveAppointmentTypeID(typeID)
+	environmentTypeID, ok := p.office.ResolveAppointmentTypeID(typeID)
 	if !ok && !preservesExistingType {
 		return BookingPolicyDecision{}, &SchedulingPolicyError{Message: fmt.Sprintf("Invalid appointment type ID: %d. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169", typeID)}
 	}

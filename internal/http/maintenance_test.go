@@ -13,6 +13,8 @@ import (
 )
 
 func TestMaintenanceRouteRequiresDedicatedSchedulerIdentity(t *testing.T) {
+	offices := domain.NewOfficeCatalog("")
+
 	const (
 		agentSecret    = "agent-api-secret"
 		schedulerToken = "scheduler-id-token"
@@ -35,7 +37,7 @@ func TestMaintenanceRouteRequiresDedicatedSchedulerIdentity(t *testing.T) {
 		}, nil
 	})
 	authorizer := newMaintenanceAuthorizer(audience, schedulerEmail, validator)
-	router := NewRouter(NewHandlers(session, nil, nil), agentSecret, authorizer)
+	router := NewRouter(NewHandlers(offices, session, nil, nil), agentSecret, authorizer)
 
 	tests := []struct {
 		name   string
@@ -76,6 +78,8 @@ func TestMaintenanceRouteRequiresDedicatedSchedulerIdentity(t *testing.T) {
 }
 
 func TestMaintenanceRouteReturnsSafeFailure(t *testing.T) {
+	offices := domain.NewOfficeCatalog("")
+
 	session := &recordingMaintenanceSession{
 		maintainErr: errors.New("login failed with token=provider-secret at https://provider.example.test"),
 	}
@@ -90,7 +94,7 @@ func TestMaintenanceRouteReturnsSafeFailure(t *testing.T) {
 			}, nil
 		}),
 	)
-	router := NewRouter(NewHandlers(session, nil, nil), "agent-api-secret", authorizer)
+	router := NewRouter(NewHandlers(offices, session, nil, nil), "agent-api-secret", authorizer)
 	req := httptest.NewRequest(http.MethodPost, "/ops/session/maintenance", nil)
 	req.Header.Set("Authorization", "Bearer scheduler-id-token")
 	w := httptest.NewRecorder()
