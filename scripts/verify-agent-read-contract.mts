@@ -14,7 +14,6 @@ assert.match(
   base,
   /^https:\/\/abita-middleware-sandbox-[a-z0-9.-]+\.run\.app$/,
 );
-const wire: any[] = [];
 const client = new HttpOwnedMiddleware({
   authToken: process.env.SANDBOX_AMD_API_TOKEN,
   middlewareBaseUrl: base,
@@ -37,7 +36,6 @@ const client = new HttpOwnedMiddleware({
         outcome: data.outcome,
         slots: Array.isArray(data.slots) ? data.slots.length : undefined,
       };
-      wire.push(result);
       console.log(JSON.stringify({ event: "http", ...result }));
       return response;
     } catch (error) {
@@ -46,7 +44,6 @@ const client = new HttpOwnedMiddleware({
         durationMs: Date.now() - start,
         error: (error as Error).name,
       };
-      wire.push(result);
       console.log(JSON.stringify({ event: "http", ...result }));
       throw error;
     }
@@ -79,8 +76,7 @@ for (const fixture of [
       appointmentsStatus: result.appointmentsStatus,
     }),
   );
-  if (result.status === "verified")
-    candidates.push({ ...result, testIdentity: fixture });
+  if (result.status === "verified") candidates.push(result);
 }
 const fixture = candidates[0];
 assert.ok(fixture, "An existing synthetic patient fixture is required");
