@@ -71,6 +71,16 @@ class StagingDeploymentTest(unittest.TestCase):
 
     @patch.object(staging, "cloud", return_value="test-token")
     @patch.object(staging, "request")
+    def test_smoke_accepts_additive_patient_response_fields(self, request, cloud):
+        request.side_effect = [(200, b""), (200, b""), (401, b""), (200, json.dumps({
+            "status": "error", "message": "Invalid JSON body",
+            "appointments": None, "matches": None,
+        }).encode())]
+        self.assertEqual(staging.smoke(service())["authenticated_request_validation"],
+                         "passed_without_provider_call")
+
+    @patch.object(staging, "cloud", return_value="test-token")
+    @patch.object(staging, "request")
     def test_http_200_provider_failure_is_not_authentication_proof(self, request, cloud):
         request.side_effect = [(200, b""), (200, b""), (401, b""),
                                (200, b'{"status":"error","message":"provider failure"}')]

@@ -415,3 +415,23 @@ policy is added to middleware.
 DEV read-only probes returned complete single-page sets for CODEX (3), COD (3),
 Jane (4), John (2), and a nonexistent-first-name control (0). This is not a
 production retrieval proof. Release this contract before its paired agent change.
+
+## Agent-to-sandbox verification
+
+After deploying a reviewed commit to an idle sandbox, verify the real agent HTTP
+client and response parser with their normal 10-second timeout:
+
+```sh
+export ABITA_AGENT_REPO=/path/to/abita_agent
+# Supply SANDBOX_AMD_API_URL and SANDBOX_AMD_API_TOKEN securely.
+cd "$ABITA_AGENT_REPO"
+node --env-file=.env.local --import tsx /path/to/amd_middleware/scripts/verify-agent-read-contract.mts
+```
+
+The check uses fictional Avery Codextest and Morgan Cedartest fixtures, tests a
+negative patient lookup, and requires usable signed availability. It reports
+the positive fixture result without printing patient identifiers or tokens.
+At least one synthetic fixture must already exist. It sends only patient-read and availability requests. Output includes
+individual timeout attempts even if the client's normal retry recovers.
+This exercises real HTTP, middleware, provider reads, and agent response parsing;
+it does not run an AI conversation, audio/SIP, or provider writes.
