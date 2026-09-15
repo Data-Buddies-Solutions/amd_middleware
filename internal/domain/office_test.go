@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"reflect"
 	"testing"
 	"time"
 )
@@ -595,10 +596,10 @@ func TestOfficeCatalogEnvironment(t *testing.T) {
 		t.Error("dev registry should NOT have prod column 1513")
 	}
 
-	// Prod phone should not exist in dev registry
-	_, ok = offices.LookupOffice("+17275919997")
-	if ok {
-		t.Error("dev registry should NOT have prod phone +17275919997")
+	// The same office phone selects sandbox IDs in dev and production IDs in prod.
+	shared, ok := offices.LookupOffice("+17275919997")
+	if !ok || !reflect.DeepEqual(shared, office) {
+		t.Fatal("Spring Hill phone should resolve to the same sandbox office as the demo phone")
 	}
 
 	// DefaultOffice works in dev

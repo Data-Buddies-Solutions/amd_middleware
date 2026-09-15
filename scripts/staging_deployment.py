@@ -120,7 +120,8 @@ def main():
     sha = os.environ.get("GITHUB_SHA", "")
     image = os.environ.get("STAGING_IMAGE", "")
     receipt = {
-        "source_sha": sha, "image": image, "service": SERVICE,
+        "source_sha": sha, "source_ref": os.environ.get("GITHUB_REF", ""),
+        "image": image, "service": SERVICE,
         "run_url": os.environ.get("GITHUB_SERVER_URL", "https://github.com") + "/" +
         os.environ.get("GITHUB_REPOSITORY", "Data-Buddies-Solutions/amd_middleware") +
         "/actions/runs/" + os.environ.get("GITHUB_RUN_ID", ""),

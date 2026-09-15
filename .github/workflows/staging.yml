@@ -11,6 +11,7 @@ on:
   # Works before this workflow reaches main. Creating this tag acknowledges
   # the same idle-session requirement as the manual input above.
   push:
+    branches: [dev]
     tags: [staging-*]
 
 permissions:

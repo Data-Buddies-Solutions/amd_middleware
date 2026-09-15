@@ -81,17 +81,17 @@ Secret Manager, logs, and active requests may still incur charges.
 
 ## Supported sandbox office
 
-Use the middleware office selector `spring_hill` for sandbox calls. It resolves
-to the existing dev Spring Hill facility/provider/column mappings. Confirm these
+Use the same Spring Hill office phone selector as production, `+17275919997`.
+With `AMD_ENV=dev`, it resolves to sandbox Spring Hill facility/provider/column
+mappings. The demo phone `+14843989071` and `spring_hill` selector remain accepted. Confirm these
 against sandbox inventory before declaring the integration ready; checked-in IDs
 are not proof that inventory still exists.
 
 Only the existing medical appointment translations are configured. Dev-mode
 Crystal River production-ID placeholders and unconfigured vision translations
 are rejected. Do not invent mappings or advertise unsupported specialties as
-working. Production mappings are unchanged. Demo/staging agent routing must
-explicitly override the middleware office selector and must fail closed if its
-sandbox URL/token are missing; it must never fall back to production.
+working. Production mappings are unchanged. Demo/staging agents keep the Spring Hill phone selector and must fail closed if
+their sandbox URL/token are missing; they must never fall back to production.
 
 ## Read-only verification gate
 
@@ -142,21 +142,22 @@ before requesting a deployment. GitHub serializes these deployments, but cannot
 detect an independently running developer process. Inspect recent sandbox
 request logs before proceeding. Avoid simultaneous manual Cloud Run changes.
 
-The on-demand entry point while this PR is unmerged is a unique `staging-*` tag:
+### Track sandbox code on `dev`
 
-```bash
-# Replace REVIEWED_FULL_SHA with the reviewed commit. Tag creation confirms idle use.
-git tag staging-YYYYMMDD-N REVIEWED_FULL_SHA
-git push origin refs/tags/staging-YYYYMMDD-N
-```
+The `dev` branch is the sandbox deployment branch. Every push runs **Deploy
+staging**, tests that exact commit, and deploys it to `abita-middleware-sandbox`.
+Start sandbox changes from `dev` so existing sandbox work is preserved. Push only
+when sandbox demos/tests are idle. `main` remains the production branch.
 
-Creating the tag deploys that exact commit; it does not merge into `main`.
-Never move or reuse a staging tag. After the workflow reaches the default branch,
-GitHub also exposes **Actions → Deploy staging → Run workflow**, with an explicit
-idle-session acknowledgement. Select `main`, `dev`, `codex/sandbox-middleware`,
-or a `staging-*` tag. The selected ref is the source; there is no separate input
-that can silently change the SHA associated with the GitHub deployment.
-See [GitHub manual workflow requirements](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow).
+A branch head is desired code, not proof of a successful deployment. In GitHub,
+open **Actions → Deploy staging** or **Environments → staging** and inspect the
+latest successful deployment. Its receipt records `source_ref`, `source_sha`,
+image digest, and Cloud Run revision. If a deployment fails, the branch can be
+ahead of the running service; use the successful receipt to identify deployed code.
+
+Manual workflow dispatch and unique `staging-*` tags remain available. A manual
+or tag deployment may differ from `dev`; its receipt is authoritative until the
+next successful `dev` deployment. Never move or reuse a staging tag.
 
 Each run appears in the GitHub **staging** environment and uploads a sanitized
 `staging-deployment.json` receipt, also included in the run summary. It records
