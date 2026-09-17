@@ -4,6 +4,18 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [4.1.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v4.0.0...v4.1.0) (2026-09-17)
+
+
+### Features
+
+* **scheduling:** own appointment metadata and reschedule writes ([#190](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/190)) ([afb7fd1](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/afb7fd117b0541225c90c3059e0c04a8a4e14f21))
+
+
+### Bug Fixes
+
+* **insurance:** centralize plan decisions and enforce scheduling requirements ([#191](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/191)) ([30eb724](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/30eb72405274d7cc5444930ba6e8bb178f4fd025))
+
 ## [4.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v3.1.2...v4.0.0) (2026-09-17)
 
 
