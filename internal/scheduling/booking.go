@@ -291,8 +291,10 @@ func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingCont
 	if !insurance.CanSchedule {
 		return 0, schedulingError(insurance.Answer)
 	}
-	if err := validateHospitalFollowUp(booking.command.VisitReason+" "+booking.command.AppointmentReason, booking.command.HospitalName, booking.command.HospitalDate); err != nil {
-		return 0, err
+	if coverage == domain.AppointmentVisitMedical {
+		if err := validateHospitalFollowUp(booking.command.VisitReason+" "+booking.command.AppointmentReason, booking.command.HospitalName, booking.command.HospitalDate); err != nil {
+			return 0, err
+		}
 	}
 	// Enforce the current backend insurance rule even for a previously signed slot
 	// or a raw-booking consumer. The caller cannot relax credentialing.
