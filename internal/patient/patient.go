@@ -79,6 +79,7 @@ type Appointment struct {
 	Time              string
 	Provider          string
 	Type              string
+	VisitType         string `json:"visitType,omitempty"`
 	AppointmentTypeID int
 	Facility          string
 	OfficeID          string
@@ -995,6 +996,7 @@ func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate 
 			Provider:          appointment.Provider,
 			Type:              appointment.Type,
 			AppointmentTypeID: appointment.AppointmentTypeID,
+			VisitType:         domain.AppointmentVisitType(appointment.AppointmentTypeID),
 			Facility:          appointment.Facility,
 			OfficeID:          appointment.OfficeID,
 			Office:            appointment.Office,

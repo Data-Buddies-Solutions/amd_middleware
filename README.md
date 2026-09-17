@@ -247,6 +247,7 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/scheduler/availability` | Find policy-valid slots and sign them |
 | `POST /api/appointment/book` | Revalidate and book a signed slot |
 | `POST /api/appointment/cancel` | Verify ownership and cancel an appointment |
+| `POST /api/appointment/reschedule` | Book a replacement, then cancel the confirmed original |
 
 Each appointment returned by patient resolution may include a private,
 short-lived `cancellationToken`. A cancellation request may send that token
@@ -399,3 +400,10 @@ policy is added to middleware.
 DEV read-only probes returned complete single-page sets for CODEX (3), COD (3),
 Jane (4), John (2), and a nonexistent-first-name control (0). This is not a
 production retrieval proof. Release this contract before its paired agent change.
+
+### Rescheduling
+
+Rescheduling uses the existing booking and cancellation paths in one middleware
+command. It needs no additional infrastructure or deployment settings. The
+caller sends it once and retains the returned receipt. See the
+[scheduling contract](docs/scheduling-ownership.md) for outcomes and verification.

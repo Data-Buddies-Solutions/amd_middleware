@@ -286,3 +286,7 @@ func TestListSlotsRejectsOldPreferenceContract(t *testing.T) {
 		t.Fatalf("old contract accepted: %s", response.Body.String())
 	}
 }
+
+func (s *recordingScheduling) Reschedule(context.Context, schedulingmodule.BookCommand) (schedulingmodule.RescheduleReceipt, error) {
+	return schedulingmodule.RescheduleReceipt{}, nil
+}

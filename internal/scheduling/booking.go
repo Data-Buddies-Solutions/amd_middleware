@@ -49,6 +49,10 @@ type BookCommand struct {
 
 // BookReceipt is the stable booking result returned to HTTP callers.
 type BookReceipt struct {
+	OfficeID            string   `json:"officeId,omitempty"`
+	Office              string   `json:"office,omitempty"`
+	VisitType           string   `json:"visitType,omitempty"`
+	CancellationToken   string   `json:"cancellationToken,omitempty"`
 	Status              string   `json:"status"`
 	Outcome             string   `json:"outcome,omitempty"`
 	AppointmentID       int      `json:"appointmentId,omitempty"`
@@ -546,6 +550,9 @@ func buildBookReceipt(command BookCommand, office *domain.OfficeConfig, appointm
 	appointmentTypeName, _ := office.AppointmentTypeName(command.AppointmentTypeID)
 	return BookReceipt{
 		Status:              "booked",
+		OfficeID:            office.ID,
+		Office:              office.DisplayName,
+		VisitType:           domain.AppointmentVisitType(command.AppointmentTypeID),
 		AppointmentID:       appointmentID,
 		PatientID:           command.PatientID,
 		PatientName:         normalizePatientName(command.PatientName),
@@ -561,18 +568,13 @@ func buildBookReceipt(command BookCommand, office *domain.OfficeConfig, appointm
 
 func (s *service) buildBookReceipt(prepared preparedBooking, appointmentID int) BookReceipt {
 	receipt := buildBookReceipt(prepared.command, prepared.office, appointmentID)
-	token, err := s.appointmentTokens.IssueRescheduleToken(
-		prepared.command.PatientID,
-		domain.PatientAppointment{
-			ID:                appointmentID,
-			Start:             prepared.start,
-			AppointmentTypeID: prepared.command.AppointmentTypeID,
-			OfficeID:          prepared.office.ID,
-		},
-	)
-	if err == nil {
-		receipt.RescheduleToken = token
+	appointment := domain.PatientAppointment{
+		ID: appointmentID, Start: prepared.start,
+		AppointmentTypeID: prepared.command.AppointmentTypeID, OfficeID: prepared.office.ID,
 	}
+	receipt.RescheduleToken, _ = s.appointmentTokens.IssueRescheduleToken(prepared.command.PatientID, appointment)
+	receipt.CancellationToken, _ = s.appointmentTokens.IssueCancellationToken(prepared.command.PatientID, appointment)
+
 	return receipt
 }
 

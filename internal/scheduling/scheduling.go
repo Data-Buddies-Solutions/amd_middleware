@@ -28,6 +28,7 @@ type SearchCommand struct {
 	PatientID       string                      `json:"patientId,omitempty"`
 	InsurancePlan   string                      `json:"insurancePlan,omitempty"`
 	CoverageType    string                      `json:"coverageType,omitempty"`
+	VisitType       string                      `json:"visitType,omitempty"`
 	RequestedDate   string                      `json:"requestedDate,omitempty"`
 	PreferredTime   *AvailabilityTimePreference `json:"preferredTime,omitempty"`
 	Provider        string                      `json:"provider"`
@@ -56,6 +57,7 @@ type Scheduling interface {
 	List(ctx context.Context, command ListCommand) (domain.AvailabilityResponse, error)
 	Book(ctx context.Context, command BookCommand) (BookReceipt, error)
 	Cancel(ctx context.Context, command CancelCommand) (CancelReceipt, error)
+	Reschedule(ctx context.Context, command BookCommand) (RescheduleReceipt, error)
 }
 
 // Category is a stable, provider-independent scheduling outcome.
@@ -172,6 +174,7 @@ type ListCommand struct {
 	PatientID       string `json:"patientId,omitempty"`
 	InsurancePlan   string `json:"insurancePlan,omitempty"`
 	CoverageType    string `json:"coverageType,omitempty"`
+	VisitType       string `json:"visitType,omitempty"`
 	StartDate       string `json:"startDate,omitempty"`
 	RangeDays       int    `json:"rangeDays,omitempty"`
 	Office          string `json:"office"`
@@ -188,7 +191,7 @@ func (s *service) List(ctx context.Context, command ListCommand) (domain.Availab
 	if days != 14 {
 		return domain.AvailabilityResponse{}, schedulingError("rangeDays must be 14; use startDate to search a different window")
 	}
-	return s.search(ctx, SearchCommand{Office: command.Office, DOB: command.DOB,
+	return s.search(ctx, SearchCommand{VisitType: command.VisitType, Office: command.Office, DOB: command.DOB,
 		PatientID: command.PatientID, InsurancePlan: command.InsurancePlan, CoverageType: command.CoverageType,
 		RequestedDate: command.StartDate, Routing: command.Routing, PreauthRequired: command.PreauthRequired}, days)
 }
@@ -232,12 +235,33 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 	if err != nil {
 		return empty, schedulingError(err.Error())
 	}
+	policy := domain.NewSchedulingPolicy(office)
+	if command.VisitType != "" && command.VisitType != domain.AppointmentVisitMedical && command.VisitType != domain.AppointmentVisitRoutineVision {
+		return empty, schedulingError("visitType must be medical or routine_vision")
+	}
+	unsupportedVisit := func() domain.AvailabilityResponse {
+		return domain.AvailabilityResponse{
+			Status: domain.AvailabilityStatusSuccess, Outcome: domain.AvailabilityOutcomeNoEligibleProviders,
+			RequestedDate: originalRequestedDate, NextAction: domain.AvailabilityNextActionAskDifferentPreferences,
+			Slots: []domain.AvailabilitySlotOption{}, Message: "This office or routing does not support the requested visit type.",
+		}
+	}
+	if (command.VisitType == domain.AppointmentVisitMedical && !policy.SupportsMedical()) ||
+		(command.VisitType == domain.AppointmentVisitRoutineVision && !policy.SupportsRouting(domain.RoutingOpticalOnly)) {
+		return unsupportedVisit(), nil
+	}
 	// Legacy inventory consumers can omit patientId. Booking always rechecks
 	// chart insurance; patient-scoped inventory additionally enforces it here.
 	if command.PatientID != "" {
 		coverage := command.CoverageType
 		if coverage == "" {
+			coverage = command.VisitType
+		}
+		if coverage == "" {
 			coverage = "medical"
+		}
+		if command.VisitType != "" && coverage != command.VisitType {
+			return empty, schedulingError("coverageType must match visitType")
 		}
 		insurance, err := s.insuranceForSearch(ctx, command.PatientID, command.InsurancePlan, coverage, office, command.DOB)
 		if err != nil {
@@ -245,8 +269,11 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 		}
 		command.Routing = string(insurance.Routing)
 	}
-	policy := domain.NewSchedulingPolicy(office)
 	routing := policy.SchedulingRouting(domain.ParseRoutingRule(command.Routing), command.DOB)
+	if (command.VisitType == domain.AppointmentVisitMedical && routing == domain.RoutingOpticalOnly) ||
+		(command.VisitType == domain.AppointmentVisitRoutineVision && routing != domain.RoutingOpticalOnly) {
+		return unsupportedVisit(), nil
+	}
 
 	setup, err := s.schedulerSetup(ctx, now.UTC())
 	if err != nil {

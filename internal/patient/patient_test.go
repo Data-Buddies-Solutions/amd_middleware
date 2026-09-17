@@ -91,6 +91,7 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 			Provider:          "Dr. Austin Bach",
 			Type:              "Established Adult Medical (Follow Up)",
 			AppointmentTypeID: 1007,
+			VisitType:         "medical",
 			Facility:          "Abita Eye Group Spring Hill",
 			OfficeID:          "spring_hill",
 			Office:            "Spring Hill",
