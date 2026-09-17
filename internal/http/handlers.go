@@ -36,8 +36,7 @@ type PatientResolveRequest struct {
 
 // PatientResolveResponse is returned by /api/patient/resolve.
 type PatientResolveResponse struct {
-	Source              string                     `json:"source,omitempty"`
-	Complete            *bool                      `json:"complete,omitempty"`
+	Reason              string                     `json:"reason,omitempty"`
 	Status              string                     `json:"status"`
 	PatientID           string                     `json:"patientId,omitempty"`
 	Name                string                     `json:"name,omitempty"`
@@ -330,8 +329,7 @@ func patientResolveResponse(result patientmodule.ResolveResult) PatientResolveRe
 		}
 	}
 	return PatientResolveResponse{
-		Source:              result.Source,
-		Complete:            result.Complete,
+		Reason:              result.Reason,
 		Status:              string(result.Status),
 		PatientID:           result.PatientID,
 		Name:                result.Name,

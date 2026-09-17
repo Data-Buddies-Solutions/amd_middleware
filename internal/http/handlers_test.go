@@ -1397,6 +1397,7 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true, Patients: []domain.Patient{{ID: "1", FirstName: "Jane", LastName: "Meyer", DOB: "01/01/1980"}}}
+	amd.Demographics["1"] = domain.PatientDemographics{FullName: "MEYER,JANE", DOB: "01/01/1980"}
 	handler := NewHandlers(nil, patientmodule.New(amd), nil)
 	for _, tc := range []struct {
 		body  string
@@ -1413,18 +1414,18 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 			t.Fatal(err)
 		}
 		if tc.valid {
-			if body["status"] != "candidates" || body["source"] != "first_name" || body["complete"] != true || body["patientId"] != nil {
-				t.Fatal("invalid candidate-only envelope")
+			if body["status"] != "verified" || body["patientId"] != "1" || body["dob"] != "01/01/1980" {
+				t.Fatal("invalid resolved patient envelope")
 			}
-			if len(body["matches"].([]any)) != 1 {
-				t.Fatal("missing candidate")
+			if len(body["matches"].([]any)) != 0 {
+				t.Fatal("unexpected candidate list")
 			}
 		} else if body["status"] != "error" {
 			t.Fatal("accepted incomplete/invalid identity")
 		}
 	}
-	if amd.SearchPatientCalls != 1 || amd.DemographicCalls != 0 || amd.AppointmentReadCalls != 0 {
-		t.Fatal("HTTP candidate search hydrated a chart")
+	if amd.SearchPatientCalls != 1 || amd.DemographicCalls != 1 || amd.AppointmentReadCalls != 1 {
+		t.Fatal("HTTP search must hydrate exactly one resolved chart")
 	}
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true}
 	writer := httptest.NewRecorder()
@@ -1433,7 +1434,26 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 	if err := json.Unmarshal(writer.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	if matches, ok := body["matches"].([]any); !ok || len(matches) != 0 {
+	if matches, ok := body["matches"].([]any); body["status"] != "not_found" || !ok || len(matches) != 0 {
 		t.Fatal("empty candidate result must retain an array")
+	}
+}
+
+func TestFirstNameDOBUnresolvedHTTPContract(t *testing.T) {
+	domain.InitRegistry("")
+	amd := advancedmdtest.NewAdapter()
+	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: false}
+	handler := NewHandlers(nil, patientmodule.New(amd), nil)
+	writer := httptest.NewRecorder()
+	handler.HandlePatientResolve(writer, httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"firstName":"Jane","dob":"01/01/1980","office":"spring_hill"}`)))
+	var body PatientResolveResponse
+	if err := json.Unmarshal(writer.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if writer.Code != http.StatusOK || body.Status != "unresolved" || body.Reason != "incomplete_search" || body.PatientID != "" || len(body.Matches) != 0 {
+		t.Fatalf("unexpected resolution status=%s reason=%s", body.Status, body.Reason)
+	}
+	if amd.DemographicCalls != 0 || amd.AppointmentReadCalls != 0 {
+		t.Fatal("incomplete search must not hydrate a chart")
 	}
 }

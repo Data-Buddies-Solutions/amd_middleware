@@ -862,7 +862,7 @@ func TestLookupPatientCandidatesCompleteness(t *testing.T) {
 		{"count mismatch", `"@itemcount":"2","@page":"1","@pagecount":"1"`, row, false, true},
 		{"contradictory empty", `"@itemcount":"0","@page":"1","@pagecount":"0"`, row, false, true},
 		{"duplicate ID", `"@itemcount":"2","@page":"1","@pagecount":"1"`, `[` + row + `,` + row + `]`, false, true},
-		{"missing DOB", `"@itemcount":"1","@page":"1","@pagecount":"1"`, `{"@id":"pat1","@name":"MEYER,JANE"}`, false, false},
+		{"missing DOB", `"@itemcount":"1","@page":"1","@pagecount":"1"`, `{"@id":"pat1","@name":"MEYER,JANE"}`, true, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			calls := 0

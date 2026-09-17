@@ -163,13 +163,12 @@ func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *domain.
 
 // LookupPatientCandidates returns only the provider's name-prefix candidates.
 // A candidate result is complete only after explicit pagination/count metadata
-// proves every page was read and all records have valid identity fields.
+// proves every page was read. The Patient module owns identity validation/repair.
 func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *domain.TokenData, firstName string) (read domain.PatientCandidateRead, resultErr error) {
 	read, err := c.doPatientLookup(ctx, tokenData, AMDLookupRequest{PPMDMsg: AMDLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName}})
 	if err != nil {
 		return read, err
 	}
-	seen := make(map[string]bool)
 	for index, patient := range read.Patients {
 		parts := strings.SplitN(patient.FullName, ",", 2)
 		if len(parts) == 2 {
@@ -181,10 +180,6 @@ func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenDat
 			read.Patients[index].LastName = patient.LastName
 			read.Patients[index].FirstName = patient.FirstName
 		}
-		if patient.ID == "" || patient.FirstName == "" || patient.LastName == "" || patient.DOB == "" || domain.ValidateOptionalDOB(patient.DOB) != nil || seen[patient.ID] {
-			read.Complete = false
-		}
-		seen[patient.ID] = true
 	}
 	return read, nil
 }
