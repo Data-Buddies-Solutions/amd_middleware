@@ -9,6 +9,7 @@ import (
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/eligibility"
 	patientmodule "advancedmd-token-management/internal/patient"
 	"advancedmd-token-management/internal/safeerrors"
 	schedulingmodule "advancedmd-token-management/internal/scheduling"
@@ -70,9 +71,10 @@ type PatientCandidateResponse struct {
 
 // Handlers holds the dependencies for HTTP handlers.
 type Handlers struct {
-	session    session.Session
-	patient    patientmodule.Patient
-	scheduling schedulingmodule.Scheduling
+	eligibility *eligibility.Service
+	session     session.Session
+	patient     patientmodule.Patient
+	scheduling  schedulingmodule.Scheduling
 }
 
 // NewHandlers creates a new Handlers instance.
