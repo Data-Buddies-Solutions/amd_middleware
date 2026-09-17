@@ -10,9 +10,6 @@ import (
 	"advancedmd-token-management/internal/safeerrors"
 )
 
-// Limit repair work; a broad search must not exhaust the caller's deadline.
-const maxIdentityRepairs = 5
-
 func exactFirstName(name string) string {
 	return strings.Map(func(r rune) rune {
 		if r >= 'a' && r <= 'z' {
@@ -40,9 +37,19 @@ func usableDOB(dob string) bool {
 func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveCommand, office *domain.OfficeConfig) (ResolveResult, error) {
 	started := time.Now()
 	read, err := p.advancedMD.ReadPatientCandidates(ctx, domain.StripDiacritics(command.FirstName))
-	observation := ResolutionObservation{Recorded: true, PatientSearchReads: 1, PatientSearchDurationMS: time.Since(started).Milliseconds(), OfficeGroupSize: len(domain.AppointmentLookupOfficeIDs(office)), CandidateCountBucket: candidateCountBucket(len(read.Patients)), AppointmentOutcome: "not_requested"}
+	observation := ResolutionObservation{
+		Recorded: true, PatientSearchReads: 1,
+		PatientSearchDurationMS: time.Since(started).Milliseconds(),
+		OfficeGroupSize:         len(domain.AppointmentLookupOfficeIDs(office)),
+		CandidateCountBucket:    candidateCountBucket(len(read.Patients)),
+		AppointmentOutcome:      "not_requested",
+	}
 	unresolved := func(reason string, failure safeerrors.Category) (ResolveResult, error) {
-		return ResolveResult{Status: StatusUnresolved, Reason: reason, ProviderFailure: failure, Message: "Patient identity could not be verified. Ask office staff for help; this does not establish a new patient.", Appointments: []Appointment{}, Observation: observation}, nil
+		return ResolveResult{
+			Status: StatusUnresolved, Reason: reason, ProviderFailure: failure,
+			Message:      "Patient identity could not be verified. Ask office staff for help.",
+			Appointments: []Appointment{}, Observation: observation,
+		}, nil
 	}
 	if err != nil {
 		return unresolved("search_unavailable", advancedmd.CategoryOf(err))
@@ -54,94 +61,50 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 	if name == "" {
 		return unresolved("invalid_identity", safeerrors.CategoryRejected)
 	}
-	type match struct {
-		row          domain.Patient
-		demographics *domain.PatientDemographics
-	}
-	matches := []match{}
+	matches := []domain.Patient{}
 	seen := map[string]bool{}
-	repairs := 0
-	unknown := false
-	var repairFailure safeerrors.Category = safeerrors.CategoryInvalidResponse
-	load := func(id string) (domain.PatientDemographics, error) {
-		started := time.Now()
-		d, err := p.advancedMD.GetPatientDemographics(ctx, id)
-		observation.DemographicReads++
-		observation.DemographicDurationMS += time.Since(started).Milliseconds()
-		return d, err
-	}
 	for _, row := range read.Patients {
-		// IDs and pagination describe the candidate set itself, not optional identity.
+		// Missing or invalid DOB is not a match, regardless of the first name.
+		if exactFirstName(candidateName(row)) != name || !usableDOB(row.DOB) || domain.NormalizeDOB(row.DOB) != dob {
+			continue
+		}
 		if row.ID == "" || seen[row.ID] {
 			return unresolved("invalid_candidate_set", safeerrors.CategoryInvalidResponse)
 		}
 		seen[row.ID] = true
-		first := exactFirstName(candidateName(row))
-		if first != "" && first != name {
-			continue
-		}
-		if usableDOB(row.DOB) && domain.NormalizeDOB(row.DOB) != dob {
-			continue
-		}
-		var loaded *domain.PatientDemographics
-		if first == "" || !usableDOB(row.DOB) || strings.TrimSpace(row.FullName) == "" || patientLastName(row) == "" {
-			if repairs == maxIdentityRepairs {
-				unknown = true
-				continue
-			}
-			repairs++
-			d, err := load(row.ID)
-			if err != nil {
-				unknown = true
-				repairFailure = advancedmd.CategoryOf(err)
-				continue
-			}
-			row.FullName, row.FirstName, row.LastName, row.DOB = d.FullName, "", "", d.DOB
-			first = exactFirstName(candidateName(row))
-			if first != "" && first != name {
-				continue
-			}
-			if usableDOB(row.DOB) && domain.NormalizeDOB(row.DOB) != dob {
-				continue
-			}
-			if first == "" || !usableDOB(row.DOB) || patientLastName(row) == "" {
-				unknown = true
-				continue
-			}
-			loaded = &d
-		}
-		matches = append(matches, match{row, loaded})
+		matches = append(matches, row)
 	}
 	observation.CandidateCountBucket = candidateCountBucket(len(matches))
-	if len(matches) > 1 {
-		candidates := make([]Candidate, 0, len(matches))
-		for _, m := range matches {
-			candidates = append(candidates, Candidate{Status: StatusCandidate, PatientID: m.row.ID, FirstName: candidateName(m.row), LastName: patientLastName(m.row), DOB: domain.NormalizeDOB(m.row.DOB)})
-		}
-		return ResolveResult{Status: StatusMultipleMatches, Matches: candidates, Appointments: []Appointment{}, Message: "More than one patient matches this first name and date of birth. Ask office staff to resolve the identity.", Observation: observation}, nil
-	}
-	if unknown {
-		return unresolved("incomplete_identity", repairFailure)
-	}
 	if len(matches) == 0 {
 		return ResolveResult{Status: StatusNotFound, Appointments: []Appointment{}, Message: "No patient matches this first name and date of birth.", Observation: observation}, nil
 	}
-	selected := matches[0]
-	if selected.demographics == nil {
-		d, err := load(selected.row.ID)
-		if err != nil {
-			return unresolved("demographics_unavailable", advancedmd.CategoryOf(err))
+	if len(matches) > 1 {
+		candidates := make([]Candidate, 0, len(matches))
+		for _, row := range matches {
+			candidates = append(candidates, Candidate{Status: StatusCandidate, PatientID: row.ID, FirstName: candidateName(row), LastName: patientLastName(row), DOB: domain.NormalizeDOB(row.DOB)})
 		}
-		selected.demographics = &d
+		return ResolveResult{Status: StatusMultipleMatches, Matches: candidates, Appointments: []Appointment{}, Message: "More than one patient matches this first name and date of birth. Ask office staff to resolve the identity.", Observation: observation}, nil
 	}
-	// Verify the authoritative identity before loading appointments or returning a chart.
-	d := selected.demographics
-	authoritative := domain.Patient{FullName: d.FullName, DOB: d.DOB}
-	if exactFirstName(candidateName(authoritative)) != name || !usableDOB(d.DOB) || domain.NormalizeDOB(d.DOB) != dob || patientLastName(authoritative) == "" {
+	selected := matches[0]
+	started = time.Now()
+	demographics, err := p.advancedMD.GetPatientDemographics(ctx, selected.ID)
+	observation.DemographicReads = 1
+	observation.DemographicDurationMS = time.Since(started).Milliseconds()
+	if err != nil {
+		return unresolved("demographics_unavailable", advancedmd.CategoryOf(err))
+	}
+	// Keep the matched lookup identity when optional demographic fields are absent;
+	// an authoritative conflicting identity cannot replace it silently.
+	if demographics.FullName != "" {
+		if exactFirstName(candidateName(domain.Patient{FullName: demographics.FullName})) != name {
+			return unresolved("identity_not_verified", safeerrors.CategoryInvalidResponse)
+		}
+		selected.FullName = demographics.FullName
+	}
+	if demographics.DOB != "" && (!usableDOB(demographics.DOB) || domain.NormalizeDOB(demographics.DOB) != dob) {
 		return unresolved("identity_not_verified", safeerrors.CategoryInvalidResponse)
 	}
-	selected.row.FullName, selected.row.DOB = d.FullName, d.DOB
-	result, err := p.resolvePatientWithDemographics(ctx, selected.row, "", office, d)
+	result, err := p.resolvePatientWithDemographics(ctx, selected, "", office, &demographics)
 	result.Observation.PatientSearchReads = observation.PatientSearchReads
 	result.Observation.PatientSearchDurationMS = observation.PatientSearchDurationMS
 	result.Observation.DemographicReads += observation.DemographicReads

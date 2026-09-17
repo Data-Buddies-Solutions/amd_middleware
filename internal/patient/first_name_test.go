@@ -17,26 +17,32 @@ func TestFirstNameDOBResolution(t *testing.T) {
 	otherName := missing
 	otherName.FirstName = "Janet"
 	otherName.FullName = "OTHER,JANET"
+	manyMissing := []domain.Patient{valid}
+	for i := 0; i < 20; i++ {
+		manyMissing = append(manyMissing, domain.Patient{ID: fmt.Sprint(i + 2), FirstName: "Jane", FullName: "OTHER,JANE"})
+	}
 	otherDOB := missing
 	otherDOB.FirstName = ""
 	otherDOB.FullName = ""
 	otherDOB.DOB = "01/01/1990"
 	for _, tc := range []struct {
-		name       string
-		rows       []domain.Patient
-		incomplete bool
-		repair     domain.PatientDemographics
-		want       patient.Status
-		reason     string
-		reads      int
+		name                string
+		rows                []domain.Patient
+		incomplete          bool
+		ignoredDemographics domain.PatientDemographics
+		want                patient.Status
+		reason              string
+		reads               int
 	}{
+		{name: "two exact matches remain ambiguous", rows: []domain.Patient{valid, {ID: "2", FirstName: "Jane", LastName: "Other", FullName: "OTHER,JANE", DOB: "01/01/1980"}}, want: patient.StatusMultipleMatches},
+		{name: "exact match ignores many missing DOB records", rows: manyMissing, want: patient.StatusVerified, reads: 1},
 		{name: "unique", rows: []domain.Patient{valid}, want: patient.StatusVerified, reads: 1},
 		{name: "missing DOB on nonmatching prefix", rows: []domain.Patient{valid, otherName}, want: patient.StatusVerified, reads: 1},
 		{name: "missing name with different DOB", rows: []domain.Patient{valid, otherDOB}, want: patient.StatusVerified, reads: 1},
-		{name: "repair rules out neighbor", rows: []domain.Patient{valid, missing}, repair: domain.PatientDemographics{FullName: "OTHER,JANE", DOB: "01/01/1990"}, want: patient.StatusVerified, reads: 2},
-		{name: "repair finds second match", rows: []domain.Patient{valid, missing}, repair: domain.PatientDemographics{FullName: "OTHER,JANE", DOB: "01/01/1980"}, want: patient.StatusMultipleMatches, reads: 1},
-		{name: "unrepairable neighbor", rows: []domain.Patient{valid, missing}, want: patient.StatusUnresolved, reason: "incomplete_identity", reads: 1},
-		{name: "unrepairable alone is not absence", rows: []domain.Patient{missing}, want: patient.StatusUnresolved, reason: "incomplete_identity", reads: 1},
+		{name: "missing DOB neighbor is discarded", rows: []domain.Patient{valid, missing}, ignoredDemographics: domain.PatientDemographics{FullName: "OTHER,JANE", DOB: "01/01/1990"}, want: patient.StatusVerified, reads: 1},
+		{name: "discarded neighbor is not read", rows: []domain.Patient{valid, missing}, ignoredDemographics: domain.PatientDemographics{FullName: "OTHER,JANE", DOB: "01/01/1980"}, want: patient.StatusVerified, reads: 1},
+		{name: "missing DOB does not block exact match", rows: []domain.Patient{valid, missing}, want: patient.StatusVerified, reads: 1},
+		{name: "only missing DOB records means no match", rows: []domain.Patient{missing}, want: patient.StatusNotFound},
 		{name: "empty complete", want: patient.StatusNotFound},
 		{name: "empty incomplete", incomplete: true, want: patient.StatusUnresolved, reason: "incomplete_search"},
 		{name: "unique but truncated", rows: []domain.Patient{valid}, incomplete: true, want: patient.StatusUnresolved, reason: "incomplete_search"},
@@ -46,7 +52,7 @@ func TestFirstNameDOBResolution(t *testing.T) {
 			amd := advancedmdtest.NewAdapter()
 			amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Patients: tc.rows, Complete: !tc.incomplete}
 			amd.Demographics["1"] = domain.PatientDemographics{FullName: valid.FullName, DOB: valid.DOB}
-			amd.Demographics["2"] = tc.repair
+			amd.Demographics["2"] = tc.ignoredDemographics
 			result, err := patient.New(amd).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "1980-01-01", OfficeID: "spring_hill"})
 			if err != nil || result.Status != tc.want || result.Reason != tc.reason {
 				t.Fatalf("status=%s reason=%s err=%v", result.Status, result.Reason, err)
@@ -71,7 +77,7 @@ func TestFirstNameDOBResolution(t *testing.T) {
 	}
 }
 
-func TestFirstNameDOBRepairBoundAndChangedIdentity(t *testing.T) {
+func TestFirstNameDOBMissingRecordsAndChangedIdentity(t *testing.T) {
 	domain.InitRegistry("")
 	for _, changed := range []bool{false, true} {
 		amd := advancedmdtest.NewAdapter()
@@ -85,7 +91,11 @@ func TestFirstNameDOBRepairBoundAndChangedIdentity(t *testing.T) {
 		}
 		amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Patients: rows, Complete: true}
 		result, err := patient.New(amd).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "01/01/1980", OfficeID: "spring_hill"})
-		if err != nil || result.Status != patient.StatusUnresolved || amd.DemographicCalls > 5 || amd.AppointmentReadCalls != 0 {
+		want := patient.StatusNotFound
+		if changed {
+			want = patient.StatusUnresolved
+		}
+		if err != nil || result.Status != want || amd.DemographicCalls > 1 || amd.AppointmentReadCalls != 0 {
 			t.Fatalf("status=%s demographics=%d err=%v", result.Status, amd.DemographicCalls, err)
 		}
 	}

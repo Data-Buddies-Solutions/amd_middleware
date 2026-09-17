@@ -60,18 +60,18 @@ Valid identity input shapes:
 - `firstName` + `dob` without phone/surname: middleware owns exact first-name/DOB
   matching. It returns one hydrated `verified` patient, `multiple_matches`,
   `not_found` after a complete search, or `unresolved` with a safe `reason`.
-  Unrelated prefix matches and valid nonmatching DOBs are excluded before repair.
-  At most five plausible candidates with incomplete identity are repaired through
-  authoritative demographics. A still-unknown candidate prevents unique matching
-  or absence; it never silently disappears. Two known matches establish ambiguity.
-  Pagination/count incompleteness prevents claiming a unique patient or absence.
+  Only records with an exact first name and a valid matching DOB qualify.
+  Records with missing or invalid DOB are discarded without demographic repair.
+  One exact match is hydrated and returned even when other records lack DOB.
+  Two exact matches remain ambiguous. A complete search with no exact matches
+  returns not-found. Pagination/count incompleteness still prevents a decision.
   No practice-wide candidate list is returned for agent-side selection.
 - `lastName` + `dob`: name lookup filtered by DOB.
 - `lastName` + `firstName` + `dob`: narrower name lookup filtered by DOB.
 - `patientId`: direct load/appointment refresh for an already verified patient.
 
 First-name/DOB resolution verifies the selected demographic identity before
-loading appointments, and reuses demographics fetched during repair. Multiple
+loading appointments. Missing DOBs on discarded records cause no extra reads. Multiple
 matches defer appointment loading. Existing phone preloading and the private
 `patientId` refresh path remain available.
 Clients should not send an appointment-loading toggle.
@@ -305,6 +305,6 @@ middleware response and agent activation together before routing live calls.
 
 `unresolved` is an application result with a bounded reason: `search_unavailable`,
 `incomplete_search`, `invalid_identity`, `invalid_candidate_set`,
-`incomplete_identity`, `demographics_unavailable`, or `identity_not_verified`.
+`demographics_unavailable`, or `identity_not_verified`.
 It never authorizes registration or patient activation. Retry only after changed
 identity or an explicit recoverable provider condition; otherwise involve staff.
