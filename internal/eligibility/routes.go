@@ -9,7 +9,8 @@ type payerRoute struct {
 
 // Explicit product routes for the Florida office catalogs. Never derive these
 // from AMD carrier IDs or office acceptance/network rules. Directory support was
-// verified on 2026-09-16; source evidence is in docs/eligibility-payer-mapping.md.
+// verified on 2026-09-16 against Stedi's public export (subset in testdata):
+// https://payers.us.stedi.com/2024-04-01/public/payers/csv
 var insurancePayers = map[string]payerRoute{
 	"ambetter from sunshine health":         {"68069", ""},
 	"united health care":                    {"87726", ""},
@@ -179,6 +180,7 @@ func Route(plan, serviceDate string) (payer, review string) {
 		return "", "plan_route_review"
 	}
 	// AHCA moves both CMS Plan populations from Sunshine to Molina on 2026-10-01.
+	// https://ahca.myflorida.com/medicaid/statewide-medicaid-managed-care/2025-2030-smmc-plans/cms-plan-transition.html
 	// Select on the requested service day, never the execution date. Historical
 	// pre-Sunshine records need the actual plan/card rather than a guessed route.
 	if key == "childrens medical services" {

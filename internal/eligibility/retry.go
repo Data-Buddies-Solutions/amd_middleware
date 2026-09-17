@@ -92,7 +92,8 @@ func PlanRetries(base Request, names []RecordedName, prior []Request, errors []s
 	// The base already produced the response being retried, even if a replay
 	// omitted it from history. Count each prior send, including duplicates.
 	used := len(prior)
-	if !seen[Fingerprint(base)] {
+	baseKey := Fingerprint(base)
+	if !seen[baseKey] {
 		used++
 	}
 	limit := maxAttempts - used
@@ -100,7 +101,7 @@ func PlanRetries(base Request, names []RecordedName, prior []Request, errors []s
 		p.Reason = "attempt_limit"
 		return p
 	}
-	seen[Fingerprint(base)] = true
+	seen[baseKey] = true
 	add := func(label string, person Person) {
 		if len(p.Attempts) >= limit {
 			return
@@ -141,14 +142,11 @@ func PlanRetries(base Request, names []RecordedName, prior []Request, errors []s
 	}
 	if omitMember {
 		candidates = append(candidates, candidate{"intake", base.Subscriber})
-	}
-	for _, c := range candidates {
-		if !omitMember {
-			break
+		for _, c := range candidates {
+			withoutMember := c.person
+			withoutMember.MemberID = ""
+			add(c.source+"_without_member", withoutMember)
 		}
-		withoutMember := c.person
-		withoutMember.MemberID = ""
-		add(c.source+"_without_member", withoutMember)
 	}
 	if len(p.Attempts) > 0 {
 		p.Reason = "recorded_name_recovery"

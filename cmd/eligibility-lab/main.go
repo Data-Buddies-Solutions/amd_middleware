@@ -37,7 +37,6 @@ func save(path string, value any) error {
 }
 
 func execute() error {
-	mode := flag.String("mode", "replay", "replay saved responses only")
 	input := flag.String("input", "", "private JSON array of cases")
 	output := flag.String("output", "", "new private output file")
 	flag.Parse()
@@ -51,9 +50,6 @@ func execute() error {
 	var cases []eligibility.Case
 	if err := json.Unmarshal(data, &cases); err != nil {
 		return failure("invalid_case_json")
-	}
-	if *mode != "replay" {
-		return failure("invalid_mode")
 	}
 	results := []eligibility.Assessment{}
 	counts := map[string]int{}

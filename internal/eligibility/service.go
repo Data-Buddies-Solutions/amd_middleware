@@ -157,12 +157,6 @@ func (s *Service) Check(ctx context.Context, in CheckInput) (Result, error) {
 		reqBody = plan.Attempts[0].Request
 		reqBody.SearchID = last.SearchID
 	}
-	for _, p := range prior {
-		if Fingerprint(p) == Fingerprint(reqBody) {
-			out.ReviewReason = "duplicate_attempt"
-			return out, nil
-		}
-	}
 	out.Request = reqBody
 	out.Status = "unknown"
 	out.ReviewReason = "request_outcome_unknown"
