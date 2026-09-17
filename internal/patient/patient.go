@@ -99,6 +99,7 @@ type Candidate struct {
 
 // ResolveResult is one complete Acuity patient resolution outcome.
 type ResolveResult struct {
+	InsuranceDecision   *domain.InsuranceDecision
 	Reason              string
 	Status              Status
 	ProviderFailure     safeerrors.Category
@@ -163,15 +164,16 @@ type CreateCommand struct {
 
 // CreateResult preserves the public patient-creation response contract.
 type CreateResult struct {
-	Status           CreateStatus
-	Outcome          MutationOutcome
-	PatientID        string
-	Name             string
-	DOB              string
-	Routing          domain.RoutingRule
-	AllowedProviders []string
-	PreauthRequired  bool
-	Message          string
+	InsuranceDecision *domain.InsuranceDecision
+	Status            CreateStatus
+	Outcome           MutationOutcome
+	PatientID         string
+	Name              string
+	DOB               string
+	Routing           domain.RoutingRule
+	AllowedProviders  []string
+	PreauthRequired   bool
+	Message           string
 }
 
 // UpdateInsuranceCommand is the complete caller intent for replacing primary
@@ -192,16 +194,17 @@ type UpdateInsuranceCommand struct {
 // UpdateInsuranceResult preserves the public insurance-update response
 // contract.
 type UpdateInsuranceResult struct {
-	Status           UpdateInsuranceStatus
-	Outcome          MutationOutcome
-	PatientID        string
-	OldInsurance     string
-	NewInsurance     string
-	Routing          domain.RoutingRule
-	AllowedProviders []string
-	RoutingAmbiguous bool
-	PreauthRequired  bool
-	Message          string
+	InsuranceDecision *domain.InsuranceDecision
+	Status            UpdateInsuranceStatus
+	Outcome           MutationOutcome
+	PatientID         string
+	OldInsurance      string
+	NewInsurance      string
+	Routing           domain.RoutingRule
+	AllowedProviders  []string
+	RoutingAmbiguous  bool
+	PreauthRequired   bool
+	Message           string
 }
 
 // Patient is the single interface used by patient-facing HTTP routes.
@@ -277,7 +280,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 			Message: fmt.Sprintf("Missing required fields: %s", strings.Join(missing, ", ")),
 		}
 	}
-	selection, message := selectInsurance(command.Insurance, command.CoverageType, office)
+	selection, message := selectInsurance(command.Insurance, command.CoverageType, office, command.DOB)
 	if message != "" {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: message}
 	}
@@ -326,14 +329,15 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 		routing = selection.policy.SchedulingRouting(routing, domain.NormalizeDOB(command.DOB))
 	}
 	result = CreateResult{
-		Status:           CreateStatusCreated,
-		PatientID:        created.ID,
-		Name:             created.Name,
-		DOB:              domain.NormalizeDOB(command.DOB),
-		Routing:          routing,
-		AllowedProviders: selection.policy.ProviderNames(routing, domain.NormalizeDOB(command.DOB)),
-		PreauthRequired:  selection.entry.PreauthRequired,
-		Message:          "Patient created and insurance attached successfully",
+		Status:            CreateStatusCreated,
+		PatientID:         created.ID,
+		Name:              created.Name,
+		DOB:               domain.NormalizeDOB(command.DOB),
+		Routing:           routing,
+		AllowedProviders:  selection.policy.ProviderNames(routing, domain.NormalizeDOB(command.DOB)),
+		PreauthRequired:   selection.entry.PreauthRequired,
+		InsuranceDecision: &selection.decision,
+		Message:           "Patient created and insurance attached successfully",
 	}
 	if createReconciled || insuranceReconciled {
 		result.Outcome = MutationReconciledSuccess
@@ -342,13 +346,18 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 }
 
 type insuranceSelection struct {
-	entry  domain.InsuranceEntry
-	mode   domain.InsuranceMode
-	policy domain.SchedulingPolicy
+	decision domain.InsuranceDecision
+	entry    domain.InsuranceEntry
+	mode     domain.InsuranceMode
+	policy   domain.SchedulingPolicy
 }
 
-func selectInsurance(name, coverageType string, office *domain.OfficeConfig) (insuranceSelection, string) {
+func selectInsurance(name, coverageType string, office *domain.OfficeConfig, dob string) (insuranceSelection, string) {
 	mode := domain.InsuranceModeForCoverage(coverageType)
+	if coverageType == "" {
+		coverageType = "medical"
+	}
+	decision := domain.DecideInsurance(name, coverageType, office, dob)
 	entry, ok := domain.LookupInsuranceForCoverageAtOffice(name, mode, office)
 	policy := domain.NewSchedulingPolicy(office)
 
@@ -357,12 +366,18 @@ func selectInsurance(name, coverageType string, office *domain.OfficeConfig) (in
 		return insuranceSelection{}, fmt.Sprintf("Routine vision coverage is not supported at %s. Route the patient to Spring Hill routine vision scheduling.", office.DisplayName)
 	case mode == domain.InsuranceModeMedical && !policy.SupportsMedical():
 		return insuranceSelection{}, fmt.Sprintf("Medical coverage is not supported at %s. Use routine vision coverage for this office or route medical visits to a medical office.", office.DisplayName)
-	case !ok:
+	case !ok && decision.CanonicalPlan == "":
 		return insuranceSelection{}, fmt.Sprintf("Insurance not recognized: %q. Please use an insurance name from the accepted list.", name)
-	case entry.Routing == domain.RoutingNotAccepted:
+	case decision.Participation == "not_accepted":
 		return insuranceSelection{}, fmt.Sprintf("%s is not accepted at %s.", name, office.DisplayName)
 	default:
-		return insuranceSelection{entry: entry, mode: mode, policy: policy}, ""
+		if !decision.CanRegister {
+			return insuranceSelection{}, decision.Answer
+		}
+		entry.CarrierID = decision.CarrierID
+		entry.Routing = decision.Routing
+		entry.PreauthRequired = len(decision.Requirements) > 0
+		return insuranceSelection{entry: entry, mode: mode, policy: policy, decision: decision}, ""
 	}
 }
 
@@ -454,7 +469,7 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 	if err != nil {
 		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
 	}
-	selection, message := selectInsurance(command.Insurance, command.CoverageType, office)
+	selection, message := selectInsurance(command.Insurance, command.CoverageType, office, command.DOB)
 	if message != "" {
 		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: message}
 	}
@@ -480,15 +495,16 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 	routing := selection.policy.SchedulingRouting(selection.entry.Routing, command.DOB)
 	_, ambiguous := domain.RoutingForDemographicInsurance(selection.entry.CarrierID, command.Insurance, office)
 	result = UpdateInsuranceResult{
-		Status:           UpdateInsuranceStatusUpdated,
-		PatientID:        command.PatientID,
-		OldInsurance:     command.OldInsurance,
-		NewInsurance:     command.Insurance,
-		Routing:          routing,
-		AllowedProviders: selection.policy.ProviderNames(routing, command.DOB),
-		RoutingAmbiguous: ambiguous,
-		PreauthRequired:  selection.entry.PreauthRequired,
-		Message:          "Insurance updated successfully",
+		Status:            UpdateInsuranceStatusUpdated,
+		PatientID:         command.PatientID,
+		OldInsurance:      command.OldInsurance,
+		NewInsurance:      command.Insurance,
+		Routing:           routing,
+		AllowedProviders:  selection.policy.ProviderNames(routing, command.DOB),
+		RoutingAmbiguous:  ambiguous,
+		PreauthRequired:   selection.entry.PreauthRequired,
+		InsuranceDecision: &selection.decision,
+		Message:           "Insurance updated successfully",
 	}
 	if reconciled {
 		result.Outcome = MutationReconciledSuccess
@@ -1069,27 +1085,19 @@ func patientLastName(candidate domain.Patient) string {
 }
 
 func applyDemographics(result *ResolveResult, demographics domain.PatientDemographics, office *domain.OfficeConfig, patientDOB string) {
-	policy := domain.NewSchedulingPolicy(office)
 	result.InsuranceCarrier = demographics.CarrierName
 	result.InsPlanID = demographics.InsPlanID
 	result.RespPartyID = demographics.RespPartyID
-
+	result.InsuranceCarrierID = demographics.CarrierID
 	if demographics.CarrierID == "" {
 		return
 	}
-
-	result.InsuranceCarrierID = demographics.CarrierID
-	routing, ambiguous := domain.RoutingForDemographicInsurance(demographics.CarrierID, demographics.CarrierName, office)
-	routing = policy.PatientRouting(routing, patientDOB)
-	result.Routing = routing
-	result.AllowedProviders = policy.ProviderNames(routing, patientDOB)
-	result.RoutingAmbiguous = ambiguous
-	if entry, ok := domain.LookupInsuranceForCoverageAtOffice(demographics.CarrierName, domain.InsuranceModeMedical, office); ok {
-		result.PreauthRequired = entry.PreauthRequired
-	}
-	if domain.IsMinor(patientDOB) && routing != domain.RoutingNotAccepted {
-		result.RoutingAmbiguous = false
-	}
+	decision := domain.DecideChartInsurance(demographics, "", "medical", office, patientDOB)
+	result.InsuranceDecision = &decision
+	result.Routing = decision.Routing
+	result.AllowedProviders = decision.AllowedProviders
+	result.RoutingAmbiguous = decision.Participation == "unknown"
+	result.PreauthRequired = len(decision.Requirements) > 0
 }
 
 func firstNonEmpty(values ...string) string {

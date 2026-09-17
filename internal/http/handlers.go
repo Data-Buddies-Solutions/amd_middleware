@@ -36,6 +36,7 @@ type PatientResolveRequest struct {
 
 // PatientResolveResponse is returned by /api/patient/resolve.
 type PatientResolveResponse struct {
+	InsuranceDecision   *domain.InsuranceDecision  `json:"insuranceDecision,omitempty"`
 	Reason              string                     `json:"reason,omitempty"`
 	Status              string                     `json:"status"`
 	PatientID           string                     `json:"patientId,omitempty"`
@@ -153,15 +154,16 @@ type AddPatientRequest struct {
 
 // AddPatientResponse is returned after creating a patient.
 type AddPatientResponse struct {
-	Status           string   `json:"status"`
-	Outcome          string   `json:"outcome,omitempty"`
-	PatientID        string   `json:"patientId,omitempty"`
-	Name             string   `json:"name,omitempty"`
-	DOB              string   `json:"dob,omitempty"`
-	Routing          string   `json:"routing,omitempty"`
-	AllowedProviders []string `json:"allowedProviders,omitempty"`
-	PreauthRequired  bool     `json:"preauthRequired,omitempty"`
-	Message          string   `json:"message,omitempty"`
+	InsuranceDecision *domain.InsuranceDecision `json:"insuranceDecision,omitempty"`
+	Status            string                    `json:"status"`
+	Outcome           string                    `json:"outcome,omitempty"`
+	PatientID         string                    `json:"patientId,omitempty"`
+	Name              string                    `json:"name,omitempty"`
+	DOB               string                    `json:"dob,omitempty"`
+	Routing           string                    `json:"routing,omitempty"`
+	AllowedProviders  []string                  `json:"allowedProviders,omitempty"`
+	PreauthRequired   bool                      `json:"preauthRequired,omitempty"`
+	Message           string                    `json:"message,omitempty"`
 }
 
 // HandleAddPatient creates a new patient in AdvancedMD and attaches insurance.
@@ -203,15 +205,16 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 		outcome = string(result.Outcome)
 	}
 	json.NewEncoder(w).Encode(AddPatientResponse{
-		Status:           string(result.Status),
-		Outcome:          outcome,
-		PatientID:        result.PatientID,
-		Name:             result.Name,
-		DOB:              result.DOB,
-		Routing:          string(result.Routing),
-		AllowedProviders: result.AllowedProviders,
-		PreauthRequired:  result.PreauthRequired,
-		Message:          result.Message,
+		Status:            string(result.Status),
+		Outcome:           outcome,
+		PatientID:         result.PatientID,
+		Name:              result.Name,
+		DOB:               result.DOB,
+		Routing:           string(result.Routing),
+		AllowedProviders:  result.AllowedProviders,
+		PreauthRequired:   result.PreauthRequired,
+		InsuranceDecision: result.InsuranceDecision,
+		Message:           result.Message,
 	})
 }
 
@@ -343,6 +346,7 @@ func patientResolveResponse(result patientmodule.ResolveResult) PatientResolveRe
 		AllowedProviders:    result.AllowedProviders,
 		RoutingAmbiguous:    result.RoutingAmbiguous,
 		PreauthRequired:     result.PreauthRequired,
+		InsuranceDecision:   result.InsuranceDecision,
 		AppointmentsStatus:  string(result.AppointmentsStatus),
 		Appointments:        appointments,
 		AppointmentsMessage: result.AppointmentsMessage,
@@ -588,16 +592,17 @@ type UpdateInsuranceRequest struct {
 
 // UpdateInsuranceResponse is returned after updating insurance.
 type UpdateInsuranceResponse struct {
-	Status           string   `json:"status"`
-	Outcome          string   `json:"outcome,omitempty"`
-	PatientID        string   `json:"patientId,omitempty"`
-	OldInsurance     string   `json:"oldInsurance,omitempty"`
-	NewInsurance     string   `json:"newInsurance,omitempty"`
-	Routing          string   `json:"routing,omitempty"`
-	AllowedProviders []string `json:"allowedProviders,omitempty"`
-	RoutingAmbiguous bool     `json:"routingAmbiguous,omitempty"`
-	PreauthRequired  bool     `json:"preauthRequired,omitempty"`
-	Message          string   `json:"message,omitempty"`
+	InsuranceDecision *domain.InsuranceDecision `json:"insuranceDecision,omitempty"`
+	Status            string                    `json:"status"`
+	Outcome           string                    `json:"outcome,omitempty"`
+	PatientID         string                    `json:"patientId,omitempty"`
+	OldInsurance      string                    `json:"oldInsurance,omitempty"`
+	NewInsurance      string                    `json:"newInsurance,omitempty"`
+	Routing           string                    `json:"routing,omitempty"`
+	AllowedProviders  []string                  `json:"allowedProviders,omitempty"`
+	RoutingAmbiguous  bool                      `json:"routingAmbiguous,omitempty"`
+	PreauthRequired   bool                      `json:"preauthRequired,omitempty"`
+	Message           string                    `json:"message,omitempty"`
 }
 
 // HandleUpdateInsurance swaps a patient's insurance: end-dates the old plan and attaches a new one.
@@ -632,16 +637,17 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 		outcome = string(result.Outcome)
 	}
 	json.NewEncoder(w).Encode(UpdateInsuranceResponse{
-		Status:           string(result.Status),
-		Outcome:          outcome,
-		PatientID:        result.PatientID,
-		OldInsurance:     result.OldInsurance,
-		NewInsurance:     result.NewInsurance,
-		Routing:          string(result.Routing),
-		AllowedProviders: result.AllowedProviders,
-		RoutingAmbiguous: result.RoutingAmbiguous,
-		PreauthRequired:  result.PreauthRequired,
-		Message:          result.Message,
+		Status:            string(result.Status),
+		Outcome:           outcome,
+		PatientID:         result.PatientID,
+		OldInsurance:      result.OldInsurance,
+		NewInsurance:      result.NewInsurance,
+		Routing:           string(result.Routing),
+		AllowedProviders:  result.AllowedProviders,
+		RoutingAmbiguous:  result.RoutingAmbiguous,
+		PreauthRequired:   result.PreauthRequired,
+		InsuranceDecision: result.InsuranceDecision,
+		Message:           result.Message,
 	})
 }
 

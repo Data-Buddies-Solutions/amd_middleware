@@ -25,6 +25,9 @@ var eastern = domain.EasternLocation()
 
 // SearchCommand is the domain input for one availability search.
 type SearchCommand struct {
+	PatientID       string                      `json:"patientId,omitempty"`
+	InsurancePlan   string                      `json:"insurancePlan,omitempty"`
+	CoverageType    string                      `json:"coverageType,omitempty"`
 	RequestedDate   string                      `json:"requestedDate,omitempty"`
 	PreferredTime   *AvailabilityTimePreference `json:"preferredTime,omitempty"`
 	Provider        string                      `json:"provider"`
@@ -166,6 +169,9 @@ func (s *service) Search(ctx context.Context, command SearchCommand) (domain.Ava
 // ListCommand loads a complete inventory window for conversational selection.
 // Patient eligibility and booking policy are identical to Search.
 type ListCommand struct {
+	PatientID       string `json:"patientId,omitempty"`
+	InsurancePlan   string `json:"insurancePlan,omitempty"`
+	CoverageType    string `json:"coverageType,omitempty"`
 	StartDate       string `json:"startDate,omitempty"`
 	RangeDays       int    `json:"rangeDays,omitempty"`
 	Office          string `json:"office"`
@@ -183,6 +189,7 @@ func (s *service) List(ctx context.Context, command ListCommand) (domain.Availab
 		return domain.AvailabilityResponse{}, schedulingError("rangeDays must be 14; use startDate to search a different window")
 	}
 	return s.search(ctx, SearchCommand{Office: command.Office, DOB: command.DOB,
+		PatientID: command.PatientID, InsurancePlan: command.InsurancePlan, CoverageType: command.CoverageType,
 		RequestedDate: command.StartDate, Routing: command.Routing, PreauthRequired: command.PreauthRequired}, days)
 }
 
@@ -224,6 +231,19 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 	office, err := domain.ResolveOffice(command.Office)
 	if err != nil {
 		return empty, schedulingError(err.Error())
+	}
+	// Legacy inventory consumers can omit patientId. Booking always rechecks
+	// chart insurance; patient-scoped inventory additionally enforces it here.
+	if command.PatientID != "" {
+		coverage := command.CoverageType
+		if coverage == "" {
+			coverage = "medical"
+		}
+		insurance, err := s.insuranceForSearch(ctx, command.PatientID, command.InsurancePlan, coverage, office, command.DOB)
+		if err != nil {
+			return empty, err
+		}
+		command.Routing = string(insurance.Routing)
 	}
 	policy := domain.NewSchedulingPolicy(office)
 	routing := policy.SchedulingRouting(domain.ParseRoutingRule(command.Routing), command.DOB)

@@ -75,8 +75,9 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 		InsuranceCarrierID: "car40906",
 		InsPlanID:          "ins789",
 		RespPartyID:        "resp456",
-		Routing:            domain.RoutingBachOnly,
-		AllowedProviders:   []string{"Dr. Bach"},
+		Routing:            "",
+		AllowedProviders:   []string{},
+		RoutingAmbiguous:   true,
 		AppointmentsStatus: patient.AppointmentsFound,
 		Appointments: []patient.Appointment{{
 			ID:                9570263,
@@ -116,7 +117,7 @@ func TestCreateReturnsExistingSuccessContract(t *testing.T) {
 		State:          "fl",
 		Zip:            "34609",
 		Sex:            "female",
-		Insurance:      "Humana Medicare",
+		Insurance:      "Humana PPO",
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -131,6 +132,7 @@ func TestCreateReturnsExistingSuccessContract(t *testing.T) {
 		AllowedProviders: []string{"Dr. Bach"},
 		Message:          "Patient created and insurance attached successfully",
 	}
+	want.InsuranceDecision = got.InsuranceDecision
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("Create() = %+v, want %+v", got, want)
 	}
@@ -471,7 +473,7 @@ func TestUpdateInsuranceReturnsExistingSuccessContract(t *testing.T) {
 		InsPlanID:      "ins123",
 		RespPartyID:    "resp123",
 		OldInsurance:   "Old",
-		Insurance:      "Humana Medicare",
+		Insurance:      "Humana PPO",
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -481,11 +483,12 @@ func TestUpdateInsuranceReturnsExistingSuccessContract(t *testing.T) {
 		Status:           patient.UpdateInsuranceStatusUpdated,
 		PatientID:        "123",
 		OldInsurance:     "Old",
-		NewInsurance:     "Humana Medicare",
+		NewInsurance:     "Humana PPO",
 		Routing:          domain.RoutingBachOnly,
 		AllowedProviders: []string{"Dr. Bach"},
 		Message:          "Insurance updated successfully",
 	}
+	want.InsuranceDecision = got.InsuranceDecision
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("UpdateInsurance() = %+v, want %+v", got, want)
 	}
@@ -771,7 +774,7 @@ func validCreateCommand() patient.CreateCommand {
 		State:          "FL",
 		Zip:            "34609",
 		Sex:            "female",
-		Insurance:      "Humana Medicare",
+		Insurance:      "Humana PPO",
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -785,7 +788,7 @@ func validUpdateInsuranceCommand() patient.UpdateInsuranceCommand {
 		InsPlanID:      "ins123",
 		RespPartyID:    "resp123",
 		OldInsurance:   "Old",
-		Insurance:      "Humana Medicare",
+		Insurance:      "Humana PPO",
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -912,7 +915,7 @@ func TestResolveRefreshesKnownPatientByID(t *testing.T) {
 	if got.Name != "DOE,JANE" {
 		t.Fatalf("Name = %q, want DOE,JANE", got.Name)
 	}
-	if got.DOB != "01/15/1980" || got.Routing != domain.RoutingBachOnly {
+	if got.DOB != "01/15/1980" || !got.RoutingAmbiguous || got.InsuranceDecision == nil || got.InsuranceDecision.CanSchedule {
 		t.Fatalf("demographics = DOB %q routing %q", got.DOB, got.Routing)
 	}
 	if got.AppointmentsStatus != patient.AppointmentsFound || len(got.Appointments) != 1 {

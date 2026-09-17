@@ -44,21 +44,20 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 	"icare":                          {CarrierID: "car40907", Routing: RoutingAll},
 	"doctors health medicare":        {CarrierID: "car40907", Routing: RoutingNotAccepted},
 
-	// ── United Healthcare — car40923 (12 plans) ─────────────────────────
+	// ── United Healthcare — distinct products ─────────────────────────
 	"united healthcare":                     {CarrierID: "car40923", Routing: RoutingAll},
-	"united healthcare aarp medicare":       {CarrierID: "car40923", Routing: RoutingAll},
+	"united healthcare aarp medicare":       correctedEntry("AARPM", RoutingAll),
 	"united healthcare all savers":          {CarrierID: "car40923", Routing: RoutingAll},
-	"united healthcare golden rule":         {CarrierID: "car40923", Routing: RoutingAll},
+	"united healthcare golden rule":         correctedEntry("GOL05", RoutingAll),
 	"united healthcare nhp":                 {CarrierID: "car40923", Routing: RoutingAll},
-	"united healthcare shared services":     {CarrierID: "car40923", Routing: RoutingAll},
-	"united healthcare student resources":   {CarrierID: "car40923", Routing: RoutingAll},
+	"united healthcare shared services":     correctedEntry("UNIT9", RoutingAll),
+	"united healthcare student resources":   correctedEntry("UHC STU", RoutingAll),
 	"united healthcare hmo":                 {CarrierID: "car40923", Routing: RoutingAll, PreauthRequired: true},
-	"united healthcare surest":              {CarrierID: "car40923", Routing: RoutingAll},
+	"united healthcare surest":              correctedEntry("BIND1", RoutingAll),
 	"umr":                                   {CarrierID: "car40923", Routing: RoutingAll},
 	"united healthcare choice":              {CarrierID: "car40923", Routing: RoutingAll},
 	"united healthcare dual complete":       {CarrierID: "car40923", Routing: RoutingAll},
-	"united healthcare individual exchange": {CarrierID: "car40923", Routing: RoutingBachLicht},
-	"preferred care partners":               {CarrierID: "car40923", Routing: RoutingNotAccepted},
+	"united healthcare individual exchange": correctedEntry("UNI20", RoutingBachLicht),
 
 	// ── Envolve Network — car281245 (8 plans) ───────────────────────────
 	"ambetter":                   {CarrierID: "car281245", Routing: RoutingAll},
@@ -71,9 +70,9 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 	"sunshine medicaid":          {CarrierID: "car281245", Routing: RoutingAll},
 	"wellcare":                   {CarrierID: "car281245", Routing: RoutingAll},
 
-	// ── Humana Consolidated — car308175 (8 plans) ───────────────────────
+	// ── Humana variants — corrected HUM02 requires a verified attachment ID ───────────────────────
 	"humana gold plus":         {CarrierID: "car308175", Routing: RoutingNotAccepted},
-	"humana medicaid":          {CarrierID: "car308175", Routing: RoutingNotAccepted},
+	"humana medicaid":          correctedEntry("HUM02", RoutingNotAccepted),
 	"humana medicare":          {CarrierID: "car308175", Routing: RoutingBachOnly},
 	"humana ppo":               {CarrierID: "car308175", Routing: RoutingBachOnly},
 	"humana healthy horizons":  {CarrierID: "car308175", Routing: RoutingBachOnly},
@@ -121,6 +120,7 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 	"tricare forever":  {CarrierID: "car40921", Routing: RoutingBachLicht, PreauthRequired: true},
 
 	// ── Standalone Carriers (1 plan each) ───────────────────────────────
+	"preferred care partners":  correctedEntry("PRE04", RoutingBachOnly),
 	"avmed medicare advantage": {CarrierID: "car301737", Routing: RoutingNotAccepted}, // EMI
 	"florida blue hmo":         {CarrierID: "car280750", Routing: RoutingNotAccepted}, // EMI
 	"eye america aao":          {CarrierID: "car308627", Routing: RoutingNotAccepted},
@@ -134,7 +134,7 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 	"molina medicaid":          {CarrierID: "car40912", Routing: RoutingAll},
 	"multiplan phcs":           {CarrierID: "car301648", Routing: RoutingAll},
 	"sunhealth":                {CarrierID: "car308086", Routing: RoutingAll},
-	"united healthcare global": {CarrierID: "car284971", Routing: RoutingAll},
+	"united healthcare global": correctedEntry("UNIT15", RoutingAll),
 	"self pay":                 {CarrierID: "car301672", Routing: RoutingAll},
 
 	// ── Not Accepted at Spring Hill (Medical) ────────────────────────────
@@ -149,7 +149,7 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 var CarrierRoutingMap = map[string]RoutingRule{
 	// NOT ACCEPTED (unambiguous carriers only)
 	"car281648": RoutingNotAccepted, // DOCTORS HEALTHCARE PLANS INC
-	"car40916":  RoutingNotAccepted, // PREFERRED CARE PARTNERS
+	"car40916":  RoutingBachOnly,    // PREFERRED CARE PARTNERS: intersect PRE04 with enabled medical columns
 	"car301737": RoutingNotAccepted, // EYE MANAGEMENT INC (AvMed Medicare via EMI)
 	"car280750": RoutingNotAccepted, // EYE MANAGEMENT INC (FL Blue HMO via EMI)
 	"car303061": RoutingNotAccepted, // HUMANA PREMIER HMO
@@ -338,8 +338,8 @@ var hollywoodSweetwaterMedicalInsuranceNameMap = map[string]InsuranceEntry{
 
 	// Humana / Availity / iCare
 	"humana hmo":          medicalBachOnly("car308175"),
-	"humana medicaid":     medicalBachOnlyPreauth("car308175"),
-	"humana medicaid hmo": medicalBachOnlyPreauth("car308175"),
+	"humana medicaid":     correctedEntry("HUM02", RoutingBachOnly),
+	"humana medicaid hmo": correctedEntry("HUM02", RoutingBachOnly),
 	"humana medicare":     medicalBachOnly("car308175"),
 	"humana medicare hmo": medicalBachOnly("car40907"),
 	"humana medicare ppo": medicalBachOnly("car308175"),
@@ -360,12 +360,12 @@ var hollywoodSweetwaterMedicalInsuranceNameMap = map[string]InsuranceEntry{
 	"multiplan phcs":                   medicalBachOnly("car301648"),
 	"oscar health":                     medicalBachOnly("car284233"),
 	"partners direct health":           medicalBachOnly("car308142"),
-	"preferred care partners":          medicalBachOnly("car40923"),
-	"preferred care network":           medicalBachOnly("car40923"),
+	"preferred care partners":          correctedEntry("PRE04", RoutingBachOnly),
+	"preferred care network":           correctedEntry("PRE04", RoutingBachOnly),
 	"self pay":                         medicalBachOnly("car301672"),
 	"sunhealth":                        medicalBachOnly("car308086"),
-	"united healthcare global":         medicalBachOnlyPreauth("car284971"),
-	"united healthcare global medical": medicalBachOnlyPreauth("car284971"),
+	"united healthcare global":         correctedEntry("UNIT15", RoutingBachOnly),
+	"united healthcare global medical": correctedEntry("UNIT15", RoutingBachOnly),
 
 	// Tricare
 	"tricare prime":    medicalBachOnlyPreauth("car40921"),
@@ -374,21 +374,21 @@ var hollywoodSweetwaterMedicalInsuranceNameMap = map[string]InsuranceEntry{
 	"tricare forever":  medicalBachOnlyPreauth("car40921"),
 
 	// United Healthcare
-	"preferred care partners medical":       medicalBachOnly("car40923"),
+	"preferred care partners medical":       correctedEntry("PRE04", RoutingBachOnly),
 	"umr":                                   medicalBachOnly("car40923"),
 	"united healthcare":                     medicalBachOnly("car40923"),
-	"united healthcare aarp medicare":       medicalBachOnly("car40923"),
+	"united healthcare aarp medicare":       correctedEntry("AARPM", RoutingBachOnly),
 	"united healthcare all savers":          medicalBachOnly("car40923"),
-	"united healthcare golden rule":         medicalBachOnly("car40923"),
+	"united healthcare golden rule":         correctedEntry("GOL05", RoutingBachOnly),
 	"united healthcare hmo":                 medicalBachOnlyPreauth("car40923"),
-	"united healthcare individual exchange": medicalBachOnlyPreauth("car40923"),
+	"united healthcare individual exchange": correctedEntry("UNI20", RoutingBachOnly),
 	"united healthcare nhp":                 medicalBachOnly("car40923"),
 	"united healthcare nhp hmo access":      medicalBachOnly("car40923"),
 	"united healthcare nhp hmo only":        medicalBachOnly("car40923"),
-	"united healthcare oxford":              medicalBachOnly("car40923"),
-	"united healthcare shared services":     medicalBachOnly("car40923"),
-	"united healthcare student resources":   medicalBachOnly("car40923"),
-	"united healthcare surest":              medicalBachOnly("car40923"),
+	"united healthcare oxford":              correctedEntry("OX04", RoutingBachOnly),
+	"united healthcare shared services":     correctedEntry("UNIT9", RoutingBachOnly),
+	"united healthcare student resources":   correctedEntry("UHC STU", RoutingBachOnly),
+	"united healthcare surest":              correctedEntry("BIND1", RoutingBachOnly),
 	"us health group":                       medicalBachOnly("car40923"),
 }
 
