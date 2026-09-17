@@ -68,7 +68,7 @@
       "canonicalPlan": null,
       "displayName": "United Healthcare",
       "aliases": [],
-      "clarificationNeeded": "the exact plan name from the insurance card"
+      "clarificationNeeded": "whether United coverage is Medicare, Medicaid, employer coverage, or an individual/exchange plan, and the full product name on the card"
     },
     {
       "status": "accepted",
@@ -424,7 +424,7 @@
         "UnitedHealthcare",
         "United Health Care"
       ],
-      "clarificationNeeded": "the exact plan name from the insurance card"
+      "clarificationNeeded": "whether United coverage is Medicare, Medicaid, employer coverage, or an individual/exchange plan, and the full product name on the card"
     },
     {
       "status": "accepted",
@@ -475,7 +475,7 @@
       "aliases": [
         "Humana"
       ],
-      "clarificationNeeded": "the exact plan name from the insurance card"
+      "clarificationNeeded": "whether the Humana coverage is Medicare, Medicaid, or an employer/individual plan, using the insurance card"
     },
     {
       "status": "needs_clarification",
@@ -484,7 +484,7 @@
       "aliases": [
         "Cigna"
       ],
-      "clarificationNeeded": "which Cigna plan is on the card"
+      "clarificationNeeded": "whether Cigna is Medicare Advantage or employer/individual coverage, then the card's full product name and HMO, PPO, or Open Access designation"
     },
     {
       "status": "not_accepted",
@@ -678,7 +678,39 @@
         "Aetna"
       ],
       "status": "needs_clarification",
-      "clarificationNeeded": "which Aetna plan is on the card"
+      "clarificationNeeded": "whether Aetna is commercial/employer coverage, Medicare, or Medicaid, and the full product name on the card"
+    },
+    {
+      "status": "needs_clarification",
+      "canonicalPlan": null,
+      "displayName": "United Healthcare Medicare",
+      "aliases": [
+        "uhc medicare",
+        "uhc medicare advantage",
+        "united health care medicare",
+        "united healthcare medicare",
+        "united healthcare medicare advantage",
+        "unitedhealthcare medicare"
+      ],
+      "clarificationNeeded": "the full United Medicare product name and HMO/PPO type from the card, such as AARP Medicare Complete or Dual Complete. Do not assume AARP from Medicare alone"
+    },
+    {
+      "status": "needs_clarification",
+      "canonicalPlan": null,
+      "displayName": "Molina",
+      "aliases": [
+        "Molina"
+      ],
+      "clarificationNeeded": "whether the Molina card says Medicaid, Medicare, or Marketplace"
+    },
+    {
+      "status": "needs_clarification",
+      "canonicalPlan": null,
+      "displayName": "Tricare",
+      "aliases": [
+        "Tricare"
+      ],
+      "clarificationNeeded": "whether the card says Tricare Prime, Select, or For Life"
     }
   ]
 }

@@ -182,6 +182,21 @@ Python additionally validates the plan/office/coverage of write decisions. Missi
 write decisions cannot revive old scheduling permission; mismatched receipts remain
 uncertain and cannot be retried automatically.
 
+## Medical plan clarification
+
+Medical catalogs return family-specific next questions. Humana first asks Medicare,
+Medicaid, or employer/individual coverage; Humana Medicare then asks HMO/PPO and the
+full product name. Cigna asks Medicare versus commercial and HMO/PPO/Open Access;
+Molina asks Medicaid/Medicare/Marketplace; United asks coverage category and product,
+and NHP asks Access versus Only. Aetna and Tricare require product clarification.
+
+Broad UHC Medicare aliases no longer identify AARP, and bare Tricare no longer
+identifies Select. Explicit products still resolve through their own office rules,
+carrier mapping and requirements. Unknown/conflicting products cannot register or
+schedule. Existing explicit office exclusions are preserved. Python relays the
+backend clarification verbatim; no duplicate Python triage policy was introduced.
+Routine-vision catalogs and logic are unchanged.
+
 ## Integration and rollout
 
 Patient first-name/DOB PRs middleware #188 and Python #31 are merged; their identity

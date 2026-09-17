@@ -1111,7 +1111,7 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 		{
 			name: "minor uses pediatric routing",
 			demographics: domain.PatientDemographics{
-				CarrierName: "AETNA",
+				CarrierName: "AETNA COMMERCIAL",
 				CarrierID:   "car40887",
 			},
 			patientDOB:       "01/01/2015",
