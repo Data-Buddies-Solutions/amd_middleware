@@ -7,20 +7,12 @@ import (
 	"unicode"
 )
 
-type Address struct {
-	Address1   string `json:"address1,omitempty"`
-	Address2   string `json:"address2,omitempty"`
-	State      string `json:"state,omitempty"`
-	PostalCode string `json:"postalCode,omitempty"`
-}
-
 type Person struct {
-	FirstName   string  `json:"firstName,omitempty"`
-	MiddleName  string  `json:"middleName,omitempty"`
-	LastName    string  `json:"lastName,omitempty"`
-	DateOfBirth string  `json:"dateOfBirth,omitempty"`
-	MemberID    string  `json:"memberId,omitempty"`
-	Address     Address `json:"address,omitzero"`
+	FirstName   string `json:"firstName,omitempty"`
+	MiddleName  string `json:"middleName,omitempty"`
+	LastName    string `json:"lastName,omitempty"`
+	DateOfBirth string `json:"dateOfBirth,omitempty"`
+	MemberID    string `json:"memberId,omitempty"`
 }
 
 // MatchResult reports exact identity agreement or the reason staff must review.
@@ -46,8 +38,8 @@ func sameID(a, b string) bool { return identifier(a) != "" && identifier(a) == i
 func validDOB(s string) bool { _, err := time.Parse("20060102", s); return err == nil }
 
 // Match compares names and DOB only. Member-ID changes remain visible but do
-// not change this name/DOB assessment; matching household/address data cannot
-// turn a different name into a verified identity.
+// not change this name/DOB assessment. A matching member ID cannot turn a
+// different name into a verified identity.
 func Match(expected, returned Person) MatchResult {
 	first, last := name(expected.FirstName), name(expected.LastName)
 	returnedFirst, returnedLast := name(returned.FirstName), name(returned.LastName)

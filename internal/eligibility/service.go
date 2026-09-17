@@ -3,51 +3,39 @@ package eligibility
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 const endpoint = "https://healthcare.us.stedi.com/2024-04-01/change/medicalnetwork/eligibility/v3"
 
-// Scope binds every attempt and result to one booked appointment and service day.
-type Scope struct {
-	OfficeID      string `json:"officeId"`
-	PatientID     string `json:"patientId"`
-	AppointmentID string `json:"appointmentId"`
-	ServiceDate   string `json:"serviceDate"` // YYYYMMDD, appointment date in office timezone
-}
 type Provider struct {
 	OrganizationName string `json:"organizationName,omitempty"`
-	FirstName        string `json:"firstName,omitempty"`
-	LastName         string `json:"lastName,omitempty"`
 	NPI              string `json:"npi"`
 }
+
+// CheckInput is collected during intake, before registration or booking.
 type CheckInput struct {
-	Scope         Scope          `json:"scope"`
-	Plan          string         `json:"plan"`
-	Subscriber    Person         `json:"subscriber"`
-	Dependent     *Person        `json:"dependent,omitempty"`
-	RecordedNames []RecordedName `json:"recordedNames,omitempty"`
-	History       []Result       `json:"history,omitempty"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	DOB       string `json:"dob"`
+	MemberID  string `json:"memberId"`
+	Plan      string `json:"plan"`
 }
 
-// Result is the durable owner's receipt. Persist it before dispatching a retry.
-// Coverage is STC 30 activity, never a network, visit coverage or copay decision.
+// Result reports current STC 30 plan activity, not network participation, visit
+// coverage or copay. Review/unknown never establish that the patient is uninsured.
 type Result struct {
-	Scope        Scope        `json:"scope"`
+	Status       string       `json:"status"` // active, inactive, review, unknown
+	OfficeID     string       `json:"officeId"`
 	PayerID      string       `json:"payerId,omitempty"`
-	InputID      string       `json:"inputId"`
-	Attempt      int          `json:"attempt"`
-	Status       string       `json:"status"`
-	Coverage     string       `json:"coverage"`
 	ReviewReason string       `json:"reviewReason,omitempty"`
-	Request      Request      `json:"request"`
 	SearchID     string       `json:"eligibilitySearchId,omitempty"`
 	CheckID      string       `json:"checkId,omitempty"`
 	ErrorCodes   []string     `json:"errorCodes,omitempty"`
@@ -60,6 +48,7 @@ type Service struct {
 	providers map[string]Provider
 	client    *http.Client
 	url       string
+	now       func() time.Time
 }
 
 func New(key string, providers map[string]Provider) (*Service, error) {
@@ -73,7 +62,7 @@ func New(key string, providers map[string]Provider) (*Service, error) {
 		}
 		copyProviders[office] = p
 	}
-	return &Service{key: key, providers: copyProviders, url: endpoint, client: &http.Client{Timeout: 25 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
+	return &Service{key: key, providers: copyProviders, url: endpoint, now: time.Now, client: &http.Client{Timeout: 25 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
 }
 func validNPI(n string) bool {
 	if len(n) != 10 {
@@ -99,68 +88,38 @@ func validPerson(p Person) bool {
 	return name(p.FirstName) != "" && name(p.LastName) != "" && validDOB(p.DateOfBirth)
 }
 
-// Check sends at most one request. The authenticated durable caller must claim
-// (scope, input, attempt) exclusively and journal dispatch BEFORE calling. A lost
-// response is unknown, not permission to resubmit. History alone is not a lock.
-func (s *Service) Check(ctx context.Context, in CheckInput) (Result, error) {
-	if in.Scope.OfficeID == "" || in.Scope.PatientID == "" || in.Scope.AppointmentID == "" || !validDOB(in.Scope.ServiceDate) || !validPerson(in.Subscriber) || strings.TrimSpace(in.Subscriber.MemberID) == "" || (in.Dependent != nil && !validPerson(*in.Dependent)) || len(in.History) > maxAttempts || len(in.RecordedNames) > 8 {
+// Check performs one intake-time request. OfficeID comes from the authenticated
+// adapter's existing office resolution. There is no automatic retry or durable
+// job requirement; an unknown outcome must not be blindly resubmitted.
+func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Result, error) {
+	dob := strings.TrimSpace(in.DOB)
+	if !validDOB(dob) {
+		if parsed, err := time.Parse("01/02/2006", domain.NormalizeDOB(dob)); err == nil {
+			dob = parsed.Format("20060102")
+		}
+	}
+	patient := Person{FirstName: strings.TrimSpace(in.FirstName), LastName: strings.TrimSpace(in.LastName), DateOfBirth: dob, MemberID: strings.TrimSpace(in.MemberID)}
+	if !validPerson(patient) || patient.MemberID == "" || strings.TrimSpace(in.Plan) == "" {
 		return Result{}, errors.New("invalid_eligibility_input")
 	}
-	original := in
-	original.History = nil
-	payer, reason := Route(in.Plan, in.Scope.ServiceDate)
-	provider, providerOK := s.providers[in.Scope.OfficeID]
-	data, _ := json.Marshal(struct {
-		Input    CheckInput
-		Payer    string
-		Provider Provider
-	}{original, payer, provider})
-	hash := sha256.Sum256(data)
-	out := Result{Scope: in.Scope, PayerID: payer, InputID: hex.EncodeToString(hash[:]), Attempt: len(in.History) + 1, Status: "review", Coverage: "unknown", CheckedAt: time.Now().UTC()}
-	out.ReviewReason = reason
+	now := s.now()
+	payer, reason := Route(in.Plan, now.In(domain.EasternLocation()).Format("20060102"))
+	out := Result{OfficeID: officeID, PayerID: payer, Status: "review", ReviewReason: reason, CheckedAt: now.UTC()}
 	if reason != "" {
 		return out, nil
 	}
-	if !providerOK {
+	provider, ok := s.providers[officeID]
+	if !ok {
 		out.ReviewReason = "provider_not_configured"
 		return out, nil
 	}
-	base := Request{Payer: payer, Provider: provider, Subscriber: in.Subscriber,
-		Encounter: Encounter{ServiceTypeCodes: []string{"30"}, DateOfService: in.Scope.ServiceDate}}
-	expected := in.Subscriber
-	if in.Dependent != nil {
-		expected = *in.Dependent
-		base.Dependents = []Person{expected}
-	}
-	prior := make([]Request, 0, len(in.History))
-	for i, h := range in.History {
-		if h.Scope != in.Scope || h.InputID != out.InputID || h.Attempt != i+1 {
-			return Result{}, errors.New("eligibility_history_scope_mismatch")
-		}
-		if h.Status != "payer_rejected" || !CanRetryNames(h.ErrorCodes) || h.SearchID == "" {
-			out.ReviewReason = "history_terminal_or_unknown"
-			return out, nil
-		}
-		if i > 0 && h.SearchID != in.History[0].SearchID {
-			return Result{}, errors.New("eligibility_search_chain_mismatch")
-		}
-		prior = append(prior, h.Request)
-	}
-	reqBody := base
-	if len(prior) > 0 {
-		last := in.History[len(prior)-1]
-		next, reason := NextRetry(base, in.RecordedNames, prior, last.ErrorCodes, true)
-		if next == nil {
-			out.ReviewReason = reason
-			return out, nil
-		}
-		reqBody = *next
-		reqBody.SearchID = last.SearchID
-	}
-	out.Request = reqBody
+	// Supply the patient's actual demographics as the initial lookup. Do not
+	// manufacture a policyholder or dependent relationship when it is unknown.
+	// Stedi recommends omitting the service date for a current-date check.
+	reqBody := Request{Payer: payer, Provider: provider, Subscriber: patient, Encounter: Encounter{ServiceTypeCodes: []string{"30"}}}
 	out.Status = "unknown"
 	out.ReviewReason = "request_outcome_unknown"
-	data, _ = json.Marshal(reqBody)
+	data, _ := json.Marshal(reqBody)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.url, bytes.NewReader(data))
 	if err != nil {
 		return out, nil
@@ -186,11 +145,7 @@ func (s *Service) Check(ctx context.Context, in CheckInput) (Result, error) {
 		return out, nil
 	}
 	out.SearchID, out.CheckID = response.SearchID, response.ID
-	if reqBody.SearchID != "" && response.SearchID != reqBody.SearchID {
-		out.ReviewReason = "search_chain_mismatch"
-		return out, nil
-	}
-	assessment := assessResponse(response, expected, in.Dependent != nil)
+	assessment := assessResponse(response, patient, false)
 	if !assessment.Recognized {
 		out.ReviewReason = "unrecognized_response"
 		return out, nil
@@ -202,21 +157,23 @@ func (s *Service) Check(ctx context.Context, in CheckInput) (Result, error) {
 	}
 	out.ErrorCodes = assessment.ErrorCodes
 	if len(out.ErrorCodes) > 0 {
-		out.Status = "payer_rejected"
+		out.Status = "review"
 		out.ReviewReason = "payer_rejected"
 		return out, nil
 	}
-	out.Coverage = assessment.Coverage
 	out.Status = "review"
 	out.ReviewReason = "identity_uncertain"
 	if assessment.Match.ReviewRequired {
+		if len(response.Dependents) > 0 {
+			out.ReviewReason = "subscriber_details_required"
+		}
 		return out, nil
 	}
-	if out.Coverage == "unknown" {
+	if assessment.Coverage == "unknown" {
 		out.ReviewReason = "general_coverage_unknown"
 		return out, nil
 	}
-	out.Status = "completed"
+	out.Status = assessment.Coverage
 	out.ReviewReason = ""
 	return out, nil
 }

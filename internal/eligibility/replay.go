@@ -6,14 +6,13 @@ import (
 )
 
 type Case struct {
-	Ref           string          `json:"ref"`
-	Expected      Person          `json:"expected"`
-	Response      json.RawMessage `json:"response"`
-	Base          Request         `json:"base"`
-	RecordedNames []RecordedName  `json:"recordedNames"`
-	Prior         []Request       `json:"prior"`
-	Supported     bool            `json:"supported"`
-	Source        string          `json:"source"`
+	Ref      string          `json:"ref"`
+	Expected Person          `json:"expected"`
+	Response json.RawMessage `json:"response"`
+	Base     struct {
+		Dependents []Person `json:"dependents"`
+	} `json:"base"`
+	Source string `json:"source"`
 }
 
 type Assessment struct {
@@ -21,8 +20,6 @@ type Assessment struct {
 	ActiveResponse bool        `json:"activeResponse"`
 	Coverage       string      `json:"coverage"`
 	Match          MatchResult `json:"match"`
-	NextRequest    *Request    `json:"nextRequest,omitempty"`
-	RetryReason    string      `json:"retryReason"`
 }
 
 // Assess adapts private saved cases to the same interpretation used by live checks.
@@ -43,9 +40,7 @@ func Assess(c Case) (Assessment, error) {
 		evaluated.Match.ReviewRequired = true
 		evaluated.Coverage = "unknown"
 	}
-	next, reason := NextRetry(c.Base, c.RecordedNames, c.Prior, evaluated.ErrorCodes, c.Supported && c.Source == "eligibility")
 	return Assessment{
 		Ref: c.Ref, Coverage: evaluated.Coverage, ActiveResponse: evaluated.Coverage == "active", Match: evaluated.Match,
-		NextRequest: next, RetryReason: reason,
 	}, nil
 }

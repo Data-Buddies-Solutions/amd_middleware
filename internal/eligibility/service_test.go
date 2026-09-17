@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 )
 
 func input() CheckInput {
-	return CheckInput{Scope: Scope{"office", "patient", "appointment", "20260916"}, Plan: "oscar", Subscriber: Person{FirstName: "Jane", LastName: "Sample", DateOfBirth: "19800102", MemberID: "synthetic"}}
+	return CheckInput{FirstName: "Jane", LastName: "Sample", DOB: "1980-01-02", MemberID: "synthetic", Plan: "oscar"}
 }
 func fixture(benefits, extra string) string {
 	return `{"meta":{"applicationMode":"production"},"eligibilitySearchId":"search-one","id":"check-one","subscriber":{"firstName":"Jane","lastName":"Sample","dateOfBirth":"19800102","memberId":"synthetic"},"benefitsInformation":` + benefits + extra + `}`
@@ -19,182 +22,114 @@ func testService(t *testing.T, handler http.HandlerFunc) *Service {
 	t.Helper()
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
-	s, err := New("secret", map[string]Provider{"office": {OrganizationName: "Synthetic Practice", NPI: "1999999984"}})
+	service, err := New("secret", map[string]Provider{"office": {OrganizationName: "Synthetic Practice", NPI: "1999999984"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	s.url = server.URL
-	return s
+	service.url = server.URL
+	service.now = func() time.Time { return time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC) }
+	return service
 }
-func TestCheckOutcomesAndWireContract(t *testing.T) {
-	for _, tc := range []struct{ name, body, status, coverage, reason string }{
-		{"active", fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, ""), "completed", "active", ""},
-		{"inactive", fixture(`[{"code":"6","serviceTypeCodes":["30"]}]`, ""), "completed", "inactive", ""},
-		{"other service", fixture(`[{"code":"1","serviceTypeCodes":["98"]}]`, ""), "review", "unknown", "general_coverage_unknown"},
-		{"conflict", fixture(`[{"code":"1","serviceTypeCodes":["30"]},{"code":"6","serviceTypeCodes":["30"]}]`, ""), "review", "unknown", "general_coverage_unknown"},
-		{"rejected active", fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, `,"errors":[{"code":"75"}]`), "payer_rejected", "unknown", "payer_rejected"},
-		{"identity", fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, `,"dependents":[{"firstName":"Janet","lastName":"Sample","dateOfBirth":"19800102"}]`), "review", "active", "identity_uncertain"},
-		{"empty", "{}", "unknown", "unknown", "unrecognized_response"},
-		{"invalid", "not json", "unknown", "unknown", "unrecognized_response"},
-		{"test mode", `{"meta":{"applicationMode":"test"},"benefitsInformation":[{"code":"1","serviceTypeCodes":["30"]}]}`, "unknown", "unknown", "nonproduction_or_unknown_mode"},
+func TestIntakeOutcomesAndFiveInputWireContract(t *testing.T) {
+	for _, tc := range []struct{ name, body, status, reason string }{
+		{"active", fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, ""), "active", ""},
+		{"inactive", fixture(`[{"code":"6","serviceTypeCodes":["30"]}]`, ""), "inactive", ""},
+		{"other service", fixture(`[{"code":"1","serviceTypeCodes":["98"]}]`, ""), "review", "general_coverage_unknown"},
+		{"conflict", fixture(`[{"code":"1","serviceTypeCodes":["30"]},{"code":"6","serviceTypeCodes":["30"]}]`, ""), "review", "general_coverage_unknown"},
+		{"payer rejection overrides active", fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, `,"errors":[{"code":"75"}]`), "review", "payer_rejected"},
+		{"dependent returned", fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, `,"dependents":[{"firstName":"Jane","lastName":"Sample","dateOfBirth":"19800102"}]`), "review", "subscriber_details_required"},
+		{"different subscriber", strings.ReplaceAll(fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, ""), `"Jane"`, `"Parent"`), "review", "identity_uncertain"},
+		{"empty", "{}", "unknown", "unrecognized_response"},
+		{"invalid", "not json", "unknown", "unrecognized_response"},
+		{"test mode", `{"meta":{"applicationMode":"test"},"benefitsInformation":[{"code":"1","serviceTypeCodes":["30"]}]}`, "unknown", "nonproduction_or_unknown_mode"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			calls := 0
-			s := testService(t, func(w http.ResponseWriter, r *http.Request) {
+			service := testService(t, func(w http.ResponseWriter, r *http.Request) {
 				calls++
-				if r.Header.Get("Authorization") != "secret" {
-					t.Error("missing authorization")
+				raw, _ := io.ReadAll(r.Body)
+				for _, forbidden := range []string{"dateOfService", "dependents", "eligibilitySearchId", "patientId", "appointmentId", "history"} {
+					if strings.Contains(string(raw), `"`+forbidden+`"`) {
+						t.Errorf("unwanted wire field %s", forbidden)
+					}
 				}
 				var request Request
-				if json.NewDecoder(r.Body).Decode(&request) != nil {
+				if json.Unmarshal(raw, &request) != nil {
 					t.Fatal("bad request")
 				}
-				if request.Payer != "OSCAR" || (len(request.Encounter.ServiceTypeCodes) != 1 || request.Encounter.ServiceTypeCodes[0] != "30" || request.Encounter.DateOfService != "20260916") || request.SearchID != "" {
-					t.Errorf("wrong request: %+v", request)
+				if request.Payer != "OSCAR" || request.Provider.OrganizationName != "Synthetic Practice" || request.Provider.NPI != "1999999984" || r.Header.Get("Authorization") != "secret" {
+					t.Fatal("wrong route/provider/auth")
 				}
-				p := request.Provider
-				if p.OrganizationName != "Synthetic Practice" {
-					t.Error("provider not configured")
+				if len(request.Encounter.ServiceTypeCodes) != 1 || request.Encounter.ServiceTypeCodes[0] != "30" {
+					t.Fatal("must only send STC30")
+				}
+				if request.Subscriber.FirstName != "Jane" || request.Subscriber.LastName != "Sample" || request.Subscriber.DateOfBirth != "19800102" || request.Subscriber.MemberID != "synthetic" {
+					t.Fatal("patient data altered")
 				}
 				fmt.Fprint(w, tc.body)
 			})
-			out, err := s.Check(context.Background(), input())
-			if err != nil || calls != 1 || out.Status != tc.status || out.Coverage != tc.coverage || out.ReviewReason != tc.reason {
-				t.Fatalf("result=%+v err=%v calls=%d", out, err, calls)
+			result, err := service.Check(context.Background(), "office", input())
+			if err != nil || calls != 1 || result.Status != tc.status || result.ReviewReason != tc.reason {
+				t.Fatalf("%+v err=%v calls=%d", result, err, calls)
 			}
-			if out.Scope != input().Scope || out.InputID == "" || out.Attempt != 1 || out.CheckedAt.IsZero() {
-				t.Fatal("missing scope receipt")
+			if result.CheckedAt.IsZero() || result.OfficeID != "office" {
+				t.Fatal("missing check context")
 			}
 		})
 	}
 }
-func TestRetryHistoryBoundedAndPatientScoped(t *testing.T) {
-	calls := 0
-	s := testService(t, func(w http.ResponseWriter, r *http.Request) {
-		var req Request
-		_ = json.NewDecoder(r.Body).Decode(&req)
-		if calls == 0 && req.SearchID != "" {
-			t.Error("new patient inherits chain")
-		}
-		if calls > 0 && req.SearchID != "search-one" {
-			t.Error("missing search chain")
-		}
-		calls++
-		fmt.Fprint(w, fixture(`[]`, `,"errors":[{"code":"75"}]`))
-	})
-	in := input()
-	in.RecordedNames = []RecordedName{{"Janet", "Sample", "chart"}, {"Jane", "Sample Smith", "intake"}, {"Janet", "Sample Smith", "chart"}}
-	seen := map[string]bool{}
-	for i := 0; i < 4; i++ {
-		out, err := s.Check(context.Background(), in)
-		if err != nil || out.Status != "payer_rejected" {
-			t.Fatalf("%+v %v", out, err)
-		}
-		key := Fingerprint(out.Request)
-		if seen[key] {
-			t.Fatal("duplicate sent")
-		}
-		seen[key] = true
-		in.History = append(in.History, out)
-	}
-	out, _ := s.Check(context.Background(), in)
-	if calls != 4 || out.ReviewReason != "attempt_limit" {
-		t.Fatalf("not bounded: %+v", out)
-	}
-	in.Scope.PatientID = "other-patient"
-	if _, err := s.Check(context.Background(), in); err == nil || calls != 4 {
-		t.Fatal("cross-patient history accepted")
-	}
-}
-func TestTerminalAndUnknownHistoryNeverResent(t *testing.T) {
-	for _, body := range []string{`{}`, fixture(`[]`, `,"errors":[{"code":"71"}]`), fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, "")} {
-		calls := 0
-		s := testService(t, func(w http.ResponseWriter, r *http.Request) { calls++; fmt.Fprint(w, body) })
-		in := input()
-		out, _ := s.Check(context.Background(), in)
-		in.History = []Result{out}
-		out, err := s.Check(context.Background(), in)
-		if err != nil || calls != 1 || out.ReviewReason != "history_terminal_or_unknown" {
-			t.Fatalf("resent: %+v %v", out, err)
-		}
-	}
-}
 func TestRoutingAndValidationDoNotSend(t *testing.T) {
-	s := testService(t, func(w http.ResponseWriter, r *http.Request) { t.Error("unexpected request") })
-	for _, plan := range []string{"icare", "medicaid", "medicare", "original medicare", "unknown", "car40907", "self pay"} {
+	service := testService(t, func(w http.ResponseWriter, r *http.Request) { t.Error("unexpected request") })
+	for _, plan := range []string{"icare", "medicaid", "medicare", "unknown", "car40907", "self pay"} {
 		in := input()
 		in.Plan = plan
-		out, err := s.Check(context.Background(), in)
-		if err != nil || out.Status != "review" || out.ReviewReason == "" {
-			t.Fatalf("%s: %+v %v", plan, out, err)
+		result, err := service.Check(context.Background(), "office", in)
+		if err != nil || result.Status != "review" || result.ReviewReason == "" {
+			t.Fatalf("%s: %+v %v", plan, result, err)
 		}
 	}
+	for _, change := range []func(*CheckInput){func(in *CheckInput) { in.FirstName = "" }, func(in *CheckInput) { in.LastName = "" }, func(in *CheckInput) { in.DOB = "2026-02-30" }, func(in *CheckInput) { in.MemberID = "" }, func(in *CheckInput) { in.Plan = "" }} {
+		in := input()
+		change(&in)
+		if _, err := service.Check(context.Background(), "office", in); err == nil {
+			t.Fatal("missing/invalid clinical input accepted")
+		}
+	}
+	if result, err := service.Check(context.Background(), "unconfigured", input()); err != nil || result.ReviewReason != "provider_not_configured" {
+		t.Fatal("unconfigured provider must not be guessed")
+	}
+}
+func TestCurrentOfficeDateSelectsRouteInternally(t *testing.T) {
+	var payer string
+	service := testService(t, func(w http.ResponseWriter, r *http.Request) {
+		var request Request
+		_ = json.NewDecoder(r.Body).Decode(&request)
+		payer = request.Payer
+		fmt.Fprint(w, fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, ""))
+	})
 	in := input()
-	in.Subscriber.MemberID = ""
-	if _, err := s.Check(context.Background(), in); err == nil {
-		t.Fatal("member required")
-	}
-	in = input()
-	in.Scope.ServiceDate = "20260230"
-	if _, err := s.Check(context.Background(), in); err == nil {
-		t.Fatal("valid service date required")
-	}
-	for _, plan := range []string{"aetna commercial ppo", "aetna medicare hmo"} {
-		if payer, reason := Route(plan, "20260916"); payer != "60054" || reason != "" {
-			t.Fatal("explicit product route failed")
+	in.Plan = "Children's Medical Services"
+	for _, tc := range []struct {
+		hour int
+		want string
+	}{{3, "68069"}, {4, "51062"}} {
+		service.now = func() time.Time { return time.Date(2026, 10, 1, tc.hour, 0, 0, 0, time.UTC) }
+		if _, err := service.Check(context.Background(), "office", in); err != nil || payer != tc.want {
+			t.Fatalf("UTC hour %d payer=%s err=%v", tc.hour, payer, err)
 		}
 	}
 }
-func TestHTTPFailureAndRedirectAreUnknownWithoutRetry(t *testing.T) {
+func TestHTTPFailuresNeverRetry(t *testing.T) {
 	for _, code := range []int{302, 429, 500} {
 		calls := 0
-		s := testService(t, func(w http.ResponseWriter, r *http.Request) {
+		service := testService(t, func(w http.ResponseWriter, r *http.Request) {
 			calls++
 			w.Header().Set("Location", "/redirect")
 			w.WriteHeader(code)
 		})
-		out, err := s.Check(context.Background(), input())
-		if err != nil || calls != 1 || out.Status != "unknown" {
-			t.Fatalf("%+v %v calls=%d", out, err, calls)
-		}
-	}
-}
-
-func TestRetryRejectsChangedProvider(t *testing.T) {
-	calls := 0
-	s := testService(t, func(w http.ResponseWriter, r *http.Request) {
-		calls++
-		fmt.Fprint(w, fixture(`[]`, `,"errors":[{"code":"75"}]`))
-	})
-	in := input()
-	out, err := s.Check(context.Background(), in)
-	if err != nil {
-		t.Fatal(err)
-	}
-	in.History = []Result{out}
-	s.providers["office"] = Provider{OrganizationName: "Changed Practice", NPI: "1999999984"}
-	if _, err = s.Check(context.Background(), in); err == nil || calls != 1 {
-		t.Fatal("provider change reused chain")
-	}
-}
-func TestReplayUsesSameCoverageRules(t *testing.T) {
-	for _, body := range []string{
-		fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, ""),
-		fixture(`[{"code":"1","serviceTypeCodes":["98"]}]`, ""),
-		fixture(`[{"code":"1","serviceTypeCodes":["30"]},{"code":"6","serviceTypeCodes":["30"]}]`, ""),
-		`{"meta":{"applicationMode":"test"},"benefitsInformation":[{"code":"1","serviceTypeCodes":["30"]}]}`,
-	} {
-		s := testService(t, func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, body) })
-		out, err := s.Check(context.Background(), input())
-		if err != nil {
-			t.Fatal(err)
-		}
-		replay, err := Assess(Case{Expected: input().Subscriber, Response: json.RawMessage(body), Source: "eligibility"})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if replay.Coverage != out.Coverage || replay.ActiveResponse != (out.Coverage == "active") {
-			t.Fatal("replay disagrees with live interpretation")
+		result, err := service.Check(context.Background(), "office", input())
+		if err != nil || calls != 1 || result.Status != "unknown" {
+			t.Fatalf("%+v err=%v calls=%d", result, err, calls)
 		}
 	}
 }

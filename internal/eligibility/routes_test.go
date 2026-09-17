@@ -148,7 +148,7 @@ func TestMappedRoutesSendOnlySTC30AndBlockedRoutesDoNotSend(t *testing.T) {
 		if request.Payer != actualPayer {
 			t.Errorf("wire payer=%s want=%s", request.Payer, actualPayer)
 		}
-		if len(request.Encounter.ServiceTypeCodes) != 1 || request.Encounter.ServiceTypeCodes[0] != "30" || request.Encounter.DateOfService != "20260916" {
+		if len(request.Encounter.ServiceTypeCodes) != 1 || request.Encounter.ServiceTypeCodes[0] != "30" {
 			t.Error("non-STC30 request")
 		}
 		fmt.Fprint(w, fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, ""))
@@ -158,7 +158,7 @@ func TestMappedRoutesSendOnlySTC30AndBlockedRoutesDoNotSend(t *testing.T) {
 		in.Plan = plan
 		actualPayer = route.payer
 		before := calls
-		out, err := s.Check(context.Background(), in)
+		out, err := s.Check(context.Background(), "office", in)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -169,7 +169,7 @@ func TestMappedRoutesSendOnlySTC30AndBlockedRoutesDoNotSend(t *testing.T) {
 			if calls != before || out.ReviewReason != route.review {
 				t.Errorf("blocked route %s sent or lost its review reason", plan)
 			}
-		} else if calls != before+1 || out.Status != "completed" {
+		} else if calls != before+1 || out.Status != "active" {
 			t.Errorf("supported route %s did not execute", plan)
 		}
 	}
@@ -180,7 +180,7 @@ func TestAmbiguousAndBillingAliasesNeverDispatch(t *testing.T) {
 	for _, plan := range []string{"Preferred Care", "BCBS Medicare HMO", "Wellcare Medicaid", "Metlife", "Versant", "Ambetter Vision"} {
 		in := input()
 		in.Plan = plan
-		out, err := s.Check(context.Background(), in)
+		out, err := s.Check(context.Background(), "office", in)
 		if err != nil || out.Status != "review" || out.ReviewReason == "" {
 			t.Errorf("%s: %+v %v", plan, out, err)
 		}

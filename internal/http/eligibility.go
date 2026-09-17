@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 
+	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/eligibility"
 	"advancedmd-token-management/internal/safeerrors"
 )
@@ -18,7 +19,12 @@ func (h *Handlers) HandleEligibility(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"eligibility_not_configured"}`, http.StatusServiceUnavailable)
 		return
 	}
-	var input eligibility.CheckInput
+	// Office is trusted integration context, using the same registry/default as
+	// other middleware endpoints; it is not a clinical question for the patient.
+	var input struct {
+		eligibility.CheckInput
+		Office string `json:"office,omitempty"`
+	}
 	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 128*1024))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&input); err != nil {
@@ -29,9 +35,14 @@ func (h *Handlers) HandleEligibility(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"invalid_eligibility_input"}`, http.StatusBadRequest)
 		return
 	}
-	result, err := h.eligibility.Check(r.Context(), input)
+	office, err := domain.ResolveOffice(input.Office)
 	if err != nil {
-		http.Error(w, `{"error":"invalid_eligibility_input_or_history"}`, http.StatusBadRequest)
+		http.Error(w, `{"error":"invalid_office"}`, http.StatusBadRequest)
+		return
+	}
+	result, err := h.eligibility.Check(r.Context(), office.ID, input.CheckInput)
+	if err != nil {
+		http.Error(w, `{"error":"invalid_eligibility_input"}`, http.StatusBadRequest)
 		return
 	}
 	// A receipt is still HTTP 200 when the payer outcome is unknown. Preserve
@@ -41,11 +52,11 @@ func (h *Handlers) HandleEligibility(w http.ResponseWriter, r *http.Request) {
 		switch result.ReviewReason {
 		case "stedi_http_failure":
 			category = safeerrors.CategoryUpstreamStatus
-		case "unrecognized_response", "search_chain_mismatch", "nonproduction_or_unknown_mode":
+		case "unrecognized_response", "nonproduction_or_unknown_mode":
 			category = safeerrors.CategoryInvalidResponse
 		}
 		recordRequestOutcome(r.Context(), outcomeProviderFailure, category)
-	} else if result.Status == "payer_rejected" {
+	} else if result.ReviewReason == "payer_rejected" {
 		recordRequestOutcome(r.Context(), outcomeProviderFailure, safeerrors.CategoryRejected)
 	}
 	_ = json.NewEncoder(w).Encode(result)

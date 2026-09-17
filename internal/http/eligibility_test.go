@@ -30,7 +30,7 @@ func TestEligibilityRouteAuthAndStrictInput(t *testing.T) {
 	if w.Code != 503 {
 		t.Fatal("unconfigured integration must fail visibly")
 	}
-	s, err := eligibility.New("key", map[string]eligibility.Provider{"office": {OrganizationName: "Synthetic Practice", NPI: "1999999984"}})
+	s, err := eligibility.New("key", map[string]eligibility.Provider{"spring_hill": {OrganizationName: "Synthetic Practice", NPI: "1999999984"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,8 +53,8 @@ func TestEligibilityReceiptsLogSafeProviderFailures(t *testing.T) {
 		httpStatus                   int
 		err                          error
 	}{
-		{name: "active", body: active, status: "completed", category: "none", httpStatus: 200},
-		{name: "payer rejection", body: `{"meta":{"applicationMode":"production"},"errors":[{"code":"75"}]}`, status: "payer_rejected", category: "rejected", httpStatus: 200},
+		{name: "active", body: active, status: "active", category: "none", httpStatus: 200},
+		{name: "payer rejection", body: `{"meta":{"applicationMode":"production"},"errors":[{"code":"75"}]}`, status: "review", category: "rejected", httpStatus: 200},
 		{name: "upstream status", status: "unknown", category: "upstream_status", httpStatus: 500},
 		{name: "timeout", status: "unknown", category: "upstream_error", err: context.DeadlineExceeded},
 		{name: "malformed response", body: `invalid`, status: "unknown", category: "invalid_response", httpStatus: 200},
@@ -76,14 +76,14 @@ func TestEligibilityReceiptsLogSafeProviderFailures(t *testing.T) {
 				}
 				return &http.Response{StatusCode: tc.httpStatus, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(tc.body)), Request: r}, nil
 			})
-			s, err := eligibility.New("synthetic-secret", map[string]eligibility.Provider{"office": {OrganizationName: "Synthetic Practice", NPI: "1999999984"}})
+			s, err := eligibility.New("synthetic-secret", map[string]eligibility.Provider{"spring_hill": {OrganizationName: "Synthetic Practice", NPI: "1999999984"}})
 			if err != nil {
 				t.Fatal(err)
 			}
 			h := NewHandlers(nil, nil, nil)
 			h.SetEligibility(s)
 			router := NewRouter(h, "secret", nil)
-			req := httptest.NewRequest(http.MethodPost, "/api/eligibility/check", strings.NewReader(`{"scope":{"officeId":"office","patientId":"private-patient","appointmentId":"private-appointment","serviceDate":"20260916"},"plan":"Oscar Health","subscriber":{"firstName":"SyntheticJane","lastName":"PrivateSample","dateOfBirth":"19800102","memberId":"private-member"}}`))
+			req := httptest.NewRequest(http.MethodPost, "/api/eligibility/check", strings.NewReader(`{"firstName":"SyntheticJane","lastName":"PrivateSample","dob":"1980-01-02","memberId":"private-member","plan":"Oscar Health"}`))
 			req.Header.Set("Authorization", "secret")
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
@@ -99,11 +99,65 @@ func TestEligibilityReceiptsLogSafeProviderFailures(t *testing.T) {
 			if entry["outcome_category"] != wantOutcome || entry["provider_failure_category"] != tc.category {
 				t.Fatalf("unexpected log categories: %v", entry)
 			}
-			for _, private := range []string{"SyntheticJane", "PrivateSample", "19800102", "private-patient", "private-appointment", "private-member", "synthetic-secret"} {
+			for _, private := range []string{"SyntheticJane", "PrivateSample", "19800102", "private-member", "synthetic-secret"} {
 				if strings.Contains(logs.String(), private) {
 					t.Fatal("private evidence present in request logs")
 				}
 			}
 		})
+	}
+}
+
+func TestEligibilityUsesExistingOfficeContextAndRejectsBookingInputs(t *testing.T) {
+	previousTransport := http.DefaultTransport
+	t.Cleanup(func() { http.DefaultTransport = previousTransport })
+	calls := 0
+	var providerName string
+	http.DefaultTransport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		calls++
+		var request eligibility.Request
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Fatal(err)
+		}
+		providerName = request.Provider.OrganizationName
+		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"meta":{"applicationMode":"production"},"subscriber":{"firstName":"Jane","lastName":"Sample","dateOfBirth":"19800102"},"benefitsInformation":[{"code":"1","serviceTypeCodes":["30"]}]}`)), Request: r}, nil
+	})
+	service, err := eligibility.New("secret", map[string]eligibility.Provider{
+		"spring_hill": {OrganizationName: "Default Practice", NPI: "1999999984"},
+		"hollywood":   {OrganizationName: "Hollywood Practice", NPI: "1659862753"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := NewHandlers(nil, nil, nil)
+	h.SetEligibility(service)
+	router := NewRouter(h, "secret", nil)
+	send := func(body map[string]any) *httptest.ResponseRecorder {
+		data, _ := json.Marshal(body)
+		r := httptest.NewRequest("POST", "/api/eligibility/check", bytes.NewReader(data))
+		r.Header.Set("Authorization", "secret")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+		return w
+	}
+	body := map[string]any{"firstName": "Jane", "lastName": "Sample", "dob": "1980-01-02", "memberId": "synthetic", "plan": "Oscar Health"}
+	if w := send(body); w.Code != 200 || providerName != "Default Practice" {
+		t.Fatal("five clinical inputs must suffice with configured default office")
+	}
+	body["office"] = "Hollywood"
+	if w := send(body); w.Code != 200 || providerName != "Hollywood Practice" {
+		t.Fatal("trusted office context must choose its configured provider")
+	}
+	body["office"] = "not-an-office"
+	if w := send(body); w.Code != 400 || calls != 2 {
+		t.Fatal("unknown office must not fall back")
+	}
+	delete(body, "office")
+	for _, field := range []string{"history", "scope", "patientId", "appointmentId", "intakeId", "serviceDate", "provider", "subscriber", "dependent", "recordedNames"} {
+		body[field] = "unused"
+		if w := send(body); w.Code != 400 || calls != 2 {
+			t.Errorf("old/unsupported field %s accepted", field)
+		}
+		delete(body, field)
 	}
 }
