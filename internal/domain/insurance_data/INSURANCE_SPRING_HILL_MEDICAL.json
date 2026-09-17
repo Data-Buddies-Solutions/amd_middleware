@@ -175,7 +175,10 @@
       "status": "accepted",
       "canonicalPlan": "Florida Medicaid",
       "displayName": "Florida Medicaid",
-      "aliases": []
+      "aliases": [
+        "Straight Medicaid",
+        "Straight Florida Medicaid"
+      ]
     },
     {
       "status": "accepted",
@@ -216,10 +219,11 @@
       "aliases": []
     },
     {
-      "status": "accepted",
-      "canonicalPlan": "Medicaid",
+      "status": "needs_clarification",
+      "canonicalPlan": null,
       "displayName": "Medicaid",
-      "aliases": []
+      "aliases": [],
+      "clarificationNeeded": "the exact Medicaid plan, or confirmation of straight Florida Medicaid"
     },
     {
       "status": "accepted",

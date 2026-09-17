@@ -117,7 +117,7 @@ func TestCreateReturnsExistingSuccessContract(t *testing.T) {
 		State:          "fl",
 		Zip:            "34609",
 		Sex:            "female",
-		Insurance:      "Humana PPO",
+		Insurance:      "Meritain Health",
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -445,8 +445,8 @@ func TestCreateReconcilesAmbiguousInsuranceAttachment(t *testing.T) {
 	}
 	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.Demographics["123"] = domain.PatientDemographics{
-		CarrierName:         "HUMANA MEDICARE",
-		CarrierID:           "car308175",
+		CarrierName:         "MERITAIN HEALTH",
+		CarrierID:           "car301578",
 		InsPlanID:           "ins456",
 		RespPartyID:         "resp456",
 		SubscriberNum:       "H123",
@@ -473,7 +473,7 @@ func TestUpdateInsuranceReturnsExistingSuccessContract(t *testing.T) {
 		InsPlanID:      "ins123",
 		RespPartyID:    "resp123",
 		OldInsurance:   "Old",
-		Insurance:      "Humana PPO",
+		Insurance:      "Meritain Health",
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -483,7 +483,7 @@ func TestUpdateInsuranceReturnsExistingSuccessContract(t *testing.T) {
 		Status:           patient.UpdateInsuranceStatusUpdated,
 		PatientID:        "123",
 		OldInsurance:     "Old",
-		NewInsurance:     "Humana PPO",
+		NewInsurance:     "Meritain Health",
 		Routing:          domain.RoutingBachOnly,
 		AllowedProviders: []string{"Dr. Bach"},
 		Message:          "Insurance updated successfully",
@@ -520,8 +520,8 @@ func TestUpdateInsuranceReconcilesAmbiguousWriteAfterTransientReadFailure(t *tes
 		nil,
 	}
 	amd.Demographics["123"] = domain.PatientDemographics{
-		CarrierName:         "HUMANA MEDICARE",
-		CarrierID:           "car308175",
+		CarrierName:         "MERITAIN HEALTH",
+		CarrierID:           "car301578",
 		InsPlanID:           "ins456",
 		RespPartyID:         "resp123",
 		SubscriberNum:       "H123",
@@ -590,7 +590,7 @@ func TestUpdateInsuranceDoesNotAcceptPreexistingSameCarrierAsReconciledSuccess(t
 	amd := advancedmdtest.NewAdapter()
 	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.Demographics["123"] = domain.PatientDemographics{
-		CarrierID:           "car308175",
+		CarrierID:           "car301578",
 		InsPlanID:           "ins456",
 		RespPartyID:         "resp123",
 		SubscriberNum:       "OLD-MEMBER",
@@ -629,7 +629,7 @@ func TestUpdateInsuranceReturnsIndeterminateWhenInsuranceStateIsIncomplete(t *te
 	amd := advancedmdtest.NewAdapter()
 	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.Demographics["123"] = domain.PatientDemographics{
-		CarrierID: "car308175",
+		CarrierID: "car301578",
 		InsPlanID: "ins456",
 	}
 
@@ -774,7 +774,7 @@ func validCreateCommand() patient.CreateCommand {
 		State:          "FL",
 		Zip:            "34609",
 		Sex:            "female",
-		Insurance:      "Humana PPO",
+		Insurance:      "Meritain Health",
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -788,7 +788,7 @@ func validUpdateInsuranceCommand() patient.UpdateInsuranceCommand {
 		InsPlanID:      "ins123",
 		RespPartyID:    "resp123",
 		OldInsurance:   "Old",
-		Insurance:      "Humana PPO",
+		Insurance:      "Meritain Health",
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -1099,8 +1099,8 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 		{
 			name: "preauthorization carrier",
 			demographics: domain.PatientDemographics{
-				CarrierName: "AETNA HMO",
-				CarrierID:   "car40907",
+				CarrierName: "CIGNA HMO",
+				CarrierID:   "car301345",
 			},
 			patientDOB:       "01/01/1980",
 			wantRouting:      domain.RoutingAll,

@@ -10,9 +10,9 @@ import (
 )
 
 func TestSharedCarrierCannotBypassChartAuthorizationAtBooking(t *testing.T) {
-	for _, tc := range []struct{ chart, requested, carrier string }{
-		{"Cigna HMO", "Cigna PPO", "car301345"},
-		{"United Healthcare NHP HMO Only", "United Healthcare NHP HMO Access", "car40923"},
+	for _, tc := range []struct{ chart, requested, carrier, requestedCarrier string }{
+		{"Cigna HMO", "Cigna PPO", "car301345", "car40895"},
+		{"United Healthcare NHP HMO Only", "United Healthcare NHP HMO Access", "car40923", "car40923"},
 	} {
 		t.Run(tc.chart, func(t *testing.T) {
 			records := recordsWithSetup(testColumn("1268", "620", "1480", "09:00", "09:15", 15))
@@ -26,7 +26,7 @@ func TestSharedCarrierCannotBypassChartAuthorizationAtBooking(t *testing.T) {
 				t.Fatalf("chart product restrictions bypassed: err=%v writes=%d", err, len(records.Bookings))
 			}
 			// The same fixture and requested product are bookable when the chart agrees.
-			records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: tc.requested, CarrierID: tc.carrier}
+			records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: tc.requested, CarrierID: tc.requestedCarrier}
 			if _, err := svc.Book(context.Background(), command); err != nil {
 				t.Fatalf("control with matching product failed: %v", err)
 			}

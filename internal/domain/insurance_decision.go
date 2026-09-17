@@ -92,7 +92,8 @@ var participationSources = func() map[string][]participationRule {
 }()
 
 // Corrected plan identities are exact, not substring aliases to a parent carrier.
-// Empty IDs intentionally fail closed until a practice carrier export verifies them.
+// IDs verified against all 312 practice carriers on 2026-09-17.
+// AARPM and UNIT15 remain unresolved: AMD has AARPMC and UNIT5 instead.
 type correctedPlan struct {
 	name, code, id string
 	requirements   []InsuranceRequirement
@@ -104,16 +105,16 @@ func requirement(kind, channel string) InsuranceRequirement {
 }
 
 var correctedPlans = []correctedPlan{
-	{"United Healthcare Individual Exchange", "UNI20", "", []InsuranceRequirement{requirement("pcp_referral", "uhc_portal")}, nil},
+	{"United Healthcare Individual Exchange", "UNI20", "car40923", []InsuranceRequirement{requirement("pcp_referral", "uhc_portal")}, nil},
 	{"United Healthcare AARP Medicare", "AARPM", "", nil, nil},
-	{"United Healthcare Golden Rule", "GOL05", "", nil, nil},
-	{"United Healthcare Oxford", "OX04", "", nil, nil},
-	{"United Healthcare Shared Services", "UNIT9", "", nil, nil},
-	{"United Healthcare Student Resources", "UHC STU", "", nil, nil},
-	{"United Healthcare Surest", "BIND1", "", nil, nil},
+	{"United Healthcare Golden Rule", "GOL05", "car40902", nil, nil},
+	{"United Healthcare Oxford", "OX04", "car284471", nil, nil},
+	{"United Healthcare Shared Services", "UNIT9", "car303047", nil, nil},
+	{"United Healthcare Student Resources", "UHC STU", "car283950", nil, nil},
+	{"United Healthcare Surest", "BIND1", "car301501", nil, nil},
 	{"United Healthcare Global", "UNIT15", "", []InsuranceRequirement{requirement("vob_authorization", "")}, nil},
 	{"Preferred Care Partners", "PRE04", "car40916", nil, []string{"Dr. Austin Bach", "Dr. Calero", "Dr. Casas"}},
-	{"Humana Medicaid HMO", "HUM02", "", []InsuranceRequirement{requirement("prior_authorization", "availity")}, nil},
+	{"Humana Medicaid HMO", "HUM02", "car303033", []InsuranceRequirement{requirement("prior_authorization", "availity")}, nil},
 }
 var correctedAliases = map[string]string{
 	"united individual exchange": "United Healthcare Individual Exchange", "united healthcare individual exchange network": "United Healthcare Individual Exchange",
@@ -235,15 +236,12 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 	} else if entry.PreauthRequired || r.Preauth {
 		d.Requirements = append(d.Requirements, requirement("prior_authorization", ""))
 	}
-	if coverage == "medical" && insuranceNormalize(d.CanonicalPlan) == "united healthcare nhp hmo only" {
-		d.Requirements = append(d.Requirements, requirement("pcp_referral", ""))
-	}
 	if coverage == "medical" {
-		switch insuranceNormalize(d.CanonicalPlan) {
-		case "ambetter value", "molina medicare":
-			d.Requirements = append(d.Requirements, requirement("pcp_referral", ""))
-		case "umr", "aetna epo university of miami", "aetna epo north broward":
-			d.Requirements = append(d.Requirements, requirement("network_review", ""))
+		if correction == nil {
+			d.CarrierCode = medicalCarrierCodes[d.CarrierID]
+		}
+		if requirements := medicalRequirements(d.CanonicalPlan); requirements != nil {
+			d.Requirements = requirements
 		}
 	}
 	d.SelfPay = IsSelfPayInsurance(d.CanonicalPlan)
@@ -291,6 +289,12 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 			}
 		case "prior_authorization":
 			d.Answer += " Prior authorization is required."
+		case "precertification":
+			d.Answer += " Eligibility and pre-certification must be obtained through ehealthdeck."
+		case "benefits_review":
+			d.Answer += " Staff must obtain eligibility and benefits from Envolve."
+		case "secondary_coverage":
+			d.Answer += " Medicare must be primary; staff must verify the coverage order."
 		case "network_review":
 			d.Answer += " The office must confirm network limitations and any required authorization."
 		case "vob_authorization":
@@ -299,6 +303,12 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 	}
 	if !d.CanRegister {
 		d.Answer += " Staff must verify the insurance attachment details before registration or insurance changes."
+		if d.CarrierCode == "AARPM" {
+			d.Answer += " The document says AARPM; AMD lists AARPMC. Staff must reconcile the code."
+		}
+		if d.CarrierCode == "UNIT15" {
+			d.Answer += " The document says UNIT15; AMD lists UNIT5. Staff must reconcile the code."
+		}
 	}
 	if r.Notice != "" {
 		d.Answer += " " + r.Notice
@@ -346,6 +356,11 @@ func correctedEntry(code string, routing RoutingRule) InsuranceEntry {
 // conflict as a review hold; never expand an office contract by inference.
 func insuranceSourceConflict(plan, canonical, coverage, office string) string {
 	n := insuranceNormalize(plan + " " + canonical)
+	if coverage == "medical" {
+		if reason := medicalReferenceConflict(canonical); reason != "" {
+			return reason
+		}
+	}
 	if office == "hollywood" && (strings.Contains(n, "aetna better health") || strings.Contains(n, "molina medicaid")) {
 		return "The reference limits this Medicaid plan to Miami-Dade, but the older office list includes it here."
 	}

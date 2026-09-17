@@ -29,8 +29,14 @@ func TestCorrectedInsuranceIdentities(t *testing.T) {
 			if tc.kind != "" && (len(d.Requirements) != 1 || d.Requirements[0] != (InsuranceRequirement{tc.kind, tc.channel, "unverified"})) {
 				t.Fatalf("requirements=%+v", d.Requirements)
 			}
-			if tc.code != "PRE04" && (d.CanRegister || d.CanSchedule || d.CarrierID != "") {
+			if (tc.code == "AARPM" || tc.code == "UNIT15") && (d.CanRegister || d.CanSchedule || d.CarrierID != "") {
 				t.Fatal("Unverified carrier ID allowed a write")
+			}
+			if tc.code != "AARPM" && tc.code != "UNIT15" && !d.CanRegister {
+				t.Fatalf("verified attachment blocked: %+v", d)
+			}
+			if tc.kind != "" && d.CanSchedule {
+				t.Fatal("requirement bypassed")
 			}
 			if tc.code == "PRE04" && (d.CarrierID != "car40916" || !d.CanSchedule) {
 				t.Fatalf("PRE04=%+v", d)

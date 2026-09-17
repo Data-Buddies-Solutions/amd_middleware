@@ -9,7 +9,7 @@ import (
 )
 
 func TestCorrectedCarrierIsValidatedBeforeAnyInsuranceMutation(t *testing.T) {
-	for _, plan := range []string{"United Golden Rule", "United Individual Exchange", "United Global International Plan", "Humana Medicaid HMO", "Humana", "HUM03"} {
+	for _, plan := range []string{"United AARP Medicare Complete", "United Global International Plan", "Humana PPO", "United Healthcare All Savers", "Medicaid", "Humana", "HUM03"} {
 		records := advancedmdtest.NewAdapter()
 		create := validCreateCommand()
 		create.Office = "Hollywood"
@@ -36,5 +36,27 @@ func TestPreferredCareUsesItsOwnCarrierAndReceipt(t *testing.T) {
 	}
 	if len(records.Insurances) != 1 || records.Insurances[0].CarrierID != "car40916" || result.Routing != domain.RoutingBachOnly {
 		t.Fatalf("insurance=%+v", records.Insurances)
+	}
+}
+
+func TestVerifiedMedicalCarriersReachInsuranceWrite(t *testing.T) {
+	for _, tc := range []struct{ plan, id, code string }{
+		{"Humana Medicaid HMO", "car303033", "HUM02"},
+		{"United Golden Rule", "car40902", "GOL05"},
+		{"United Individual Exchange", "car40923", "UNI20"},
+		{"Cigna PPO", "car40895", "CIG09"},
+		{"Molina Medicare", "car301507", "MOLI2"},
+		{"Tricare Select", "car284327", "TRI00"},
+	} {
+		t.Run(tc.plan, func(t *testing.T) {
+			records := advancedmdtest.NewAdapter()
+			result := patient.New(records).UpdateInsurance(context.Background(), patient.UpdateInsuranceCommand{PatientID: "123", RespPartyID: "resp123", Insurance: tc.plan, SubscriberNum: "synthetic", Office: "Hollywood", DOB: "01/02/1980"})
+			if result.Status != patient.UpdateInsuranceStatusUpdated || result.InsuranceDecision == nil || result.InsuranceDecision.CarrierCode != tc.code || len(records.Insurances) != 1 || records.Insurances[0].CarrierID != tc.id {
+				t.Fatalf("wrong insurance write: result=%+v records=%+v", result, records.Insurances)
+			}
+			if tc.code == "HUM02" && result.InsuranceDecision.CanSchedule {
+				t.Fatal("attachment cleared authorization")
+			}
+		})
 	}
 }

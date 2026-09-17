@@ -115,10 +115,10 @@ func TestMedicalAttachmentMappings(t *testing.T) {
 		{"case insensitive", "HUMANA MEDICARE", "car308175", RoutingBachOnly, true},
 		{"with whitespace", "  Aetna  ", "car40887", RoutingAll, true},
 		{"all three default", "Florida Blue", "car40897", RoutingAll, true},
-		{"bach + licht", "Tricare Prime", "car40921", RoutingBachLicht, true},
+		{"bach + licht", "Tricare Prime", "car284327", RoutingBachLicht, true},
 		{"not accepted", "Molina Marketplace", "car308175", RoutingNotAccepted, true},
 		{"alias match", "Oscar", "car284233", RoutingBachLicht, true},
-		{"alias shorthand", "Humana", "car308175", RoutingBachOnly, true},
+		{"alias shorthand", "Humana", "", RoutingBachOnly, true},
 		{"unknown carrier", "unknown", "", "", false},
 		{"empty string", "", "", "", false},
 	}
@@ -150,8 +150,8 @@ func TestLookupInsurance_AgentCanonicalAcceptedPlans(t *testing.T) {
 		{"Aetna Commercial", "car40887"},
 		{"Aetna PPO", "car40887"},
 		{"Aetna Managed Choice", "car40887"},
-		{"Aetna Medicare", "car40887"},
-		{"Aetna Medicare PPO", "car40887"},
+		{"Aetna Medicare", "car40907"},
+		{"Aetna Medicare PPO", "car40907"},
 	}
 
 	for _, tt := range tests {
@@ -247,13 +247,13 @@ func TestLookupInsuranceForCoverage_RoutineVision(t *testing.T) {
 	}
 }
 
-func TestLookupInsuranceForCoverage_AetnaGovernmentRuleIsVisionOnly(t *testing.T) {
+func TestMedicalAetnaMedicareUsesDocumentedICareCarrier(t *testing.T) {
 	entry, found := LookupInsuranceForCoverageAtOffice("Aetna Medicare", InsuranceModeMedical, DefaultOffice())
 	if !found {
 		t.Fatal("Aetna Medicare medical found = false, want true")
 	}
-	if entry.CarrierID != "car40887" {
-		t.Fatalf("Aetna Medicare medical carrierID = %q, want car40887", entry.CarrierID)
+	if entry.CarrierID != "car40907" {
+		t.Fatalf("Aetna Medicare medical carrierID = %q, want car40907", entry.CarrierID)
 	}
 }
 

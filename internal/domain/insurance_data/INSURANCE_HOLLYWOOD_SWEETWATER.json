@@ -61,8 +61,7 @@
       "status": "accepted",
       "canonicalPlan": "Aetna HMO",
       "displayName": "Aetna HMO",
-      "aliases": [],
-      "preauthRequired": true
+      "aliases": []
     },
     {
       "status": "accepted",
@@ -323,7 +322,10 @@
       "status": "accepted",
       "canonicalPlan": "Florida Medicaid",
       "displayName": "Florida Medicaid",
-      "aliases": []
+      "aliases": [
+        "Straight Medicaid",
+        "Straight Florida Medicaid"
+      ]
     },
     {
       "status": "accepted",
@@ -400,10 +402,11 @@
       "aliases": []
     },
     {
-      "status": "accepted",
-      "canonicalPlan": "Medicaid",
+      "status": "needs_clarification",
+      "canonicalPlan": null,
       "displayName": "Medicaid",
-      "aliases": []
+      "aliases": [],
+      "clarificationNeeded": "the exact Medicaid plan, or confirmation of straight Florida Medicaid"
     },
     {
       "status": "accepted",
@@ -785,8 +788,8 @@
     },
     {
       "status": "accepted",
-      "canonicalPlan": "Envolve Vision",
-      "displayName": "Envolve Vision",
+      "canonicalPlan": "Sunshine Medicaid",
+      "displayName": "Sunshine Medicaid",
       "aliases": [
         "Sunshine",
         "Sunshine Health",
@@ -918,10 +921,11 @@
     },
     {
       "status": "accepted",
-      "canonicalPlan": "Medicaid",
+      "canonicalPlan": "Florida Medicaid",
       "displayName": "Straight Medicaid",
       "aliases": [
-        "Straight Medicaid"
+        "Straight Medicaid",
+        "Straight Florida Medicaid"
       ]
     },
     {
@@ -1131,6 +1135,64 @@
         "Cash Pay",
         "Cash"
       ]
+    },
+    {
+      "status": "accepted",
+      "canonicalPlan": "Seminole Tribe",
+      "displayName": "Seminole Tribe",
+      "aliases": [
+        "Seminole Tribe of Florida Self-Funded Health Plan"
+      ],
+      "callerNotice": "Medical visits are limited to Dr. Austin Bach and require a referral."
+    },
+    {
+      "status": "needs_staff_task",
+      "canonicalPlan": "Clear Spring Health",
+      "displayName": "Clear Spring Health",
+      "aliases": [
+        "Clear Spring Health Medicare Advantage"
+      ],
+      "callerNotice": "The document lists medical participation with Dr. Austin Bach but no AMD billing code; staff must confirm the attachment."
+    },
+    {
+      "status": "needs_staff_task",
+      "canonicalPlan": "SouthBay Medical Center",
+      "displayName": "SouthBay Medical Center",
+      "aliases": [
+        "Medical Center International",
+        "SouthBay Medical Center"
+      ],
+      "callerNotice": "The document describes Dr. Austin Bach medical visits at a special $75 self-pay rate; staff must arrange this rate."
+    },
+    {
+      "status": "not_accepted",
+      "canonicalPlan": "AvMed Entrust",
+      "displayName": "AvMed Entrust",
+      "aliases": [
+        "AvMed Entrust Medical"
+      ],
+      "callerNotice": "The document lists this medical plan as nonparticipating."
+    },
+    {
+      "status": "not_accepted",
+      "canonicalPlan": "AvMed Jackson First Network HMO",
+      "displayName": "AvMed Jackson First Network HMO",
+      "aliases": [],
+      "callerNotice": "The document lists this medical network as nonparticipating."
+    },
+    {
+      "status": "not_accepted",
+      "canonicalPlan": "Cigna Florida Connect EPO",
+      "displayName": "Cigna Florida Connect EPO",
+      "aliases": [],
+      "callerNotice": "The document lists this medical plan as nonparticipating."
+    },
+    {
+      "status": "not_accepted",
+      "canonicalPlan": "Cigna Sure Fit",
+      "displayName": "Cigna Sure Fit",
+      "aliases": [],
+      "callerNotice": "The document lists this medical plan as nonparticipating."
     }
   ]
 }

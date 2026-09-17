@@ -47,7 +47,9 @@ Neither hospital follow-up nor the referring doctor's name verifies authorizatio
 
 Reference: **Abita Eye Group Insurance List - Google Sheets (1).pdf**, dated
 7/7/2026, eight pages, reviewed 2026-09-17. The PDF is reference data only.
-The user's explicit corrections take precedence. The office participation catalogs
+The user's explicit corrections take precedence. The 2026-09-17 follow-up
+applies this document to **medical insurance only**. Routine-vision data, mappings,
+and requirements are unchanged by that follow-up. The office participation catalogs
 previously embedded in Python moved to `internal/domain/insurance_data`; Python no
 longer ships or evaluates them. The deterministic decision is in
 `internal/domain/insurance_decision.go`; internal transport mappings remain in
@@ -55,27 +57,48 @@ longer ships or evaluates them. The deterministic decision is in
 
 | Plan | Code | Requirement / restriction | Attachment ID evidence |
 |---|---|---|---|
-| United Individual Exchange | UNI20 | PCP referral in UHC portal | Unresolved |
+| United Individual Exchange | UNI20 | PCP referral in UHC portal | AMD directory: `car40923` |
 | United AARP Medicare Complete/Advantage HMO/LPPO | AARPM | Separate product from other United plans | Unresolved |
-| United Golden Rule | GOL05 | Separate product | Unresolved |
-| United Oxford | OX04 | Separate product | Unresolved |
-| United Shared Services | UNIT9 | Separate product | Unresolved |
-| United Student Resources | UHC STU | Separate product | Unresolved |
-| United Surest | BIND1 | Separate product | Unresolved |
+| United Golden Rule | GOL05 | Separate product | AMD directory: `car40902` |
+| United Oxford | OX04 | Separate product | AMD directory: `car284471` |
+| United Shared Services | UNIT9 | Separate product | AMD directory: `car303047` |
+| United Student Resources | UHC STU | Separate product | AMD directory: `car283950` |
+| United Surest | BIND1 | Separate product | AMD directory: `car301501` |
 | United Global International | UNIT15 | VOB authorization | Unresolved |
-| Preferred Care Partners | PRE04 | Medical only; Austin Bach, Calero, Casas | Existing repository carrier `car40916` |
-| Humana Medicaid HMO (PDF row) | HUM02 | Authorization through Availity | Unresolved |
+| Preferred Care Partners | PRE04 | Medical only; Austin Bach, Calero, Casas | AMD directory: `car40916` |
+| Humana Medicaid HMO (PDF row) | HUM02 | Authorization through Availity | AMD directory: `car303033` |
 
-For unresolved IDs, a verified practice/environment carrier export is required.
-Do not insert these codes into AMD's carrier-ID field or reuse a parent carrier ID.
-The old Global ID is not assumed to prove the code UNIT15. Likewise, an old United
-bucket does not prove UNI20 or any other corrected code. PRE04's ID is repository
-crosswalk evidence, not a live provider attachment test.
+The complete practice AMD directory was read on 2026-09-17: 312 unique carriers
+across all seven pages. No patient charts were read or changed. Exact codes were
+matched to record IDs; no billing code is written into AMD's carrier-ID field.
 
-The reported HUM03/HUM02 case has no verified caller plan identity or booking
-outcome. The PDF identifies HUM02 as Humana Medicaid HMO, but that is not proof that
-the reported caller held that product. HUM03 is unresolved. No production chart was
-read or mutated to resolve the report; committed regressions use synthetic people.
+Additional medical corrections:
+
+| Product | Document code | Verified attachment |
+|---|---|---|
+| Cigna PPO / Open Access / Miami-Dade Public Schools | CIG09 | car40895 |
+| Humana Medicare PPO | HUM PPO | car303062 |
+| Humana Premier HMO | HUMPHMO | car303061 |
+| Molina Medicare | MOLI2 | car301507 |
+| Molina Medicaid (Miami-Dade scope) | ICA01 | car40907 |
+| UMR / US Health Group | UNIT3 | car284838 |
+| Tricare Prime / Select | TRI00 | car284327 |
+| Tricare For Life | TRI05 | car40921; Medicare-primary review |
+| Aetna commercial HMO | AET07 | car40887 |
+| Aetna Medicare | ICA01 | car40907 |
+| Straight Florida Medicaid | FLO03 | car40899 |
+| Seminole Tribe (Hollywood/Sweetwater medical) | SEMI1 | car301427; PCP referral |
+
+Generic Medicaid requires the actual product or confirmation of straight Medicaid;
+it cannot select HUM02. The reported HUM03/HUM02 case still has no verified caller
+plan identity. HUM03 is the separate AMD Humana Gold record, not a catch-all for
+Humana, Molina, or Cigna products.
+
+Exact-code discrepancies remain **blocked before any chart mutation**:
+AARPM versus AMD AARPMC, UNIT15 versus UNIT5, ALL1 versus ALL 1, commercial HUMPPO
+versus HUM PPO, and SUNHE versus SUNHEALT. The document separately spells Medicare
+PPO as HUM PPO, so that product is verified. Candidate records are not silently
+substituted for disputed codes.
 
 ## Scope conflicts and unresolved evidence
 
@@ -100,9 +123,17 @@ read or mutated to resolve the report; committed regressions use synthetic peopl
   Crystal River exclusions remain. Generic Humana/United/NHP names require detail.
 - The migrated Hollywood `Envolve Vision` medical acceptance has no matching accepted
   backend entry. It returns a source-conflict hold.
-- Other PDF billing codes have not been converted into newly guessed AMD record IDs.
-  Existing mappings remain scoped by their office/coverage catalogs. This is not a
-  fresh provider-directory or full benefits verification.
+- Medical eligibility/pre-certification through ehealthdeck and Envolve benefits
+  review are explicit unverified scheduling holds where required by the document.
+  Cigna HMO/Healthspring referrals, EMI authorization, UMR/network review, and
+  Medicare-primary ordering for Tricare For Life remain holds. AvMed network and
+  age-specific Engage referral details require staff review rather than a blanket
+  assertion that no referral is needed.
+- Missing-code arrangements such as Clear Spring, Partners Direct Health, and
+  SouthBay's special self-pay rate require staff handling. Explicit AvMed Entrust,
+  Jackson First HMO, Cigna Florida Connect EPO and Sure Fit exclusions are recorded.
+- Carrier-directory identity is verified; individual eligibility and benefits are
+  not. This is not live insurance attachment or booking proof.
 
 ## Before/after evidence
 
@@ -111,11 +142,16 @@ Baseline middleware: `12752fa`; baseline Python: `9cc440a`.
 | Synthetic scenario | Before | After / regression |
 |---|---|---|
 | Preferred Care Partners | Hollywood lookup and its test expected United `car40923` | PRE04 / `car40916`; `TestPreferredCareUsesItsOwnCarrierAndReceipt` checks the attachment |
-| United product names | AARP, Golden Rule, Oxford, Shared Services, Student Resources and Surest collapsed to United | `TestCorrectedInsuranceIdentities` checks every distinct code and no guessed attachment |
-| Humana / HUM02 | Generic Humana alias selected PPO; Medicaid used consolidated ID | Exact-plan clarification; HUM02 authorization and missing-ID hold |
+| United product names | AARP, Golden Rule, Oxford, Shared Services, Student Resources and Surest collapsed to United | `TestCorrectedInsuranceIdentities` checks every distinct code and only verified attachments |
+| Humana / HUM02 | Generic Humana alias selected PPO; Medicaid used consolidated ID | Exact-plan clarification; HUM02 / car303033 with authorization hold |
 | Caller supplies permissive routing | Booking reread DOB but did not validate chart insurance | `TestInsuranceRequirementsCannotBeBypassedByBookingRouting` and PRE04 column regression assert no writes |
 | Hospital follow-up | No structured hospital/date fields or backend requirement | Missing-field response, persisted details, insurance holds still enforced |
 | Python plan correction / late response | Synchronous local matching with a second set of rules | HTTP contract, revision guards, current-patient plan propagation, fail closed on malformed/unavailable responses |
+
+The medical follow-up additionally exercises real patient-service update calls against
+the synthetic AMD adapter, asserting exact carrier IDs in writes and preventing
+mutations for disputed codes. All 145 existing routine-vision catalog/office decisions
+were compared with the pre-change snapshot and were identical.
 
 Validation uses offline synthetic fixtures, including HTTP and native LiveKit tool
 sessions. It does not prove live insurance attachment, eligibility, portal verification,
