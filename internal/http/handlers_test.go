@@ -246,12 +246,13 @@ func TestAvailabilityRouteRetainsAuthenticationAndResponseContract(t *testing.T)
 }
 
 type schedulingStub struct {
-	result       domain.AvailabilityResponse
-	err          error
-	bookResult   schedulingmodule.BookReceipt
-	bookErr      error
-	cancelResult schedulingmodule.CancelReceipt
-	cancelErr    error
+	result           domain.AvailabilityResponse
+	err              error
+	bookResult       schedulingmodule.BookReceipt
+	bookErr          error
+	cancelResult     schedulingmodule.CancelReceipt
+	cancelErr        error
+	rescheduleResult schedulingmodule.RescheduleReceipt
 }
 
 func (s schedulingStub) Search(context.Context, schedulingmodule.SearchCommand) (domain.AvailabilityResponse, error) {
@@ -1459,5 +1460,5 @@ func TestFirstNameDOBUnresolvedHTTPContract(t *testing.T) {
 }
 
 func (s schedulingStub) Reschedule(context.Context, schedulingmodule.BookCommand) (schedulingmodule.RescheduleReceipt, error) {
-	return schedulingmodule.RescheduleReceipt{}, nil
+	return s.rescheduleResult, nil
 }

@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -19,6 +20,44 @@ import (
 
 	"github.com/go-chi/chi/v5"
 )
+
+func TestRequestLogPreservesRescheduleReceiptFailure(t *testing.T) {
+	for _, tc := range []struct {
+		status   string
+		category safeerrors.Category
+	}{{"failed", safeerrors.CategoryRejected}, {"partial", safeerrors.CategoryUnavailable}, {"uncertain", safeerrors.CategoryTimeout}} {
+		t.Run(tc.status, func(t *testing.T) {
+			records := advancedmdtest.NewAdapter()
+			records.SchedulerSetupError = advancedmd.NewError(tc.category)
+			now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+			scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now })
+			_, failure := scheduler.Search(context.Background(), schedulingmodule.SearchCommand{Office: "Spring Hill", RequestedDate: "2026-06-03", Routing: "bach_only"})
+			if failure == nil {
+				t.Fatal("expected scheduling provider failure")
+			}
+			router := NewRouter(&Handlers{scheduling: schedulingStub{rescheduleResult: schedulingmodule.RescheduleReceipt{Status: tc.status, Failure: failure, Message: "Ask staff to reconcile."}}}, "test-secret", nil)
+			var logs bytes.Buffer
+			previous := log.Writer()
+			log.SetOutput(&logs)
+			defer log.SetOutput(previous)
+			req := httptest.NewRequest(http.MethodPost, "/api/appointment/reschedule", strings.NewReader(`{}`))
+			req.Header.Set("Authorization", "Bearer test-secret")
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+			entry := decodeLastLogEntry(t, logs.String())
+			if entry["outcome_category"] != "provider_failure" || entry["provider_failure_category"] != string(tc.category) {
+				t.Fatalf("reschedule failure attribution lost: %v", entry)
+			}
+			var body map[string]any
+			if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+				t.Fatal(err)
+			}
+			if body["status"] != tc.status || len(body) != 2 {
+				t.Fatalf("diagnostics must not alter the public receipt: %s", w.Body.String())
+			}
+		})
+	}
+}
 
 func TestRequestIDMiddlewareHashesCallerValueForLogs(t *testing.T) {
 	var requestID string

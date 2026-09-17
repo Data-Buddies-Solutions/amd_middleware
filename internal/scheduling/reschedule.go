@@ -10,6 +10,8 @@ import (
 // RescheduleReceipt reports the two independent provider effects. A partial or
 // uncertain result must never be presented as a completed move.
 type RescheduleReceipt struct {
+	// Failure preserves diagnostics when the outcome is returned as a receipt.
+	Failure      error          `json:"-"`
 	Status       string         `json:"status"`
 	Outcome      string         `json:"outcome,omitempty"`
 	Booking      *BookReceipt   `json:"booking,omitempty"`
@@ -51,16 +53,18 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 		if CategoryOf(err) == CategoryIndeterminateWrite {
 			status = "uncertain"
 		}
-		return RescheduleReceipt{Status: status, Outcome: string(CategoryOf(err)), Message: err.Error() + " The original appointment was not cancelled."}, nil
+		return RescheduleReceipt{Status: status, Outcome: string(CategoryOf(err)), Failure: err, Message: err.Error() + " The original appointment was not cancelled."}, nil
 	}
 	if replacement.AppointmentID <= 0 || replacement.AppointmentID == policy.AppointmentID {
-		return RescheduleReceipt{Status: "uncertain", Outcome: string(CategoryIndeterminateWrite), Message: "The replacement identity could not be verified. The original was not cancelled; ask staff to reconcile."}, nil
+		err := categorizedError(CategoryIndeterminateWrite, "The replacement identity could not be verified. The original was not cancelled; ask staff to reconcile.")
+		return RescheduleReceipt{Status: "uncertain", Outcome: string(CategoryIndeterminateWrite), Failure: err, Message: err.Error()}, nil
 	}
 	partial := RescheduleReceipt{Status: "partial", Booking: &replacement, Message: "The replacement is booked. The original cancellation is not confirmed. Do not book again; ask staff to reconcile."}
 	// The original may have changed while booking. Keep the replacement and
 	// return partial instead of cancelling an appointment the caller did not confirm.
 	if err := s.verifyRescheduleOriginal(ctx, policy); err != nil {
 		partial.Outcome = string(CategoryOf(err))
+		partial.Failure = err
 		return partial, nil
 	}
 	office, _ := domain.LookupOfficeByID(policy.OfficeID)
@@ -69,6 +73,7 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 	}, domain.PatientAppointment{ID: policy.AppointmentID, OfficeID: policy.OfficeID, Start: policy.start}, office, &cancellationTelemetry{})
 	if err != nil {
 		partial.Outcome = string(CategoryOf(err))
+		partial.Failure = err
 		return partial, nil
 	}
 	return RescheduleReceipt{Status: "completed", Booking: &replacement, Cancellation: &cancellation, Message: "The replacement is booked and the original appointment is cancelled."}, nil

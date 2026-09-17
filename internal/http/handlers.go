@@ -701,7 +701,11 @@ func (h *Handlers) HandleRescheduleAppointment(w http.ResponseWriter, r *http.Re
 		receipt = schedulingmodule.RescheduleReceipt{Status: "failed", Outcome: schedulingOutcome(err), Message: err.Error()}
 	}
 	if err == nil && receipt.Status != "completed" {
-		recordRequestOutcome(r.Context(), outcomeCategory("reschedule_"+receipt.Status), safeerrors.CategoryNone)
+		if receipt.Failure != nil {
+			recordSchedulingError(r.Context(), receipt.Failure)
+		} else {
+			recordRequestOutcome(r.Context(), outcomeCategory("reschedule_"+receipt.Status), safeerrors.CategoryNone)
+		}
 	}
 	json.NewEncoder(w).Encode(receipt)
 }

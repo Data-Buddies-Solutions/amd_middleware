@@ -239,7 +239,11 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 			supported = policy.SupportsRouting(domain.RoutingOpticalOnly)
 		}
 		if !supported || (command.VisitType == domain.AppointmentVisitMedical && routing == domain.RoutingOpticalOnly) || (command.VisitType == domain.AppointmentVisitRoutineVision && routing != domain.RoutingOpticalOnly) {
-			return domain.AvailabilityResponse{Status: domain.AvailabilityStatusSuccess, Outcome: domain.AvailabilityOutcomeNoEligibleProviders, Slots: []domain.AvailabilitySlotOption{}, Message: "This office or routing does not support the requested visit type."}, nil
+			return domain.AvailabilityResponse{
+				Status: domain.AvailabilityStatusSuccess, Outcome: domain.AvailabilityOutcomeNoEligibleProviders,
+				RequestedDate: originalRequestedDate, NextAction: domain.AvailabilityNextActionAskDifferentPreferences,
+				Slots: []domain.AvailabilitySlotOption{}, Message: "This office or routing does not support the requested visit type.",
+			}, nil
 		}
 	}
 

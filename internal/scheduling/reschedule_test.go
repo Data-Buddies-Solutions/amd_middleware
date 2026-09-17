@@ -71,6 +71,14 @@ func TestRescheduleOutcomes(t *testing.T) {
 			if err != nil || result.Status != expected {
 				t.Fatalf("result=%+v err=%v", result, err)
 			}
+			if (result.Failure != nil) != (expected != "completed") {
+				t.Fatalf("status %s must preserve only unresolved failure diagnostics: %v", result.Status, result.Failure)
+			}
+			if scenario == "rejected booking" || scenario == "rejected cancellation" {
+				if got := scheduling.ProviderFailureOf(result.Failure); got != safeerrors.CategoryRejected {
+					t.Fatalf("provider failure = %q, want rejected", got)
+				}
+			}
 			if expected == "completed" || expected == "partial" {
 				if result.Booking == nil || result.Booking.AppointmentID != 98765 || result.Booking.VisitType != "medical" || result.Booking.OfficeID != "spring_hill" || result.Booking.CancellationToken == "" || result.Booking.RescheduleToken == "" {
 					t.Fatalf("missing replacement metadata: %+v", result.Booking)
@@ -167,12 +175,15 @@ func TestAppointmentClassificationAndBackendVisitPolicy(t *testing.T) {
 	}
 	for _, tc := range []struct{ office, visit, routing string }{{"Crystal River", "routine_vision", "optical_only"}, {"North Miami Beach Optical", "medical", "optical_only"}, {"Spring Hill", "medical", "optical_only"}} {
 		records := bookingRecords()
-		result, err := scheduling.New(records, "test-booking-secret", mutationTestNow).List(context.Background(), scheduling.ListCommand{Office: tc.office, VisitType: tc.visit, Routing: tc.routing, DOB: "01/15/1980"})
+		result, err := scheduling.New(records, "test-booking-secret", mutationTestNow).List(context.Background(), scheduling.ListCommand{Office: tc.office, VisitType: tc.visit, Routing: tc.routing, DOB: "01/15/1980", StartDate: "2026-06-03"})
 		if err != nil || result.Outcome != domain.AvailabilityOutcomeNoEligibleProviders || len(result.Slots) != 0 {
 			t.Fatalf("%+v: %+v %v", tc, result, err)
 		}
 		if records.SchedulerSetupCalls != 0 {
 			t.Fatal("unsupported visit should not read provider schedule")
+		}
+		if result.RequestedDate != "2026-06-03" || result.NextAction != domain.AvailabilityNextActionAskDifferentPreferences {
+			t.Fatalf("unsupported visit lost conversational guidance: %+v", result)
 		}
 	}
 }
