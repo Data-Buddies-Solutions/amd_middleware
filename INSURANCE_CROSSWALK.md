@@ -11,8 +11,8 @@ retains the decision for the current patient and visit type.
 Each plan defines its name, aliases, billing code, verified AMD ID, clarification
 question, requirements and unresolved issue once. Its `offices` entries contain
 only participation status, routing and office-specific notes. Hollywood and
-Sweetwater share their existing office group; explicit location restrictions still
-apply in the decision function. Missing office participation requires staff review.
+Sweetwater share their existing office group; `officeIssues` records the medical
+exceptions for each actual office in the catalog. Missing office participation requires staff review.
 
 `insurance_medical.go` loads and validates the catalog. `insurance_matching.go`
 identifies the product; `insurance_decision.go` combines it with office policy and
@@ -54,7 +54,10 @@ booking now intentionally rejects unresolved chart insurance even for raw consum
 
 Patient-scoped availability accepts `patientId`, `insurancePlan`, and `coverageType`.
 It reads the chart and derives routing server-side. Caller plan details must match
-the canonical product on the chart; sharing an attachment ID is insufficient. Legacy unscoped inventory remains
+the canonical product on the chart. When AMD returns an exact verified carrier-directory
+label instead of a product, the caller-confirmed canonical product may refine it only
+with the same chart carrier ID. Explicit chart product restrictions remain authoritative.
+An arbitrary display name or carrier-ID-only match cannot authorize a replacement. Legacy unscoped inventory remains
 available, but every booking rereads the chart and checks the selected column against
 insurance policy, including signed-slot and raw-booking requests. A corrected plan
 cannot silently book against a different carrier still on the chart.
@@ -241,3 +244,16 @@ combining the branches.
 Deploy middleware's additive decision endpoint and receipts before the Python
 consumer. Python intentionally has no local fallback against old middleware. No
 merge, deployment, production booking, cancellation, or chart update was performed.
+
+## Final coordinated review
+
+The insurance and scheduling branches were tested together. Python scheduling uses
+one scoped decision for canonical plan and routing; formatting-only receipt differences
+do not cause uncertainty. Medical Simply family names require product clarification.
+Booking normalizes visit category before insurance validation. A regression against
+the original Python vision rules restores equivalent Superior/Versant labels without
+changing vision data or resolving mixed-product input by shared carrier alone.
+
+Synthetic AMD-directory-shaped round trips cover Aetna, UHC and Humana. Combined
+Python-to-Go HTTP tests cover successful, partial and failed reschedules with provider
+write counts. These remain mocked-provider tests, not live chart/voice proof.
