@@ -57,22 +57,23 @@ Valid identity input shapes:
 - `phone` + `firstName`: phone lookup filtered by first name.
 - `phone` + `dob`: phone lookup filtered by DOB.
 - `phone` + `firstName` + `dob`: phone lookup filtered by both.
-- `firstName` + `dob` without phone/surname: returns `status: candidates`,
-  `source: first_name`, explicit `complete`, and a `matches` array (including an
-  empty array). It retrieves first-name-prefix candidates without hydration or
-  matching policy. The agent owns exact first-name/DOB selection and surname
-  disambiguation, then requests the selected patient ID. Additional/missing pages,
-  count inconsistencies, invalid identity rows, or duplicate IDs make this result
-  incomplete. An incomplete list cannot establish a unique patient or not-found.
+- `firstName` + `dob` without phone/surname: middleware owns exact first-name/DOB
+  matching. It returns one hydrated `verified` patient, `multiple_matches`,
+  `not_found` after a complete search, or `unresolved` with a safe `reason`.
+  Unrelated prefix matches and valid nonmatching DOBs are excluded before repair.
+  At most five plausible candidates with incomplete identity are repaired through
+  authoritative demographics. A still-unknown candidate prevents unique matching
+  or absence; it never silently disappears. Two known matches establish ambiguity.
+  Pagination/count incompleteness prevents claiming a unique patient or absence.
+  No practice-wide candidate list is returned for agent-side selection.
 - `lastName` + `dob`: name lookup filtered by DOB.
 - `lastName` + `firstName` + `dob`: narrower name lookup filtered by DOB.
 - `patientId`: direct load/appointment refresh for an already verified patient.
 
-First-name/DOB candidate retrieval defers demographics and appointments, even
-for a singleton. Other existing paths are unchanged. Appointment loading is
-always part of a verified single-patient resolve. A
-multiple-match response defers all demographic and appointment hydration until
-the client selects one candidate through the existing private `patientId` path.
+First-name/DOB resolution verifies the selected demographic identity before
+loading appointments, and reuses demographics fetched during repair. Multiple
+matches defer appointment loading. Existing phone preloading and the private
+`patientId` refresh path remain available.
 Clients should not send an appointment-loading toggle.
 
 ## Response Contract
@@ -293,3 +294,17 @@ Agent tests:
 - Should appointment loading always query six months as it does today, or should the request accept a bounded horizon?
 - Should direct `patientId` load return full demographics/routing, or only patient ID plus appointments when AdvancedMD demographics are unavailable?
 - Should agent deployment happen in the same release as middleware route removal, or should the middleware release be coordinated with an agent branch that is ready to deploy immediately?
+
+### First-name/DOB rollout
+
+This replaces the former `candidates` response for first-name/DOB requests.
+Deploy with the corresponding TypeScript and Python agent consumer changes;
+old consumers safely reject a resolved response but cannot complete this fallback.
+Phone preload and `patientId` refresh contracts are unchanged. Validate the
+middleware response and agent activation together before routing live calls.
+
+`unresolved` is an application result with a bounded reason: `search_unavailable`,
+`incomplete_search`, `invalid_identity`, `invalid_candidate_set`,
+`incomplete_identity`, `demographics_unavailable`, or `identity_not_verified`.
+It never authorizes registration or patient activation. Retry only after changed
+identity or an explicit recoverable provider condition; otherwise involve staff.
