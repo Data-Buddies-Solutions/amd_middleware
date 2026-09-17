@@ -759,6 +759,30 @@ func LookupInsurance(name string) (InsuranceEntry, bool) {
 	return lookupInsuranceFromMaps(name, InsuranceNameMap, InsuranceAliases)
 }
 
+// CanonicalInsuranceName recognizes a recorded plan without collapsing it to a carrier ID.
+func CanonicalInsuranceName(name string) (string, bool) {
+	normalized := NormalizeForLookup(name)
+	// Prefer exact products before consulting aliases that may name a network.
+	for _, entries := range []map[string]InsuranceEntry{InsuranceNameMap, hollywoodSweetwaterMedicalInsuranceNameMap, VisionInsuranceNameMap} {
+		if _, ok := entries[normalized]; ok {
+			return normalized, true
+		}
+	}
+	for _, aliases := range []map[string]string{InsuranceAliases, hollywoodSweetwaterMedicalInsuranceAliases} {
+		if canonical, ok := aliases[normalized]; ok {
+			return canonical, true
+		}
+	}
+	// Reuse only identity aliases for vision administrators. The rest of the
+	// vision crosswalk maps health plans to office billing networks, not payers.
+	switch normalized {
+	case "eye med", "eye med vision", "eye med vision care", "national vision", "national vision administrators",
+		"davis vision", "spectera vision", "soltice", "solstice vision", "guardian vision", "alivi health", "sunhealth vision", "i care":
+		return VisionInsuranceAliases[normalized], true
+	}
+	return "", false
+}
+
 // IsSelfPayInsurance reports whether a caller-facing insurance value means self-pay.
 func IsSelfPayInsurance(name string) bool {
 	normalized := NormalizeForLookup(name)

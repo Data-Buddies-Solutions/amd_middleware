@@ -31,6 +31,8 @@ func NewRouter(handlers *Handlers, apiSecret string, maintenanceAuthorizer Maint
 	r.Route("/api", func(r chi.Router) {
 		r.Use(AuthMiddleware(apiSecret))
 
+		r.Post("/eligibility/check", handlers.HandleEligibility)
+
 		r.Post("/patient/resolve", handlers.HandlePatientResolve)
 		r.Post("/add-patient", handlers.HandleAddPatient)
 		r.Post("/scheduler/availability", handlers.HandleGetAvailability)
