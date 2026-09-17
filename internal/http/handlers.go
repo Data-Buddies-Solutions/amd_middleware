@@ -312,7 +312,7 @@ func patientResolveResponse(result patientmodule.ResolveResult) PatientResolveRe
 			Provider:          appointment.Provider,
 			Type:              appointment.Type,
 			AppointmentTypeID: appointment.AppointmentTypeID,
-			VisitType:         domain.AppointmentVisitType(appointment.AppointmentTypeID),
+			VisitType:         appointment.VisitType,
 			Facility:          appointment.Facility,
 			OfficeID:          appointment.OfficeID,
 			Office:            appointment.Office,

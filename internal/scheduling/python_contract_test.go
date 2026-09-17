@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"advancedmd-token-management/internal/domain"
 	apphttp "advancedmd-token-management/internal/http"
 	"advancedmd-token-management/internal/patient"
 	"advancedmd-token-management/internal/scheduling"
@@ -26,7 +25,7 @@ func TestPythonSchedulingContract(t *testing.T) {
 	}
 	for _, scenario := range []string{"success", "partial", "failure"} {
 		t.Run(scenario, func(t *testing.T) {
-			records, _, old := rescheduleFixture(t)
+			records, _, _ := rescheduleFixture(t)
 			if scenario == "partial" {
 				records.CancelAppointmentErr = context.DeadlineExceeded
 			}
@@ -42,16 +41,12 @@ func TestPythonSchedulingContract(t *testing.T) {
 			router := apphttp.NewRouter(apphttp.NewHandlers(nil, patient.NewWithAppointmentTokens(records, tokens), scheduler), "test-auth", nil)
 			mux := http.NewServeMux()
 			mux.Handle("/", router)
-			// Fixture construction supplies a canonical patient receipt; appointment
-			// metadata is also checked through the real patient HTTP handler below.
+			// Only scenario and clock control are fixtures. Patient appointments
+			// and their action tokens must come through the real HTTP response.
 			mux.HandleFunc("/fixture", func(w http.ResponseWriter, r *http.Request) {
-				cancel, _ := tokens.IssueCancellationToken("12345", old)
-				move, _ := tokens.IssueRescheduleToken("12345", old)
-				json.NewEncoder(w).Encode(map[string]any{"now": mutationTestNow().Format(time.RFC3339), "scenario": scenario, "appointment": map[string]any{
-					"id": old.ID, "date": old.Start.Format("2006-01-02"), "time": "9:00 AM", "provider": old.Provider,
-					"officeId": old.OfficeID, "office": old.Office, "visitType": domain.AppointmentVisitType(old.AppointmentTypeID),
-					"cancellationToken": cancel, "rescheduleToken": move,
-				}})
+				json.NewEncoder(w).Encode(map[string]any{
+					"now": mutationTestNow().Format(time.RFC3339), "scenario": scenario,
+				})
 			})
 			server := httptest.NewServer(mux)
 			defer server.Close()
