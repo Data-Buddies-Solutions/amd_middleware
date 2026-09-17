@@ -217,11 +217,12 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 
 // PatientApptDetail is one appointment returned to the Voice Agent.
 type PatientApptDetail struct {
-	ID                int    `json:"id"`                          // AMD appointment ID — for cancel_appt
-	Date              string `json:"date"`                        // Human-readable (e.g., "Wednesday, March 18, 2026")
-	Time              string `json:"time"`                        // e.g., "12:00 PM"
-	Provider          string `json:"provider,omitempty"`          // e.g., "Dr. Austin Bach"
-	Type              string `json:"type,omitempty"`              // e.g., "New Adult Medical"
+	ID                int    `json:"id"`                 // AMD appointment ID — for cancel_appt
+	Date              string `json:"date"`               // Human-readable (e.g., "Wednesday, March 18, 2026")
+	Time              string `json:"time"`               // e.g., "12:00 PM"
+	Provider          string `json:"provider,omitempty"` // e.g., "Dr. Austin Bach"
+	Type              string `json:"type,omitempty"`     // e.g., "New Adult Medical"
+	VisitType         string `json:"visitType,omitempty"`
 	AppointmentTypeID int    `json:"appointmentTypeId,omitempty"` // AMD appointment type ID
 	Facility          string `json:"facility,omitempty"`          // e.g., "Abita Eye Group Spring Hill"
 	OfficeID          string `json:"officeId,omitempty"`          // Stable office ID that owns the appointment column
@@ -311,6 +312,7 @@ func patientResolveResponse(result patientmodule.ResolveResult) PatientResolveRe
 			Provider:          appointment.Provider,
 			Type:              appointment.Type,
 			AppointmentTypeID: appointment.AppointmentTypeID,
+			VisitType:         appointment.VisitType,
 			Facility:          appointment.Facility,
 			OfficeID:          appointment.OfficeID,
 			Office:            appointment.Office,
@@ -675,4 +677,35 @@ func recordSchedulingError(ctx context.Context, err error) {
 	default:
 		recordRequestOutcome(ctx, outcomeInvalidRequest, safeerrors.CategoryNone)
 	}
+}
+
+// HandleRescheduleAppointment delegates both provider writes to Scheduling.
+func (h *Handlers) HandleRescheduleAppointment(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	var req schedulingmodule.BookCommand
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
+		json.NewEncoder(w).Encode(schedulingmodule.RescheduleReceipt{Status: "failed", Message: "Invalid JSON body"})
+		return
+	}
+	if h.scheduling == nil {
+		recordRequestOutcome(r.Context(), outcomeInternalFailure, safeerrors.CategoryNone)
+		json.NewEncoder(w).Encode(schedulingmodule.RescheduleReceipt{Status: "failed", Message: "Scheduling unavailable"})
+		return
+	}
+	receipt, err := h.scheduling.Reschedule(r.Context(), req)
+	if err != nil {
+		recordSchedulingError(r.Context(), err)
+		receipt = schedulingmodule.RescheduleReceipt{Status: "failed", Outcome: schedulingOutcome(err), Message: err.Error()}
+	}
+	if err == nil && receipt.Status != "completed" {
+		if receipt.Failure != nil {
+			recordSchedulingError(r.Context(), receipt.Failure)
+		} else {
+			recordRequestOutcome(r.Context(), outcomeCategory("reschedule_"+receipt.Status), safeerrors.CategoryNone)
+		}
+	}
+	json.NewEncoder(w).Encode(receipt)
 }

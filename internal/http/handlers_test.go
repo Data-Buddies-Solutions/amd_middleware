@@ -246,12 +246,13 @@ func TestAvailabilityRouteRetainsAuthenticationAndResponseContract(t *testing.T)
 }
 
 type schedulingStub struct {
-	result       domain.AvailabilityResponse
-	err          error
-	bookResult   schedulingmodule.BookReceipt
-	bookErr      error
-	cancelResult schedulingmodule.CancelReceipt
-	cancelErr    error
+	result           domain.AvailabilityResponse
+	err              error
+	bookResult       schedulingmodule.BookReceipt
+	bookErr          error
+	cancelResult     schedulingmodule.CancelReceipt
+	cancelErr        error
+	rescheduleResult schedulingmodule.RescheduleReceipt
 }
 
 func (s schedulingStub) Search(context.Context, schedulingmodule.SearchCommand) (domain.AvailabilityResponse, error) {
@@ -1456,4 +1457,8 @@ func TestFirstNameDOBUnresolvedHTTPContract(t *testing.T) {
 	if amd.DemographicCalls != 0 || amd.AppointmentReadCalls != 0 {
 		t.Fatal("incomplete search must not hydrate a chart")
 	}
+}
+
+func (s schedulingStub) Reschedule(context.Context, schedulingmodule.BookCommand) (schedulingmodule.RescheduleReceipt, error) {
+	return s.rescheduleResult, nil
 }

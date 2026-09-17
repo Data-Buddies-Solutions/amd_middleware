@@ -25,6 +25,7 @@ var eastern = domain.EasternLocation()
 
 // SearchCommand is the domain input for one availability search.
 type SearchCommand struct {
+	VisitType       string                      `json:"visitType,omitempty"`
 	RequestedDate   string                      `json:"requestedDate,omitempty"`
 	PreferredTime   *AvailabilityTimePreference `json:"preferredTime,omitempty"`
 	Provider        string                      `json:"provider"`
@@ -53,6 +54,7 @@ type Scheduling interface {
 	List(ctx context.Context, command ListCommand) (domain.AvailabilityResponse, error)
 	Book(ctx context.Context, command BookCommand) (BookReceipt, error)
 	Cancel(ctx context.Context, command CancelCommand) (CancelReceipt, error)
+	Reschedule(ctx context.Context, command BookCommand) (RescheduleReceipt, error)
 }
 
 // Category is a stable, provider-independent scheduling outcome.
@@ -166,6 +168,7 @@ func (s *service) Search(ctx context.Context, command SearchCommand) (domain.Ava
 // ListCommand loads a complete inventory window for conversational selection.
 // Patient eligibility and booking policy are identical to Search.
 type ListCommand struct {
+	VisitType       string `json:"visitType,omitempty"`
 	StartDate       string `json:"startDate,omitempty"`
 	RangeDays       int    `json:"rangeDays,omitempty"`
 	Office          string `json:"office"`
@@ -182,7 +185,7 @@ func (s *service) List(ctx context.Context, command ListCommand) (domain.Availab
 	if days != 14 {
 		return domain.AvailabilityResponse{}, schedulingError("rangeDays must be 14; use startDate to search a different window")
 	}
-	return s.search(ctx, SearchCommand{Office: command.Office, DOB: command.DOB,
+	return s.search(ctx, SearchCommand{VisitType: command.VisitType, Office: command.Office, DOB: command.DOB,
 		RequestedDate: command.StartDate, Routing: command.Routing, PreauthRequired: command.PreauthRequired}, days)
 }
 
@@ -227,6 +230,22 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 	}
 	policy := domain.NewSchedulingPolicy(office)
 	routing := policy.SchedulingRouting(domain.ParseRoutingRule(command.Routing), command.DOB)
+	if command.VisitType != "" {
+		if command.VisitType != domain.AppointmentVisitMedical && command.VisitType != domain.AppointmentVisitRoutineVision {
+			return empty, schedulingError("visitType must be medical or routine_vision")
+		}
+		supported := policy.SupportsMedical()
+		if command.VisitType == domain.AppointmentVisitRoutineVision {
+			supported = policy.SupportsRouting(domain.RoutingOpticalOnly)
+		}
+		if !supported || (command.VisitType == domain.AppointmentVisitMedical && routing == domain.RoutingOpticalOnly) || (command.VisitType == domain.AppointmentVisitRoutineVision && routing != domain.RoutingOpticalOnly) {
+			return domain.AvailabilityResponse{
+				Status: domain.AvailabilityStatusSuccess, Outcome: domain.AvailabilityOutcomeNoEligibleProviders,
+				RequestedDate: originalRequestedDate, NextAction: domain.AvailabilityNextActionAskDifferentPreferences,
+				Slots: []domain.AvailabilitySlotOption{}, Message: "This office or routing does not support the requested visit type.",
+			}, nil
+		}
+	}
 
 	setup, err := s.schedulerSetup(ctx, now.UTC())
 	if err != nil {
