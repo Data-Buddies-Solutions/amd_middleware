@@ -23,19 +23,11 @@ type Person struct {
 	Address     Address `json:"address,omitzero"`
 }
 
-// MatchResult is an explanation, not a calibrated probability. Even corroborated
-// variants require review until independently validated against confirmed identities.
+// MatchResult reports exact identity agreement or the reason staff must review.
 type MatchResult struct {
-	Status          string   `json:"status"`
-	ReviewRequired  bool     `json:"reviewRequired"`
-	FirstDistance   int      `json:"firstDistance"`
-	LastDistance    int      `json:"lastDistance"`
-	DOBMatch        bool     `json:"dobMatch"`
-	MemberMatch     bool     `json:"memberMatch"`
-	PolicyMatch     bool     `json:"policyMatch"`
-	AddressMatch    bool     `json:"addressMatch"`
-	AddressConflict bool     `json:"addressConflict"`
-	Reasons         []string `json:"reasons"`
+	Status         string   `json:"status"`
+	ReviewRequired bool     `json:"reviewRequired"`
+	Reasons        []string `json:"reasons"`
 }
 
 func name(s string) string {
@@ -53,119 +45,38 @@ func sameID(a, b string) bool { return identifier(a) != "" && identifier(a) == i
 
 func validDOB(s string) bool { _, err := time.Parse("20060102", s); return err == nil }
 
-func distance(a, b string) int {
-	x, y := []rune(a), []rune(b)
-	prev := make([]int, len(y)+1)
-	for j := range prev {
-		prev[j] = j
+// Match compares names and DOB only. Member-ID changes remain visible but do
+// not change this name/DOB assessment; matching household/address data cannot
+// turn a different name into a verified identity.
+func Match(expected, returned Person) MatchResult {
+	first, last := name(expected.FirstName), name(expected.LastName)
+	returnedFirst, returnedLast := name(returned.FirstName), name(returned.LastName)
+	// Separate a middle name only when the payer explicitly returns it.
+	if middle := name(returned.MiddleName); middle != "" && first == returnedFirst+middle {
+		first = returnedFirst
 	}
-	for i, left := range x {
-		next := make([]int, len(y)+1)
-		next[0] = i + 1
-		for j, right := range y {
-			cost := 0
-			if left != right {
-				cost = 1
-			}
-			next[j+1] = min(next[j]+1, prev[j+1]+1, prev[j]+cost)
-		}
-		prev = next
+	result := MatchResult{Status: "insufficient_data", ReviewRequired: true, Reasons: []string{}}
+	if first == "" || last == "" || returnedFirst == "" || returnedLast == "" || !validDOB(expected.DateOfBirth) || !validDOB(returned.DateOfBirth) {
+		result.Reasons = append(result.Reasons, "missing_or_invalid_identity")
+		return result
 	}
-	return prev[len(y)]
-}
-
-var streetWords = map[string]string{"STREET": "ST", "DRIVE": "DR", "ROAD": "RD", "AVENUE": "AVE", "COURT": "CT", "LANE": "LN", "BOULEVARD": "BLVD", "PLACE": "PL", "CIRCLE": "CIR", "NORTH": "N", "SOUTH": "S", "EAST": "E", "WEST": "W"}
-
-func street(s string) string {
-	words := strings.Fields(strings.Map(func(r rune) rune {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) {
-			return unicode.ToUpper(r)
-		}
-		return ' '
-	}, s))
-	for i, w := range words {
-		if replacement, ok := streetWords[w]; ok {
-			words[i] = replacement
-		}
+	if expected.DateOfBirth != returned.DateOfBirth {
+		result.Reasons = append(result.Reasons, "dob_conflict")
 	}
-	return strings.Join(words, " ")
-}
-
-func zip(s string) string {
-	if len(s) < 5 {
-		return ""
+	if first != returnedFirst {
+		result.Reasons = append(result.Reasons, "first_name_conflict")
 	}
-	for _, r := range s[:5] {
-		if r < '0' || r > '9' {
-			return ""
-		}
+	if last != returnedLast {
+		result.Reasons = append(result.Reasons, "last_name_conflict")
 	}
-	return s[:5]
-}
-
-func addressEvidence(a, b Address) (bool, bool) {
-	as, bs := street(a.Address1), street(b.Address1)
-	az, bz := zip(a.PostalCode), zip(b.PostalCode)
-	stateA, stateB := strings.ToUpper(a.State), strings.ToUpper(b.State)
-	conflict := (as != "" && bs != "" && as != bs) || (az != "" && bz != "" && az != bz) || (stateA != "" && stateB != "" && stateA != stateB)
-	// Apartment differences matter. Missing apartment data cannot corroborate it.
-	units := street(a.Address2) == street(b.Address2)
-	if street(a.Address2) != "" && street(b.Address2) != "" && !units {
-		conflict = true
+	if len(result.Reasons) > 0 {
+		result.Status = "identity_conflict"
+		return result
 	}
-	match := as != "" && as == bs && az != "" && az == bz && len(stateA) == 2 && stateA == stateB && units
-	return match, conflict
-}
-
-// Match compares the returned patient, not a different family member. Policy IDs
-// corroborate a household only; a dependent's own member ID may be absent.
-func Match(expected, returned Person, returnedPolicyID string) MatchResult {
-	f, l := name(expected.FirstName), name(expected.LastName)
-	rf, rl := name(returned.FirstName), name(returned.LastName)
-	// Only separate a middle name when the response explicitly supplies that field.
-	if middle := name(returned.MiddleName); middle != "" && f == rf+middle {
-		f = rf
+	result.Status = "exact_name_dob"
+	result.ReviewRequired = false
+	if expected.MemberID != "" && returned.MemberID != "" && !sameID(expected.MemberID, returned.MemberID) {
+		result.Reasons = append(result.Reasons, "member_id_changed")
 	}
-	r := MatchResult{Status: "insufficient_data", ReviewRequired: true, FirstDistance: distance(f, rf), LastDistance: distance(l, rl), Reasons: []string{}}
-	r.DOBMatch = validDOB(expected.DateOfBirth) && expected.DateOfBirth == returned.DateOfBirth
-	r.MemberMatch = sameID(expected.MemberID, returned.MemberID)
-	r.PolicyMatch = sameID(expected.MemberID, returnedPolicyID)
-	r.AddressMatch, r.AddressConflict = addressEvidence(expected.Address, returned.Address)
-	if f == "" || l == "" || rf == "" || rl == "" || !validDOB(expected.DateOfBirth) || !validDOB(returned.DateOfBirth) {
-		r.Reasons = append(r.Reasons, "missing_or_invalid_identity")
-		return r
-	}
-	if !r.DOBMatch {
-		r.Status = "identity_conflict"
-		r.Reasons = append(r.Reasons, "dob_conflict")
-		return r
-	}
-	if r.FirstDistance == 0 && r.LastDistance == 0 {
-		r.Status = "exact_name_dob"
-		r.ReviewRequired = false
-		if r.AddressConflict {
-			r.Reasons = append(r.Reasons, "address_conflict")
-		}
-		if expected.MemberID != "" && returned.MemberID != "" && !r.MemberMatch {
-			r.Reasons = append(r.Reasons, "member_id_changed")
-		}
-		return r
-	}
-	if r.FirstDistance+r.LastDistance == 1 {
-		r.Status = "near_name"
-		r.Reasons = append(r.Reasons, "one_character_difference")
-		if len([]rune(f)) <= 3 && r.FirstDistance != 0 {
-			r.Reasons = append(r.Reasons, "short_first_name")
-		}
-		if r.AddressMatch && (r.MemberMatch || r.PolicyMatch) {
-			r.Status = "corroborated_variant"
-		}
-		if r.AddressConflict {
-			r.Reasons = append(r.Reasons, "address_conflict")
-		}
-		return r
-	}
-	r.Status = "identity_conflict"
-	r.Reasons = append(r.Reasons, "multiple_name_differences")
-	return r
+	return result
 }

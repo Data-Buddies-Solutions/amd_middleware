@@ -2,6 +2,7 @@ package eligibility
 
 import (
 	"encoding/json"
+	"slices"
 	"testing"
 )
 
@@ -11,61 +12,40 @@ func example() Person {
 
 func TestIdentityEvidence(t *testing.T) {
 	for _, tc := range []struct {
-		name   string
-		modify func(*Person)
-		want   string
+		name           string
+		modify         func(*Person)
+		status, reason string
 	}{
-		{"exact", func(p *Person) { p.FirstName = "MARA" }, "exact_name_dob"},
-		{"corroborated spelling", func(p *Person) { p.FirstName = "Sara"; p.Address.Address1 = "12 MAPLE ST" }, "corroborated_variant"},
-		{"wrong DOB", func(p *Person) { p.DateOfBirth = "19800513" }, "identity_conflict"},
-		{"missing DOB", func(p *Person) { p.DateOfBirth = "" }, "insufficient_data"},
-		{"wrong address", func(p *Person) { p.LastName = "Peeters"; p.Address.Address1 = "99 Elm Rd" }, "near_name"},
-		{"two differences", func(p *Person) { p.FirstName = "Sara"; p.LastName = "Peeters" }, "identity_conflict"},
-		{"missing name", func(p *Person) { p.FirstName = "" }, "insufficient_data"},
+		{"case normalization", func(p *Person) { p.FirstName = "MARA" }, "exact_name_dob", ""},
+		{"one letter despite matching address and member", func(p *Person) { p.FirstName = "Sara" }, "identity_conflict", "first_name_conflict"},
+		{"different last name", func(p *Person) { p.LastName = "Peeters" }, "identity_conflict", "last_name_conflict"},
+		{"wrong DOB", func(p *Person) { p.DateOfBirth = "19800513" }, "identity_conflict", "dob_conflict"},
+		{"missing DOB", func(p *Person) { p.DateOfBirth = "" }, "insufficient_data", "missing_or_invalid_identity"},
+		{"missing name", func(p *Person) { p.FirstName = "" }, "insufficient_data", "missing_or_invalid_identity"},
+		{"changed member ID remains visible", func(p *Person) { p.MemberID = "payer-id" }, "exact_name_dob", "member_id_changed"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			a := example()
-			b := a
-			tc.modify(&b)
-			r := Match(a, b, b.MemberID)
-			if r.Status != tc.want {
-				t.Fatalf("got %s want %s", r.Status, tc.want)
+			expected := example()
+			returned := expected
+			tc.modify(&returned)
+			result := Match(expected, returned)
+			if result.Status != tc.status || result.ReviewRequired != (tc.status != "exact_name_dob") {
+				t.Fatalf("unexpected result: %+v", result)
 			}
-			if r.Status != "exact_name_dob" && !r.ReviewRequired {
-				t.Fatal("fuzzy result must require review")
+			if tc.reason != "" && !slices.Contains(result.Reasons, tc.reason) {
+				t.Fatalf("missing reason: %+v", result)
 			}
 		})
 	}
-}
-
-func TestShortDependentNameIsNotAutoAccepted(t *testing.T) {
-	a := example()
-	a.FirstName = "Amy"
-	b := a
-	b.FirstName = "Emy"
-	b.MemberID = ""
-	b.Address.Address1 = "12 Maple St"
-	r := Match(a, b, a.MemberID)
-	if r.Status != "corroborated_variant" || !r.ReviewRequired || r.MemberMatch || !r.PolicyMatch {
-		t.Fatalf("unexpected evidence: %+v", r)
+	expected, returned := example(), example()
+	expected.FirstName = "Mara Ann"
+	returned.MiddleName = "Ann"
+	if Match(expected, returned).ReviewRequired {
+		t.Fatal("explicit middle name should preserve exact agreement")
 	}
-}
-
-func TestNoEmptyOrApartmentCorroboration(t *testing.T) {
-	a := example()
-	b := a
-	b.LastName = "Peeters"
-	b.MemberID = ""
-	b.Address = Address{}
-	if r := Match(a, b, ""); r.Status != "near_name" || r.AddressMatch || r.PolicyMatch {
-		t.Fatalf("empty data corroborated: %+v", r)
-	}
-	b = a
-	b.FirstName = "Sara"
-	a.Address.Address2 = "Apt 1"
-	b.Address.Address2 = "Apt 2"
-	if r := Match(a, b, b.MemberID); r.AddressMatch || !r.AddressConflict || r.Status != "near_name" {
-		t.Fatalf("unit conflict lost: %+v", r)
+	returned.MiddleName = ""
+	if !Match(expected, returned).ReviewRequired {
+		t.Fatal("must not guess middle names")
 	}
 }
 
@@ -89,50 +69,42 @@ func TestFamilyAndErrorResponsesStayUnverified(t *testing.T) {
 	}
 }
 
-func TestRetryBudgetProvenanceDeduplication(t *testing.T) {
-	base := Request{Payer: "EXAMPLE", Subscriber: example(), Provider: Provider{NPI: "1234567890"}, Encounter: Encounter{ServiceTypeCodes: []string{"30"}}}
+func TestNextRetryOrderingDeduplicationAndBudget(t *testing.T) {
+	base := Request{Payer: "EXAMPLE", Subscriber: example(), Provider: Provider{NPI: "1999999984"}, Encounter: Encounter{ServiceTypeCodes: []string{"30"}}}
 	names := []RecordedName{{First: "Mara", Last: "Peters", Source: "intake"}, {First: "Mara", Last: "Peters Stone", Source: "chart"}, {First: "Invented", Last: "Person", Source: "guess"}}
-	p := PlanRetries(base, names, []Request{base}, []string{"73"}, true)
-	if len(p.Attempts) != 1 {
-		t.Fatalf("expected only the complete recorded chart name, got %d", len(p.Attempts))
+	prior := []Request{base}
+	for i, want := range []struct{ last, member string }{{"Peters Stone", base.Subscriber.MemberID}, {"Peters", ""}, {"Peters Stone", ""}} {
+		next, reason := NextRetry(base, names, prior, []string{"75"}, true)
+		if next == nil || reason != "recorded_name_recovery" {
+			t.Fatalf("step %d: %s", i, reason)
+		}
+		if next.Subscriber.LastName != want.last || next.Subscriber.MemberID != want.member || next.Subscriber.DateOfBirth != base.Subscriber.DateOfBirth {
+			t.Fatalf("wrong next request: %+v", next)
+		}
+		for _, previous := range prior {
+			if Fingerprint(*next) == Fingerprint(previous) {
+				t.Fatal("duplicate retry")
+			}
+		}
+		prior = append(prior, *next)
 	}
-	seen := map[string]bool{Fingerprint(base): true}
-	for _, a := range p.Attempts {
-		k := Fingerprint(a.Request)
-		if seen[k] {
-			t.Fatal("duplicate")
-		}
-		seen[k] = true
-		if a.Request.Subscriber.FirstName == "Invented" {
-			t.Fatal("untrusted name")
-		}
-		if a.Request.Subscriber.DateOfBirth != base.Subscriber.DateOfBirth {
-			t.Fatal("DOB mutated")
-		}
-		if a.Request.Subscriber.MemberID != "" && a.Request.Subscriber.MemberID != base.Subscriber.MemberID {
-			t.Fatal("member ID invented")
-		}
+	if next, reason := NextRetry(base, names, prior, []string{"75"}, true); next != nil || reason != "attempt_limit" {
+		t.Fatal("must stop after four total sends")
+	}
+	if next, reason := NextRetry(base, names, prior[:2], []string{"73"}, true); next != nil || reason != "previously_exhausted" {
+		t.Fatal("name-only rejection must not omit member ID")
 	}
 	for _, code := range []string{"51", "41", "79", "42", "58", "71"} {
-		if q := PlanRetries(base, names, nil, []string{code}, true); len(q.Attempts) != 0 {
-			t.Fatalf("permuted non-identity error %s", code)
+		if next, _ := NextRetry(base, names, nil, []string{code}, true); next != nil {
+			t.Fatalf("unexpected retry for %s", code)
 		}
 	}
-
-	if q := PlanRetries(base, names, nil, []string{"73"}, false); q.Reason != "payer_unsupported" {
+	if next, reason := NextRetry(base, names, nil, []string{"75"}, false); next != nil || reason != "payer_unsupported" {
 		t.Fatal("unsupported payer retried")
 	}
 	base.Dependents = []Person{example()}
-	if q := PlanRetries(base, names, nil, []string{"73"}, true); len(q.Attempts) > 0 {
-		t.Fatal("dependent guessed")
-	}
-}
-
-func TestRecordedNamesBeforeOmissions(t *testing.T) {
-	base := Request{Subscriber: example()}
-	p := PlanRetries(base, []RecordedName{{First: "Mara", Last: "Peters", Source: "intake"}, {First: "Mara", Last: "Peters Stone", Source: "chart"}}, nil, []string{"73"}, true)
-	if len(p.Attempts) != 1 || p.Attempts[0].Label != "chart_name" {
-		t.Fatalf("wrong priority: %+v", p)
+	if next, reason := NextRetry(base, names, nil, []string{"75"}, true); next != nil || reason != "dependent_review" {
+		t.Fatal("dependent retried")
 	}
 }
 
@@ -171,11 +143,10 @@ func TestReplaySharesTotalAttemptBudget(t *testing.T) {
 		// Even duplicate prior entries represent sends and consume the budget. An
 		// omitted base still counts because it generated the rejection being replayed.
 		used := max(count, 1)
-		remaining := max(4-used, 0)
-		if len(assessment.RetryPlan.Attempts) != remaining {
-			t.Fatalf("prior=%d got %d retries, want %d", count, len(assessment.RetryPlan.Attempts), remaining)
+		if (assessment.NextRequest != nil) != (used < 4) {
+			t.Fatalf("prior=%d unexpected next request: %+v", count, assessment.NextRequest)
 		}
-		if remaining == 0 && assessment.RetryPlan.Reason != "attempt_limit" {
+		if used >= 4 && assessment.RetryReason != "attempt_limit" {
 			t.Fatal("exhaustion must be explicit")
 		}
 	}

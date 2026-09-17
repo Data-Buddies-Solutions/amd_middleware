@@ -34,7 +34,7 @@ func assessResponse(response Response, expected Person, dependent bool) response
 	assessment := responseAssessment{
 		Recognized: len(response.Errors) > 0 || len(response.Benefits) > 0,
 		Coverage:   generalCoverage(response),
-		Match:      Match(expected, patient, response.Subscriber.MemberID),
+		Match:      Match(expected, patient),
 	}
 	if len(response.Dependents) > 1 {
 		assessment.Match.Status = "ambiguous_dependents"

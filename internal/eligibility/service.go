@@ -149,12 +149,12 @@ func (s *Service) Check(ctx context.Context, in CheckInput) (Result, error) {
 	reqBody := base
 	if len(prior) > 0 {
 		last := in.History[len(prior)-1]
-		plan := PlanRetries(base, in.RecordedNames, prior, last.ErrorCodes, true)
-		if len(plan.Attempts) == 0 {
-			out.ReviewReason = plan.Reason
+		next, reason := NextRetry(base, in.RecordedNames, prior, last.ErrorCodes, true)
+		if next == nil {
+			out.ReviewReason = reason
 			return out, nil
 		}
-		reqBody = plan.Attempts[0].Request
+		reqBody = *next
 		reqBody.SearchID = last.SearchID
 	}
 	out.Request = reqBody

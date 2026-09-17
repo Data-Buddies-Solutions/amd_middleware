@@ -29,16 +29,6 @@ type RecordedName struct {
 	Source string `json:"source"`
 }
 
-type Attempt struct {
-	Label   string  `json:"label"`
-	Request Request `json:"request"`
-}
-
-type RetryPlan struct {
-	Reason   string    `json:"reason"`
-	Attempts []Attempt `json:"attempts"`
-}
-
 // Fingerprint excludes the search-chain identifier and cosmetic name casing.
 // Patient values, payer, provider, service and date remain part of the identity.
 func Fingerprint(r Request) string {
@@ -63,95 +53,64 @@ func CanRetryNames(codes []string) bool {
 	return true
 }
 
-// PlanRetries tries only complete recorded names and omission of a rejected member ID. It
-// never generates edit-distance spellings or edits DOB/member IDs. Only a
-// subscriber-shaped query is supported here; dependent recovery needs its own
-// policyholder relationship context and is left for review.
-func PlanRetries(base Request, names []RecordedName, prior []Request, errors []string, supported bool) RetryPlan {
-	p := RetryPlan{Reason: "no_supported_recovery", Attempts: []Attempt{}}
+// NextRetry chooses one unused recorded-name request, then member-ID omission
+// for codes 72/75. It never changes DOB, invents names, or retries dependents.
+func NextRetry(base Request, names []RecordedName, prior []Request, codes []string, supported bool) (*Request, string) {
 	if !supported {
-		p.Reason = "payer_unsupported"
-		return p
+		return nil, "payer_unsupported"
 	}
 	if len(base.Dependents) > 0 {
-		p.Reason = "dependent_review"
-		return p
+		return nil, "dependent_review"
 	}
-	if len(errors) == 0 {
-		p.Reason = "no_rejection"
-		return p
+	if len(codes) == 0 {
+		return nil, "no_rejection"
 	}
-	if !CanRetryNames(errors) {
-		p.Reason = "requires_data_or_payer_review"
-		return p
+	if !CanRetryNames(codes) {
+		return nil, "requires_data_or_payer_review"
 	}
 	seen := map[string]bool{}
-	for _, r := range prior {
-		seen[Fingerprint(r)] = true
+	for _, request := range prior {
+		seen[Fingerprint(request)] = true
 	}
-	// The base already produced the response being retried, even if a replay
-	// omitted it from history. Count each prior send, including duplicates.
+	// The base produced the rejection even when a saved history omitted it.
 	used := len(prior)
 	baseKey := Fingerprint(base)
 	if !seen[baseKey] {
 		used++
 	}
-	limit := maxAttempts - used
-	if limit <= 0 {
-		p.Reason = "attempt_limit"
-		return p
+	if used >= maxAttempts {
+		return nil, "attempt_limit"
 	}
 	seen[baseKey] = true
-	add := func(label string, person Person) {
-		if len(p.Attempts) >= limit {
-			return
-		}
-		r := base
-		r.Subscriber = person
-		key := Fingerprint(r)
-		if seen[key] {
-			return
-		}
-		seen[key] = true
-		p.Attempts = append(p.Attempts, Attempt{Label: label, Request: r})
-	}
-	type candidate struct {
-		source string
-		person Person
-	}
-	var candidates []candidate
-	for _, n := range names {
-		if n.Source != "chart" && n.Source != "intake" {
-			continue
-		}
-		if name(n.First) == "" || name(n.Last) == "" {
-			continue
-		}
-		person := base.Subscriber
-		person.FirstName = n.First
-		person.LastName = n.Last
-		candidates = append(candidates, candidate{n.Source, person})
-		add(n.Source+"_name", person)
-	}
-	// Only omit member ID when that field or the subscriber was rejected.
-	omitMember := false
-	for _, code := range errors {
+	omitAllowed := false
+	for _, code := range codes {
 		if code == "72" || code == "75" {
-			omitMember = true
+			omitAllowed = true
 		}
 	}
-	if omitMember {
-		candidates = append(candidates, candidate{"intake", base.Subscriber})
-		for _, c := range candidates {
-			withoutMember := c.person
-			withoutMember.MemberID = ""
-			add(c.source+"_without_member", withoutMember)
+	// Prefer every complete recorded name before omitting a rejected member ID.
+	for _, omitMember := range []bool{false, true} {
+		if omitMember && !omitAllowed {
+			break
+		}
+		for i := 0; i <= len(names); i++ {
+			request := base
+			if i < len(names) {
+				n := names[i]
+				if (n.Source != "chart" && n.Source != "intake") || name(n.First) == "" || name(n.Last) == "" {
+					continue
+				}
+				request.Subscriber.FirstName, request.Subscriber.LastName = n.First, n.Last
+			} else if !omitMember {
+				continue
+			}
+			if omitMember {
+				request.Subscriber.MemberID = ""
+			}
+			if !seen[Fingerprint(request)] {
+				return &request, "recorded_name_recovery"
+			}
 		}
 	}
-	if len(p.Attempts) > 0 {
-		p.Reason = "recorded_name_recovery"
-	} else {
-		p.Reason = "previously_exhausted"
-	}
-	return p
+	return nil, "previously_exhausted"
 }
