@@ -16,6 +16,11 @@ import (
 	"advancedmd-token-management/internal/safeerrors"
 )
 
+// Generic write/reconciliation tests need a verified, writable medical product.
+// Humana-specific mapping and authorization cases live in insurance_decision_test.go.
+const writableMedicalPlan = "Meritain Health"
+const writableMedicalCarrier = "car301578"
+
 func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 	domain.InitRegistry("")
 	office, ok := domain.LookupOffice("Spring Hill")
@@ -75,8 +80,9 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 		InsuranceCarrierID: "car40906",
 		InsPlanID:          "ins789",
 		RespPartyID:        "resp456",
-		Routing:            domain.RoutingBachOnly,
-		AllowedProviders:   []string{"Dr. Bach"},
+		Routing:            "",
+		AllowedProviders:   []string{},
+		RoutingAmbiguous:   true,
 		AppointmentsStatus: patient.AppointmentsFound,
 		Appointments: []patient.Appointment{{
 			ID:                9570263,
@@ -117,7 +123,7 @@ func TestCreateReturnsExistingSuccessContract(t *testing.T) {
 		State:          "fl",
 		Zip:            "34609",
 		Sex:            "female",
-		Insurance:      "Humana Medicare",
+		Insurance:      writableMedicalPlan,
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -132,6 +138,7 @@ func TestCreateReturnsExistingSuccessContract(t *testing.T) {
 		AllowedProviders: []string{"Dr. Bach"},
 		Message:          "Patient created and insurance attached successfully",
 	}
+	want.InsuranceDecision = got.InsuranceDecision
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("Create() = %+v, want %+v", got, want)
 	}
@@ -444,8 +451,8 @@ func TestCreateReconcilesAmbiguousInsuranceAttachment(t *testing.T) {
 	}
 	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.Demographics["123"] = domain.PatientDemographics{
-		CarrierName:         "HUMANA MEDICARE",
-		CarrierID:           "car308175",
+		CarrierName:         writableMedicalPlan,
+		CarrierID:           writableMedicalCarrier,
 		InsPlanID:           "ins456",
 		RespPartyID:         "resp456",
 		SubscriberNum:       "H123",
@@ -472,7 +479,7 @@ func TestUpdateInsuranceReturnsExistingSuccessContract(t *testing.T) {
 		InsPlanID:      "ins123",
 		RespPartyID:    "resp123",
 		OldInsurance:   "Old",
-		Insurance:      "Humana Medicare",
+		Insurance:      writableMedicalPlan,
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -482,11 +489,12 @@ func TestUpdateInsuranceReturnsExistingSuccessContract(t *testing.T) {
 		Status:           patient.UpdateInsuranceStatusUpdated,
 		PatientID:        "123",
 		OldInsurance:     "Old",
-		NewInsurance:     "Humana Medicare",
+		NewInsurance:     writableMedicalPlan,
 		Routing:          domain.RoutingBachOnly,
 		AllowedProviders: []string{"Dr. Bach"},
 		Message:          "Insurance updated successfully",
 	}
+	want.InsuranceDecision = got.InsuranceDecision
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("UpdateInsurance() = %+v, want %+v", got, want)
 	}
@@ -518,8 +526,8 @@ func TestUpdateInsuranceReconcilesAmbiguousWriteAfterTransientReadFailure(t *tes
 		nil,
 	}
 	amd.Demographics["123"] = domain.PatientDemographics{
-		CarrierName:         "HUMANA MEDICARE",
-		CarrierID:           "car308175",
+		CarrierName:         writableMedicalPlan,
+		CarrierID:           writableMedicalCarrier,
 		InsPlanID:           "ins456",
 		RespPartyID:         "resp123",
 		SubscriberNum:       "H123",
@@ -588,7 +596,7 @@ func TestUpdateInsuranceDoesNotAcceptPreexistingSameCarrierAsReconciledSuccess(t
 	amd := advancedmdtest.NewAdapter()
 	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.Demographics["123"] = domain.PatientDemographics{
-		CarrierID:           "car308175",
+		CarrierID:           writableMedicalCarrier,
 		InsPlanID:           "ins456",
 		RespPartyID:         "resp123",
 		SubscriberNum:       "OLD-MEMBER",
@@ -627,7 +635,7 @@ func TestUpdateInsuranceReturnsIndeterminateWhenInsuranceStateIsIncomplete(t *te
 	amd := advancedmdtest.NewAdapter()
 	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.Demographics["123"] = domain.PatientDemographics{
-		CarrierID: "car308175",
+		CarrierID: writableMedicalCarrier,
 		InsPlanID: "ins456",
 	}
 
@@ -772,7 +780,7 @@ func validCreateCommand() patient.CreateCommand {
 		State:          "FL",
 		Zip:            "34609",
 		Sex:            "female",
-		Insurance:      "Humana Medicare",
+		Insurance:      writableMedicalPlan,
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -786,7 +794,7 @@ func validUpdateInsuranceCommand() patient.UpdateInsuranceCommand {
 		InsPlanID:      "ins123",
 		RespPartyID:    "resp123",
 		OldInsurance:   "Old",
-		Insurance:      "Humana Medicare",
+		Insurance:      writableMedicalPlan,
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -913,7 +921,7 @@ func TestResolveRefreshesKnownPatientByID(t *testing.T) {
 	if got.Name != "DOE,JANE" {
 		t.Fatalf("Name = %q, want DOE,JANE", got.Name)
 	}
-	if got.DOB != "01/15/1980" || got.Routing != domain.RoutingBachOnly {
+	if got.DOB != "01/15/1980" || !got.RoutingAmbiguous || got.InsuranceDecision == nil || got.InsuranceDecision.CanSchedule {
 		t.Fatalf("demographics = DOB %q routing %q", got.DOB, got.Routing)
 	}
 	if got.AppointmentsStatus != patient.AppointmentsFound || len(got.Appointments) != 1 {
@@ -1097,8 +1105,8 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 		{
 			name: "preauthorization carrier",
 			demographics: domain.PatientDemographics{
-				CarrierName: "AETNA HMO",
-				CarrierID:   "car40907",
+				CarrierName: "CIGNA HMO",
+				CarrierID:   "car301345",
 			},
 			patientDOB:       "01/01/1980",
 			wantRouting:      domain.RoutingAll,
@@ -1109,7 +1117,7 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 		{
 			name: "minor uses pediatric routing",
 			demographics: domain.PatientDemographics{
-				CarrierName: "AETNA",
+				CarrierName: "AETNA COMMERCIAL",
 				CarrierID:   "car40887",
 			},
 			patientDOB:       "01/01/2015",

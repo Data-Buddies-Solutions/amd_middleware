@@ -25,6 +25,9 @@ var eastern = domain.EasternLocation()
 
 // SearchCommand is the domain input for one availability search.
 type SearchCommand struct {
+	PatientID       string                      `json:"patientId,omitempty"`
+	InsurancePlan   string                      `json:"insurancePlan,omitempty"`
+	CoverageType    string                      `json:"coverageType,omitempty"`
 	VisitType       string                      `json:"visitType,omitempty"`
 	RequestedDate   string                      `json:"requestedDate,omitempty"`
 	PreferredTime   *AvailabilityTimePreference `json:"preferredTime,omitempty"`
@@ -168,6 +171,9 @@ func (s *service) Search(ctx context.Context, command SearchCommand) (domain.Ava
 // ListCommand loads a complete inventory window for conversational selection.
 // Patient eligibility and booking policy are identical to Search.
 type ListCommand struct {
+	PatientID       string `json:"patientId,omitempty"`
+	InsurancePlan   string `json:"insurancePlan,omitempty"`
+	CoverageType    string `json:"coverageType,omitempty"`
 	VisitType       string `json:"visitType,omitempty"`
 	StartDate       string `json:"startDate,omitempty"`
 	RangeDays       int    `json:"rangeDays,omitempty"`
@@ -186,6 +192,7 @@ func (s *service) List(ctx context.Context, command ListCommand) (domain.Availab
 		return domain.AvailabilityResponse{}, schedulingError("rangeDays must be 14; use startDate to search a different window")
 	}
 	return s.search(ctx, SearchCommand{VisitType: command.VisitType, Office: command.Office, DOB: command.DOB,
+		PatientID: command.PatientID, InsurancePlan: command.InsurancePlan, CoverageType: command.CoverageType,
 		RequestedDate: command.StartDate, Routing: command.Routing, PreauthRequired: command.PreauthRequired}, days)
 }
 
@@ -229,22 +236,43 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 		return empty, schedulingError(err.Error())
 	}
 	policy := domain.NewSchedulingPolicy(office)
+	if command.VisitType != "" && command.VisitType != domain.AppointmentVisitMedical && command.VisitType != domain.AppointmentVisitRoutineVision {
+		return empty, schedulingError("visitType must be medical or routine_vision")
+	}
+	unsupportedVisit := func() domain.AvailabilityResponse {
+		return domain.AvailabilityResponse{
+			Status: domain.AvailabilityStatusSuccess, Outcome: domain.AvailabilityOutcomeNoEligibleProviders,
+			RequestedDate: originalRequestedDate, NextAction: domain.AvailabilityNextActionAskDifferentPreferences,
+			Slots: []domain.AvailabilitySlotOption{}, Message: "This office or routing does not support the requested visit type.",
+		}
+	}
+	if (command.VisitType == domain.AppointmentVisitMedical && !policy.SupportsMedical()) ||
+		(command.VisitType == domain.AppointmentVisitRoutineVision && !policy.SupportsRouting(domain.RoutingOpticalOnly)) {
+		return unsupportedVisit(), nil
+	}
+	// Legacy inventory consumers can omit patientId. Booking always rechecks
+	// chart insurance; patient-scoped inventory additionally enforces it here.
+	if command.PatientID != "" {
+		coverage := command.CoverageType
+		if coverage == "" {
+			coverage = command.VisitType
+		}
+		if coverage == "" {
+			coverage = "medical"
+		}
+		if command.VisitType != "" && coverage != command.VisitType {
+			return empty, schedulingError("coverageType must match visitType")
+		}
+		insurance, err := s.insuranceForSearch(ctx, command.PatientID, command.InsurancePlan, coverage, office, command.DOB)
+		if err != nil {
+			return empty, err
+		}
+		command.Routing = string(insurance.Routing)
+	}
 	routing := policy.SchedulingRouting(domain.ParseRoutingRule(command.Routing), command.DOB)
-	if command.VisitType != "" {
-		if command.VisitType != domain.AppointmentVisitMedical && command.VisitType != domain.AppointmentVisitRoutineVision {
-			return empty, schedulingError("visitType must be medical or routine_vision")
-		}
-		supported := policy.SupportsMedical()
-		if command.VisitType == domain.AppointmentVisitRoutineVision {
-			supported = policy.SupportsRouting(domain.RoutingOpticalOnly)
-		}
-		if !supported || (command.VisitType == domain.AppointmentVisitMedical && routing == domain.RoutingOpticalOnly) || (command.VisitType == domain.AppointmentVisitRoutineVision && routing != domain.RoutingOpticalOnly) {
-			return domain.AvailabilityResponse{
-				Status: domain.AvailabilityStatusSuccess, Outcome: domain.AvailabilityOutcomeNoEligibleProviders,
-				RequestedDate: originalRequestedDate, NextAction: domain.AvailabilityNextActionAskDifferentPreferences,
-				Slots: []domain.AvailabilitySlotOption{}, Message: "This office or routing does not support the requested visit type.",
-			}, nil
-		}
+	if (command.VisitType == domain.AppointmentVisitMedical && routing == domain.RoutingOpticalOnly) ||
+		(command.VisitType == domain.AppointmentVisitRoutineVision && routing != domain.RoutingOpticalOnly) {
+		return unsupportedVisit(), nil
 	}
 
 	setup, err := s.schedulerSetup(ctx, now.UTC())

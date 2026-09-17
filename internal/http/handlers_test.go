@@ -119,7 +119,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 	if body.Status != "verified" || body.PatientID != "123" || body.Phone != "850-373-3869" {
 		t.Fatalf("response = %+v", body)
 	}
-	if body.Routing != "bach_only" || len(body.AllowedProviders) != 1 {
+	if body.Routing != "" || len(body.AllowedProviders) != 0 || !body.RoutingAmbiguous || body.InsuranceDecision == nil || body.InsuranceDecision.CanSchedule {
 		t.Fatalf("routing response = %+v", body)
 	}
 	if body.AppointmentsStatus != "none" || body.Appointments == nil {
@@ -723,7 +723,7 @@ func TestHandleAddPatient_RoutineVisionRequiresOpticalOffice(t *testing.T) {
 	if body.Status != "error" {
 		t.Fatalf("expected status error, got %q", body.Status)
 	}
-	expected := "Routine vision coverage is not supported at Crystal River. Route the patient to Spring Hill routine vision scheduling."
+	expected := "blocked: This office does not accept coverage for that visit type."
 	if body.Message != expected {
 		t.Fatalf("expected message %q, got %q", expected, body.Message)
 	}
@@ -756,7 +756,7 @@ func TestHandleAddPatient_RoutineOnlyOfficeRejectsMedical(t *testing.T) {
 	if body.Status != "error" {
 		t.Fatalf("expected status error, got %q", body.Status)
 	}
-	expected := "Medical coverage is not supported at North Miami Beach Optical. Use routine vision coverage for this office or route medical visits to a medical office."
+	expected := "blocked: This office does not accept coverage for that visit type."
 	if body.Message != expected {
 		t.Fatalf("expected message %q, got %q", expected, body.Message)
 	}
@@ -983,27 +983,27 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 		{
 			name:        "insurance not recognized",
 			body:        `{"patientId":"pat123","insurance":"FakeInsurance","subscriberNum":"ABC123"}`,
-			expectedMsg: `Insurance not recognized: "FakeInsurance". Please use an insurance name from the accepted list.`,
+			expectedMsg: `needs_input: Ask for the exact plan name from the insurance card.`,
 		},
 		{
 			name:        "spring hill rejected medical plan",
 			body:        `{"patientId":"pat123","insurance":"Cigna Local Plus","subscriberNum":"ABC123"}`,
-			expectedMsg: "Cigna Local Plus is not accepted at Spring Hill.",
+			expectedMsg: "blocked: This plan is not accepted for this visit type at this office.",
 		},
 		{
 			name:        "crystal river rejected medical plan",
 			body:        `{"patientId":"pat123","insurance":"Ambetter","subscriberNum":"ABC123","office":"+13523202007"}`,
-			expectedMsg: "Ambetter is not accepted at Crystal River.",
+			expectedMsg: "blocked: This plan is not accepted for this visit type at this office.",
 		},
 		{
 			name:        "routine vision requires optical office",
 			body:        `{"patientId":"pat123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13523202007"}`,
-			expectedMsg: "Routine vision coverage is not supported at Crystal River. Route the patient to Spring Hill routine vision scheduling.",
+			expectedMsg: "blocked: This office does not accept coverage for that visit type.",
 		},
 		{
 			name:        "routine-only office rejects medical coverage",
 			body:        `{"patientId":"pat123","insurance":"Aetna","subscriberNum":"ABC123","office":"+13055095333"}`,
-			expectedMsg: "Medical coverage is not supported at North Miami Beach Optical. Use routine vision coverage for this office or route medical visits to a medical office.",
+			expectedMsg: "blocked: This office does not accept coverage for that visit type.",
 		},
 		{
 			name:        "invalid DOB",
@@ -1063,7 +1063,7 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 		},
 		{
 			name:             "medical minor uses pediatric routing",
-			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insPlanId":"ins123","oldInsurance":"Old","insurance":"Aetna","subscriberNum":"ABC123","office":"Spring Hill","dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
+			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insPlanId":"ins123","oldInsurance":"Old","insurance":"Aetna Commercial","subscriberNum":"ABC123","office":"Spring Hill","dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
 			wantRouting:      string(domain.RoutingBachOnly),
 			wantProviders:    []string{"Dr. Bach"},
 			wantXMLRPCWrites: 2,
