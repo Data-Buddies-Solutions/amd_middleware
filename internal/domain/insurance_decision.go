@@ -241,7 +241,11 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 	}
 	d.Answer = prefix + "This office participates with " + d.CanonicalPlan + " for this visit type. This does not verify active coverage or benefits."
 	if len(d.Requirements) > 0 {
-		d.Answer += " Staff must complete the required insurance review before scheduling."
+		if d.CanRegister {
+			d.Answer += " Registration or insurance updates may proceed, but staff must complete the required insurance review before scheduling."
+		} else {
+			d.Answer += " Staff must complete the required insurance review before scheduling."
+		}
 	}
 	for _, req := range d.Requirements {
 		switch req.Kind {

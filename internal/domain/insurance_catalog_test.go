@@ -1,6 +1,9 @@
 package domain
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestMedicalCatalogPreservesOfficeExclusions(t *testing.T) {
 	for _, tc := range []struct{ office, plan string }{
@@ -94,5 +97,13 @@ func TestAMDDirectoryRoundTripUsesConfirmedProductWithoutRelaxingRestrictions(t 
 	chart.CarrierName = "United Healthcare NHP HMO Only"
 	if DecideChartInsurance(chart, "United Healthcare NHP HMO Access", "medical", office, "").CanSchedule {
 		t.Fatal("explicit chart restriction overridden")
+	}
+}
+
+func TestRegistrationPermissionIsExplicitWhenSchedulingIsHeld(t *testing.T) {
+	office, _ := ResolveOffice("Hollywood")
+	d := DecideInsurance("Humana Medicaid HMO", "medical", office, "")
+	if !d.CanRegister || d.CanSchedule || !strings.Contains(d.Answer, "Registration or insurance updates may proceed") || !strings.Contains(d.Answer, "before scheduling") {
+		t.Fatalf("unclear next action: %+v", d)
 	}
 }
