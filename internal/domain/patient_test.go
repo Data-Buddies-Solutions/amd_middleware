@@ -103,73 +103,6 @@ func TestNormalizeForLookup(t *testing.T) {
 	}
 }
 
-func TestMedicalAttachmentMappings(t *testing.T) {
-	tests := []struct {
-		name        string
-		input       string
-		wantID      string
-		wantRouting RoutingRule
-		wantFound   bool
-	}{
-		{"exact match lowercase", "humana medicare", "car308175", RoutingBachOnly, true},
-		{"case insensitive", "HUMANA MEDICARE", "car308175", RoutingBachOnly, true},
-		{"with whitespace", "  Aetna  ", "car40887", RoutingAll, true},
-		{"all three default", "Florida Blue", "car40897", RoutingAll, true},
-		{"bach + licht", "Tricare Prime", "car284327", RoutingBachLicht, true},
-		{"not accepted", "Molina Marketplace", "car308175", RoutingNotAccepted, true},
-		{"alias match", "Oscar", "car284233", RoutingBachLicht, true},
-		{"alias shorthand", "Humana", "", RoutingBachOnly, true},
-		{"unknown carrier", "unknown", "", "", false},
-		{"empty string", "", "", "", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			entry, gotFound := LookupInsuranceForCoverageAtOffice(tt.input, InsuranceModeMedical, DefaultOffice())
-			if gotFound != tt.wantFound {
-				t.Errorf("LookupInsurance(%q) found = %v, want %v", tt.input, gotFound, tt.wantFound)
-			}
-			if gotFound {
-				if entry.CarrierID != tt.wantID {
-					t.Errorf("LookupInsurance(%q) carrierID = %q, want %q", tt.input, entry.CarrierID, tt.wantID)
-				}
-				if entry.Routing != tt.wantRouting {
-					t.Errorf("LookupInsurance(%q) routing = %q, want %q", tt.input, entry.Routing, tt.wantRouting)
-				}
-			}
-		})
-	}
-}
-
-func TestLookupInsurance_AgentCanonicalAcceptedPlans(t *testing.T) {
-	tests := []struct {
-		input  string
-		wantID string
-	}{
-		{"Children's Medical Services", "car281245"},
-		{"Aetna Commercial", "car40887"},
-		{"Aetna PPO", "car40887"},
-		{"Aetna Managed Choice", "car40887"},
-		{"Aetna Medicare", "car40907"},
-		{"Aetna Medicare PPO", "car40907"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			entry, found := LookupInsuranceForCoverageAtOffice(tt.input, InsuranceModeMedical, &OfficeConfig{ID: "crystal_river"})
-			if !found {
-				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) found = false, want true", tt.input)
-			}
-			if entry.CarrierID != tt.wantID {
-				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) carrierID = %q, want %q", tt.input, entry.CarrierID, tt.wantID)
-			}
-			if entry.Routing == RoutingNotAccepted {
-				t.Fatalf("LookupInsuranceForCoverageAtOffice(%q) routing = %q, want accepted routing", tt.input, entry.Routing)
-			}
-		})
-	}
-}
-
 func TestLookupInsuranceForCoverage_RoutineVision(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -231,7 +164,7 @@ func TestLookupInsuranceForCoverage_RoutineVision(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			entry, gotFound := LookupInsuranceForCoverageAtOffice(tt.input, InsuranceModeVision, DefaultOffice())
+			entry, gotFound := lookupVisionInsurance(tt.input)
 			if gotFound != tt.wantFound {
 				t.Errorf("LookupInsuranceForCoverage(%q, vision) found = %v, want %v", tt.input, gotFound, tt.wantFound)
 			}
@@ -244,16 +177,6 @@ func TestLookupInsuranceForCoverage_RoutineVision(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestMedicalAetnaMedicareUsesDocumentedICareCarrier(t *testing.T) {
-	entry, found := LookupInsuranceForCoverageAtOffice("Aetna Medicare", InsuranceModeMedical, DefaultOffice())
-	if !found {
-		t.Fatal("Aetna Medicare medical found = false, want true")
-	}
-	if entry.CarrierID != "car40907" {
-		t.Fatalf("Aetna Medicare medical carrierID = %q, want car40907", entry.CarrierID)
 	}
 }
 

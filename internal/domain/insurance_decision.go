@@ -47,6 +47,14 @@ type participationRule struct {
 	Notice          string   `json:"callerNotice"`
 	Clarification   string   `json:"clarificationNeeded"`
 	Preauth         bool     `json:"preauthRequired"`
+	// Medical metadata comes from one catalog; the vision source is unchanged.
+	OfficeUnverified bool
+	CarrierID        string
+	CarrierCode      string
+	Routing          RoutingRule
+	Requirements     []InsuranceRequirement
+	Providers        []string
+	Issue            string
 }
 
 var insuranceWords = regexp.MustCompile(`[^a-z0-9]+`)
@@ -57,90 +65,48 @@ func insuranceNormalize(s string) string {
 func insuranceContains(s, term string) bool { return strings.Contains(" "+s+" ", " "+term+" ") }
 
 var participationSources = func() map[string][]participationRule {
-	result := map[string][]participationRule{}
-	entries, err := insuranceSources.ReadDir("insurance_data")
+	result := medicalRules()
+	b, err := insuranceSources.ReadFile("insurance_data/INSURANCE_SPRING_HILL_ROUTINE_VISION.json")
 	if err != nil {
 		panic(err)
 	}
-	for _, e := range entries {
-		b, err := insuranceSources.ReadFile("insurance_data/" + e.Name())
-		if err != nil {
-			panic(err)
-		}
-		var doc struct {
-			Plans []participationRule `json:"plans"`
-		}
-		if err := json.Unmarshal(b, &doc); err != nil {
-			panic(err)
-		}
-		// Feed every known product name into the same ambiguity-aware matcher.
-		for i := range doc.Plans {
-			rule := &doc.Plans[i]
-			if corrected := correctedInsurance(rule.Canonical); corrected != nil {
-				rule.Canonical = corrected.name
-				rule.Aliases = append(rule.Aliases, corrected.name, corrected.code)
-				for alias, canonical := range correctedAliases {
-					if canonical == corrected.name {
-						rule.Aliases = append(rule.Aliases, alias)
-					}
-				}
-			}
-		}
-		result[strings.TrimSuffix(strings.TrimPrefix(e.Name(), "INSURANCE_"), ".json")] = doc.Plans
+	var doc struct {
+		Plans []participationRule `json:"plans"`
 	}
+	if err = json.Unmarshal(b, &doc); err != nil {
+		panic(err)
+	}
+	result["SPRING_HILL_ROUTINE_VISION"] = doc.Plans
 	return result
 }()
-
-// Corrected plan identities are exact, not substring aliases to a parent carrier.
-// IDs verified against all 312 practice carriers on 2026-09-17.
-// AARPM and UNIT15 remain unresolved: AMD has AARPMC and UNIT5 instead.
-type correctedPlan struct {
-	name, code, id string
-	requirements   []InsuranceRequirement
-	providers      []string
-}
 
 func requirement(kind, channel string) InsuranceRequirement {
 	return InsuranceRequirement{kind, channel, "unverified"}
 }
 
-var correctedPlans = []correctedPlan{
-	{"United Healthcare Individual Exchange", "UNI20", "car40923", []InsuranceRequirement{requirement("pcp_referral", "uhc_portal")}, nil},
-	{"United Healthcare AARP Medicare", "AARPM", "", nil, nil},
-	{"United Healthcare Golden Rule", "GOL05", "car40902", nil, nil},
-	{"United Healthcare Oxford", "OX04", "car284471", nil, nil},
-	{"United Healthcare Shared Services", "UNIT9", "car303047", nil, nil},
-	{"United Healthcare Student Resources", "UHC STU", "car283950", nil, nil},
-	{"United Healthcare Surest", "BIND1", "car301501", nil, nil},
-	{"United Healthcare Global", "UNIT15", "", []InsuranceRequirement{requirement("vob_authorization", "")}, nil},
-	{"Preferred Care Partners", "PRE04", "car40916", nil, []string{"Dr. Austin Bach", "Dr. Calero", "Dr. Casas"}},
-	{"Humana Medicaid HMO", "HUM02", "car303033", []InsuranceRequirement{requirement("prior_authorization", "availity")}, nil},
-}
-var correctedAliases = map[string]string{
-	"united individual exchange": "United Healthcare Individual Exchange", "united healthcare individual exchange network": "United Healthcare Individual Exchange",
-	"united aarp medicare complete": "United Healthcare AARP Medicare", "united aarp medicare complete medicare advantage hmo lppo": "United Healthcare AARP Medicare",
-	"united aarp medicare advantage": "United Healthcare AARP Medicare", "united golden rule": "United Healthcare Golden Rule",
-	"united oxford": "United Healthcare Oxford", "united shared services": "United Healthcare Shared Services", "united student resources": "United Healthcare Student Resources",
-	"united surest": "United Healthcare Surest", "united healthcare surest health plans formerly bind": "United Healthcare Surest",
-	"united global international plan": "United Healthcare Global", "united healthcare global international plan": "United Healthcare Global",
-	"preferred care network preferred care partners": "Preferred Care Partners", "preferred care network": "Preferred Care Partners", "preferred care": "Preferred Care Partners",
-	"humana medicaid": "Humana Medicaid HMO",
-}
-
-func correctedInsurance(name string) *correctedPlan {
+// Preserve the existing vision handling of medical-only identities. This reads
+// shared identities; it does not apply medical participation rules to vision.
+func medicalIdentityCode(name string) string {
 	n := insuranceNormalize(name)
 	n = strings.TrimSpace(strings.ReplaceAll(n, " medical ", " "))
 	n = strings.TrimSuffix(n, " medical")
-	if a, ok := correctedAliases[n]; ok {
-		n = insuranceNormalize(a)
-	}
-	for i := range correctedPlans {
-		p := &correctedPlans[i]
-		if n == insuranceNormalize(p.name) || n == insuranceNormalize(p.code) {
-			return p
+	for _, p := range medicalPlans {
+		switch p.CarrierCode {
+		case "UNI20":
+			if p.Name != "United Healthcare Individual Exchange" {
+				continue
+			}
+		case "AARPM", "GOL05", "OX04", "UNIT9", "UHC STU", "BIND1", "UNIT15", "PRE04", "HUM02":
+		default:
+			continue
+		}
+		for _, alias := range append([]string{p.Name, p.CarrierCode}, p.Aliases...) {
+			if n == insuranceNormalize(alias) {
+				return p.CarrierCode
+			}
 		}
 	}
-	return nil
+	return ""
 }
 
 // DecideInsurance is the sole participation/write/scheduling decision. It does
@@ -169,36 +135,24 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 		return d
 	}
 	r := participationMatch(source, plan)
-	correction := correctedInsurance(plan)
-	if r != nil && correction == nil {
-		correction = correctedInsurance(r.Canonical)
-	}
-	if correction != nil && coverage == "routine_vision" {
-		if correction.code == "PRE04" {
-			d.Outcome = "not_accepted"
-			d.Participation = "not_accepted"
-			d.Answer = "blocked: Preferred Care Partners is medical only."
+	if coverage == "routine_vision" {
+		code := medicalIdentityCode(plan)
+		if code == "" && r != nil {
+			code = medicalIdentityCode(r.Canonical)
 		}
-		return d
-	}
-	if correction != nil && coverage == "medical" {
-		d.CanonicalPlan = correction.name
-		d.CarrierCode = correction.code
-		d.Requirements = append(d.Requirements, correction.requirements...)
-		d.CredentialedProviders = correction.providers
-		// Preserve explicit office exclusions; the group PDF is not a blanket office contract.
-		r = participationMatch(source, correction.name)
-		if r == nil || (correctedInsurance(r.Canonical) == nil && insuranceNormalize(r.Canonical) != insuranceNormalize(correction.name)) {
-			d.Answer = "blocked: Staff must confirm this plan's participation at this office."
-			d.Outcome = "needs_staff_task"
+		if code != "" {
+			if code == "PRE04" {
+				d.Outcome = "not_accepted"
+				d.Participation = "not_accepted"
+				d.Answer = "blocked: Preferred Care Partners is medical only."
+			}
 			return d
 		}
-
 	}
 	if r == nil {
 		return d
 	}
-	if correction == nil && insuranceNormalize(r.Canonical) == "united healthcare" {
+	if insuranceNormalize(r.Canonical) == "united healthcare" {
 		return d
 	}
 	if r.Status == "needs_clarification" {
@@ -213,7 +167,17 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 		d.Answer = "blocked: This plan is not accepted for this visit type at this office."
 		return d
 	}
-	if reason := insuranceSourceConflict(plan, r.Canonical, coverage, office.ID); reason != "" {
+	if r.OfficeUnverified {
+		d.Outcome = "needs_staff_task"
+		d.CanonicalPlan = r.Canonical
+		d.Answer = "blocked: Staff must confirm this plan's participation at this office."
+		return d
+	}
+	reason := insuranceSourceConflict(plan, r.Canonical, coverage, office.ID)
+	if coverage == "medical" && r.Issue != "" {
+		reason = r.Issue
+	}
+	if reason != "" {
 		d.Outcome = "needs_staff_task"
 		d.Answer = "blocked: " + reason + " Staff must confirm participation before proceeding."
 		return d
@@ -222,31 +186,25 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 	if d.CanonicalPlan == "" {
 		d.CanonicalPlan = r.Display
 	}
-	entry, ok := LookupInsuranceForCoverageAtOffice(d.CanonicalPlan, InsuranceModeForCoverage(coverage), office)
+	var entry InsuranceEntry
+	var ok bool
+	if coverage == "medical" {
+		entry = InsuranceEntry{CarrierID: r.CarrierID, Routing: r.Routing}
+		ok = r.Routing != ""
+		d.CarrierCode = r.CarrierCode
+		d.Requirements = append([]InsuranceRequirement{}, r.Requirements...)
+		d.CredentialedProviders = r.Providers
+	} else {
+		entry, ok = lookupVisionInsurance(d.CanonicalPlan)
+		if entry.PreauthRequired || r.Preauth {
+			d.Requirements = append(d.Requirements, requirement("prior_authorization", ""))
+		}
+	}
 	d.CarrierID = entry.CarrierID
 	d.Routing = entry.Routing
-	if correction != nil && coverage == "medical" {
-		d.CanonicalPlan = correction.name
-		d.CarrierCode = correction.code
-		d.CarrierID = correction.id
-		if correction.code == "PRE04" {
-			d.Routing = RoutingBachOnly
-			ok = true
-		}
-	} else if entry.PreauthRequired || r.Preauth {
-		d.Requirements = append(d.Requirements, requirement("prior_authorization", ""))
-	}
-	if coverage == "medical" {
-		if correction == nil {
-			d.CarrierCode = medicalCarrierCodes[d.CarrierID]
-		}
-		if requirements := medicalRequirements(d.CanonicalPlan); requirements != nil {
-			d.Requirements = requirements
-		}
-	}
 	d.SelfPay = IsSelfPayInsurance(d.CanonicalPlan)
 
-	if correction == nil && (!ok || entry.Routing == RoutingNotAccepted) && r.Status == "accepted" {
+	if (!ok || entry.Routing == RoutingNotAccepted) && r.Status == "accepted" {
 		d.Outcome = "needs_staff_task"
 		d.Answer = "blocked: Insurance sources conflict for this office and visit type. Ask staff to confirm participation."
 		return d
@@ -255,11 +213,11 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 	d.Outcome = "accepted"
 	d.Routing = policy.SchedulingRouting(d.Routing, dob)
 	d.AllowedProviders = append([]string{}, policy.ProviderNames(d.Routing, dob)...)
-	if correction != nil && len(correction.providers) > 0 {
+	if len(d.CredentialedProviders) > 0 {
 		// Intersection: credentialing never grants an office a new provider column.
 		allowed := []string{}
 		for _, p := range d.AllowedProviders {
-			for _, a := range correction.providers {
+			for _, a := range d.CredentialedProviders {
 				if p == a || p == "Dr. Bach" && a == "Dr. Austin Bach" {
 					allowed = append(allowed, p)
 					break
@@ -341,26 +299,10 @@ func DecideChartInsurance(chart PatientDemographics, plan, coverage string, offi
 	return decision
 }
 
-// correctedEntry keeps the legacy lookup helpers on the same carrier identity
-// as the decision contract. Never substitute a parent carrier for a missing ID.
-func correctedEntry(code string, routing RoutingRule) InsuranceEntry {
-	for _, p := range correctedPlans {
-		if p.code == code {
-			return InsuranceEntry{CarrierID: p.id, Routing: routing, PreauthRequired: len(p.requirements) > 0}
-		}
-	}
-	panic("unknown corrected insurance code")
-}
-
 // The group PDF (7/7/2026) conflicts with some older office lists. Preserve the
 // conflict as a review hold; never expand an office contract by inference.
 func insuranceSourceConflict(plan, canonical, coverage, office string) string {
 	n := insuranceNormalize(plan + " " + canonical)
-	if coverage == "medical" {
-		if reason := medicalReferenceConflict(canonical); reason != "" {
-			return reason
-		}
-	}
 	if office == "hollywood" && (strings.Contains(n, "aetna better health") || strings.Contains(n, "molina medicaid")) {
 		return "The reference limits this Medicaid plan to Miami-Dade, but the older office list includes it here."
 	}

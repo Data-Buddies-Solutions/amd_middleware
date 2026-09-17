@@ -5,6 +5,26 @@ referral/authorization requirements, provider restrictions, and booking enforcem
 Python collects facts, asks clarification questions, relays the backend answer, and
 retains the decision for the current patient and visit type.
 
+## Where to change medical insurance
+
+`internal/domain/insurance_data/MEDICAL.json` is the single medical catalog.
+Each plan defines its name, aliases, billing code, verified AMD ID, clarification
+question, requirements and unresolved issue once. Its `offices` entries contain
+only participation status, routing and office-specific notes. Hollywood and
+Sweetwater share their existing office group; explicit location restrictions still
+apply in the decision function. Missing office participation requires staff review.
+
+`insurance_medical.go` loads and validates the catalog. `insurance_matching.go`
+identifies the product; `insurance_decision.go` combines it with office policy and
+returns the next question or decision. There is no second medical attachment lookup.
+The three duplicate medical JSON files and Go carrier/requirement tables are removed.
+The existing routine-vision JSON and mappings are separate and unchanged.
+
+When adding an alias, add it to the existing plan instead of creating another office
+copy. Do not make a missing product inherit generic Medicare or another parent plan.
+The generic write tests use explicitly named Meritain fixtures; product-specific
+Humana tests separately verify HUM02 and authorization holds.
+
 ## Contract
 
 `POST /api/insurance/decision` accepts `plan`, `coverageType` (`medical` or
@@ -49,11 +69,9 @@ Reference: **Abita Eye Group Insurance List - Google Sheets (1).pdf**, dated
 7/7/2026, eight pages, reviewed 2026-09-17. The PDF is reference data only.
 The user's explicit corrections take precedence. The 2026-09-17 follow-up
 applies this document to **medical insurance only**. Routine-vision data, mappings,
-and requirements are unchanged by that follow-up. The office participation catalogs
-previously embedded in Python moved to `internal/domain/insurance_data`; Python no
-longer ships or evaluates them. The deterministic decision is in
-`internal/domain/insurance_decision.go`; internal transport mappings remain in
-`internal/domain/insurance.go` and consume the corrected identities.
+and requirements are unchanged by that follow-up. Medical data previously embedded in Python is now centralized in
+`internal/domain/insurance_data/MEDICAL.json`; Python does not ship or evaluate it.
+The deterministic decision is in `internal/domain/insurance_decision.go`.
 
 | Plan | Code | Requirement / restriction | Attachment ID evidence |
 |---|---|---|---|
@@ -150,8 +168,10 @@ Baseline middleware: `12752fa`; baseline Python: `9cc440a`.
 
 The medical follow-up additionally exercises real patient-service update calls against
 the synthetic AMD adapter, asserting exact carrier IDs in writes and preventing
-mutations for disputed codes. All 145 existing routine-vision catalog/office decisions
-were compared with the pre-change snapshot and were identical.
+mutations for disputed codes. All 1,880 routine-vision query/office results in the broader refactor comparison
+were identical to the pre-change snapshot. The comparison also caught and fixed
+medical parent fallbacks: named products missing office participation now require
+staff confirmation instead of inheriting generic Medicare acceptance.
 
 Validation uses offline synthetic fixtures, including HTTP and native LiveKit tool
 sessions. It does not prove live insurance attachment, eligibility, portal verification,
@@ -163,8 +183,8 @@ Reviewed the first implementation (`224951b` middleware, `a91454d` Python) with
 independent standards, spec and Python reviewers. The follow-up removes the second
 registration/update policy calculation, the unused carrier-ID routing subsystem,
 obsolete catalog control fields, and duplicated Python plan/coverage state.
-Participation references and attachment mappings remain separate facts, consumed by
-one decision function; their unresolved conflicts are not silently collapsed.
+Participation and attachment identity remain distinct fields in the shared catalog;
+the decision function preserves unresolved conflicts as holds.
 
 The review also found three defects in that first implementation:
 
@@ -184,7 +204,7 @@ uncertain and cannot be retried automatically.
 
 ## Medical plan clarification
 
-Medical catalogs return family-specific next questions. Humana first asks Medicare,
+The shared medical catalog returns family-specific next questions. Humana first asks Medicare,
 Medicaid, or employer/individual coverage; Humana Medicare then asks HMO/PPO and the
 full product name. Cigna asks Medicare versus commercial and HMO/PPO/Open Access;
 Molina asks Medicaid/Medicare/Marketplace; United asks coverage category and product,
