@@ -722,7 +722,7 @@ func TestHandleAddPatient_RoutineVisionRequiresOpticalOffice(t *testing.T) {
 	if body.Status != "error" {
 		t.Fatalf("expected status error, got %q", body.Status)
 	}
-	expected := "Routine vision coverage is not supported at Crystal River. Route the patient to Spring Hill routine vision scheduling."
+	expected := "blocked: This office does not accept coverage for that visit type."
 	if body.Message != expected {
 		t.Fatalf("expected message %q, got %q", expected, body.Message)
 	}
@@ -755,7 +755,7 @@ func TestHandleAddPatient_RoutineOnlyOfficeRejectsMedical(t *testing.T) {
 	if body.Status != "error" {
 		t.Fatalf("expected status error, got %q", body.Status)
 	}
-	expected := "Medical coverage is not supported at North Miami Beach Optical. Use routine vision coverage for this office or route medical visits to a medical office."
+	expected := "blocked: This office does not accept coverage for that visit type."
 	if body.Message != expected {
 		t.Fatalf("expected message %q, got %q", expected, body.Message)
 	}
@@ -982,27 +982,27 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 		{
 			name:        "insurance not recognized",
 			body:        `{"patientId":"pat123","insurance":"FakeInsurance","subscriberNum":"ABC123"}`,
-			expectedMsg: `Insurance not recognized: "FakeInsurance". Please use an insurance name from the accepted list.`,
+			expectedMsg: `needs_input: Ask for the exact plan name from the insurance card.`,
 		},
 		{
 			name:        "spring hill rejected medical plan",
 			body:        `{"patientId":"pat123","insurance":"Cigna Local Plus","subscriberNum":"ABC123"}`,
-			expectedMsg: "Cigna Local Plus is not accepted at Spring Hill.",
+			expectedMsg: "blocked: This plan is not accepted for this visit type at this office.",
 		},
 		{
 			name:        "crystal river rejected medical plan",
 			body:        `{"patientId":"pat123","insurance":"Ambetter","subscriberNum":"ABC123","office":"+13523202007"}`,
-			expectedMsg: "Ambetter is not accepted at Crystal River.",
+			expectedMsg: "blocked: This plan is not accepted for this visit type at this office.",
 		},
 		{
 			name:        "routine vision requires optical office",
 			body:        `{"patientId":"pat123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13523202007"}`,
-			expectedMsg: "Routine vision coverage is not supported at Crystal River. Route the patient to Spring Hill routine vision scheduling.",
+			expectedMsg: "blocked: This office does not accept coverage for that visit type.",
 		},
 		{
 			name:        "routine-only office rejects medical coverage",
 			body:        `{"patientId":"pat123","insurance":"Aetna","subscriberNum":"ABC123","office":"+13055095333"}`,
-			expectedMsg: "Medical coverage is not supported at North Miami Beach Optical. Use routine vision coverage for this office or route medical visits to a medical office.",
+			expectedMsg: "blocked: This office does not accept coverage for that visit type.",
 		},
 		{
 			name:        "invalid DOB",

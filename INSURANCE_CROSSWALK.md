@@ -33,7 +33,8 @@ creation or end-dating existing insurance. Existing request shapes remain suppor
 booking now intentionally rejects unresolved chart insurance even for raw consumers.
 
 Patient-scoped availability accepts `patientId`, `insurancePlan`, and `coverageType`.
-It reads the chart and derives routing server-side. Legacy unscoped inventory remains
+It reads the chart and derives routing server-side. Caller plan details must match
+the canonical product on the chart; sharing an attachment ID is insufficient. Legacy unscoped inventory remains
 available, but every booking rereads the chart and checks the selected column against
 insurance policy, including signed-slot and raw-booking requests. A corrected plan
 cannot silently book against a different carrier still on the chart.
@@ -80,7 +81,9 @@ read or mutated to resolve the report; committed regressions use synthetic peopl
 
 - PRE04 credentials three providers, but the current Hollywood/Sweetwater medical
   routing only enables Bach columns. Calero/Casas optical columns do not become
-  medical columns through this insurance change. The contract preserves credentialed
+  medical columns through this insurance change. Spring Hill's explicit PRE04
+  exclusion remains; credentialing does not expand office participation.
+  The contract preserves credentialed
   providers separately and only offers the intersection with enabled medical policy.
 - Aetna Better Health and Molina Medicaid: the group PDF limits these to Miami-Dade,
   while older Hollywood lists include them. These return staff review, including
@@ -117,6 +120,31 @@ Baseline middleware: `12752fa`; baseline Python: `9cc440a`.
 Validation uses offline synthetic fixtures, including HTTP and native LiveKit tool
 sessions. It does not prove live insurance attachment, eligibility, portal verification,
 production booking, or real voice behavior.
+
+## Simplification review
+
+Reviewed the first implementation (`224951b` middleware, `a91454d` Python) with
+independent standards, spec and Python reviewers. The follow-up removes the second
+registration/update policy calculation, the unused carrier-ID routing subsystem,
+obsolete catalog control fields, and duplicated Python plan/coverage state.
+Participation references and attachment mappings remain separate facts, consumed by
+one decision function; their unresolved conflicts are not silently collapsed.
+
+The review also found three defects in that first implementation:
+
+- Cigna HMO -> PPO and NHP HMO Only -> Access could share a carrier ID while removing
+  requirements. The regression reached a synthetic booking (`writes=1`) before the
+  fix. Chart product identity now remains authoritative; both cases produce no write,
+  while matching-product positive controls still book.
+- Generic phrases such as "I have Humana" could choose PPO, and conflicting product
+  names could be resolved by name length. Generic rules now ask for clarification;
+  one matcher evaluates all known aliases and refuses conflicting products.
+- PRE04 credentialing had overridden Spring Hill's office exclusion. That override
+  is removed; Hollywood/Sweetwater acceptance and Spring Hill exclusion are tested.
+
+Python additionally validates the plan/office/coverage of write decisions. Missing
+write decisions cannot revive old scheduling permission; mismatched receipts remain
+uncertain and cannot be retried automatically.
 
 ## Integration and rollout
 

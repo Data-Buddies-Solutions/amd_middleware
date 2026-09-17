@@ -83,7 +83,7 @@ func TestInsuranceOfficeScopeAndSimilarProducts(t *testing.T) {
 }
 
 func TestPRE04CredentialingAndChartBinding(t *testing.T) {
-	for _, name := range []string{"Spring Hill", "Hollywood", "Sweetwater"} {
+	for _, name := range []string{"Hollywood", "Sweetwater"} {
 		office, _ := ResolveOffice(name)
 		d := DecideChartInsurance(PatientDemographics{CarrierID: "car40916", CarrierName: "PREFERRED CARE PARTNERS"}, "", "medical", office, "01/02/1980")
 		if d.CarrierCode != "PRE04" || len(d.CredentialedProviders) != 3 || !d.CanSchedule || len(d.AllowedProviders) != 1 || d.AllowedProviders[0] != "Dr. Bach" {

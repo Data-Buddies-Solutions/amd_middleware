@@ -4,7 +4,6 @@ import (
 	"embed"
 	"encoding/json"
 	"regexp"
-	"slices"
 	"strings"
 )
 
@@ -74,80 +73,23 @@ var participationSources = func() map[string][]participationRule {
 		if err := json.Unmarshal(b, &doc); err != nil {
 			panic(err)
 		}
+		// Feed every known product name into the same ambiguity-aware matcher.
+		for i := range doc.Plans {
+			rule := &doc.Plans[i]
+			if corrected := correctedInsurance(rule.Canonical); corrected != nil {
+				rule.Canonical = corrected.name
+				rule.Aliases = append(rule.Aliases, corrected.name, corrected.code)
+				for alias, canonical := range correctedAliases {
+					if canonical == corrected.name {
+						rule.Aliases = append(rule.Aliases, alias)
+					}
+				}
+			}
+		}
 		result[strings.TrimSuffix(strings.TrimPrefix(e.Name(), "INSURANCE_"), ".json")] = doc.Plans
 	}
 	return result
 }()
-
-func participationMatch(source, query string) *participationRule {
-	query = insuranceNormalize(query)
-	type candidate struct {
-		rule            participationRule
-		term            string
-		exact, required bool
-	}
-	var candidates []candidate
-	for _, r := range participationSources[source] {
-		display := r.Display
-		if display == "" {
-			display = r.Canonical
-		}
-		for _, term := range append([]string{display}, r.Aliases...) {
-			t := insuranceNormalize(term)
-			if t != "" && insuranceContains(query, t) {
-				candidates = append(candidates, candidate{r, t, query == t, false})
-			}
-		}
-		for _, term := range r.RequiredAliases {
-			t := insuranceNormalize(term)
-			matches := t != ""
-			for _, w := range strings.Fields(t) {
-				matches = matches && insuranceContains(query, w)
-			}
-			if matches {
-				candidates = append(candidates, candidate{r, t, query == t, true})
-			}
-		}
-	}
-	better := func(a, b candidate) bool {
-		if a.exact != b.exact {
-			return a.exact
-		}
-		return len(a.term) > len(b.term)
-	}
-	best := func(filter func(candidate) bool) *candidate {
-		var chosen *candidate
-		for _, c := range candidates {
-			if filter(c) && (chosen == nil || better(c, *chosen)) {
-				copy := c
-				chosen = &copy
-			}
-		}
-		return chosen
-	}
-	chosen := best(func(c candidate) bool { return c.required })
-	if chosen == nil {
-		chosen = best(func(c candidate) bool { return c.exact })
-	}
-	if chosen == nil {
-		rejected := best(func(c candidate) bool { return c.rule.Status == "not_accepted" })
-		accepted := best(func(c candidate) bool { return c.rule.Status == "accepted" })
-		followup := best(func(c candidate) bool {
-			return c.rule.Status == "needs_clarification" || c.rule.Status == "needs_staff_task"
-		})
-		if rejected != nil && !(accepted != nil && better(*accepted, *rejected) && insuranceContains(accepted.term, rejected.term)) {
-			chosen = rejected
-		} else if accepted != nil && (followup == nil || better(*accepted, *followup)) {
-			chosen = accepted
-		} else {
-			chosen = followup
-		}
-	}
-	if chosen == nil {
-		return nil
-	}
-	return &chosen.rule
-}
 
 // Corrected plan identities are exact, not substring aliases to a parent carrier.
 // Empty IDs intentionally fail closed until a practice carrier export verifies them.
@@ -225,9 +167,6 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 		d.Answer = "blocked: This office does not accept coverage for that visit type."
 		return d
 	}
-	if ambiguousCorrectedPlans(plan) {
-		return d
-	}
 	r := participationMatch(source, plan)
 	correction := correctedInsurance(plan)
 	if r != nil && correction == nil {
@@ -239,11 +178,6 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 			d.Participation = "not_accepted"
 			d.Answer = "blocked: Preferred Care Partners is medical only."
 		}
-		return d
-	}
-	// Generic parent names cannot select a product with different requirements.
-	n := insuranceNormalize(plan)
-	if slices.Contains([]string{"united", "uhc", "united healthcare", "humana", "humana hmo", "humana medicare", "hum03", "united healthcare nhp"}, n) {
 		return d
 	}
 	if correction != nil && coverage == "medical" {
@@ -258,13 +192,7 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 			d.Outcome = "needs_staff_task"
 			return d
 		}
-		// PRE04 correction is explicit; other office rejection lists remain authoritative.
-		if correction.code == "PRE04" {
-			copy := *r
-			copy.Status = "accepted"
-			copy.Notice = ""
-			r = &copy
-		}
+
 	}
 	if r == nil {
 		return d
@@ -344,9 +272,13 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 	}
 	d.CanRegister = ok && d.CarrierID != "" && d.Routing != RoutingNotAccepted
 	d.CanSchedule = d.CanRegister && len(d.Requirements) == 0 && len(d.AllowedProviders) > 0 && r.Status == "accepted"
-	d.Answer = "success: This office participates with " + d.CanonicalPlan + " for this visit type. This does not verify active coverage or benefits."
-	if len(d.Requirements) > 0 {
+	prefix := "success: "
+	if !d.CanRegister || len(d.Requirements) > 0 || r.Status == "needs_staff_task" {
 		d.Outcome = "needs_staff_task"
+		prefix = "blocked: "
+	}
+	d.Answer = prefix + "This office participates with " + d.CanonicalPlan + " for this visit type. This does not verify active coverage or benefits."
+	if len(d.Requirements) > 0 {
 		d.Answer += " Staff must complete the required insurance review before scheduling."
 	}
 	for _, req := range d.Requirements {
@@ -366,15 +298,7 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 		}
 	}
 	if !d.CanRegister {
-		d.Outcome = "needs_staff_task"
 		d.Answer += " Staff must verify the insurance attachment details before registration or insurance changes."
-	}
-	if r.Status == "needs_staff_task" {
-		d.Outcome = "needs_staff_task"
-		d.CanSchedule = false
-	}
-	if d.Outcome == "needs_staff_task" {
-		d.Answer = strings.Replace(d.Answer, "success:", "blocked:", 1)
 	}
 	if r.Notice != "" {
 		d.Answer += " " + r.Notice
@@ -385,19 +309,26 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 // DecideChartInsurance binds a caller's clarified product to the carrier actually
 // on the chart. It never silently changes that chart or trusts request routing.
 func DecideChartInsurance(chart PatientDemographics, plan, coverage string, office *OfficeConfig, dob string) InsuranceDecision {
-	if plan == "" {
-		plan = chart.CarrierName
+	recordedPlan := chart.CarrierName
+	if chart.CarrierID == "car40916" {
+		recordedPlan = "Preferred Care Partners"
 	}
-	if chart.CarrierID == "car40916" && plan == chart.CarrierName {
-		plan = "Preferred Care Partners"
+	decision := DecideInsurance(recordedPlan, coverage, office, dob)
+	// A caller cannot clear a restriction already established by the chart.
+	if !decision.CanSchedule {
+		return decision
 	}
-	d := DecideInsurance(plan, coverage, office, dob)
-	if chart.CarrierID == "" || d.CarrierID == "" || chart.CarrierID != d.CarrierID {
-		d.CanSchedule = false
-		d.Answer = "blocked: Staff must verify the insurance on the chart before scheduling."
-		d.Outcome = "needs_staff_task"
+	matches := chart.CarrierID != "" && chart.CarrierID == decision.CarrierID
+	if plan != "" {
+		claimed := DecideInsurance(plan, coverage, office, dob)
+		matches = matches && claimed.CanSchedule && insuranceNormalize(claimed.CanonicalPlan) == insuranceNormalize(decision.CanonicalPlan)
 	}
-	return d
+	if !matches {
+		decision.CanSchedule = false
+		decision.Outcome = "needs_staff_task"
+		decision.Answer = "blocked: Staff must verify the insurance on the chart before scheduling."
+	}
+	return decision
 }
 
 // correctedEntry keeps the legacy lookup helpers on the same carrier identity
@@ -428,22 +359,4 @@ func insuranceSourceConflict(plan, canonical, coverage, office string) string {
 		return "The exact underlying plan and network limitations need confirmation."
 	}
 	return ""
-}
-
-func ambiguousCorrectedPlans(query string) bool {
-	query = insuranceNormalize(query)
-	codes := map[string]bool{}
-	for _, p := range correctedPlans {
-		if insuranceContains(query, insuranceNormalize(p.name)) || insuranceContains(query, insuranceNormalize(p.code)) {
-			codes[p.code] = true
-		}
-	}
-	for alias, canonical := range correctedAliases {
-		if insuranceContains(query, alias) {
-			if p := correctedInsurance(canonical); p != nil {
-				codes[p.code] = true
-			}
-		}
-	}
-	return len(codes) > 1
 }

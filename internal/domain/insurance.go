@@ -143,44 +143,6 @@ var InsuranceNameMap = map[string]InsuranceEntry{
 	"care health plus":   {CarrierID: "", Routing: RoutingNotAccepted},
 }
 
-// CarrierRoutingMap maps AMD carrier IDs to routing rules for existing patients.
-// Used when we get the carrier ID from demographics.
-// Ambiguous carriers default to RoutingAll (most permissive).
-var CarrierRoutingMap = map[string]RoutingRule{
-	// NOT ACCEPTED (unambiguous carriers only)
-	"car281648": RoutingNotAccepted, // DOCTORS HEALTHCARE PLANS INC
-	"car40916":  RoutingBachOnly,    // PREFERRED CARE PARTNERS: intersect PRE04 with enabled medical columns
-	"car301737": RoutingNotAccepted, // EYE MANAGEMENT INC (AvMed Medicare via EMI)
-	"car280750": RoutingNotAccepted, // EYE MANAGEMENT INC (FL Blue HMO via EMI)
-	"car303061": RoutingNotAccepted, // HUMANA PREMIER HMO
-	"car308627": RoutingNotAccepted, // EYECARE AMERICA AAO
-	// BACH ONLY
-	"car303033": RoutingBachOnly, // HUMANA MEDICAID
-	"car40906":  RoutingBachOnly, // HUMANA MEDICARE
-	"car303062": RoutingBachOnly, // HUMANA PPO POS
-	"car301578": RoutingBachOnly, // MERITAIN HEALTH
-	// BACH + LICHT
-	"car40890":  RoutingBachLicht, // AVMED
-	"car302890": RoutingBachLicht, // CIGNA MEDICARE ADVTG HEALTHSPRING
-	"car284233": RoutingBachLicht, // OSCAR INSURANCE COMPANY OF FLORIDA
-	"car301672": RoutingAll,       // SELF PAY
-	"car284327": RoutingBachLicht, // TRICARE EAST
-	"car40921":  RoutingBachLicht, // TRICARE FOR LIFE
-	"car40922":  RoutingBachLicht, // TRICARE NORTH AND SOUTH REGIONS
-}
-
-// AmbiguousCarriers are carrier IDs that span multiple routing tiers.
-// When we get these from demographics, we default to All 3 but flag it.
-var AmbiguousCarriers = map[string]bool{
-	"car40887":  true, // AETNA
-	"car40897":  true, // FLORIDA BLUE SHIELD
-	"car40907":  true, // ICARE / MEDICAID FAMILY
-	"car40912":  true, // MOLINA HEALTHCARE OF FLORIDA
-	"car40923":  true, // UNITED HEALTHCARE
-	"car301345": true, // CIGNA HMO
-	"car308175": true, // HUMANA CONSOLIDATED
-}
-
 // InsuranceAliases maps common shorthand names to canonical InsuranceNameMap keys.
 // Catches what patients naturally say and what the LLM might truncate to.
 // Only alias when ALL plans under that shorthand share the same routing.
@@ -525,38 +487,6 @@ var hollywoodSweetwaterMedicalInsuranceAliases = map[string]string{
 	"wellcare medicare lppo medical":                          "wellcare medicare lppo",
 }
 
-var hollywoodSweetwaterAcceptedMedicalCarrierIDs = map[string]bool{
-	"car280750": true, // Florida Blue HMO via EMI
-	"car281245": true, // Envolve
-	"car281317": true, // Premier Eye Care
-	"car284233": true, // Oscar
-	"car284327": true, // Tricare East
-	"car284971": true, // UHC Global
-	"car301345": true, // Cigna
-	"car301578": true, // Meritain
-	"car301648": true, // MultiPlan / PHCS
-	"car301672": true, // Self Pay
-	"car302890": true, // Cigna Medicare Advantage HealthSpring
-	"car303033": true, // Medicaid / Humana Medicaid legacy bucket
-	"car303062": true, // Humana PPO/POS
-	"car308086": true, // SunHealth
-	"car308142": true, // Imagine Health
-	"car308175": true, // Humana consolidated
-	"car308627": true, // Eye America AAO
-	"car40887":  true, // Aetna
-	"car40890":  true, // AvMed
-	"car40897":  true, // Florida Blue
-	"car40899":  true, // Florida Medicaid
-	"car40900":  true, // Medicare
-	"car40906":  true, // Humana Medicare
-	"car40907":  true, // iCare
-	"car40912":  true, // Molina Medicaid
-	"car40916":  true, // Preferred Care Partners legacy carrier
-	"car40921":  true, // Tricare
-	"car40922":  true, // Tricare North/South
-	"car40923":  true, // United Healthcare
-}
-
 func isHollywoodSweetwaterMedicalOffice(office *OfficeConfig) bool {
 	return office != nil && (office.ID == "hollywood" || office.ID == "sweetwater")
 }
@@ -752,27 +682,12 @@ func isAetnaGovernmentVisionPlan(name string) bool {
 	return hasAetna && hasGovernmentProgram
 }
 
-// LookupInsurance looks up an insurance name and returns its entry.
-// First tries exact match in InsuranceNameMap, then checks InsuranceAliases.
-// Uses NormalizeForLookup for tolerance of punctuation, casing, and spacing.
-func LookupInsurance(name string) (InsuranceEntry, bool) {
-	return lookupInsuranceFromMaps(name, InsuranceNameMap, InsuranceAliases)
-}
-
 // IsSelfPayInsurance reports whether a caller-facing insurance value means self-pay.
 func IsSelfPayInsurance(name string) bool {
 	normalized := NormalizeForLookup(name)
 	return normalized == "self pay" ||
 		InsuranceAliases[normalized] == "self pay" ||
 		VisionInsuranceAliases[normalized] == "self pay"
-}
-
-// LookupInsuranceForCoverage chooses the medical or routine-vision crosswalk.
-func LookupInsuranceForCoverage(name string, mode InsuranceMode) (InsuranceEntry, bool) {
-	if mode == InsuranceModeVision {
-		return lookupVisionInsurance(name)
-	}
-	return LookupInsurance(name)
 }
 
 var crystalRiverRejectedMedicalPlans = map[string]bool{
@@ -796,14 +711,6 @@ var crystalRiverRejectedMedicalPlans = map[string]bool{
 	"staywell medicare":              true,
 	"sunshine medicaid":              true,
 	"vivida":                         true,
-}
-
-var crystalRiverRejectedCarrierIDs = map[string]bool{
-	"car281245": true, // Ambetter / Staywell / Sunshine family
-	"car303033": true, // Medicaid / Humana Medicaid legacy bucket
-	"car40899":  true, // Florida Medicaid
-	"car40907":  true, // iCare / Medicaid family
-	"car40912":  true, // Molina Medicaid
 }
 
 var ambiguousDemographicCarrierNames = map[string]bool{
@@ -883,68 +790,6 @@ func InsuranceModeForCoverage(coverageType string) InsuranceMode {
 	default:
 		return InsuranceModeMedical
 	}
-}
-
-// RoutingForCarrierID returns the routing rule for a carrier ID from demographics.
-// Returns the rule and whether the carrier is ambiguous (shared across tiers).
-// Unknown carrier IDs default to RoutingAll (most permissive).
-func RoutingForCarrierID(carrierID string) (RoutingRule, bool) {
-	ambiguous := AmbiguousCarriers[carrierID]
-
-	if rule, ok := CarrierRoutingMap[carrierID]; ok {
-		return rule, ambiguous
-	}
-
-	// Unknown or ambiguous carriers default to all three
-	return RoutingAll, ambiguous
-}
-
-// RoutingForCarrierIDAtOffice applies office-specific medical acceptance rules
-// to the demographics carrier-ID fallback used for existing patients.
-func RoutingForCarrierIDAtOffice(carrierID string, office *OfficeConfig) (RoutingRule, bool) {
-	if office != nil && office.ID == "crystal_river" && crystalRiverRejectedCarrierIDs[carrierID] {
-		return RoutingNotAccepted, false
-	}
-	if isHollywoodSweetwaterMedicalOffice(office) {
-		if hollywoodSweetwaterAcceptedMedicalCarrierIDs[carrierID] {
-			return RoutingBachOnly, AmbiguousCarriers[carrierID]
-		}
-		return RoutingNotAccepted, false
-	}
-	return RoutingForCarrierID(carrierID)
-}
-
-// RoutingForDemographicInsurance prefers AMD's carrier name when available, then
-// falls back to carrier ID. Carrier IDs can represent mixed accepted/rejected plans.
-func RoutingForDemographicInsurance(carrierID, carrierName string, office *OfficeConfig) (RoutingRule, bool) {
-	if isHollywoodSweetwaterMedicalOffice(office) {
-		if entry, _, ok := lookupInsuranceEntry(carrierName, hollywoodSweetwaterMedicalInsuranceNameMap, hollywoodSweetwaterMedicalInsuranceAliases); ok {
-			return entry.Routing, false
-		}
-		if entry, canonicalName, ok := lookupInsuranceEntry(carrierName, InsuranceNameMap, InsuranceAliases); ok {
-			if officeEntry, ok := hollywoodSweetwaterMedicalInsuranceNameMap[canonicalName]; ok {
-				return officeEntry.Routing, false
-			}
-			if ambiguousDemographicCarrierNames[NormalizeForLookup(carrierName)] || ambiguousDemographicCarrierNames[canonicalName] {
-				return RoutingForCarrierIDAtOffice(carrierID, office)
-			}
-			if entry.Routing == RoutingNotAccepted {
-				return RoutingNotAccepted, false
-			}
-			return RoutingNotAccepted, false
-		}
-		return RoutingForCarrierIDAtOffice(carrierID, office)
-	}
-
-	if entry, canonicalName, ok := lookupInsuranceEntry(carrierName, InsuranceNameMap, InsuranceAliases); ok {
-		if AmbiguousCarriers[carrierID] && ambiguousDemographicCarrierNames[NormalizeForLookup(carrierName)] {
-			return RoutingForCarrierIDAtOffice(carrierID, office)
-		}
-		entry = applyOfficeMedicalInsurancePolicy(entry, canonicalName, office)
-		return entry.Routing, false
-	}
-
-	return RoutingForCarrierIDAtOffice(carrierID, office)
 }
 
 // ParseRoutingRule converts a string back to a typed RoutingRule.

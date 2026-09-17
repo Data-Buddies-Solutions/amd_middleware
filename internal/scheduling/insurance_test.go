@@ -36,24 +36,20 @@ func TestInsuranceRequirementsCannotBeBypassedByBookingRouting(t *testing.T) {
 }
 
 func TestPRE04CannotBookUncredentialedProvider(t *testing.T) {
-	records := bookingRecords()
+	records := recordsWithSetup(testColumn("1268", "620", "1480", "09:00", "09:15", 15))
 	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: "Preferred Care Partners", CarrierID: "car40916"}
+	records.ScheduleReads["2026-06-03"] = completeRead("1268", nil, nil)
 	now := mutationTestNow()
-	command := signedBookCommand(t, now)
-	// A legacy raw request cannot broaden PRE04's credentialing.
-	command.BookingToken = ""
-	command.StartDatetime = "2026-06-03T09:00"
-	command.Duration = 15
-	command.ColumnID = 1551
-	command.ProfileID = 621
-	command.Routing = "all_three"
-	command.Office = "Spring Hill"
-	_, err := scheduling.NewWithConfig(records, "test-booking-secret", func() time.Time { return now }, scheduling.Config{AllowRawBooking: true}).Book(context.Background(), command)
+	svc := scheduling.NewWithConfig(records, "test-booking-secret", func() time.Time { return now }, scheduling.Config{AllowRawBooking: true})
+	// Caller routing cannot open an uncredentialed optical provider for PRE04.
+	command := scheduling.BookCommand{PatientID: "12345", DOB: "01/15/1980", Office: "Hollywood", ColumnID: 1555, ProfileID: 2075, StartDatetime: "2026-06-03T09:00", Duration: 15, AppointmentTypeID: 1007, Routing: "all_three"}
+	_, err := svc.Book(context.Background(), command)
 	if err == nil || !strings.Contains(err.Error(), "provider") || len(records.Bookings) != 0 {
 		t.Fatalf("err=%v writes=%d", err, len(records.Bookings))
 	}
-	command = signedBookCommand(t, now)
-	if _, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).Book(context.Background(), command); err != nil {
+	command.ColumnID = 1268
+	command.ProfileID = 620
+	if _, err := svc.Book(context.Background(), command); err != nil {
 		t.Fatal(err)
 	}
 }

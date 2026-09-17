@@ -103,7 +103,7 @@ func TestNormalizeForLookup(t *testing.T) {
 	}
 }
 
-func TestLookupInsurance(t *testing.T) {
+func TestMedicalAttachmentMappings(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       string
@@ -125,7 +125,7 @@ func TestLookupInsurance(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			entry, gotFound := LookupInsurance(tt.input)
+			entry, gotFound := LookupInsuranceForCoverageAtOffice(tt.input, InsuranceModeMedical, DefaultOffice())
 			if gotFound != tt.wantFound {
 				t.Errorf("LookupInsurance(%q) found = %v, want %v", tt.input, gotFound, tt.wantFound)
 			}
@@ -231,7 +231,7 @@ func TestLookupInsuranceForCoverage_RoutineVision(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			entry, gotFound := LookupInsuranceForCoverage(tt.input, InsuranceModeVision)
+			entry, gotFound := LookupInsuranceForCoverageAtOffice(tt.input, InsuranceModeVision, DefaultOffice())
 			if gotFound != tt.wantFound {
 				t.Errorf("LookupInsuranceForCoverage(%q, vision) found = %v, want %v", tt.input, gotFound, tt.wantFound)
 			}
@@ -248,7 +248,7 @@ func TestLookupInsuranceForCoverage_RoutineVision(t *testing.T) {
 }
 
 func TestLookupInsuranceForCoverage_AetnaGovernmentRuleIsVisionOnly(t *testing.T) {
-	entry, found := LookupInsuranceForCoverage("Aetna Medicare", InsuranceModeMedical)
+	entry, found := LookupInsuranceForCoverageAtOffice("Aetna Medicare", InsuranceModeMedical, DefaultOffice())
 	if !found {
 		t.Fatal("Aetna Medicare medical found = false, want true")
 	}
