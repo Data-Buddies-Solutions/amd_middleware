@@ -247,7 +247,7 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/scheduler/availability` | Find policy-valid slots and sign them |
 | `POST /api/appointment/book` | Revalidate and book a signed slot |
 | `POST /api/appointment/cancel` | Verify ownership and cancel an appointment |
-| `POST /api/appointment/reschedule` | Durably claim a move, book its replacement, then cancel its original |
+| `POST /api/appointment/reschedule` | Book a replacement, then cancel the confirmed original |
 
 Each appointment returned by patient resolution may include a private,
 short-lived `cancellationToken`. A cancellation request may send that token
@@ -401,12 +401,9 @@ DEV read-only probes returned complete single-page sets for CODEX (3), COD (3),
 Jane (4), John (2), and a nonexistent-first-name control (0). This is not a
 production retrieval proof. Release this contract before its paired agent change.
 
-### Reschedule recovery storage
+### Rescheduling
 
-`RESCHEDULE_RECEIPTS_BUCKET` enables the middleware-owned reschedule command.
-Use a dedicated private GCS bucket for each environment/provider practice, with
-read/create/overwrite permission for the runtime service account. Receipts contain
-patient data; restrict access accordingly. Do not configure automatic deletion of
-claims or delete a claim to retry a write. The command fails closed when storage
-is missing or unavailable. See [the scheduling contract](docs/scheduling-ownership.md)
-for recovery behavior, rollout order, and local cross-repository verification.
+Rescheduling uses the existing booking and cancellation paths in one middleware
+command. It needs no additional infrastructure or deployment settings. The
+caller sends it once and retains the returned receipt. See the
+[scheduling contract](docs/scheduling-ownership.md) for outcomes and verification.

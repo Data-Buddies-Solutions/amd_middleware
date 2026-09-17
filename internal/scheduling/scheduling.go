@@ -124,7 +124,6 @@ type service struct {
 	records            advancedmd.SchedulingRecords
 	bookingTokenSecret string
 	appointmentTokens  *AppointmentTokens
-	reschedules        RescheduleStore
 	allowRawBooking    bool
 	now                func() time.Time
 
@@ -135,7 +134,6 @@ type service struct {
 
 // Config makes compatibility behavior explicit at composition time.
 type Config struct {
-	Reschedules     RescheduleStore
 	AllowRawBooking bool
 }
 
@@ -156,7 +154,6 @@ func NewWithConfig(
 	}
 	return &service{
 		records:            records,
-		reschedules:        config.Reschedules,
 		bookingTokenSecret: bookingTokenSecret,
 		appointmentTokens:  NewAppointmentTokens(bookingTokenSecret, now),
 		allowRawBooking:    config.AllowRawBooking,

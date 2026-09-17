@@ -2,8 +2,6 @@ package scheduling_test
 
 import (
 	"context"
-	"errors"
-	"sync"
 	"testing"
 	"time"
 
@@ -13,34 +11,6 @@ import (
 	"advancedmd-token-management/internal/safeerrors"
 	"advancedmd-token-management/internal/scheduling"
 )
-
-type memoryReschedules struct {
-	mu       sync.Mutex
-	records  map[string]scheduling.RescheduleRecord
-	failSave bool
-}
-
-func (m *memoryReschedules) Claim(_ context.Context, key string, record scheduling.RescheduleRecord) (scheduling.RescheduleRecord, bool, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.records == nil {
-		m.records = map[string]scheduling.RescheduleRecord{}
-	}
-	if old, ok := m.records[key]; ok {
-		return old, false, nil
-	}
-	m.records[key] = record
-	return record, true, nil
-}
-func (m *memoryReschedules) Save(_ context.Context, key string, record scheduling.RescheduleRecord) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.failSave {
-		return errors.New("storage unavailable")
-	}
-	m.records[key] = record
-	return nil
-}
 
 func rescheduleFixture(t *testing.T) (*advancedmdtest.Adapter, scheduling.BookCommand, domain.PatientAppointment) {
 	t.Helper()
@@ -59,11 +29,10 @@ func rescheduleFixture(t *testing.T) (*advancedmdtest.Adapter, scheduling.BookCo
 	return records, command, old
 }
 
-func TestRescheduleOutcomesAndRetryAcrossInstances(t *testing.T) {
-	for _, scenario := range []string{"success", "rejected booking", "ambiguous booking success", "ambiguous booking absent", "ambiguous booking unknown", "rejected cancellation", "ambiguous cancellation success", "ambiguous cancellation unknown", "receipt failure", "missing original"} {
+func TestRescheduleOutcomes(t *testing.T) {
+	for _, scenario := range []string{"success", "rejected booking", "ambiguous booking success", "ambiguous booking absent", "ambiguous booking unknown", "rejected cancellation", "ambiguous cancellation success", "ambiguous cancellation unknown"} {
 		t.Run(scenario, func(t *testing.T) {
 			records, command, old := rescheduleFixture(t)
-			store := &memoryReschedules{}
 			expected, bookings, cancellations := "completed", 1, 1
 			switch scenario {
 			case "rejected booking":
@@ -92,24 +61,13 @@ func TestRescheduleOutcomesAndRetryAcrossInstances(t *testing.T) {
 				records.AppointmentStateResults[old.ID] = advancedmdtest.AppointmentStateResult{State: advancedmd.AppointmentState{Complete: false}}
 				records.CancelAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryTimeout)
 				expected = "partial"
-			case "receipt failure":
-				store.failSave = true
-				expected = "partial"
-				cancellations = 0
-			case "missing original":
-				records.AppointmentResults["12345"] = appointmentResult(nil, true)
-				expected = "failed"
-				bookings = 0
-				cancellations = 0
+
 			}
 			var provider advancedmd.SchedulingRecords = records
 			if scenario == "ambiguous booking unknown" {
 				provider = &failReconciliation{Adapter: records}
 			}
-			newService := func() scheduling.Scheduling {
-				return scheduling.NewWithConfig(provider, "test-booking-secret", mutationTestNow, scheduling.Config{Reschedules: store})
-			}
-			result, err := newService().Reschedule(context.Background(), command)
+			result, err := scheduling.New(provider, "test-booking-secret", mutationTestNow).Reschedule(context.Background(), command)
 			if err != nil || result.Status != expected {
 				t.Fatalf("result=%+v err=%v", result, err)
 			}
@@ -118,19 +76,7 @@ func TestRescheduleOutcomesAndRetryAcrossInstances(t *testing.T) {
 					t.Fatalf("missing replacement metadata: %+v", result.Booking)
 				}
 			}
-			for i := 0; i < 2; i++ {
-				replay, err := newService().Reschedule(context.Background(), command)
-				if err != nil {
-					t.Fatal(err)
-				}
-				want := expected
-				if scenario == "receipt failure" {
-					want = "uncertain"
-				}
-				if replay.Status != want {
-					t.Fatalf("replay=%+v", replay)
-				}
-			}
+
 			if len(records.Bookings) != bookings || len(records.Cancellations) != cancellations {
 				t.Fatalf("writes=%d/%d want=%d/%d", len(records.Bookings), len(records.Cancellations), bookings, cancellations)
 			}
@@ -154,40 +100,42 @@ func (a *failReconciliation) ReadPatientAppointmentsForMonth(ctx context.Context
 	return a.Adapter.ReadPatientAppointmentsForMonth(ctx, q)
 }
 
-func TestRescheduleConcurrentClaimAndChangedSelection(t *testing.T) {
-	records, command, _ := rescheduleFixture(t)
-	store := &memoryReschedules{}
-	start, release := make(chan struct{}, 1), make(chan struct{})
-	records.DemographicsStarted = start
-	records.DemographicsRelease = release
-	service := scheduling.NewWithConfig(records, "test-booking-secret", mutationTestNow, scheduling.Config{Reschedules: store})
-	done := make(chan error, 1)
-	go func() { _, err := service.Reschedule(context.Background(), command); done <- err }()
-	<-start
-	replay, err := service.Reschedule(context.Background(), command)
-	if err != nil || replay.Status != "uncertain" {
-		t.Fatalf("concurrent=%+v %v", replay, err)
-	}
-	changed := signedBookCommandAt(t, mutationTestNow(), time.Date(2026, 6, 5, 9, 0, 0, 0, time.UTC))
-	changed.RescheduleToken = command.RescheduleToken
-	conflict, err := service.Reschedule(context.Background(), changed)
-	if err != nil || conflict.Outcome != "reschedule_conflict" {
-		t.Fatalf("conflict=%+v %v", conflict, err)
-	}
-	close(release)
-	if err := <-done; err != nil {
-		t.Fatal(err)
-	}
-	if len(records.Bookings) != 1 || len(records.Cancellations) != 1 {
-		t.Fatal("duplicate writes")
+func TestRescheduleCanRetryAfterConfirmedNoWriteFailure(t *testing.T) {
+	for _, scenario := range []string{"appointment read", "demographics", "slot"} {
+		t.Run(scenario, func(t *testing.T) {
+			records, command, _ := rescheduleFixture(t)
+			original := records.AppointmentResults["12345"]
+			switch scenario {
+			case "appointment read":
+				records.AppointmentResults["12345"] = advancedmdtest.AppointmentResult{Err: advancedmd.NewError(safeerrors.CategoryUnavailable)}
+			case "demographics":
+				records.DemographicErrors["12345"] = advancedmd.NewError(safeerrors.CategoryUnavailable)
+			case "slot":
+				records.ScheduleReadErrors["2026-06-03"] = advancedmd.NewError(safeerrors.CategoryUnavailable)
+			}
+			service := scheduling.New(records, "test-booking-secret", mutationTestNow)
+			result, err := service.Reschedule(context.Background(), command)
+			if err == nil && result.Status != "failed" {
+				t.Fatalf("initial=%+v %v", result, err)
+			}
+			if len(records.Bookings) != 0 || len(records.Cancellations) != 0 {
+				t.Fatal("unexpected write during failure")
+			}
+			records.AppointmentResults["12345"] = original
+			delete(records.DemographicErrors, "12345")
+			delete(records.ScheduleReadErrors, "2026-06-03")
+			result, err = service.Reschedule(context.Background(), command)
+			if err != nil || result.Status != "completed" || len(records.Bookings) != 1 || len(records.Cancellations) != 1 {
+				t.Fatalf("retry=%+v %v", result, err)
+			}
+		})
 	}
 }
 
-func TestRescheduleInvalidAuthorityAndMissingStoreCannotWrite(t *testing.T) {
-	for _, kind := range []string{"patient", "token", "visit", "store"} {
+func TestRescheduleInvalidAuthorityCannotWrite(t *testing.T) {
+	for _, kind := range []string{"patient", "token", "visit", "booking token", "missing original"} {
 		t.Run(kind, func(t *testing.T) {
 			records, command, _ := rescheduleFixture(t)
-			config := scheduling.Config{Reschedules: &memoryReschedules{}}
 			switch kind {
 			case "patient":
 				command.PatientID = "999"
@@ -195,10 +143,12 @@ func TestRescheduleInvalidAuthorityAndMissingStoreCannotWrite(t *testing.T) {
 				command.RescheduleToken = "invalid"
 			case "visit":
 				command.VisitCategory = "routine_vision"
-			case "store":
-				config.Reschedules = nil
+			case "booking token":
+				command.BookingToken = ""
+			case "missing original":
+				records.AppointmentResults["12345"] = appointmentResult(nil, true)
 			}
-			_, err := scheduling.NewWithConfig(records, "test-booking-secret", mutationTestNow, config).Reschedule(context.Background(), command)
+			_, err := scheduling.New(records, "test-booking-secret", mutationTestNow).Reschedule(context.Background(), command)
 			if err == nil || len(records.Bookings) > 0 || len(records.Cancellations) > 0 {
 				t.Fatal("unsafe write")
 			}
@@ -240,7 +190,7 @@ func (a *changedOriginal) BookAppointment(ctx context.Context, b advancedmd.Book
 }
 func TestRescheduleDoesNotCancelOriginalChangedDuringBooking(t *testing.T) {
 	records, command, _ := rescheduleFixture(t)
-	result, err := scheduling.NewWithConfig(&changedOriginal{records}, "test-booking-secret", mutationTestNow, scheduling.Config{Reschedules: &memoryReschedules{}}).Reschedule(context.Background(), command)
+	result, err := scheduling.New(&changedOriginal{records}, "test-booking-secret", mutationTestNow).Reschedule(context.Background(), command)
 	if err != nil || result.Status != "partial" || result.Booking == nil || len(records.Bookings) != 1 || len(records.Cancellations) != 0 {
 		t.Fatalf("result=%+v err=%v cancellations=%d", result, err, len(records.Cancellations))
 	}

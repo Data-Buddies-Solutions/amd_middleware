@@ -18,7 +18,7 @@ import (
 )
 
 // This explicitly opted-in test runs the real Python call owner against Go HTTP
-// handlers with only AdvancedMD and durable storage replaced by test adapters.
+// handlers with only AdvancedMD replaced by a test adapter.
 func TestPythonSchedulingContract(t *testing.T) {
 	python := os.Getenv("PYTHON_SCHEDULING_WORKTREE")
 	if python == "" {
@@ -37,7 +37,7 @@ func TestPythonSchedulingContract(t *testing.T) {
 				day := mutationTestNow().AddDate(0, 0, i).Format("2006-01-02")
 				records.ScheduleReads[day] = completeRead("1513", nil, nil)
 			}
-			scheduler := scheduling.NewWithConfig(records, "test-booking-secret", mutationTestNow, scheduling.Config{Reschedules: &memoryReschedules{}})
+			scheduler := scheduling.New(records, "test-booking-secret", mutationTestNow)
 			tokens := scheduling.NewAppointmentTokens("test-booking-secret", mutationTestNow)
 			router := apphttp.NewRouter(apphttp.NewHandlers(nil, patient.NewWithAppointmentTokens(records, tokens), scheduler), "test-auth", nil)
 			mux := http.NewServeMux()
