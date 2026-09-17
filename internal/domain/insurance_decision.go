@@ -55,6 +55,8 @@ type participationRule struct {
 	Requirements     []InsuranceRequirement
 	Providers        []string
 	Issue            string
+	CarrierIssue     string
+	OfficeIssues     map[string]string
 }
 
 var insuranceWords = regexp.MustCompile(`[^a-z0-9]+`)
@@ -173,9 +175,13 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 		d.Answer = "blocked: Staff must confirm this plan's participation at this office."
 		return d
 	}
-	reason := insuranceSourceConflict(plan, r.Canonical, coverage, office.ID)
-	if coverage == "medical" && r.Issue != "" {
-		reason = r.Issue
+	reason := r.Issue
+	if coverage == "medical" {
+		if officeIssue := r.OfficeIssues[office.ID]; officeIssue != "" {
+			reason = officeIssue
+		}
+	} else {
+		reason = visionSourceConflict(plan, r.Canonical, office.ID)
 	}
 	if reason != "" {
 		d.Outcome = "needs_staff_task"
@@ -261,11 +267,8 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 	}
 	if !d.CanRegister {
 		d.Answer += " Staff must verify the insurance attachment details before registration or insurance changes."
-		if d.CarrierCode == "AARPM" {
-			d.Answer += " The document says AARPM; AMD lists AARPMC. Staff must reconcile the code."
-		}
-		if d.CarrierCode == "UNIT15" {
-			d.Answer += " The document says UNIT15; AMD lists UNIT5. Staff must reconcile the code."
+		if r.CarrierIssue != "" {
+			d.Answer += " " + r.CarrierIssue
 		}
 	}
 	if r.Notice != "" {
@@ -282,6 +285,15 @@ func DecideChartInsurance(chart PatientDemographics, plan, coverage string, offi
 		recordedPlan = "Preferred Care Partners"
 	}
 	decision := DecideInsurance(recordedPlan, coverage, office, dob)
+	// AMD stores a carrier directory label, not the patient's exact product.
+	// A card-confirmed product may refine that known label, but must still match
+	// the chart carrier ID below. An explicit chart product remains authoritative.
+	if coverage == "medical" && plan != "" {
+		carrierName := medicalCatalog.CarrierNames[chart.CarrierID]
+		if carrierName != "" && insuranceNormalize(chart.CarrierName) == insuranceNormalize(carrierName) {
+			decision = DecideInsurance(plan, coverage, office, dob)
+		}
+	}
 	// A caller cannot clear a restriction already established by the chart.
 	if !decision.CanSchedule {
 		return decision
@@ -301,19 +313,16 @@ func DecideChartInsurance(chart PatientDemographics, plan, coverage string, offi
 
 // The group PDF (7/7/2026) conflicts with some older office lists. Preserve the
 // conflict as a review hold; never expand an office contract by inference.
-func insuranceSourceConflict(plan, canonical, coverage, office string) string {
+func visionSourceConflict(plan, canonical, office string) string {
 	n := insuranceNormalize(plan + " " + canonical)
 	if office == "hollywood" && (strings.Contains(n, "aetna better health") || strings.Contains(n, "molina medicaid")) {
 		return "The reference limits this Medicaid plan to Miami-Dade, but the older office list includes it here."
 	}
-	if office == "sweetwater" && (strings.Contains(n, "freedom") || strings.Contains(n, "optimum") || (coverage == "medical" && (strings.Contains(n, "careplus") || strings.Contains(n, "care plus")))) {
+	if office == "sweetwater" && (strings.Contains(n, "freedom") || strings.Contains(n, "optimum")) {
 		return "The reference limits this plan to other offices, but the older office list includes it here."
 	}
-	if coverage == "routine_vision" && (strings.Contains(n, "careplus") || strings.Contains(n, "care plus")) {
+	if strings.Contains(n, "careplus") || strings.Contains(n, "care plus") {
 		return "Routine-vision credentialing is listed as pending in the reference."
-	}
-	if coverage == "medical" && (insuranceNormalize(canonical) == "multiplan phcs" || insuranceNormalize(canonical) == "imagine health" || insuranceNormalize(canonical) == "aetna epo") {
-		return "The exact underlying plan and network limitations need confirmation."
 	}
 	return ""
 }

@@ -56,3 +56,43 @@ func TestMedicalAliasesHaveOneOwner(t *testing.T) {
 		}
 	}
 }
+
+func TestAMDDirectoryRoundTripUsesConfirmedProductWithoutRelaxingRestrictions(t *testing.T) {
+	office, _ := ResolveOffice("Hollywood")
+	for _, tc := range []struct{ plan, id, name string }{
+		{"Aetna Commercial", "car40887", "AETNA"},
+		{"United Healthcare NHP HMO Access", "car40923", "UNITED HEALTHCARE"},
+		{"Humana Medicare PPO", "car303062", "HUMANA PPO POS"},
+	} {
+		t.Run(tc.plan, func(t *testing.T) {
+			initial := DecideInsurance(tc.plan, "medical", office, "")
+			if !initial.CanRegister || !initial.CanSchedule {
+				t.Fatalf("initial product blocked: %+v", initial)
+			}
+			chart := PatientDemographics{CarrierID: tc.id, CarrierName: tc.name}
+			got := DecideChartInsurance(chart, initial.CanonicalPlan, "medical", office, "")
+			if !got.CanSchedule || got.CanonicalPlan != initial.CanonicalPlan {
+				t.Fatalf("AMD round trip lost confirmed product: %+v", got)
+			}
+			chart.CarrierID = "car999999"
+			if DecideChartInsurance(chart, tc.plan, "medical", office, "").CanSchedule {
+				t.Fatal("wrong chart carrier accepted")
+			}
+			chart.CarrierID = tc.id
+			chart.CarrierName = "Unverified carrier display"
+			if DecideChartInsurance(chart, tc.plan, "medical", office, "").CanSchedule {
+				t.Fatal("unknown display relabeled")
+			}
+		})
+	}
+	chart := PatientDemographics{CarrierID: "car40923", CarrierName: "UNITED HEALTHCARE"}
+	for _, plan := range []string{"", "United Healthcare", "United Healthcare NHP HMO Only", "United Healthcare Individual Exchange"} {
+		if d := DecideChartInsurance(chart, plan, "medical", office, ""); d.CanSchedule {
+			t.Fatalf("clarification or referral bypassed: %+v", d)
+		}
+	}
+	chart.CarrierName = "United Healthcare NHP HMO Only"
+	if DecideChartInsurance(chart, "United Healthcare NHP HMO Access", "medical", office, "").CanSchedule {
+		t.Fatal("explicit chart restriction overridden")
+	}
+}

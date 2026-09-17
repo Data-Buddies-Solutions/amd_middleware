@@ -33,7 +33,7 @@ func participationMatch(source, query string) *participationRule {
 		}
 	}
 
-	var selected *participationRule
+	var selected *participationMatchCandidate
 	for _, match := range matches {
 		moreSpecific := false
 		for _, other := range matches {
@@ -49,12 +49,30 @@ func participationMatch(source, query string) *participationRule {
 		if moreSpecific {
 			continue
 		}
-		if selected != nil && (selected.Canonical != match.rule.Canonical || selected.Status != match.rule.Status) {
+		if selected != nil && (selected.rule.Canonical != match.rule.Canonical || selected.rule.Status != match.rule.Status) {
+			if source == "SPRING_HILL_ROUTINE_VISION" && equivalentVisionAlias(*selected, match) {
+				continue
+			}
 			return nil
 		}
-		selected = match.rule
+		selected = &match
 	}
-	return selected
+	if selected == nil {
+		return nil
+	}
+	return selected.rule
+}
+
+// A duplicated vision label is one match, not two different products. Require
+// the same matched term so shared billing buckets never resolve mixed input.
+func equivalentVisionAlias(a, b participationMatchCandidate) bool {
+	if a.term != b.term || a.rule.Status != b.rule.Status || a.rule.Preauth != b.rule.Preauth ||
+		a.rule.Notice != b.rule.Notice || a.rule.Clarification != b.rule.Clarification {
+		return false
+	}
+	left, leftOK := lookupVisionInsurance(a.rule.Canonical)
+	right, rightOK := lookupVisionInsurance(b.rule.Canonical)
+	return leftOK && rightOK && left.CarrierID != "" && left == right
 }
 
 func insuranceContainsWords(query, term string) bool {

@@ -38,6 +38,38 @@ func TestMedicalTriageRecognizesClarifiedAetnaCommercial(t *testing.T) {
 	}
 }
 
+func TestSimplyTriagePreservesProductRequirementsAndOfficeScope(t *testing.T) {
+	for _, officeName := range []string{"Hollywood", "Sweetwater", "Spring Hill", "Crystal River"} {
+		office, _ := ResolveOffice(officeName)
+		for _, plan := range []string{"Simply", "Simply Health", "Simply Healthcare", "Simply Health Plans"} {
+			d := DecideInsurance(plan, "medical", office, "01/02/1980")
+			if d.CanRegister || d.CanSchedule || d.CarrierID != "" {
+				t.Errorf("%s/%s guessed a product: %+v", officeName, plan, d)
+			}
+			if officeName == "Crystal River" {
+				if d.Participation != "not_accepted" {
+					t.Errorf("%s/%s lost office exclusion: %+v", officeName, plan, d)
+				}
+			} else if d.Outcome != "needs_clarification" || !strings.Contains(d.Answer, "Medicaid or Medicare") {
+				t.Errorf("%s/%s missing product question: %+v", officeName, plan, d)
+			}
+		}
+		for _, plan := range []string{"Simply Medicaid", "Simply Medicare"} {
+			d := DecideInsurance(plan, "medical", office, "01/02/1980")
+			if d.CanSchedule {
+				t.Errorf("%s/%s lost insurance hold: %+v", officeName, plan, d)
+			}
+			participates := officeName == "Hollywood" || officeName == "Sweetwater" || (officeName == "Spring Hill" && plan == "Simply Medicaid")
+			if participates && (!d.CanRegister || d.CarrierCode != "ICA01" || len(d.Requirements) != 1 || d.Requirements[0].Kind != "precertification") {
+				t.Errorf("%s/%s lost explicit product policy: %+v", officeName, plan, d)
+			}
+			if !participates && d.CanRegister {
+				t.Errorf("%s/%s expanded office participation: %+v", officeName, plan, d)
+			}
+		}
+	}
+}
+
 func TestMedicalTriageRefinesHumanaWithoutLosingProductRequirements(t *testing.T) {
 	office, _ := ResolveOffice("Hollywood")
 	for _, q := range []string{"Humana Medicare", "Humana HMO"} {

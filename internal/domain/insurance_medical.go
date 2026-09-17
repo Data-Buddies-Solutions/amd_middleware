@@ -14,6 +14,8 @@ type medicalPlan struct {
 	Requirements    []InsuranceRequirement         `json:"requirements"`
 	Providers       []string                       `json:"credentialedProviders"`
 	Issue           string                         `json:"issue"`
+	CarrierIssue    string                         `json:"carrierIssue"`
+	OfficeIssues    map[string]string              `json:"officeIssues"`
 	Offices         map[string]medicalOfficePolicy `json:"offices"`
 }
 
@@ -23,14 +25,17 @@ type medicalOfficePolicy struct {
 	Notice  string      `json:"notice"`
 }
 
-var medicalPlans = func() []medicalPlan {
+type medicalCatalogData struct {
+	Plans        []medicalPlan     `json:"plans"`
+	CarrierNames map[string]string `json:"carrierNames"`
+}
+
+var medicalCatalog = func() medicalCatalogData {
 	b, err := insuranceSources.ReadFile("insurance_data/MEDICAL.json")
 	if err != nil {
 		panic(err)
 	}
-	var doc struct {
-		Plans []medicalPlan `json:"plans"`
-	}
+	var doc medicalCatalogData
 	if err = json.Unmarshal(b, &doc); err != nil {
 		panic(err)
 	}
@@ -49,8 +54,10 @@ var medicalPlans = func() []medicalPlan {
 			}
 		}
 	}
-	return doc.Plans
+	return doc
 }()
+
+var medicalPlans = medicalCatalog.Plans
 
 func medicalRules() map[string][]participationRule {
 	result := map[string][]participationRule{}
@@ -69,6 +76,7 @@ func medicalRules() map[string][]participationRule {
 				RequiredAliases: p.RequiredAliases, Notice: policy.Notice, Clarification: p.Clarification,
 				CarrierID: p.CarrierID, CarrierCode: p.CarrierCode, Routing: policy.Routing,
 				Requirements: p.Requirements, Providers: p.Providers, Issue: p.Issue,
+				CarrierIssue: p.CarrierIssue, OfficeIssues: p.OfficeIssues,
 			})
 		}
 	}

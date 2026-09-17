@@ -1,5 +1,42 @@
 {
   "source": "Abita Eye Group medical reference, 2026-07-07; AMD directory verified 2026-09-17",
+  "carrierNames": {
+    "car280750": "EYE MANAGEMENT INC",
+    "car281245": "ENVOLVE CENTENE VISION",
+    "car281317": "PREMIER EYE CARE",
+    "car283950": "UHC STUDENT RESOURCES",
+    "car284233": "OSCAR INSURANCE COMPANY OF FLORIDA",
+    "car284327": "TRICARE EAST",
+    "car284471": "OXFORD HEALTH PLAN",
+    "car284838": "UNITED HEALTHCARE UMR",
+    "car301345": "CIGNA HMO",
+    "car301427": "SEMINOLE TRIBE OF FLORIDA SELF FUND",
+    "car301501": "SUREST BIND BENEFITS, INC",
+    "car301507": "MOLINA HEALTHCARE",
+    "car301578": "MERITAIN HEALTH",
+    "car301648": "PHCS",
+    "car301672": "SELF-PAY",
+    "car301737": "EYE MANAGEMENT INC",
+    "car302890": "CIGNA MEDICARE ADVTG HEALTHSPRING",
+    "car303033": "HUMANA MEDICAID",
+    "car303047": "UHC SHARED SERVICES",
+    "car303061": "HUMANA PREMIER HMO",
+    "car303062": "HUMANA PPO POS",
+    "car308142": "IMAGINE360 HEALTH",
+    "car308175": "HUMANA GOLD PLAN",
+    "car308627": "EYECARE AMERICA AAO",
+    "car40887": "AETNA",
+    "car40890": "AVMED",
+    "car40895": "CIGNA PPO",
+    "car40897": "FLORIDA BLUE SHIELD",
+    "car40899": "FLORIDA MEDICAID",
+    "car40900": "FLORIDA MEDICARE",
+    "car40902": "GOLDEN RULE INSURANCE",
+    "car40907": "ICARE HEALTH OPTIONS TPA",
+    "car40916": "PREFERRED CARE PARTNERS",
+    "car40921": "TRICARE FOR LIFE",
+    "car40923": "UNITED HEALTHCARE"
+  },
   "plans": [
     {
       "name": "Aetna",
@@ -35,7 +72,10 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907"
+      "carrierId": "car40907",
+      "officeIssues": {
+        "hollywood": "The reference limits this Medicaid plan to Miami-Dade, but the older office list includes it here."
+      }
     },
     {
       "name": "Aetna Better Health Of Florida",
@@ -55,7 +95,10 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907"
+      "carrierId": "car40907",
+      "officeIssues": {
+        "hollywood": "The reference limits this Medicaid plan to Miami-Dade, but the older office list includes it here."
+      }
     },
     {
       "name": "Aetna Commercial",
@@ -123,7 +166,8 @@
         }
       },
       "carrierCode": "AET07",
-      "carrierId": "car40887"
+      "carrierId": "car40887",
+      "issue": "The exact underlying plan and network limitations need confirmation."
     },
     {
       "name": "Aetna EPO North Broward",
@@ -562,7 +606,10 @@
           "kind": "prior_authorization",
           "verification": "unverified"
         }
-      ]
+      ],
+      "officeIssues": {
+        "sweetwater": "The reference limits this plan to other offices, but the older office list includes it here."
+      }
     },
     {
       "name": "Children's Medical Services",
@@ -1253,7 +1300,10 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907"
+      "carrierId": "car40907",
+      "officeIssues": {
+        "sweetwater": "The reference limits this plan to other offices, but the older office list includes it here."
+      }
     },
     {
       "name": "Humana",
@@ -1482,7 +1532,8 @@
         }
       },
       "carrierCode": "IMAG1",
-      "carrierId": "car308142"
+      "carrierId": "car308142",
+      "issue": "The exact underlying plan and network limitations need confirmation."
     },
     {
       "name": "Leon Health Plan",
@@ -1623,7 +1674,10 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907"
+      "carrierId": "car40907",
+      "officeIssues": {
+        "hollywood": "The reference limits this Medicaid plan to Miami-Dade, but the older office list includes it here."
+      }
     },
     {
       "name": "Molina Medicare",
@@ -1663,7 +1717,8 @@
           "routing": "all_three"
         }
       },
-      "carrierId": "car301648"
+      "carrierId": "car301648",
+      "issue": "The exact underlying plan and network limitations need confirmation."
     },
     {
       "name": "Optimum Healthcare",
@@ -1688,7 +1743,10 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907"
+      "carrierId": "car40907",
+      "officeIssues": {
+        "sweetwater": "The reference limits this plan to other offices, but the older office list includes it here."
+      }
     },
     {
       "name": "Oscar Health",
@@ -1801,27 +1859,28 @@
     },
     {
       "name": "Simply Health",
-      "aliases": [],
+      "aliases": [
+        "Simply",
+        "Simply Health Plans",
+        "Simply Healthcare"
+      ],
       "offices": {
+        "HOLLYWOOD_SWEETWATER": {
+          "status": "needs_clarification"
+        },
         "SPRING_HILL_MEDICAL": {
-          "status": "accepted",
-          "routing": "all_three"
+          "status": "needs_clarification"
         },
         "CRYSTAL_RIVER": {
           "status": "not_accepted",
           "routing": "not_accepted"
         }
       },
-      "carrierCode": "ICA01",
-      "carrierId": "car40907"
+      "clarification": "whether Simply is Medicaid or Medicare, and the full product name on the card"
     },
     {
       "name": "Simply Medicaid",
-      "aliases": [
-        "Simply",
-        "Simply Health Plans",
-        "Simply Healthcare"
-      ],
+      "aliases": [],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
@@ -2143,7 +2202,8 @@
           "routing": "all_three"
         }
       },
-      "carrierCode": "AARPM"
+      "carrierCode": "AARPM",
+      "carrierIssue": "The document says AARPM; AMD lists AARPMC. Staff must reconcile the code."
     },
     {
       "name": "United Healthcare All Savers",
@@ -2212,7 +2272,8 @@
           "kind": "vob_authorization",
           "verification": "unverified"
         }
-      ]
+      ],
+      "carrierIssue": "The document says UNIT15; AMD lists UNIT5. Staff must reconcile the code."
     },
     {
       "name": "United Healthcare Golden Rule",

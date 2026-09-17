@@ -43,7 +43,7 @@ func ResolveAppointmentTypeForIntent(office *OfficeConfig, routing RoutingRule, 
 
 	visitKind := normalizeAppointmentVisitKind(intent.VisitKind)
 	postOp := intent.IsPostOp || visitKind == AppointmentVisitPostOp || appointmentReasonLooksPostOp(intent.VisitReason)
-	category := normalizeAppointmentVisitCategory(intent.VisitCategory, visitKind, routing)
+	category := NormalizeAppointmentVisitCategory(intent.VisitCategory, visitKind, routing)
 	status := normalizeAppointmentPatientStatus(intent.PatientStatus)
 	ageBand := normalizeAppointmentAgeBand(intent.AgeBand, intent.DOB)
 
@@ -168,7 +168,8 @@ func appointmentTypeMissingFactsMessage(missing []string) string {
 	}
 }
 
-func normalizeAppointmentVisitCategory(category, visitKind string, routing RoutingRule) string {
+// NormalizeAppointmentVisitCategory is shared by appointment and insurance policy.
+func NormalizeAppointmentVisitCategory(category, visitKind string, routing RoutingRule) string {
 	kind := normalizeAppointmentVisitKind(visitKind)
 	if kind == AppointmentVisitRoutineVision {
 		return AppointmentVisitRoutineVision

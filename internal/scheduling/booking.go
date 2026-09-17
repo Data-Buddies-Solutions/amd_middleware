@@ -282,10 +282,7 @@ func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingCont
 		)
 	}
 	booking.command.DOB = verifiedDOB
-	coverage := booking.command.VisitCategory
-	if coverage == "" {
-		coverage = "medical"
-	}
+	coverage := domain.NormalizeAppointmentVisitCategory(booking.command.VisitCategory, booking.command.VisitKind, domain.ParseRoutingRule(booking.command.Routing))
 	insurance := domain.DecideChartInsurance(demographics, booking.command.InsurancePlan, coverage, booking.office, verifiedDOB)
 	if !insurance.CanSchedule {
 		return 0, schedulingError(insurance.Answer)
