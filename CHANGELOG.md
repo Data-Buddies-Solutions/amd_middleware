@@ -4,6 +4,17 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [4.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v3.1.2...v4.0.0) (2026-09-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **patient:** firstName + dob resolves in middleware and no longer returns the broad candidates/source/complete response.
+
+### Bug Fixes
+
+* **patient:** resolve first-name and DOB matches in middleware ([#188](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/188)) ([d5a6c41](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/d5a6c41450083c06db8e3bdbf6b18532a7d4484b))
+
 ## [3.1.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v3.1.1...v3.1.2) (2026-09-10)
 
 
