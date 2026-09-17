@@ -67,11 +67,18 @@ func main() {
 	patientRecords := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient)
 	appointmentTokens := scheduling.NewAppointmentTokens(cfg.BookingTokenSecret, time.Now)
 	patients := patient.NewWithAppointmentTokens(patientRecords, appointmentTokens)
+	var reschedules scheduling.RescheduleStore
+	if bucket := os.Getenv("RESCHEDULE_RECEIPTS_BUCKET"); bucket != "" {
+		reschedules, err = scheduling.NewObjectRescheduleStore(context.Background(), bucket)
+		if err != nil {
+			log.Fatal("Unable to initialize reschedule recovery storage")
+		}
+	}
 	scheduler := scheduling.NewWithConfig(
 		patientRecords,
 		cfg.BookingTokenSecret,
 		time.Now,
-		scheduling.Config{AllowRawBooking: cfg.AllowRawSlotBooking},
+		scheduling.Config{AllowRawBooking: cfg.AllowRawSlotBooking, Reschedules: reschedules},
 	)
 
 	// Initialize handlers

@@ -244,3 +244,16 @@ func normalizeAppointmentToken(value string) string {
 	value = strings.Join(strings.Fields(value), " ")
 	return value
 }
+
+// AppointmentVisitType classifies canonical provider types. Unknown types remain
+// unknown; display names are never scheduling authority.
+func AppointmentVisitType(typeID int) string {
+	switch typeID {
+	case 1004, 1005, 1006, 1007, 1008, 6167, 6168, 6169:
+		return AppointmentVisitMedical
+	case 1010, 3364, 4244, 4245:
+		return AppointmentVisitRoutineVision
+	default:
+		return ""
+	}
+}

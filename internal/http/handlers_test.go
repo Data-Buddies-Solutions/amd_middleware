@@ -1457,3 +1457,7 @@ func TestFirstNameDOBUnresolvedHTTPContract(t *testing.T) {
 		t.Fatal("incomplete search must not hydrate a chart")
 	}
 }
+
+func (s schedulingStub) Reschedule(context.Context, schedulingmodule.BookCommand) (schedulingmodule.RescheduleReceipt, error) {
+	return schedulingmodule.RescheduleReceipt{}, nil
+}

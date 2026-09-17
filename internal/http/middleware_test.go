@@ -173,6 +173,7 @@ func TestRequestLogRecordsInvalidJSONWithoutInspectingBodies(t *testing.T) {
 		"/api/add-patient",
 		"/api/scheduler/availability",
 		"/api/appointment/book",
+		"/api/appointment/reschedule",
 		"/api/appointment/cancel",
 		"/api/patient/update-insurance",
 	}
