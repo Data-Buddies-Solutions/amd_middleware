@@ -102,13 +102,10 @@ def smoke(service):
     token = cloud("secrets", "versions", "access", version, "--secret", SECRETS["API_SECRET"])
     require(bool(token), "Sandbox API secret is empty")
     status, body = request(url + "/api/patient/resolve", body=b"{", token=token)
-    payload = json.loads(body) if status == 200 else None
-    expected = {"status": "error", "message": "Invalid JSON body", "appointments": None}
-    # Patient responses may add fields (for example matches) without changing
-    # the authentication/validation proof. Every required field must still match.
-    require(isinstance(payload, dict) and all(
-        key in payload and payload[key] == value for key, value in expected.items()
-    ), "Sandbox API token did not reach request validation")
+    require(status == 200 and json.loads(body) == {
+        "status": "error", "message": "Invalid JSON body", "appointments": None,
+    },
+            "Sandbox API token did not reach request validation")
     checks["authenticated_request_validation"] = "passed_without_provider_call"
     return checks
 

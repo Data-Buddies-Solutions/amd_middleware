@@ -3,14 +3,12 @@ package domain
 import "testing"
 
 func TestResolveAppointmentTypeForIntent(t *testing.T) {
-	offices := NewOfficeCatalog("")
-
-	springHill := offices.DefaultOffice()
-	crystalRiver, ok := offices.LookupOffice("Crystal River")
+	springHill := DefaultOffice()
+	crystalRiver, ok := LookupOffice("Crystal River")
 	if !ok {
 		t.Fatal("Crystal River office not found")
 	}
-	northMiamiBeachOptical, ok := offices.LookupOffice("North Miami Beach Optical")
+	northMiamiBeachOptical, ok := LookupOffice("North Miami Beach Optical")
 	if !ok {
 		t.Fatal("North Miami Beach Optical office not found")
 	}
@@ -236,9 +234,7 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 }
 
 func TestResolveAppointmentTypeForIntent_SpringHillUnderSevenRoutineVision(t *testing.T) {
-	offices := NewOfficeCatalog("")
-
-	got := ResolveAppointmentTypeForIntent(offices.DefaultOffice(), RoutingOpticalOnly, AppointmentIntent{
+	got := ResolveAppointmentTypeForIntent(DefaultOffice(), RoutingOpticalOnly, AppointmentIntent{
 		VisitCategory: AppointmentVisitRoutineVision,
 		PatientStatus: AppointmentPatientNew,
 		AgeBand:       AppointmentAgePediatric,
@@ -266,4 +262,15 @@ func sameStringSlice(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+func TestInsuranceAndAppointmentCategoryNormalization(t *testing.T) {
+	for _, tc := range []struct{ category, kind, want string }{
+		{"vision", "", "routine_vision"}, {"routine eye exam", "", "routine_vision"},
+		{"", "routine_vision", "routine_vision"}, {"medical visit", "", "medical"}, {"follow up", "", "medical"},
+	} {
+		if got := NormalizeAppointmentVisitCategory(tc.category, tc.kind, RoutingBachOnly); got != tc.want {
+			t.Errorf("%+v => %s", tc, got)
+		}
+	}
 }

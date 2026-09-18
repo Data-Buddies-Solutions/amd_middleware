@@ -46,16 +46,15 @@ type appointmentTokenPolicy struct {
 // same scheduling secret is cryptographically separated by distinct HMAC
 // domains for cancellation and rescheduling.
 type AppointmentTokens struct {
-	offices *domain.OfficeCatalog
-	secret  string
-	now     func() time.Time
+	secret string
+	now    func() time.Time
 }
 
-func NewAppointmentTokens(offices *domain.OfficeCatalog, secret string, now func() time.Time) *AppointmentTokens {
+func NewAppointmentTokens(secret string, now func() time.Time) *AppointmentTokens {
 	if now == nil {
 		now = time.Now
 	}
-	return &AppointmentTokens{offices: offices, secret: secret, now: now}
+	return &AppointmentTokens{secret: secret, now: now}
 }
 
 func (t *AppointmentTokens) IssueCancellationToken(
@@ -98,7 +97,7 @@ func (t *AppointmentTokens) issueToken(
 		appointment.Start.IsZero() {
 		return "", ErrAppointmentTokenInvalid
 	}
-	if _, ok := t.offices.LookupOfficeByID(appointment.OfficeID); !ok {
+	if _, ok := domain.LookupOfficeByID(appointment.OfficeID); !ok {
 		return "", ErrAppointmentTokenInvalid
 	}
 
@@ -193,7 +192,7 @@ func (t *AppointmentTokens) verifyToken(
 	if _, err := strconv.Atoi(policy.PatientID); err != nil {
 		return appointmentTokenPolicy{}, ErrAppointmentTokenInvalid
 	}
-	if _, ok := t.offices.LookupOfficeByID(policy.OfficeID); !ok || start.IsZero() {
+	if _, ok := domain.LookupOfficeByID(policy.OfficeID); !ok || start.IsZero() {
 		return appointmentTokenPolicy{}, ErrAppointmentTokenInvalid
 	}
 

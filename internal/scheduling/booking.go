@@ -3,8 +3,6 @@ package scheduling
 import (
 	"context"
 	"fmt"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"log"
 	"slices"
 	"strconv"
@@ -14,6 +12,9 @@ import (
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/safeerrors"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const maxAppointmentCommentLength = 1000
@@ -21,6 +22,9 @@ const maxAppointmentCommentLength = 1000
 // BookCommand preserves the public booking request while Scheduling owns its
 // validation, provider write, reconciliation, and receipt.
 type BookCommand struct {
+	InsurancePlan     string `json:"insurancePlan,omitempty"`
+	HospitalName      string `json:"hospitalName,omitempty"`
+	HospitalDate      string `json:"hospitalDate,omitempty"`
 	PatientID         string `json:"patientId"`
 	PatientName       string `json:"patientName,omitempty"`
 	DOB               string `json:"dob,omitempty"`
@@ -45,6 +49,10 @@ type BookCommand struct {
 
 // BookReceipt is the stable booking result returned to HTTP callers.
 type BookReceipt struct {
+	OfficeID            string   `json:"officeId,omitempty"`
+	Office              string   `json:"office,omitempty"`
+	VisitType           string   `json:"visitType,omitempty"`
+	CancellationToken   string   `json:"cancellationToken,omitempty"`
 	Status              string   `json:"status"`
 	Outcome             string   `json:"outcome,omitempty"`
 	AppointmentID       int      `json:"appointmentId,omitempty"`
@@ -181,12 +189,12 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 		if err != nil {
 			return bookingContext{}, invalidBookingTokenError()
 		}
-		office, ok := s.offices.LookupOfficeByID(token.OfficeID)
+		office, ok := domain.LookupOfficeByID(token.OfficeID)
 		if !ok {
 			return bookingContext{}, invalidBookingTokenError()
 		}
 		if command.Office != "" {
-			requestedOffice, err := s.offices.ResolveOffice(command.Office)
+			requestedOffice, err := domain.ResolveOffice(command.Office)
 			if err != nil || requestedOffice.ID != office.ID {
 				return bookingContext{}, invalidBookingTokenError()
 			}
@@ -205,7 +213,7 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 		booking.token = token
 		booking.office = office
 	} else {
-		office, err := s.offices.ResolveOffice(command.Office)
+		office, err := domain.ResolveOffice(command.Office)
 		if err != nil {
 			return bookingContext{}, schedulingError(err.Error())
 		}
@@ -278,6 +286,25 @@ func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingCont
 		)
 	}
 	booking.command.DOB = verifiedDOB
+	coverage := domain.NormalizeAppointmentVisitCategory(booking.command.VisitCategory, booking.command.VisitKind, domain.ParseRoutingRule(booking.command.Routing))
+	insurance := domain.DecideChartInsurance(demographics, booking.command.InsurancePlan, coverage, booking.office, verifiedDOB)
+	if !insurance.CanSchedule {
+		return 0, schedulingError(insurance.Answer)
+	}
+	if coverage == domain.AppointmentVisitMedical {
+		if err := validateHospitalFollowUp(booking.command.VisitReason+" "+booking.command.AppointmentReason, booking.command.HospitalName, booking.command.HospitalDate); err != nil {
+			return 0, err
+		}
+	}
+	// Enforce the current backend insurance rule even for a previously signed slot
+	// or a raw-booking consumer. The caller cannot relax credentialing.
+	allowed := domain.NewSchedulingPolicy(booking.office).EligibleColumns(
+		[]domain.SchedulerColumn{{ID: fmt.Sprint(booking.command.ColumnID), ProfileID: fmt.Sprint(booking.command.ProfileID), FacilityID: booking.office.FacilityID}},
+		nil, insurance.Routing, verifiedDOB, "")
+	if len(allowed) == 0 {
+		return 0, schedulingError("The selected provider does not participate with this insurance at this office.")
+	}
+	booking.command.Routing = string(insurance.Routing)
 
 	patientID, err := strconv.Atoi(booking.command.PatientID)
 	if err != nil {
@@ -294,6 +321,9 @@ func applyBookingPolicy(booking *bookingContext) (
 ) {
 	command := booking.command
 	comments := buildAppointmentComment(command.AppointmentReason, command.ReferringDoctor)
+	if command.HospitalName != "" || command.HospitalDate != "" {
+		comments += "; Hospital: " + strings.TrimSpace(command.HospitalName) + "; Hospital visit: " + strings.TrimSpace(command.HospitalDate)
+	}
 	if len([]rune(comments)) > maxAppointmentCommentLength {
 		return domain.SchedulingPolicy{}, domain.BookingPolicyDecision{}, "", schedulingError(
 			fmt.Sprintf("appointment comments must be %d characters or fewer", maxAppointmentCommentLength),
@@ -423,7 +453,7 @@ func (s *service) revalidateBookingSlot(
 func (s *service) reconcileBooking(ctx context.Context, prepared preparedBooking) (BookReceipt, error) {
 	read, err := s.records.ReadPatientAppointmentsForMonth(ctx, advancedmd.AppointmentMonthQuery{
 		PatientID: prepared.command.PatientID,
-		OfficeIDs: s.offices.AppointmentLookupOfficeIDs(prepared.office),
+		OfficeIDs: domain.AppointmentLookupOfficeIDs(prepared.office),
 		Month:     prepared.start,
 	})
 	if err != nil {
@@ -522,6 +552,9 @@ func buildBookReceipt(command BookCommand, office *domain.OfficeConfig, appointm
 	appointmentTypeName, _ := office.AppointmentTypeName(command.AppointmentTypeID)
 	return BookReceipt{
 		Status:              "booked",
+		OfficeID:            office.ID,
+		Office:              office.DisplayName,
+		VisitType:           domain.AppointmentVisitType(command.AppointmentTypeID),
 		AppointmentID:       appointmentID,
 		PatientID:           command.PatientID,
 		PatientName:         normalizePatientName(command.PatientName),
@@ -537,18 +570,13 @@ func buildBookReceipt(command BookCommand, office *domain.OfficeConfig, appointm
 
 func (s *service) buildBookReceipt(prepared preparedBooking, appointmentID int) BookReceipt {
 	receipt := buildBookReceipt(prepared.command, prepared.office, appointmentID)
-	token, err := s.appointmentTokens.IssueRescheduleToken(
-		prepared.command.PatientID,
-		domain.PatientAppointment{
-			ID:                appointmentID,
-			Start:             prepared.start,
-			AppointmentTypeID: prepared.command.AppointmentTypeID,
-			OfficeID:          prepared.office.ID,
-		},
-	)
-	if err == nil {
-		receipt.RescheduleToken = token
+	appointment := domain.PatientAppointment{
+		ID: appointmentID, Start: prepared.start,
+		AppointmentTypeID: prepared.command.AppointmentTypeID, OfficeID: prepared.office.ID,
 	}
+	receipt.RescheduleToken, _ = s.appointmentTokens.IssueRescheduleToken(prepared.command.PatientID, appointment)
+	receipt.CancellationToken, _ = s.appointmentTokens.IssueCancellationToken(prepared.command.PatientID, appointment)
+
 	return receipt
 }
 

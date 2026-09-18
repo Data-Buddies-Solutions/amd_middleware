@@ -23,9 +23,153 @@ type InsuranceEntry struct {
 	PreauthRequired bool
 }
 
-// insuranceNameMap maps LLM-provided insurance names to carrier ID + routing.
-// Keys are normalized (lowercase, no punctuation) via NormalizeForLookup.
-// Grouped by carrier ID so you can see which plans share a network.
+// VisionInsuranceNameMap maps accepted routine-vision insurance buckets to AMD carrier IDs.
+// It is used only when a request explicitly asks for routine-vision coverage.
+var VisionInsuranceNameMap = map[string]InsuranceEntry{
+	"vsp":                     {CarrierID: "car280695", Routing: RoutingOpticalOnly},
+	"eyemed":                  {CarrierID: "car280684", Routing: RoutingOpticalOnly},
+	"nva":                     {CarrierID: "car308794", Routing: RoutingOpticalOnly},
+	"davis":                   {CarrierID: "car280612", Routing: RoutingOpticalOnly},
+	"spectera":                {CarrierID: "car308790", Routing: RoutingOpticalOnly},
+	"solstice":                {CarrierID: "car301652", Routing: RoutingOpticalOnly},
+	"icare":                   {CarrierID: "car40907", Routing: RoutingOpticalOnly},
+	"guardian":                {CarrierID: "car308792", Routing: RoutingOpticalOnly},
+	"alivi":                   {CarrierID: "car308796", Routing: RoutingOpticalOnly},
+	"premier":                 {CarrierID: "car281317", Routing: RoutingOpticalOnly},
+	"envolve":                 {CarrierID: "car281245", Routing: RoutingOpticalOnly},
+	"sunhealth":               {CarrierID: "car308791", Routing: RoutingOpticalOnly},
+	"sunhealth discount plan": {CarrierID: "car308791", Routing: RoutingOpticalOnly},
+	"oscar":                   {CarrierID: "car284233", Routing: RoutingOpticalOnly},
+	"self pay":                {CarrierID: "car301672", Routing: RoutingOpticalOnly},
+}
+
+// VisionInsuranceAliases maps patient-facing routine-vision plan names to the
+// billing buckets above, based on the vision insurance workbook.
+var VisionInsuranceAliases = map[string]string{
+	"eye med":                        "eyemed",
+	"eye med vision":                 "eyemed",
+	"eye med vision care":            "eyemed",
+	"national vision":                "nva",
+	"national vision administrators": "nva",
+	"davis vision":                   "davis",
+	"spectera vision":                "spectera",
+	"soltice":                        "solstice",
+	"solstice vision":                "solstice",
+	"guardian vision":                "guardian",
+	"alivi health":                   "alivi",
+	"envolve vision":                 "envolve",
+	"sun health":                     "sunhealth",
+	"sunhealth vision":               "sunhealth",
+	"oscar health":                   "oscar",
+	"oscar insurance":                "oscar",
+	"self-pay":                       "self pay",
+	"selfpay":                        "self pay",
+	"cash pay":                       "self pay",
+	"cash":                           "self pay",
+
+	// VSP
+	"metlife":           "vsp",
+	"liberty financial": "vsp",
+	"lincoln financial": "vsp",
+	"lincoln finacial":  "vsp",
+
+	// EyeMed
+	"humana": "eyemed",
+	"aetna":  "eyemed",
+	"unum":   "eyemed",
+	"cigna":  "eyemed",
+
+	// Davis
+	"superior":     "davis",
+	"florida blue": "davis",
+	"blueview":     "davis",
+	"blue view":    "davis",
+	"versant":      "davis",
+
+	// Spectera
+	"united healthcare":  "spectera",
+	"united health care": "spectera",
+	"united vision":      "spectera",
+
+	// iCare
+	"aetna better health":                            "icare",
+	"aetna better health medicaid mma vision":        "icare",
+	"aetna better health medicaid mma (vision)":      "icare",
+	"aetna healthy kids kid care chip vision":        "icare",
+	"aetna healthy kids kid care (chip) (vision)":    "icare",
+	"aetna medicare hmo & ppo vision":                "icare",
+	"aetna medicare hmo & ppo (vision)":              "icare",
+	"aetna medicare ppo vision":                      "icare",
+	"aetna medicare ppo (vision) effective 1 1 2026": "icare",
+	"avmed":                          "icare",
+	"avmed entrust vision":           "icare",
+	"avmed entrust (vision)":         "icare",
+	"community care plan vision":     "icare",
+	"doctors health medicare vision": "icare",
+	"doctors health medicare (vision) effective 8 1 2023": "icare",
+	"eye care":                         "icare",
+	"eye care health":                  "icare",
+	"eye care solutions":               "icare",
+	"freedom":                          "icare",
+	"freedom health medicare vision":   "icare",
+	"freedom health medicare (vision)": "icare",
+	"healthsun vision":                 "icare",
+	"healthsun vision only":            "icare",
+	"humana (medicaid) vision":         "icare",
+	"humana (medicare) vision":         "icare",
+	"humana gold plus":                 "icare",
+	"humana medicaid vision":           "icare",
+	"humana medicare vision":           "icare",
+	"i care":                           "icare",
+	"miami children's health plan (medicaid) vision":      "icare",
+	"miami children's health plan medicaid vision":        "icare",
+	"molina medicaid vision":                              "icare",
+	"molina medicaid (vision)":                            "icare",
+	"optimum":                                             "icare",
+	"optimum healthcare":                                  "icare",
+	"optimum healthplan medicare vision":                  "icare",
+	"optimum healthplan medicare (vision)":                "icare",
+	"preferred care network - previously medica (vision)": "icare",
+	"preferred care network previously medica vision":     "icare",
+	"simply medcaid":                                      "icare",
+	"simply medicaid":                                     "icare",
+	"simply medicaid healthy kids (vision)":               "icare",
+	"simply medicaid healthy kids vision":                 "icare",
+	"simply medicare":                                     "icare",
+	"simply medicare (vision)":                            "icare",
+	"simply medicare vision":                              "icare",
+
+	// Envolve
+	"ambetter":                             "envolve",
+	"ambetter (vision)":                    "envolve",
+	"ambetter vision":                      "envolve",
+	"ambetter from sunshine health":        "envolve",
+	"children's medical services (vision)": "envolve",
+	"children's medical services vision":   "envolve",
+	"staywell medicaid (vision)":           "envolve",
+	"staywell medicaid vision":             "envolve",
+	"sunshine":                             "envolve",
+	"sunshine health":                      "envolve",
+	"sunshine medicaid (vision)":           "envolve",
+	"sunshine medicaid vision":             "envolve",
+	"wellcare (medicaid) vision":           "envolve",
+	"wellcare medicaid vision":             "envolve",
+
+	// Premier
+	"amerihealth":                              "premier",
+	"devoted":                                  "premier",
+	"devoted medicare hmo (vision)":            "premier",
+	"devoted medicare hmo vision":              "premier",
+	"devoted medicare ppo (vision)":            "premier",
+	"devoted medicare ppo vision":              "premier",
+	"florida blue medicare hmo & ppo (vision)": "premier",
+	"florida blue medicare hmo & ppo vision":   "premier",
+	"solis medicare (vision)":                  "premier",
+	"solis medicare vision":                    "premier",
+	"wellcare medicare hmo (vision)":           "premier",
+	"wellcare medicare hmo vision":             "premier",
+}
+
 func lookupInsuranceEntry(name string, entries map[string]InsuranceEntry, aliases map[string]string) (InsuranceEntry, string, bool) {
 	normalized := NormalizeForLookup(name)
 
@@ -48,9 +192,9 @@ func lookupInsuranceFromMaps(name string, entries map[string]InsuranceEntry, ali
 
 func lookupVisionInsurance(name string) (InsuranceEntry, bool) {
 	if isAetnaGovernmentVisionPlan(name) {
-		return visionInsuranceNameMap["icare"], true
+		return VisionInsuranceNameMap["icare"], true
 	}
-	return lookupInsuranceFromMaps(name, visionInsuranceNameMap, visionInsuranceAliases)
+	return lookupInsuranceFromMaps(name, VisionInsuranceNameMap, VisionInsuranceAliases)
 }
 
 func isAetnaGovernmentVisionPlan(name string) bool {
@@ -70,138 +214,12 @@ func isAetnaGovernmentVisionPlan(name string) bool {
 	return hasAetna && hasGovernmentProgram
 }
 
-// LookupInsurance looks up an insurance name and returns its entry.
-// First tries exact match in insuranceNameMap, then checks insuranceAliases.
-// Uses NormalizeForLookup for tolerance of punctuation, casing, and spacing.
-func LookupInsurance(name string) (InsuranceEntry, bool) {
-	return lookupInsuranceFromMaps(name, insuranceNameMap, insuranceAliases)
-}
-
 // IsSelfPayInsurance reports whether a caller-facing insurance value means self-pay.
 func IsSelfPayInsurance(name string) bool {
 	normalized := NormalizeForLookup(name)
 	return normalized == "self pay" ||
-		insuranceAliases[normalized] == "self pay" ||
-		visionInsuranceAliases[normalized] == "self pay"
-}
-
-// LookupInsuranceForCoverage chooses the medical or routine-vision crosswalk.
-func LookupInsuranceForCoverage(name string, mode InsuranceMode) (InsuranceEntry, bool) {
-	if mode == InsuranceModeVision {
-		return lookupVisionInsurance(name)
-	}
-	return LookupInsurance(name)
-}
-
-var crystalRiverRejectedMedicalPlans = map[string]bool{
-	// Crystal River inherits the Spring Hill medical rejection list from
-	// insuranceNameMap and adds the plans/families below.
-	"aetna better health":            true,
-	"aetna better health of florida": true,
-	"aetna healthy kids":             true,
-	"ambetter":                       true,
-	"ambetter premier":               true,
-	"ambetter select":                true,
-	"ambetter value":                 true,
-	"community care plan":            true,
-	"florida community care":         true,
-	"florida complete care":          true,
-	"florida medicaid":               true,
-	"humana healthy horizons":        true,
-	"medicaid":                       true,
-	"molina medicaid":                true,
-	"simply medicaid":                true,
-	"staywell medicare":              true,
-	"sunshine medicaid":              true,
-	"vivida":                         true,
-}
-
-var crystalRiverRejectedCarrierIDs = map[string]bool{
-	"car281245": true, // Ambetter / Staywell / Sunshine family
-	"car303033": true, // Medicaid / Humana Medicaid legacy bucket
-	"car40899":  true, // Florida Medicaid
-	"car40907":  true, // iCare / Medicaid family
-	"car40912":  true, // Molina Medicaid
-}
-
-var ambiguousDemographicCarrierNames = map[string]bool{
-	"aetna":                  true,
-	"bcbs":                   true,
-	"blue cross":             true,
-	"blue cross blue shield": true,
-	"cigna":                  true,
-	"florida blue":           true,
-	"humana":                 true,
-	"molina":                 true,
-	"uhc":                    true,
-	"united":                 true,
-	"united health care":     true,
-	"united healthcare":      true,
-}
-
-func applyOfficeMedicalInsurancePolicy(entry InsuranceEntry, canonicalName string, office *OfficeConfig) InsuranceEntry {
-	if office == nil {
-		return entry
-	}
-	if office.ID == "crystal_river" {
-		if crystalRiverRejectedMedicalPlans[canonicalName] {
-			entry.Routing = RoutingNotAccepted
-			entry.PreauthRequired = false
-		}
-		return entry
-	}
-	return entry
-}
-
-// LookupInsuranceForCoverageAtOffice chooses the medical or routine-vision
-// crosswalk and applies office-specific medical acceptance rules.
-func LookupInsuranceForCoverageAtOffice(name string, mode InsuranceMode, office *OfficeConfig) (InsuranceEntry, bool) {
-	if mode == InsuranceModeVision {
-		return lookupVisionInsurance(name)
-	}
-	entry, status := resolveMedicalInsuranceName(name, office)
-	if status != insuranceNameMatched {
-		return InsuranceEntry{}, false
-	}
-	return entry, true
-}
-
-type insuranceNameStatus uint8
-
-const (
-	insuranceNameUnknown insuranceNameStatus = iota
-	insuranceNameMatched
-	insuranceNameAmbiguous
-	insuranceNameUnsupported
-)
-
-// resolveMedicalInsuranceName owns office overrides and alias resolution for
-// both registration and existing-patient routing. Carrier fallback is a separate
-// decision because shared carrier IDs do not identify a specific plan.
-func resolveMedicalInsuranceName(name string, office *OfficeConfig) (InsuranceEntry, insuranceNameStatus) {
-	paired := isHollywoodSweetwaterMedicalOffice(office)
-	if paired {
-		if entry, _, ok := lookupInsuranceEntry(name, hollywoodSweetwaterMedicalInsuranceNameMap, hollywoodSweetwaterMedicalInsuranceAliases); ok {
-			return entry, insuranceNameMatched
-		}
-	}
-	entry, canonical, ok := lookupInsuranceEntry(name, insuranceNameMap, insuranceAliases)
-	if !ok {
-		return InsuranceEntry{}, insuranceNameUnknown
-	}
-	if !paired {
-		return applyOfficeMedicalInsurancePolicy(entry, canonical, office), insuranceNameMatched
-	}
-	if officeEntry, ok := hollywoodSweetwaterMedicalInsuranceNameMap[canonical]; ok {
-		return officeEntry, insuranceNameMatched
-	}
-	if ambiguousDemographicCarrierNames[NormalizeForLookup(name)] || ambiguousDemographicCarrierNames[canonical] {
-		return InsuranceEntry{}, insuranceNameAmbiguous
-	}
-	if entry.Routing == RoutingNotAccepted {
-		return entry, insuranceNameMatched
-	}
-	return InsuranceEntry{}, insuranceNameUnsupported
+		normalized == "selfpay" || normalized == "cash" || normalized == "cash pay" ||
+		VisionInsuranceAliases[normalized] == "self pay"
 }
 
 // InsuranceModeForCoverage converts an agent-supplied coverage type to a middleware insurance mode.
@@ -216,52 +234,6 @@ func InsuranceModeForCoverage(coverageType string) InsuranceMode {
 		return InsuranceModeVision
 	default:
 		return InsuranceModeMedical
-	}
-}
-
-// RoutingForCarrierID returns the routing rule for a carrier ID from demographics.
-// Returns the rule and whether the carrier is ambiguous (shared across tiers).
-// Unknown carrier IDs default to RoutingAll (most permissive).
-func RoutingForCarrierID(carrierID string) (RoutingRule, bool) {
-	ambiguous := ambiguousCarriers[carrierID]
-
-	if rule, ok := carrierRoutingMap[carrierID]; ok {
-		return rule, ambiguous
-	}
-
-	// Unknown or ambiguous carriers default to all three
-	return RoutingAll, ambiguous
-}
-
-// RoutingForCarrierIDAtOffice applies office-specific medical acceptance rules
-// to the demographics carrier-ID fallback used for existing patients.
-func RoutingForCarrierIDAtOffice(carrierID string, office *OfficeConfig) (RoutingRule, bool) {
-	if office != nil && office.ID == "crystal_river" && crystalRiverRejectedCarrierIDs[carrierID] {
-		return RoutingNotAccepted, false
-	}
-	if isHollywoodSweetwaterMedicalOffice(office) {
-		if hollywoodSweetwaterAcceptedMedicalCarrierIDs[carrierID] {
-			return RoutingBachOnly, ambiguousCarriers[carrierID]
-		}
-		return RoutingNotAccepted, false
-	}
-	return RoutingForCarrierID(carrierID)
-}
-
-// RoutingForDemographicInsurance prefers AMD's carrier name when available, then
-// falls back to carrier ID. Carrier IDs can represent mixed accepted/rejected plans.
-func RoutingForDemographicInsurance(carrierID, carrierName string, office *OfficeConfig) (RoutingRule, bool) {
-	if !isHollywoodSweetwaterMedicalOffice(office) && ambiguousCarriers[carrierID] && ambiguousDemographicCarrierNames[NormalizeForLookup(carrierName)] {
-		return RoutingForCarrierIDAtOffice(carrierID, office)
-	}
-	entry, status := resolveMedicalInsuranceName(carrierName, office)
-	switch status {
-	case insuranceNameMatched:
-		return entry.Routing, false
-	case insuranceNameUnsupported:
-		return RoutingNotAccepted, false
-	default:
-		return RoutingForCarrierIDAtOffice(carrierID, office)
 	}
 }
 

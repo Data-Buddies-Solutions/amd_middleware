@@ -20,6 +20,10 @@ var eastern = domain.EasternLocation()
 
 // SearchCommand is the domain input for one availability search.
 type SearchCommand struct {
+	PatientID       string                      `json:"patientId,omitempty"`
+	InsurancePlan   string                      `json:"insurancePlan,omitempty"`
+	CoverageType    string                      `json:"coverageType,omitempty"`
+	VisitType       string                      `json:"visitType,omitempty"`
 	RequestedDate   string                      `json:"requestedDate,omitempty"`
 	PreferredTime   *AvailabilityTimePreference `json:"preferredTime,omitempty"`
 	Provider        string                      `json:"provider"`
@@ -48,6 +52,7 @@ type Scheduling interface {
 	List(ctx context.Context, command ListCommand) (domain.AvailabilityResponse, error)
 	Book(ctx context.Context, command BookCommand) (BookReceipt, error)
 	Cancel(ctx context.Context, command CancelCommand) (CancelReceipt, error)
+	Reschedule(ctx context.Context, command BookCommand) (RescheduleReceipt, error)
 }
 
 // Category is a stable, provider-independent scheduling outcome.
@@ -114,7 +119,6 @@ func MissingOf(err error) []string {
 }
 
 type service struct {
-	offices            *domain.OfficeCatalog
 	records            advancedmd.SchedulingRecords
 	bookingTokenSecret string
 	appointmentTokens  *AppointmentTokens
@@ -134,13 +138,12 @@ type Config struct {
 }
 
 // New constructs Scheduling with compatibility behavior disabled.
-func New(offices *domain.OfficeCatalog, records advancedmd.SchedulingRecords, bookingTokenSecret string, now func() time.Time) Scheduling {
-	return NewWithConfig(offices, records, bookingTokenSecret, now, Config{})
+func New(records advancedmd.SchedulingRecords, bookingTokenSecret string, now func() time.Time) Scheduling {
+	return NewWithConfig(records, bookingTokenSecret, now, Config{})
 }
 
 // NewWithConfig constructs the single owner for scheduling behavior.
 func NewWithConfig(
-	offices *domain.OfficeCatalog,
 	records advancedmd.SchedulingRecords,
 	bookingTokenSecret string,
 	now func() time.Time,
@@ -150,10 +153,9 @@ func NewWithConfig(
 		now = time.Now
 	}
 	return &service{
-		offices:            offices,
 		records:            records,
 		bookingTokenSecret: bookingTokenSecret,
-		appointmentTokens:  NewAppointmentTokens(offices, bookingTokenSecret, now),
+		appointmentTokens:  NewAppointmentTokens(bookingTokenSecret, now),
 		allowRawBooking:    config.AllowRawBooking,
 		now:                now,
 	}
@@ -195,5 +197,3 @@ func providerCategory(err error) safeerrors.Category {
 	}
 	return category
 }
-
-var _ Scheduling = (*service)(nil)

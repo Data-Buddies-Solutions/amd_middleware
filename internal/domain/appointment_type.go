@@ -43,7 +43,7 @@ func ResolveAppointmentTypeForIntent(office *OfficeConfig, routing RoutingRule, 
 
 	visitKind := normalizeAppointmentVisitKind(intent.VisitKind)
 	postOp := intent.IsPostOp || visitKind == AppointmentVisitPostOp || appointmentReasonLooksPostOp(intent.VisitReason)
-	category := normalizeAppointmentVisitCategory(intent.VisitCategory, visitKind, routing)
+	category := NormalizeAppointmentVisitCategory(intent.VisitCategory, visitKind, routing)
 	status := normalizeAppointmentPatientStatus(intent.PatientStatus)
 	ageBand := normalizeAppointmentAgeBand(intent.AgeBand, intent.DOB)
 
@@ -122,7 +122,7 @@ func ResolveAppointmentTypeForIntent(office *OfficeConfig, routing RoutingRule, 
 func resolvedAppointmentType(typeID int) AppointmentTypeResolution {
 	return AppointmentTypeResolution{
 		AppointmentTypeID:   typeID,
-		AppointmentTypeName: appointmentTypeNames[typeID],
+		AppointmentTypeName: DefaultAppointmentTypeNames[typeID],
 	}
 }
 
@@ -168,7 +168,8 @@ func appointmentTypeMissingFactsMessage(missing []string) string {
 	}
 }
 
-func normalizeAppointmentVisitCategory(category, visitKind string, routing RoutingRule) string {
+// NormalizeAppointmentVisitCategory is shared by appointment and insurance policy.
+func NormalizeAppointmentVisitCategory(category, visitKind string, routing RoutingRule) string {
 	kind := normalizeAppointmentVisitKind(visitKind)
 	if kind == AppointmentVisitRoutineVision {
 		return AppointmentVisitRoutineVision
@@ -243,4 +244,17 @@ func normalizeAppointmentToken(value string) string {
 	value = strings.ReplaceAll(value, "-", " ")
 	value = strings.Join(strings.Fields(value), " ")
 	return value
+}
+
+// AppointmentVisitType classifies canonical provider types. Unknown types remain
+// unknown; display names are never scheduling authority.
+func AppointmentVisitType(typeID int) string {
+	switch typeID {
+	case 1004, 1005, 1006, 1007, 1008, 6167, 6168, 6169:
+		return AppointmentVisitMedical
+	case 1010, 3364, 4244, 4245:
+		return AppointmentVisitRoutineVision
+	default:
+		return ""
+	}
 }

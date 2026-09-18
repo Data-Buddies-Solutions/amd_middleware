@@ -26,9 +26,7 @@ import (
 )
 
 func TestHandleLive(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
-	handlers := &Handlers{offices: offices}
+	handlers := &Handlers{}
 
 	req := httptest.NewRequest("GET", "/live", nil)
 	w := httptest.NewRecorder()
@@ -48,14 +46,12 @@ func TestHandleLive(t *testing.T) {
 }
 
 func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	const patientID = "patient-identifier-must-not-appear"
-	patientmodule.New(offices, advancedmdtest.NewAdapter()).UpdateInsurance(context.Background(), patientmodule.UpdateInsuranceCommand{
+	patientmodule.New(advancedmdtest.NewAdapter()).UpdateInsurance(context.Background(), patientmodule.UpdateInsuranceCommand{
 		PatientID: patientID,
 	})
 
-	router := NewRouter(NewHandlers(offices, nil, nil, nil), "test-secret", nil)
+	router := NewRouter(NewHandlers(nil, nil, nil), "test-secret", nil)
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	w := httptest.NewRecorder()
 
@@ -74,10 +70,8 @@ func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
 }
 
 func TestPatientResolveKeepsStableResponseWhenSessionUnavailable(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
-	records := advancedmd.NewAdapter(offices, unavailableSession{}, nil, nil)
-	handlers := NewHandlers(offices, unavailableSession{}, patientmodule.New(offices, records), nil)
+	records := advancedmd.NewAdapter(unavailableSession{}, nil, nil)
+	handlers := NewHandlers(unavailableSession{}, patientmodule.New(records), nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"patientId":"123"}`))
 	w := httptest.NewRecorder()
 
@@ -99,7 +93,7 @@ func TestPatientResolveKeepsStableResponseWhenSessionUnavailable(t *testing.T) {
 }
 
 func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
+	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.PatientSearches[domain.PatientSearch{Phone: "9542872010"}] = []domain.Patient{{
 		ID: "123", FullName: "DOE,JANE", DOB: "01/15/1980", Phone: "850-373-3869",
@@ -108,7 +102,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 		CarrierName: "HUMANA MEDICARE",
 		CarrierID:   "car40906",
 	}
-	handlers := NewHandlers(offices, nil, patientmodule.New(offices, amd), nil)
+	handlers := NewHandlers(nil, patientmodule.New(amd), nil)
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -125,7 +119,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 	if body.Status != "verified" || body.PatientID != "123" || body.Phone != "850-373-3869" {
 		t.Fatalf("response = %+v", body)
 	}
-	if body.Routing != "bach_only" || len(body.AllowedProviders) != 1 {
+	if body.Routing != string(domain.RoutingBachOnly) || len(body.AllowedProviders) != 1 || body.RoutingAmbiguous || body.InsuranceDecision == nil || !body.InsuranceDecision.CanSchedule {
 		t.Fatalf("routing response = %+v", body)
 	}
 	if body.AppointmentsStatus != "none" || body.Appointments == nil {
@@ -148,9 +142,7 @@ func (unavailableSession) Status() session.SessionStatus {
 }
 
 func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
-	handlers := &Handlers{offices: offices, scheduling: schedulingStub{err: errors.New("dob must be a valid date")}}
+	handlers := &Handlers{scheduling: schedulingStub{err: errors.New("dob must be a valid date")}}
 	date := time.Now().AddDate(0, 0, 2).Format("2006-01-02")
 	body := fmt.Sprintf(`{"requestedDate":%q,"office":"Hollywood","routing":"optical_only","dob":"not-a-date"}`, date)
 	req := httptest.NewRequest("POST", "/api/scheduler/availability", bytes.NewBufferString(body))
@@ -170,8 +162,6 @@ func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
 }
 
 func TestHandleGetAvailabilityMapsSchedulingResult(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	scheduler := schedulingStub{
 		result: domain.AvailabilityResponse{
 			Status:                domain.AvailabilityStatusSuccess,
@@ -194,7 +184,7 @@ func TestHandleGetAvailabilityMapsSchedulingResult(t *testing.T) {
 			}},
 		},
 	}
-	handlers := &Handlers{offices: offices, scheduling: scheduler}
+	handlers := &Handlers{scheduling: scheduler}
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/api/scheduler/availability",
@@ -216,9 +206,7 @@ func TestHandleGetAvailabilityMapsSchedulingResult(t *testing.T) {
 }
 
 func TestAvailabilityRouteRetainsAuthenticationAndResponseContract(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
-	handlers := &Handlers{offices: offices, scheduling: schedulingStub{
+	handlers := &Handlers{scheduling: schedulingStub{
 		result: domain.AvailabilityResponse{
 			Status:                domain.AvailabilityStatusSuccess,
 			Outcome:               domain.AvailabilityOutcomeNoAvailability,
@@ -258,12 +246,13 @@ func TestAvailabilityRouteRetainsAuthenticationAndResponseContract(t *testing.T)
 }
 
 type schedulingStub struct {
-	result       domain.AvailabilityResponse
-	err          error
-	bookResult   schedulingmodule.BookReceipt
-	bookErr      error
-	cancelResult schedulingmodule.CancelReceipt
-	cancelErr    error
+	result           domain.AvailabilityResponse
+	err              error
+	bookResult       schedulingmodule.BookReceipt
+	bookErr          error
+	cancelResult     schedulingmodule.CancelReceipt
+	cancelErr        error
+	rescheduleResult schedulingmodule.RescheduleReceipt
 }
 
 func (s schedulingStub) Search(context.Context, schedulingmodule.SearchCommand) (domain.AvailabilityResponse, error) {
@@ -279,9 +268,7 @@ func (s schedulingStub) Cancel(context.Context, schedulingmodule.CancelCommand) 
 }
 
 func TestHandlePatientResolve_ValidationErrors(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
-	handlers := &Handlers{offices: offices}
+	handlers := &Handlers{}
 
 	tests := []struct {
 		name        string
@@ -605,8 +592,6 @@ func TestProviderFailuresAreRedactedFromResponsesAndLogs(t *testing.T) {
 }
 
 func TestPatientMutationRoutesCallPatientInterface(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	service := &patientStub{
 		createResult: patientmodule.CreateResult{
 			Status:    patientmodule.CreateStatusCreated,
@@ -623,7 +608,7 @@ func TestPatientMutationRoutesCallPatientInterface(t *testing.T) {
 			Message:      "Insurance updated successfully",
 		},
 	}
-	handlers := &Handlers{offices: offices, patient: service}
+	handlers := &Handlers{patient: service}
 
 	t.Run("create", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/add-patient", strings.NewReader(`{
@@ -711,9 +696,7 @@ func assertRedacted(t *testing.T, response, logs string, forbidden ...string) {
 }
 
 func TestHandleAddPatient_RoutineVisionRequiresOpticalOffice(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
-	handlers := &Handlers{offices: offices, patient: patientmodule.New(offices, advancedmdtest.NewAdapter())}
+	handlers := &Handlers{patient: patientmodule.New(advancedmdtest.NewAdapter())}
 	req := httptest.NewRequest("POST", "/api/add-patient", bytes.NewBufferString(`{
 		"firstName":"Jane",
 		"lastName":"Doe",
@@ -740,16 +723,14 @@ func TestHandleAddPatient_RoutineVisionRequiresOpticalOffice(t *testing.T) {
 	if body.Status != "error" {
 		t.Fatalf("expected status error, got %q", body.Status)
 	}
-	expected := "Routine vision coverage is not supported at Crystal River. Route the patient to Spring Hill routine vision scheduling."
+	expected := "blocked: This office does not accept coverage for that visit type."
 	if body.Message != expected {
 		t.Fatalf("expected message %q, got %q", expected, body.Message)
 	}
 }
 
 func TestHandleAddPatient_RoutineOnlyOfficeRejectsMedical(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
-	handlers := &Handlers{offices: offices, patient: patientmodule.New(offices, advancedmdtest.NewAdapter())}
+	handlers := &Handlers{patient: patientmodule.New(advancedmdtest.NewAdapter())}
 	req := httptest.NewRequest("POST", "/api/add-patient", bytes.NewBufferString(`{
 		"firstName":"Jane",
 		"lastName":"Doe",
@@ -775,7 +756,7 @@ func TestHandleAddPatient_RoutineOnlyOfficeRejectsMedical(t *testing.T) {
 	if body.Status != "error" {
 		t.Fatalf("expected status error, got %q", body.Status)
 	}
-	expected := "Medical coverage is not supported at North Miami Beach Optical. Use routine vision coverage for this office or route medical visits to a medical office."
+	expected := "blocked: This office does not accept coverage for that visit type."
 	if body.Message != expected {
 		t.Fatalf("expected message %q, got %q", expected, body.Message)
 	}
@@ -871,9 +852,7 @@ func TestRequestIDMiddleware(t *testing.T) {
 }
 
 func TestRouter(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
-	handlers := NewHandlers(offices, nil, nil, nil)
+	handlers := NewHandlers(nil, nil, nil)
 
 	router := NewRouter(handlers, "test-secret", nil)
 
@@ -974,9 +953,7 @@ func TestPatientApptDetail_IncludesID(t *testing.T) {
 }
 
 func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
-	handlers := &Handlers{offices: offices, patient: patientmodule.New(offices, advancedmdtest.NewAdapter())}
+	handlers := &Handlers{patient: patientmodule.New(advancedmdtest.NewAdapter())}
 
 	tests := []struct {
 		name        string
@@ -1006,27 +983,27 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 		{
 			name:        "insurance not recognized",
 			body:        `{"patientId":"pat123","insurance":"FakeInsurance","subscriberNum":"ABC123"}`,
-			expectedMsg: `Insurance not recognized: "FakeInsurance". Please use an insurance name from the accepted list.`,
+			expectedMsg: `needs_input: What insurance plan is listed on your card?`,
 		},
 		{
 			name:        "spring hill rejected medical plan",
 			body:        `{"patientId":"pat123","insurance":"Cigna Local Plus","subscriberNum":"ABC123"}`,
-			expectedMsg: "Cigna Local Plus is not accepted at Spring Hill.",
+			expectedMsg: "blocked: This plan is not accepted for this visit type at this office.",
 		},
 		{
 			name:        "crystal river rejected medical plan",
 			body:        `{"patientId":"pat123","insurance":"Ambetter","subscriberNum":"ABC123","office":"+13523202007"}`,
-			expectedMsg: "Ambetter is not accepted at Crystal River.",
+			expectedMsg: "blocked: This plan is not accepted for this visit type at this office.",
 		},
 		{
 			name:        "routine vision requires optical office",
 			body:        `{"patientId":"pat123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13523202007"}`,
-			expectedMsg: "Routine vision coverage is not supported at Crystal River. Route the patient to Spring Hill routine vision scheduling.",
+			expectedMsg: "blocked: This office does not accept coverage for that visit type.",
 		},
 		{
 			name:        "routine-only office rejects medical coverage",
 			body:        `{"patientId":"pat123","insurance":"Aetna","subscriberNum":"ABC123","office":"+13055095333"}`,
-			expectedMsg: "Medical coverage is not supported at North Miami Beach Optical. Use routine vision coverage for this office or route medical visits to a medical office.",
+			expectedMsg: "blocked: This office does not accept coverage for that visit type.",
 		},
 		{
 			name:        "invalid DOB",
@@ -1086,7 +1063,7 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 		},
 		{
 			name:             "medical minor uses pediatric routing",
-			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insPlanId":"ins123","oldInsurance":"Old","insurance":"Aetna","subscriberNum":"ABC123","office":"Spring Hill","dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
+			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insPlanId":"ins123","oldInsurance":"Old","insurance":"Aetna Commercial","subscriberNum":"ABC123","office":"Spring Hill","dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
 			wantRouting:      string(domain.RoutingBachOnly),
 			wantProviders:    []string{"Dr. Bach"},
 			wantXMLRPCWrites: 2,
@@ -1185,8 +1162,6 @@ type providerFailure struct {
 }
 
 func newProviderFailureTestHandlers(t *testing.T, fail func(*http.Request, []byte) *providerFailure) *Handlers {
-	offices := domain.NewOfficeCatalog("")
-
 	t.Helper()
 	httpClient := &http.Client{
 		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
@@ -1219,17 +1194,15 @@ func newProviderFailureTestHandlers(t *testing.T, fail func(*http.Request, []byt
 		Username: "user", Password: "pass", OfficeKey: "office", AppName: "app",
 	}, httpClient)
 
-	records := advancedmd.NewAdapter(offices,
+	records := advancedmd.NewAdapter(
 		amdSession,
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
 	)
-	return NewHandlers(offices, amdSession, patientmodule.New(offices, records), nil)
+	return NewHandlers(amdSession, patientmodule.New(records), nil)
 }
 
 func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {
-	offices := domain.NewOfficeCatalog("")
-
 	t.Helper()
 	writes := []string{}
 	httpClient := &http.Client{
@@ -1264,12 +1237,12 @@ func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {
 		AppName:   "app",
 	}, httpClient)
 
-	records := advancedmd.NewAdapter(offices,
+	records := advancedmd.NewAdapter(
 		amdSession,
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
 	)
-	return NewHandlers(offices, amdSession, patientmodule.New(offices, records), nil), &writes
+	return NewHandlers(amdSession, patientmodule.New(records), nil), &writes
 }
 
 func newPatientResolveTestHandlers(
@@ -1277,8 +1250,6 @@ func newPatientResolveTestHandlers(
 	appointmentStatus int,
 	observers ...func(*http.Request, []byte),
 ) *Handlers {
-	offices := domain.NewOfficeCatalog("")
-
 	t.Helper()
 	eastern := domain.EasternLocation()
 	future := time.Now().In(eastern).Add(48 * time.Hour)
@@ -1414,9 +1385,9 @@ func newPatientResolveTestHandlers(
 	}, httpClient)
 	amdClient := clients.NewAdvancedMDClient(httpClient)
 	amdRestClient := clients.NewAdvancedMDRestClient(httpClient)
-	records := advancedmd.NewAdapter(offices, amdSession, amdClient, amdRestClient)
+	records := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient)
 
-	return NewHandlers(offices, amdSession, patientmodule.New(offices, records), nil)
+	return NewHandlers(amdSession, patientmodule.New(records), nil)
 }
 
 func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListCommand) (domain.AvailabilityResponse, error) {
@@ -1424,10 +1395,11 @@ func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListC
 }
 
 func TestFirstNameDOBHTTPContract(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
+	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true, Patients: []domain.Patient{{ID: "1", FirstName: "Jane", LastName: "Meyer", DOB: "01/01/1980"}}}
-	handler := NewHandlers(offices, nil, patientmodule.New(offices, amd), nil)
+	amd.Demographics["1"] = domain.PatientDemographics{FullName: "MEYER,JANE", DOB: "01/01/1980"}
+	handler := NewHandlers(nil, patientmodule.New(amd), nil)
 	for _, tc := range []struct {
 		body  string
 		valid bool
@@ -1443,18 +1415,18 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 			t.Fatal(err)
 		}
 		if tc.valid {
-			if body["status"] != "candidates" || body["source"] != "first_name" || body["complete"] != true || body["patientId"] != nil {
-				t.Fatal("invalid candidate-only envelope")
+			if body["status"] != "verified" || body["patientId"] != "1" || body["dob"] != "01/01/1980" {
+				t.Fatal("invalid resolved patient envelope")
 			}
-			if len(body["matches"].([]any)) != 1 {
-				t.Fatal("missing candidate")
+			if len(body["matches"].([]any)) != 0 {
+				t.Fatal("unexpected candidate list")
 			}
 		} else if body["status"] != "error" {
 			t.Fatal("accepted incomplete/invalid identity")
 		}
 	}
-	if amd.SearchPatientCalls != 1 || amd.DemographicCalls != 0 || amd.AppointmentReadCalls != 0 {
-		t.Fatal("HTTP candidate search hydrated a chart")
+	if amd.SearchPatientCalls != 1 || amd.DemographicCalls != 1 || amd.AppointmentReadCalls != 1 {
+		t.Fatal("HTTP search must hydrate exactly one resolved chart")
 	}
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true}
 	writer := httptest.NewRecorder()
@@ -1463,7 +1435,30 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 	if err := json.Unmarshal(writer.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	if matches, ok := body["matches"].([]any); !ok || len(matches) != 0 {
+	if matches, ok := body["matches"].([]any); body["status"] != "not_found" || !ok || len(matches) != 0 {
 		t.Fatal("empty candidate result must retain an array")
 	}
+}
+
+func TestFirstNameDOBUnresolvedHTTPContract(t *testing.T) {
+	domain.InitRegistry("")
+	amd := advancedmdtest.NewAdapter()
+	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: false}
+	handler := NewHandlers(nil, patientmodule.New(amd), nil)
+	writer := httptest.NewRecorder()
+	handler.HandlePatientResolve(writer, httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"firstName":"Jane","dob":"01/01/1980","office":"spring_hill"}`)))
+	var body PatientResolveResponse
+	if err := json.Unmarshal(writer.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if writer.Code != http.StatusOK || body.Status != "unresolved" || body.Reason != "incomplete_search" || body.PatientID != "" || len(body.Matches) != 0 {
+		t.Fatalf("unexpected resolution status=%s reason=%s", body.Status, body.Reason)
+	}
+	if amd.DemographicCalls != 0 || amd.AppointmentReadCalls != 0 {
+		t.Fatal("incomplete search must not hydrate a chart")
+	}
+}
+
+func (s schedulingStub) Reschedule(context.Context, schedulingmodule.BookCommand) (schedulingmodule.RescheduleReceipt, error) {
+	return s.rescheduleResult, nil
 }

@@ -18,8 +18,6 @@ import (
 )
 
 func TestAdapterSearchPatientsUsesControlledXMLRPCServer(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	var requestBody map[string]any
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -50,7 +48,7 @@ func TestAdapterSearchPatientsUsesControlledXMLRPCServer(t *testing.T) {
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			CookieToken: "token=test-cookie",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
@@ -76,8 +74,6 @@ func TestAdapterSearchPatientsUsesControlledXMLRPCServer(t *testing.T) {
 }
 
 func TestAdapterSearchPatientsByNameUsesControlledXMLRPCServer(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	var requestBody map[string]any
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
@@ -94,7 +90,7 @@ func TestAdapterSearchPatientsByNameUsesControlledXMLRPCServer(t *testing.T) {
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			CookieToken: "token=test-cookie",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
@@ -119,8 +115,6 @@ func TestAdapterSearchPatientsByNameUsesControlledXMLRPCServer(t *testing.T) {
 }
 
 func TestAdapterDemographicsUsesControlledXMLRPCServer(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	var requestBody map[string]any
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
@@ -157,7 +151,7 @@ func TestAdapterDemographicsUsesControlledXMLRPCServer(t *testing.T) {
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			CookieToken: "token=test-cookie",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
@@ -189,10 +183,8 @@ func TestAdapterDemographicsUsesControlledXMLRPCServer(t *testing.T) {
 }
 
 func TestAdapterReturnsStableRedactedErrors(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	t.Run("session unavailable", func(t *testing.T) {
-		adapter := NewAdapter(offices,
+		adapter := NewAdapter(
 			staticSession{err: errors.New("login failed password=secret")},
 			clients.NewAdvancedMDClient(http.DefaultClient),
 			nil,
@@ -209,7 +201,7 @@ func TestAdapterReturnsStableRedactedErrors(t *testing.T) {
 		}))
 		defer server.Close()
 
-		adapter := NewAdapter(offices,
+		adapter := NewAdapter(
 			staticSession{token: &domain.TokenData{
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
@@ -228,7 +220,7 @@ func TestAdapterReturnsStableRedactedErrors(t *testing.T) {
 }
 
 func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
+	domain.InitRegistry("")
 	command := domain.PatientCreate{
 		FirstName: "JANE",
 		LastName:  "DOE",
@@ -250,7 +242,7 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 		}))
 		defer server.Close()
 
-		adapter := NewAdapter(offices,
+		adapter := NewAdapter(
 			staticSession{token: &domain.TokenData{
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
@@ -275,7 +267,7 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 		}))
 		defer server.Close()
 
-		adapter := NewAdapter(offices,
+		adapter := NewAdapter(
 			staticSession{token: &domain.TokenData{
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
@@ -300,7 +292,7 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 		}))
 		defer server.Close()
 
-		adapter := NewAdapter(offices,
+		adapter := NewAdapter(
 			staticSession{token: &domain.TokenData{
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
@@ -319,7 +311,7 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 }
 
 func TestAdapterInsuranceMutationUsesControlledXMLRPCServer(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
+	domain.InitRegistry("")
 	requests := 0
 	var requestBody map[string]any
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -331,7 +323,7 @@ func TestAdapterInsuranceMutationUsesControlledXMLRPCServer(t *testing.T) {
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			CookieToken: "token=test-cookie",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
@@ -362,7 +354,7 @@ func TestAdapterInsuranceMutationUsesControlledXMLRPCServer(t *testing.T) {
 }
 
 func TestAdapterUpcomingAppointmentsUsesControlledRESTServer(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
+	domain.InitRegistry("")
 	fixedNow := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
 	var requestedColumns map[string]int = make(map[string]int)
 	var requestedMonths map[string]int = make(map[string]int)
@@ -449,7 +441,7 @@ func TestAdapterUpcomingAppointmentsUsesControlledRESTServer(t *testing.T) {
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
@@ -516,9 +508,9 @@ func TestAdapterUpcomingAppointmentsUsesControlledRESTServer(t *testing.T) {
 }
 
 func TestAdapterCanonicalizesDevelopmentAppointmentTypeIDs(t *testing.T) {
-	offices := domain.NewOfficeCatalog("dev")
-
-	office := offices.DefaultOffice()
+	domain.InitRegistry("dev")
+	t.Cleanup(func() { domain.InitRegistry("") })
+	office := domain.DefaultOffice()
 	fixedNow := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
 
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -539,7 +531,7 @@ func TestAdapterCanonicalizesDevelopmentAppointmentTypeIDs(t *testing.T) {
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
@@ -565,8 +557,8 @@ func TestAdapterCanonicalizesDevelopmentAppointmentTypeIDs(t *testing.T) {
 }
 
 func TestPatientAppointmentReadPreservesUnrecognizedTypeForRescheduling(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-	office := offices.DefaultOffice()
+	domain.InitRegistry("")
+	office := domain.DefaultOffice()
 	read := patientAppointmentRead(
 		[]clients.AMDAppointmentResponse{{
 			ID:               22222,
@@ -590,7 +582,7 @@ func TestPatientAppointmentReadPreservesUnrecognizedTypeForRescheduling(t *testi
 }
 
 func TestAdapterPreservesUnrecognizedProductionAppointmentType(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
+	domain.InitRegistry("")
 	var bookingPayload map[string]any
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&bookingPayload); err != nil {
@@ -600,7 +592,7 @@ func TestAdapterPreservesUnrecognizedProductionAppointmentType(t *testing.T) {
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
@@ -636,7 +628,7 @@ func TestAdapterPreservesUnrecognizedProductionAppointmentType(t *testing.T) {
 }
 
 func TestAdapterSingleOfficeUsesSixReadsAndMarksUnreconciledRowsIncomplete(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
+	domain.InitRegistry("")
 	fixedNow := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -662,7 +654,7 @@ func TestAdapterSingleOfficeUsesSixReadsAndMarksUnreconciledRowsIncomplete(t *te
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
@@ -687,7 +679,7 @@ func TestAdapterSingleOfficeUsesSixReadsAndMarksUnreconciledRowsIncomplete(t *te
 }
 
 func TestAdapterReadsIntendedAppointmentMonth(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
+	domain.InitRegistry("")
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("startDate") != "2027-01-01" {
 			t.Fatalf("startDate = %q, want intended appointment month", r.URL.Query().Get("startDate"))
@@ -705,7 +697,7 @@ func TestAdapterReadsIntendedAppointmentMonth(t *testing.T) {
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
@@ -733,7 +725,7 @@ func TestAdapterReadsIntendedAppointmentMonth(t *testing.T) {
 }
 
 func TestAdapterIntendedMonthReadPreservesPerOfficeReconciliation(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
+	domain.InitRegistry("")
 	var mu sync.Mutex
 	requestedColumns := make(map[string]int)
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -745,7 +737,7 @@ func TestAdapterIntendedMonthReadPreservesPerOfficeReconciliation(t *testing.T) 
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
@@ -778,7 +770,7 @@ func TestAdapterIntendedMonthReadPreservesPerOfficeReconciliation(t *testing.T) 
 }
 
 func TestAdapterMarksMissingPatientIDIncomplete(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
+	domain.InitRegistry("")
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`[{
@@ -791,7 +783,7 @@ func TestAdapterMarksMissingPatientIDIncomplete(t *testing.T) {
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
@@ -813,7 +805,7 @@ func TestAdapterMarksMissingPatientIDIncomplete(t *testing.T) {
 }
 
 func TestAdapterReadsCurrentAppointmentStateAfterStartTime(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
+	domain.InitRegistry("")
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("startDate") != "2026-08-01" {
 			t.Fatalf("startDate = %q, want appointment month", r.URL.Query().Get("startDate"))
@@ -827,7 +819,7 @@ func TestAdapterReadsCurrentAppointmentStateAfterStartTime(t *testing.T) {
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
@@ -852,8 +844,6 @@ func TestAdapterReadsCurrentAppointmentStateAfterStartTime(t *testing.T) {
 }
 
 func TestAdapterReadsCompleteScheduleThroughDomainSeam(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/xmlrpc":
@@ -907,7 +897,7 @@ func TestAdapterReadsCompleteScheduleThroughDomainSeam(t *testing.T) {
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			CookieToken: "token=test-cookie",
 			Token:       "Bearer test-token",
@@ -940,8 +930,6 @@ func TestAdapterReadsCompleteScheduleThroughDomainSeam(t *testing.T) {
 }
 
 func TestAdapterPreservesPartialScheduleReads(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/scheduler/appointments" && r.URL.Query().Get("columnId") == "1513" {
 			http.Error(w, "provider unavailable", http.StatusServiceUnavailable)
@@ -951,7 +939,7 @@ func TestAdapterPreservesPartialScheduleReads(t *testing.T) {
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
@@ -974,7 +962,7 @@ func TestAdapterPreservesPartialScheduleReads(t *testing.T) {
 }
 
 func TestAdapterBooksAndCancelsThroughControlledRESTServer(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
+	domain.InitRegistry("")
 	var bookingPayload map[string]any
 	var cancellationPayload map[string]any
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -998,7 +986,7 @@ func TestAdapterBooksAndCancelsThroughControlledRESTServer(t *testing.T) {
 	}))
 	defer server.Close()
 
-	adapter := NewAdapter(offices,
+	adapter := NewAdapter(
 		staticSession{token: &domain.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
@@ -1042,7 +1030,7 @@ func TestAdapterBooksAndCancelsThroughControlledRESTServer(t *testing.T) {
 }
 
 func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
+	domain.InitRegistry("")
 	tests := []struct {
 		name      string
 		status    int
@@ -1062,7 +1050,7 @@ func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
 			}))
 			defer server.Close()
 
-			adapter := NewAdapter(offices,
+			adapter := NewAdapter(
 				staticSession{token: &domain.TokenData{
 					Token:       "Bearer test-token",
 					RestApiBase: strings.TrimPrefix(server.URL, "https://"),
@@ -1118,7 +1106,7 @@ func TestScheduleReadsAreConcurrentAndCannotUseMalformedOccupancy(t *testing.T) 
 		w.Write([]byte(`[]`))
 	}))
 	defer server.Close()
-	adapter := NewAdapter(domain.NewOfficeCatalog(""), staticSession{token: &domain.TokenData{RestApiBase: strings.TrimPrefix(server.URL, "https://")}}, nil, clients.NewAdvancedMDRestClient(server.Client()))
+	adapter := NewAdapter(staticSession{token: &domain.TokenData{RestApiBase: strings.TrimPrefix(server.URL, "https://")}}, nil, clients.NewAdvancedMDRestClient(server.Client()))
 	done := make(chan error, 1)
 	go func() {
 		read, err := adapter.ReadSchedule(context.Background(), domain.ScheduleReadQuery{ColumnIDs: []string{"1513", "1598"}, Date: "2026-09-15"})

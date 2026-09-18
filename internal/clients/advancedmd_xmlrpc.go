@@ -163,13 +163,12 @@ func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *domain.
 
 // LookupPatientCandidates returns only the provider's name-prefix candidates.
 // A candidate result is complete only after explicit pagination/count metadata
-// proves every page was read and all records have valid identity fields.
+// proves every page was read. The Patient module owns identity validation/repair.
 func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *domain.TokenData, firstName string) (read domain.PatientCandidateRead, resultErr error) {
 	read, err := c.doPatientLookup(ctx, tokenData, AMDLookupRequest{PPMDMsg: AMDLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName}})
 	if err != nil {
 		return read, err
 	}
-	seen := make(map[string]bool)
 	for index, patient := range read.Patients {
 		parts := strings.SplitN(patient.FullName, ",", 2)
 		if len(parts) == 2 {
@@ -181,10 +180,6 @@ func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenDat
 			read.Patients[index].LastName = patient.LastName
 			read.Patients[index].FirstName = patient.FirstName
 		}
-		if patient.ID == "" || patient.FirstName == "" || patient.LastName == "" || patient.DOB == "" || domain.ValidateOptionalDOB(patient.DOB) != nil || seen[patient.ID] {
-			read.Complete = false
-		}
-		seen[patient.ID] = true
 	}
 	return read, nil
 }
@@ -476,7 +471,7 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.T
 		return fmt.Errorf("addinsurance request failed: %w", err)
 	}
 
-	if err := checkXMLRPCResults(body, "addinsurance"); err != nil {
+	if err := checkXMLRPCMutationResponse(body, "addinsurance"); err != nil {
 		return err
 	}
 
@@ -514,7 +509,7 @@ func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *doma
 		return fmt.Errorf("enddate insurance request failed: %w", err)
 	}
 
-	if err := checkXMLRPCResults(body, "enddate insurance"); err != nil {
+	if err := checkXMLRPCMutationResponse(body, "enddate insurance"); err != nil {
 		return err
 	}
 
@@ -539,7 +534,7 @@ func parseXMLRPCEnvelope(body []byte, operation string) (*xmlRPCEnvelope, error)
 	return &response, nil
 }
 
-func checkXMLRPCResults(body []byte, operation string) error {
+func checkXMLRPCMutationResponse(body []byte, operation string) error {
 	response, err := parseXMLRPCEnvelope(body, operation)
 	if err != nil {
 		return err
@@ -832,7 +827,7 @@ func bestPatientPhone(contact AMDContactInfo) string {
 type AMDSchedulerSetupResponse struct {
 	PPMDResults struct {
 		Results struct {
-			ColumnList   AMDColumnList   `json:"columnlist"`
+			ColumnList   *AMDColumnList  `json:"columnlist"`
 			ProfileList  AMDProfileList  `json:"profilelist"`
 			FacilityList AMDFacilityList `json:"facilitylist"`
 		} `json:"Results"`
@@ -875,25 +870,12 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *dom
 		return nil, fmt.Errorf("getschedulersetup request failed: %w", err)
 	}
 
-	if err := checkXMLRPCResults(body, "getschedulersetup"); err != nil {
+	response, err := parseXMLRPCEnvelope(body, "getschedulersetup")
+	if err != nil {
 		return nil, err
 	}
-	// Validate the envelope, not every provider field: AMD includes inactive and
-	// non-bookable columns whose optional settings are legitimately absent.
-	response, _ := parseXMLRPCEnvelope(body, "getschedulersetup")
-	var results map[string]json.RawMessage
-	if err := json.Unmarshal(response.PPMDResults.Results, &results); err != nil {
-		return nil, fmt.Errorf("failed to parse scheduler results: %w", err)
-	}
-	hasColumns := false
-	for name := range results {
-		if strings.EqualFold(name, "columnlist") {
-			hasColumns = true
-			break
-		}
-	}
-	if !hasColumns {
-		return nil, fmt.Errorf("scheduler setup returned unexpected response: missing columnlist")
+	if providerErrorPresent(response.PPMDResults.Error) {
+		return nil, providerRejection("getschedulersetup", body)
 	}
 
 	var resp AMDSchedulerSetupResponse
@@ -901,8 +883,16 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *dom
 		return nil, fmt.Errorf("failed to parse scheduler setup response: %w", err)
 	}
 
+	if resp.PPMDResults.Results.ColumnList == nil {
+		return nil, fmt.Errorf("scheduler setup returned unexpected response: missing columnlist")
+	}
+	columns, err := parseColumns(resp.PPMDResults.Results.ColumnList.Columns)
+	if err != nil {
+		return nil, err
+	}
+
 	setup := &domain.SchedulerSetup{
-		Columns:    parseColumns(resp.PPMDResults.Results.ColumnList.Columns),
+		Columns:    columns,
 		Profiles:   parseProfiles(resp.PPMDResults.Results.ProfileList.Profiles),
 		Facilities: parseFacilities(resp.PPMDResults.Results.FacilityList.Facilities),
 	}
@@ -911,27 +901,25 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *dom
 }
 
 // parseColumns converts the AMD column data to domain columns.
-func parseColumns(data interface{}) []domain.SchedulerColumn {
-	if data == nil {
-		return nil
-	}
-
-	var columns []domain.SchedulerColumn
-
+func parseColumns(data interface{}) ([]domain.SchedulerColumn, error) {
 	switch v := data.(type) {
+	case nil:
+		return nil, nil
 	case map[string]interface{}:
-		// Single column
-		columns = append(columns, parseColumnFromMap(v))
+		return []domain.SchedulerColumn{parseColumnFromMap(v)}, nil
 	case []interface{}:
-		// Array of columns
+		columns := make([]domain.SchedulerColumn, 0, len(v))
 		for _, item := range v {
-			if m, ok := item.(map[string]interface{}); ok {
-				columns = append(columns, parseColumnFromMap(m))
+			column, ok := item.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("scheduler setup returned invalid column row")
 			}
+			columns = append(columns, parseColumnFromMap(column))
 		}
+		return columns, nil
+	default:
+		return nil, fmt.Errorf("scheduler setup returned invalid column collection")
 	}
-
-	return columns
 }
 
 // parseColumnFromMap extracts a SchedulerColumn from a map.

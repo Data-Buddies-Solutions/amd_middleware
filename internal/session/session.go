@@ -170,13 +170,16 @@ func (s *sessionImpl) refresh(ctx context.Context, force bool) error {
 	close(active.done)
 	if err != nil {
 		now := s.now()
+		s.retryAt = time.Time{}
+		// A caller leaving is not an authentication outage for other callers.
+		if ctx.Err() == nil {
+			s.retryAt = now.Add(s.policy.retryDelay)
+		}
 		if s.usableLocked(now) {
 			s.state = SessionDegraded
-			s.retryAt = now.Add(s.policy.retryDelay)
 		} else {
 			s.tokenData = nil
 			s.createdAt = time.Time{}
-			s.retryAt = now.Add(s.policy.retryDelay)
 			s.state = SessionUnavailable
 		}
 		return err

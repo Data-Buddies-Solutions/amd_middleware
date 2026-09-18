@@ -15,7 +15,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 		recordMutation("create", createOutcome(result))
 	}()
 
-	office, err := p.offices.ResolveOffice(command.Office)
+	office, err := domain.ResolveOffice(command.Office)
 	if err != nil {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
 	}
@@ -29,9 +29,13 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 			Message: fmt.Sprintf("Missing required fields: %s", strings.Join(missing, ", ")),
 		}
 	}
-	selection, message := selectInsurance(command.Insurance, command.CoverageType, office)
-	if message != "" {
-		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: message}
+	coverage := command.CoverageType
+	if coverage == "" {
+		coverage = "medical"
+	}
+	decision := domain.DecideInsurance(command.Insurance, coverage, office, command.DOB)
+	if decision.Participation != "accepted" {
+		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
 
 	created, createReconciled, outcome := p.createPatient(ctx, command, office)
@@ -49,7 +53,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 	insuranceReconciled, outcome := p.addInsurance(ctx, domain.PatientInsurance{
 		PatientID:     created.ID,
 		RespPartyID:   created.RespPartyID,
-		CarrierID:     selection.entry.CarrierID,
+		CarrierID:     decision.CarrierID,
 		SubscriberNum: command.SubscriberNum,
 	})
 	if outcome != "" {
@@ -73,19 +77,16 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 		return partial
 	}
 
-	routing := selection.entry.Routing
-	if selection.mode == domain.InsuranceModeMedical {
-		routing = selection.policy.SchedulingRouting(routing, domain.NormalizeDOB(command.DOB))
-	}
 	result = CreateResult{
-		Status:           CreateStatusCreated,
-		PatientID:        created.ID,
-		Name:             created.Name,
-		DOB:              domain.NormalizeDOB(command.DOB),
-		Routing:          routing,
-		AllowedProviders: selection.policy.ProviderNames(routing, domain.NormalizeDOB(command.DOB)),
-		PreauthRequired:  selection.entry.PreauthRequired,
-		Message:          "Patient created and insurance attached successfully",
+		Status:            CreateStatusCreated,
+		PatientID:         created.ID,
+		Name:              created.Name,
+		DOB:               domain.NormalizeDOB(command.DOB),
+		Routing:           decision.Routing,
+		AllowedProviders:  decision.AllowedProviders,
+		PreauthRequired:   len(decision.Requirements) > 0,
+		InsuranceDecision: &decision,
+		Message:           "Patient created and insurance attached successfully",
 	}
 	if createReconciled || insuranceReconciled {
 		result.Outcome = MutationReconciledSuccess

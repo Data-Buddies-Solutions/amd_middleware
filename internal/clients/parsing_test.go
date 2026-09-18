@@ -138,7 +138,10 @@ func TestParseColumns_SingleColumn(t *testing.T) {
 		},
 	}
 
-	columns := parseColumns(data)
+	columns, err := parseColumns(data)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if len(columns) != 1 {
 		t.Fatalf("Expected 1 column, got %d", len(columns))
@@ -193,7 +196,10 @@ func TestParseColumns_MultipleColumns(t *testing.T) {
 		},
 	}
 
-	columns := parseColumns(data)
+	columns, err := parseColumns(data)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(columns) != 2 {
 		t.Fatalf("Expected 2 columns, got %d", len(columns))
 	}
@@ -206,7 +212,10 @@ func TestParseColumns_MultipleColumns(t *testing.T) {
 }
 
 func TestParseColumns_Nil(t *testing.T) {
-	columns := parseColumns(nil)
+	columns, err := parseColumns(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if columns != nil {
 		t.Errorf("Expected nil for nil input, got %v", columns)
 	}

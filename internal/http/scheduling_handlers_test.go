@@ -14,8 +14,6 @@ import (
 )
 
 func TestBookingAndCancellationHandlersDelegateToScheduling(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	scheduler := &recordingScheduling{
 		bookReceipt: schedulingmodule.BookReceipt{
 			Status:              "booked",
@@ -35,7 +33,7 @@ func TestBookingAndCancellationHandlersDelegateToScheduling(t *testing.T) {
 			Message:       "Appointment cancelled successfully",
 		},
 	}
-	handlers := &Handlers{offices: offices, scheduling: scheduler}
+	handlers := &Handlers{scheduling: scheduler}
 
 	bookRequest := httptest.NewRequest(
 		http.MethodPost,
@@ -77,8 +75,6 @@ func TestBookingAndCancellationHandlersDelegateToScheduling(t *testing.T) {
 }
 
 func TestAvailabilityHandlerPreservesRequestedDateAndPreferredTime(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	scheduler := &recordingScheduling{
 		searchResponse: domain.AvailabilityResponse{
 			Status:  domain.AvailabilityStatusSuccess,
@@ -86,7 +82,7 @@ func TestAvailabilityHandlerPreservesRequestedDateAndPreferredTime(t *testing.T)
 			Slots:   []domain.AvailabilitySlotOption{},
 		},
 	}
-	handlers := &Handlers{offices: offices, scheduling: scheduler}
+	handlers := &Handlers{scheduling: scheduler}
 	request := httptest.NewRequest(
 		http.MethodPost,
 		"/api/scheduler/availability",
@@ -110,10 +106,8 @@ func TestAvailabilityHandlerPreservesRequestedDateAndPreferredTime(t *testing.T)
 }
 
 func TestAvailabilityHandlerRejectsLegacyDate(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	scheduler := &recordingScheduling{}
-	handlers := &Handlers{offices: offices, scheduling: scheduler}
+	handlers := &Handlers{scheduling: scheduler}
 	request := httptest.NewRequest(
 		http.MethodPost,
 		"/api/scheduler/availability",
@@ -133,8 +127,6 @@ func TestAvailabilityHandlerRejectsLegacyDate(t *testing.T) {
 }
 
 func TestBookingAndCancellationRoutesRetainAuthenticationAndSuccessContracts(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	scheduler := &recordingScheduling{
 		bookReceipt: schedulingmodule.BookReceipt{
 			Status:        "booked",
@@ -147,7 +139,7 @@ func TestBookingAndCancellationRoutesRetainAuthenticationAndSuccessContracts(t *
 			Message:       "Appointment cancelled successfully",
 		},
 	}
-	router := NewRouter(&Handlers{offices: offices, scheduling: scheduler}, "agent-secret", nil)
+	router := NewRouter(&Handlers{scheduling: scheduler}, "agent-secret", nil)
 	tests := []struct {
 		path   string
 		body   string
@@ -195,15 +187,13 @@ func TestBookingAndCancellationRoutesRetainAuthenticationAndSuccessContracts(t *
 }
 
 func TestSchedulingHandlersMapStableErrorCategories(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	_, bookingErr := schedulingmodule.New(offices, nil, "test-secret", func() time.Time { return now }).
+	_, bookingErr := schedulingmodule.New(nil, "test-secret", func() time.Time { return now }).
 		Book(context.Background(), schedulingmodule.BookCommand{})
-	_, cancellationErr := schedulingmodule.New(offices, nil, "test-secret", func() time.Time { return now }).
+	_, cancellationErr := schedulingmodule.New(nil, "test-secret", func() time.Time { return now }).
 		Cancel(context.Background(), schedulingmodule.CancelCommand{})
 	scheduler := &recordingScheduling{bookErr: bookingErr, cancelErr: cancellationErr}
-	handlers := &Handlers{offices: offices, scheduling: scheduler}
+	handlers := &Handlers{scheduling: scheduler}
 
 	bookResponse := httptest.NewRecorder()
 	handlers.HandleBookAppointment(
@@ -265,10 +255,8 @@ func (s *recordingScheduling) List(ctx context.Context, command schedulingmodule
 }
 
 func TestListSlotsRouteRequiresAuthenticationAndPreservesWindow(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	scheduler := &recordingScheduling{searchResponse: domain.AvailabilityResponse{Status: "success", Outcome: "no_availability", Slots: []domain.AvailabilitySlotOption{}}}
-	router := NewRouter(&Handlers{offices: offices, scheduling: scheduler}, "test-api-secret", nil)
+	router := NewRouter(&Handlers{scheduling: scheduler}, "test-api-secret", nil)
 	for _, authenticated := range []bool{false, true} {
 		request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"startDate":"2026-11-02","rangeDays":14,"office":"Spring Hill","routing":"bach_only","dob":"01/15/1980","preauthRequired":true}`))
 		if authenticated {
@@ -289,14 +277,16 @@ func TestListSlotsRouteRequiresAuthenticationAndPreservesWindow(t *testing.T) {
 }
 
 func TestListSlotsRejectsOldPreferenceContract(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	scheduler := &recordingScheduling{}
-	handlers := &Handlers{offices: offices, scheduling: scheduler}
+	handlers := &Handlers{scheduling: scheduler}
 	request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"requestedDate":"2026-06-03"}`))
 	response := httptest.NewRecorder()
 	handlers.HandleListAppointmentSlots(response, request)
 	if scheduler.listCalls != 0 || !strings.Contains(response.Body.String(), "Invalid JSON body") {
 		t.Fatalf("old contract accepted: %s", response.Body.String())
 	}
+}
+
+func (s *recordingScheduling) Reschedule(context.Context, schedulingmodule.BookCommand) (schedulingmodule.RescheduleReceipt, error) {
+	return schedulingmodule.RescheduleReceipt{}, nil
 }

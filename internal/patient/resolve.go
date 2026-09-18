@@ -13,7 +13,7 @@ import (
 )
 
 func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveResult, error) {
-	office, ok := p.offices.LookupOfficeByID(command.OfficeID)
+	office, ok := domain.LookupOfficeByID(command.OfficeID)
 	if !ok {
 		return ResolveResult{}, advancedmd.NewError(safeerrors.CategoryInternal)
 	}
@@ -25,18 +25,7 @@ func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveR
 		if err := domain.ValidateOptionalDOB(command.DOB); err != nil {
 			return ResolveResult{}, advancedmd.NewError(safeerrors.CategoryRejected)
 		}
-		started := time.Now()
-		read, err := p.advancedMD.ReadPatientCandidates(ctx, domain.StripDiacritics(command.FirstName))
-		observation := ResolutionObservation{Recorded: true, PatientSearchDurationMS: time.Since(started).Milliseconds(), PatientSearchReads: 1, OfficeGroupSize: len(p.offices.AppointmentLookupOfficeIDs(office)), AppointmentOutcome: "deferred", CandidateCountBucket: candidateCountBucket(len(read.Patients))}
-		if err != nil {
-			return ResolveResult{Observation: observation}, err
-		}
-		matches := make([]Candidate, 0, len(read.Patients))
-		for _, row := range read.Patients {
-			matches = append(matches, Candidate{Status: StatusCandidate, PatientID: row.ID, FirstName: patientFirstName(row), LastName: patientLastName(row), DOB: row.DOB})
-		}
-		// The agent owns first-name/DOB matching and activation, even for a singleton.
-		return ResolveResult{Status: StatusCandidates, Source: "first_name", Complete: &read.Complete, Matches: matches, Appointments: []Appointment{}, Observation: observation}, nil
+		return p.resolveFirstNameDOB(ctx, command, office)
 	}
 
 	search := patientSearch(command)
@@ -46,7 +35,7 @@ func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveR
 		Recorded:                true,
 		PatientSearchDurationMS: time.Since(searchStarted).Milliseconds(),
 		PatientSearchReads:      1,
-		OfficeGroupSize:         len(p.offices.AppointmentLookupOfficeIDs(office)),
+		OfficeGroupSize:         len(domain.AppointmentLookupOfficeIDs(office)),
 		AppointmentOutcome:      "not_requested",
 	}
 	if err != nil {
@@ -128,7 +117,11 @@ func selectPatients(patients []domain.Patient, command ResolveCommand) []domain.
 }
 
 func (p *patient) resolvePatient(ctx context.Context, candidate domain.Patient, lookupPhone string, office *domain.OfficeConfig) (ResolveResult, error) {
-	officeIDs := p.offices.AppointmentLookupOfficeIDs(office)
+	return p.resolvePatientWithDemographics(ctx, candidate, lookupPhone, office, nil)
+}
+
+func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate domain.Patient, lookupPhone string, office *domain.OfficeConfig, loaded *domain.PatientDemographics) (ResolveResult, error) {
+	officeIDs := domain.AppointmentLookupOfficeIDs(office)
 	result := ResolveResult{
 		Status:       StatusVerified,
 		PatientID:    candidate.ID,
@@ -159,7 +152,13 @@ func (p *patient) resolvePatient(ctx context.Context, candidate domain.Patient, 
 	appointmentsResults := make(chan appointmentsResult, 1)
 	go func() {
 		started := time.Now()
-		demographics, err := p.advancedMD.GetPatientDemographics(ctx, candidate.ID)
+		var demographics domain.PatientDemographics
+		var err error
+		if loaded != nil {
+			demographics = *loaded
+		} else {
+			demographics, err = p.advancedMD.GetPatientDemographics(ctx, candidate.ID)
+		}
 		demographicsResults <- demographicsResult{
 			demographics: demographics,
 			err:          err,
@@ -179,6 +178,9 @@ func (p *patient) resolvePatient(ctx context.Context, candidate domain.Patient, 
 		}
 	}()
 
+	if loaded != nil {
+		result.Observation.DemographicReads = 0
+	}
 	demographicsRead := <-demographicsResults
 	appointmentsRead := <-appointmentsResults
 	result.Observation.DemographicDurationMS = demographicsRead.durationMS
@@ -248,6 +250,7 @@ func (p *patient) resolvePatient(ctx context.Context, candidate domain.Patient, 
 			Provider:          appointment.Provider,
 			Type:              appointment.Type,
 			AppointmentTypeID: appointment.AppointmentTypeID,
+			VisitType:         domain.AppointmentVisitType(appointment.AppointmentTypeID),
 			Facility:          appointment.Facility,
 			OfficeID:          appointment.OfficeID,
 			Office:            appointment.Office,
@@ -304,27 +307,19 @@ func patientLastName(candidate domain.Patient) string {
 }
 
 func applyDemographics(result *ResolveResult, demographics domain.PatientDemographics, office *domain.OfficeConfig, patientDOB string) {
-	policy := domain.NewSchedulingPolicy(office)
 	result.InsuranceCarrier = demographics.CarrierName
 	result.InsPlanID = demographics.InsPlanID
 	result.RespPartyID = demographics.RespPartyID
-
+	result.InsuranceCarrierID = demographics.CarrierID
 	if demographics.CarrierID == "" {
 		return
 	}
-
-	result.InsuranceCarrierID = demographics.CarrierID
-	routing, ambiguous := domain.RoutingForDemographicInsurance(demographics.CarrierID, demographics.CarrierName, office)
-	routing = policy.PatientRouting(routing, patientDOB)
-	result.Routing = routing
-	result.AllowedProviders = policy.ProviderNames(routing, patientDOB)
-	result.RoutingAmbiguous = ambiguous
-	if entry, ok := domain.LookupInsuranceForCoverageAtOffice(demographics.CarrierName, domain.InsuranceModeMedical, office); ok {
-		result.PreauthRequired = entry.PreauthRequired
-	}
-	if domain.IsMinor(patientDOB) && routing != domain.RoutingNotAccepted {
-		result.RoutingAmbiguous = false
-	}
+	decision := domain.DecideChartInsurance(demographics, "", "medical", office, patientDOB)
+	result.InsuranceDecision = &decision
+	result.Routing = decision.Routing
+	result.AllowedProviders = decision.AllowedProviders
+	result.RoutingAmbiguous = decision.Participation == "unknown"
+	result.PreauthRequired = len(decision.Requirements) > 0
 }
 
 func firstNonEmpty(values ...string) string {

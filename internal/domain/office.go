@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 	"time"
@@ -9,7 +10,6 @@ import (
 
 // OfficeConfig defines the configuration for a single office location.
 type OfficeConfig struct {
-	dev              bool
 	ID               string                   // "spring_hill"
 	DisplayName      string                   // "Spring Hill"
 	FacilityID       string                   // "1568"
@@ -39,13 +39,13 @@ type SameStartWindow struct {
 
 // ResolveOffice returns the requested office or the backward-compatible
 // default when the caller omits it.
-func (c *OfficeCatalog) ResolveOffice(name string) (*OfficeConfig, error) {
+func ResolveOffice(name string) (*OfficeConfig, error) {
 	if name == "" {
-		return c.DefaultOffice(), nil
+		return DefaultOffice(), nil
 	}
-	office, ok := c.LookupOffice(name)
+	office, ok := LookupOffice(name)
 	if !ok {
-		return nil, fmt.Errorf("unknown office: %q. Valid options: %s", name, strings.Join(c.ValidOfficeNames(), ", "))
+		return nil, fmt.Errorf("unknown office: %q. Valid options: %s", name, strings.Join(ValidOfficeNames(), ", "))
 	}
 	return office, nil
 }
@@ -240,29 +240,30 @@ func (o *OfficeConfig) FriendlyProviderName(amdName string) string {
 
 // AppointmentColor returns the booking color for an appointment type ID.
 func (o *OfficeConfig) AppointmentColor(typeID int) (string, bool) {
-	color, ok := appointmentTypeColors[typeID]
+	color, ok := DefaultAppointmentTypeColors[typeID]
 	return color, ok
 }
 
 // AppointmentTypeName returns the friendly name for an appointment type ID.
 func (o *OfficeConfig) AppointmentTypeName(typeID int) (string, bool) {
-	name, ok := appointmentTypeNames[typeID]
+	name, ok := DefaultAppointmentTypeNames[typeID]
 	return name, ok
 }
 
 // LookupOfficeByID resolves an office config from the active registry by stable
 // office ID.
-func (c *OfficeCatalog) LookupOfficeByID(officeID string) (*OfficeConfig, bool) {
-	office, ok := c.offices[officeID]
-	if !ok {
-		return nil, false
+func LookupOfficeByID(officeID string) (*OfficeConfig, bool) {
+	for _, office := range OfficeRegistry {
+		if office.ID == officeID {
+			return office, true
+		}
 	}
-	return cloneOffice(office), true
+	return nil, false
 }
 
 // AppointmentLookupOfficeIDs returns the nearby-office IDs used when loading a
 // resolved patient's upcoming appointments.
-func (c *OfficeCatalog) AppointmentLookupOfficeIDs(office *OfficeConfig) []string {
+func AppointmentLookupOfficeIDs(office *OfficeConfig) []string {
 	if office == nil {
 		return nil
 	}
@@ -276,12 +277,17 @@ func (c *OfficeCatalog) AppointmentLookupOfficeIDs(office *OfficeConfig) []strin
 	}
 
 	lookupIDs := make([]string, 0, len(officeIDs))
+	seen := make(map[*OfficeConfig]bool, len(officeIDs))
 	for _, officeID := range officeIDs {
-		_, ok := c.offices[officeID]
+		lookupOffice, ok := LookupOfficeByID(officeID)
 		if !ok {
 			continue
 		}
-		lookupIDs = append(lookupIDs, officeID)
+		if seen[lookupOffice] {
+			continue
+		}
+		seen[lookupOffice] = true
+		lookupIDs = append(lookupIDs, lookupOffice.ID)
 	}
 	if len(lookupIDs) == 0 {
 		return []string{office.ID}
@@ -293,8 +299,8 @@ func (c *OfficeCatalog) AppointmentLookupOfficeIDs(office *OfficeConfig) []strin
 // no configured booking color.
 const PreservedAppointmentTypeFallbackColor = "TEAL"
 
-// appointmentTypeColors maps AMD appointment type IDs to booking colors.
-var appointmentTypeColors = map[int]string{
+// DefaultAppointmentTypeColors maps AMD appointment type IDs to booking colors.
+var DefaultAppointmentTypeColors = map[int]string{
 	1006: "RED",    // New Adult Medical
 	1004: "GREEN",  // New Pediatric Medical
 	1007: "ORANGE", // Established Adult Medical (Follow Up)
@@ -309,8 +315,8 @@ var appointmentTypeColors = map[int]string{
 	6169: "RED",    // Crystal River Established Patient
 }
 
-// appointmentTypeNames maps AMD appointment type IDs to friendly names.
-var appointmentTypeNames = map[int]string{
+// DefaultAppointmentTypeNames maps AMD appointment type IDs to friendly names.
+var DefaultAppointmentTypeNames = map[int]string{
 	1006: "New Adult Medical",
 	1004: "New Pediatric Medical",
 	1007: "Established Adult Medical (Follow Up)",
@@ -350,13 +356,16 @@ var devAppointmentTypes = map[int]int{
 	// substitute production IDs: resolution must fail until verified mappings exist.
 }
 
+// isDevEnv tracks whether we're running in dev mode. Set by InitRegistry.
+var isDevEnv bool
+
 // ResolveAppointmentTypeID translates a prod type ID to the env-specific ID.
 // In prod, returns the ID unchanged. In dev, maps to the dev ID.
-func (o *OfficeConfig) ResolveAppointmentTypeID(typeID int) (int, bool) {
-	if _, ok := appointmentTypeColors[typeID]; !ok {
+func ResolveAppointmentTypeID(typeID int) (int, bool) {
+	if _, ok := DefaultAppointmentTypeColors[typeID]; !ok {
 		return 0, false
 	}
-	if o.dev {
+	if isDevEnv {
 		devID, ok := devAppointmentTypes[typeID]
 		return devID, ok
 	}
@@ -365,9 +374,9 @@ func (o *OfficeConfig) ResolveAppointmentTypeID(typeID int) (int, bool) {
 
 // CanonicalAppointmentTypeID translates an env-specific AMD appointment type ID
 // back to the canonical/prod ID accepted by booking requests.
-func (o *OfficeConfig) CanonicalAppointmentTypeID(typeID int) (int, bool) {
-	if !o.dev {
-		if _, ok := appointmentTypeColors[typeID]; !ok {
+func CanonicalAppointmentTypeID(typeID int) (int, bool) {
+	if !isDevEnv {
+		if _, ok := DefaultAppointmentTypeColors[typeID]; !ok {
 			return 0, false
 		}
 		return typeID, true
@@ -383,7 +392,7 @@ func (o *OfficeConfig) CanonicalAppointmentTypeID(typeID int) (int, bool) {
 
 // AllowsAppointmentType reports whether an appointment type can be booked for this office/routing lane.
 func (o *OfficeConfig) AllowsAppointmentType(typeID int, routing RoutingRule) bool {
-	if _, ok := appointmentTypeColors[typeID]; !ok {
+	if _, ok := DefaultAppointmentTypeColors[typeID]; !ok {
 		return false
 	}
 
@@ -406,42 +415,221 @@ func (o *OfficeConfig) AllowsAppointmentType(typeID int, routing RoutingRule) bo
 	return true
 }
 
-// OfficeCatalog selects environment-specific office policy once at composition.
-// Lookups return owned copies; callers cannot mutate the catalog or each other.
-type OfficeCatalog struct {
-	offices map[string]*OfficeConfig
-	aliases map[string]string
+var springHillOffice = &OfficeConfig{
+	ID:               "spring_hill",
+	DisplayName:      "Spring Hill",
+	FacilityID:       "1568",
+	DefaultProfileID: "620",
+	Columns: map[string]OfficeColumn{
+		"1513": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
+		"1598": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
+		"1551": {ProfileID: "2064", DisplayName: "Dr. Joseph Licht", ShortName: "Dr. Licht", MatchKey: "LICHT", SameStartCapacity: 2},
+		"1550": {ProfileID: "2076", DisplayName: "Dr. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL", SameStartCapacity: 2},
+		"1600": {ProfileID: "1983", DisplayName: "Dr. Melissa Otero", ShortName: "Dr. Otero", MatchKey: "OTERO"},
+	},
+	RoutingTiers: map[RoutingRule][]string{
+		RoutingBachOnly:    {"1513", "1598"},
+		RoutingBachLicht:   {"1513", "1598", "1551"},
+		RoutingAll:         {"1513", "1598", "1551", "1550"},
+		RoutingOpticalOnly: {"1600"},
+	},
+	PediatricRouting: RoutingBachOnly,
 }
 
-func NewOfficeCatalog(env string) *OfficeCatalog {
-	source := prodOffices
-	if env == "dev" {
-		source = devOffices
-	}
-	catalog := &OfficeCatalog{offices: make(map[string]*OfficeConfig), aliases: make(map[string]string, len(source))}
-	for phone, office := range source {
-		if _, exists := catalog.offices[office.ID]; !exists {
-			copy := cloneOffice(office)
-			copy.dev = env == "dev"
-			catalog.offices[office.ID] = copy
-		}
-		catalog.aliases[phone] = office.ID
-	}
-	return catalog
+var crystalRiverOffice = &OfficeConfig{
+	ID:               "crystal_river",
+	DisplayName:      "Crystal River",
+	FacilityID:       "1576",
+	DefaultProfileID: "2064",
+	Columns: map[string]OfficeColumn{
+		"1593": {ProfileID: "2064", DisplayName: "Dr. Joseph Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"},
+	},
+	RoutingTiers: map[RoutingRule][]string{
+		RoutingBachOnly:  {"1593"},
+		RoutingBachLicht: {"1593"},
+		RoutingAll:       {"1593"},
+	},
+	PediatricRouting: RoutingNotAccepted,
 }
 
-func cloneOffice(office *OfficeConfig) *OfficeConfig {
-	copy := *office
-	copy.Columns = make(map[string]OfficeColumn, len(office.Columns))
-	for id, column := range office.Columns {
-		column.SameStartWindows = append([]SameStartWindow(nil), column.SameStartWindows...)
-		copy.Columns[id] = column
+var hollywoodSweetwaterRoutineDoubleBookWindows = []SameStartWindow{
+	sameStartWindow(time.Monday, 8, 30, 10, 45),
+	sameStartWindow(time.Monday, 13, 30, 14, 30),
+	sameStartWindow(time.Tuesday, 8, 30, 10, 45),
+	sameStartWindow(time.Tuesday, 13, 30, 14, 30),
+	sameStartWindow(time.Wednesday, 8, 30, 10, 45),
+	sameStartWindow(time.Wednesday, 13, 30, 14, 30),
+	sameStartWindow(time.Thursday, 8, 30, 10, 45),
+	sameStartWindow(time.Thursday, 13, 30, 14, 30),
+	sameStartWindow(time.Friday, 8, 30, 11, 45),
+}
+
+var sweetwaterOffice = &OfficeConfig{
+	ID:               "sweetwater",
+	DisplayName:      "Sweetwater",
+	FacilityID:       "670",
+	DefaultProfileID: "620",
+	Columns: map[string]OfficeColumn{
+		"682":  {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
+		"1307": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
+		"1296": {
+			ProfileID:         "1996",
+			DisplayName:       "Dr. Maria Casas",
+			ShortName:         "Dr. Casas",
+			MatchKey:          "CASAS",
+			MinAgeYears:       7,
+			SameStartCapacity: 2,
+			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
+		},
+		"1554": {
+			ProfileID:         "2075",
+			DisplayName:       "Dr. Kyler Farnan",
+			ShortName:         "Dr. Farnan",
+			MatchKey:          "FARNAN",
+			MinAgeYears:       5,
+			SameStartCapacity: 2,
+			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
+		},
+		"1210": {
+			ProfileID:         "1993",
+			DisplayName:       "Dr. Gisselle Calero",
+			ShortName:         "Dr. Calero",
+			MatchKey:          "CALERO",
+			MinAgeYears:       4,
+			SameStartCapacity: 2,
+			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
+		},
+	},
+	RoutingTiers: map[RoutingRule][]string{
+		RoutingBachOnly:    {"682", "1307"},
+		RoutingBachLicht:   {"682", "1307"},
+		RoutingAll:         {"682", "1307"},
+		RoutingOpticalOnly: {"1296", "1554", "1210"},
+	},
+	PediatricRouting: RoutingBachOnly,
+}
+
+var hollywoodOffice = &OfficeConfig{
+	ID:               "hollywood",
+	DisplayName:      "Hollywood",
+	FacilityID:       "1480",
+	DefaultProfileID: "620",
+	Columns: map[string]OfficeColumn{
+		"1268": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
+		"1478": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
+		"1555": {
+			ProfileID:         "2075",
+			DisplayName:       "Dr. Kyler Farnan",
+			ShortName:         "Dr. Farnan",
+			MatchKey:          "FARNAN",
+			MinAgeYears:       5,
+			SameStartCapacity: 2,
+			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
+		},
+		"1510": {
+			ProfileID:         "2057",
+			DisplayName:       "Dr. Lisbet Vidal",
+			ShortName:         "Dr. Vidal",
+			MatchKey:          "VIDAL",
+			MinAgeYears:       7,
+			SameStartCapacity: 2,
+			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
+		},
+		"1305": {
+			ProfileID:         "1993",
+			DisplayName:       "Dr. Gisselle Calero",
+			ShortName:         "Dr. Calero",
+			MatchKey:          "CALERO",
+			MinAgeYears:       4,
+			SameStartCapacity: 2,
+			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
+		},
+	},
+	RoutingTiers: map[RoutingRule][]string{
+		RoutingBachOnly:    {"1268", "1478"},
+		RoutingBachLicht:   {"1268", "1478"},
+		RoutingAll:         {"1268", "1478"},
+		RoutingOpticalOnly: {"1555", "1510", "1305"},
+	},
+	PediatricRouting: RoutingBachOnly,
+}
+
+var northMiamiBeachOpticalOffice = &OfficeConfig{
+	ID:               "north_miami_beach_optical",
+	DisplayName:      "North Miami Beach Optical",
+	FacilityID:       "1582",
+	DefaultProfileID: "621",
+	Columns: map[string]OfficeColumn{
+		"1601": {ProfileID: "621", DisplayName: "Dr. Miriam Bach", ShortName: "Dr. Miriam Bach", MatchKey: "BACH"},
+	},
+	RoutingTiers: map[RoutingRule][]string{
+		RoutingOpticalOnly: {"1601"},
+	},
+	PediatricRouting: RoutingNotAccepted,
+}
+
+var devSpringHillOffice = &OfficeConfig{
+	ID:               "spring_hill",
+	DisplayName:      "Spring Hill",
+	FacilityID:       "1032",
+	DefaultProfileID: "1135",
+	Columns: map[string]OfficeColumn{
+		"1716": {ProfileID: "1135", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
+		"1723": {ProfileID: "1141", DisplayName: "Dr. Joseph Licht", ShortName: "Dr. Licht", MatchKey: "LICHT", SameStartCapacity: 2},
+		"1726": {ProfileID: "1137", DisplayName: "Dr. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL", SameStartCapacity: 2},
+	},
+	RoutingTiers: map[RoutingRule][]string{
+		RoutingBachOnly:  {"1716"},
+		RoutingBachLicht: {"1716", "1723"},
+		RoutingAll:       {"1716", "1723", "1726"},
+	},
+	PediatricRouting: RoutingBachOnly,
+}
+
+// prodOffices contains office configs keyed by SIP trunk phone number (E.164).
+var prodOffices = map[string]*OfficeConfig{
+	"+17275919997": springHillOffice,
+	"+13523202007": crystalRiverOffice,
+	// TODO: clean up — placeholder number for Crystal River, duplicates config above
+	"+16182265883": crystalRiverOffice,
+	"+19542872010": hollywoodOffice,
+	"+17864657475": sweetwaterOffice,
+	"+17864654845": sweetwaterOffice,
+	"+17866134310": sweetwaterOffice,
+	"+17864657479": sweetwaterOffice,
+	"+17864654836": sweetwaterOffice,
+	"+17864654882": sweetwaterOffice,
+	"+13055095333": northMiamiBeachOpticalOffice,
+}
+
+// devOffices contains office configs keyed by SIP trunk phone number (E.164).
+var devOffices = map[string]*OfficeConfig{
+	"+14843989071": devSpringHillOffice,
+}
+
+// OfficeRegistry maps SIP trunk phone numbers (E.164) to office configurations.
+// Defaults to prod; call InitRegistry to switch environments.
+var OfficeRegistry = prodOffices
+
+// DefaultPhone is the fallback phone key when no office is specified in a request.
+// Updated by InitRegistry to match the active environment.
+var DefaultPhone = "+17275919997"
+
+// InitRegistry sets the active office registry based on the AMD_ENV value.
+// "dev" loads dev AMD IDs; anything else (including empty) loads prod.
+func InitRegistry(env string) {
+	switch env {
+	case "dev":
+		OfficeRegistry = devOffices
+		DefaultPhone = "+14843989071"
+		isDevEnv = true
+		log.Printf("Office registry: dev")
+	default:
+		OfficeRegistry = prodOffices
+		DefaultPhone = "+17275919997"
+		isDevEnv = false
+		log.Printf("Office registry: prod")
 	}
-	copy.RoutingTiers = make(map[RoutingRule][]string, len(office.RoutingTiers))
-	for rule, columns := range office.RoutingTiers {
-		copy.RoutingTiers[rule] = append([]string(nil), columns...)
-	}
-	return &copy
 }
 
 // StripToDigits removes all non-digit characters from a string.
@@ -468,21 +656,21 @@ func NormalizePhoneDigits(s string) string {
 
 // LookupOffice resolves a SIP trunk phone number or office name to its office config.
 // Phone lookup accepts E.164, 11-digit US, 10-digit US, and formatted US numbers.
-func (c *OfficeCatalog) LookupOffice(phone string) (*OfficeConfig, bool) {
+func LookupOffice(phone string) (*OfficeConfig, bool) {
 	phone = strings.TrimSpace(phone)
 	for _, key := range officePhoneLookupKeys(phone) {
-		if id, ok := c.aliases[key]; ok {
-			return c.LookupOfficeByID(id)
+		if office, ok := OfficeRegistry[key]; ok {
+			return office, true
 		}
 	}
 
 	lookup := normalizeOfficeLookup(phone)
 	compactLookup := strings.ReplaceAll(lookup, " ", "")
-	for _, office := range c.offices {
+	for _, office := range OfficeRegistry {
 		for _, candidate := range []string{office.ID, office.DisplayName} {
 			normalized := normalizeOfficeLookup(candidate)
 			if lookup == normalized || compactLookup == strings.ReplaceAll(normalized, " ", "") {
-				return cloneOffice(office), true
+				return office, true
 			}
 		}
 	}
@@ -511,15 +699,15 @@ func officePhoneLookupKeys(phone string) []string {
 }
 
 // DefaultOffice returns the fallback office config (Spring Hill).
-func (c *OfficeCatalog) DefaultOffice() *OfficeConfig {
-	return cloneOffice(c.offices["spring_hill"])
+func DefaultOffice() *OfficeConfig {
+	return OfficeRegistry[DefaultPhone]
 }
 
 // ValidOfficeNames returns the list of recognized office display names.
-func (c *OfficeCatalog) ValidOfficeNames() []string {
+func ValidOfficeNames() []string {
 	seen := make(map[string]bool)
-	names := make([]string, 0, len(c.offices))
-	for _, office := range c.offices {
+	names := make([]string, 0, len(OfficeRegistry))
+	for _, office := range OfficeRegistry {
 		if !seen[office.DisplayName] {
 			seen[office.DisplayName] = true
 			names = append(names, office.DisplayName)

@@ -54,7 +54,7 @@ type PatientSearch struct {
 	LastName  string
 }
 
-// PatientCandidateRead preserves whether all pages and records were observed.
+// PatientCandidateRead preserves pagination/count completeness, independently of identity fields.
 type PatientCandidateRead struct {
 	Patients []Patient
 	Complete bool

@@ -13,13 +13,11 @@ import (
 )
 
 func TestBookReturnsReceiptAfterRevalidatingSignedSlot(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := bookingRecords()
 	records.BookAppointmentID = 98765
 
-	receipt, err := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+	receipt, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Book(context.Background(), signedBookCommand(t, now))
 	if err != nil {
 		t.Fatalf("Book error = %v", err)
@@ -43,14 +41,12 @@ func TestBookReturnsReceiptAfterRevalidatingSignedSlot(t *testing.T) {
 }
 
 func TestBookRejectsInvalidSignedSlotBeforeWrite(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := bookingRecords()
 	command := signedBookCommand(t, now)
 	command.BookingToken += "tampered"
 
-	_, err := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Book(context.Background(), command)
 	if scheduling.CategoryOf(err) != scheduling.CategoryInvalidBookingToken {
 		t.Fatalf("Book error = %v, category = %q", err, scheduling.CategoryOf(err))
@@ -61,8 +57,6 @@ func TestBookRejectsInvalidSignedSlotBeforeWrite(t *testing.T) {
 }
 
 func TestBookIncompleteRevalidationCanRetryWithoutClaimingSlotConflict(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	for _, tc := range []struct {
 		name    string
 		columns map[string]domain.ColumnSchedule
@@ -81,7 +75,7 @@ func TestBookIncompleteRevalidationCanRetryWithoutClaimingSlotConflict(t *testin
 			records.BookAppointmentID = 98765
 			records.ScheduleReads["2026-06-03"] = domain.ScheduleReadResult{Columns: tc.columns}
 			command := signedBookCommand(t, now)
-			scheduler := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now })
+			scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
 
 			_, err := scheduler.Book(context.Background(), command)
 			if scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed ||
@@ -105,14 +99,12 @@ func TestBookIncompleteRevalidationCanRetryWithoutClaimingSlotConflict(t *testin
 }
 
 func TestBookPreservesAnyAppointmentTypeFromSignedRescheduleToken(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := bookingRecords()
 	records.BookAppointmentID = 98765
 	command := signedBookCommand(t, now)
 	command.AppointmentTypeID = 1007
-	rescheduleToken, err := scheduling.NewAppointmentTokens(offices,
+	rescheduleToken, err := scheduling.NewAppointmentTokens(
 		"test-booking-secret",
 		func() time.Time { return now },
 	).IssueRescheduleToken("12345", domain.PatientAppointment{
@@ -126,7 +118,7 @@ func TestBookPreservesAnyAppointmentTypeFromSignedRescheduleToken(t *testing.T) 
 	}
 	command.RescheduleToken = rescheduleToken
 
-	receipt, err := scheduling.New(offices,
+	receipt, err := scheduling.New(
 		records,
 		"test-booking-secret",
 		func() time.Time { return now },
@@ -150,7 +142,7 @@ func TestBookPreservesAnyAppointmentTypeFromSignedRescheduleToken(t *testing.T) 
 	corrected := signedBookCommand(t, now)
 	corrected.RescheduleToken = receipt.RescheduleToken
 	records.ScheduleReads["2026-06-03"] = completeRead("1513", nil, nil)
-	if _, err := scheduling.New(offices,
+	if _, err := scheduling.New(
 		records,
 		"test-booking-secret",
 		func() time.Time { return now },
@@ -163,12 +155,10 @@ func TestBookPreservesAnyAppointmentTypeFromSignedRescheduleToken(t *testing.T) 
 }
 
 func TestBookRejectsCancellationTokenAsRescheduleAuthorization(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := bookingRecords()
 	command := signedBookCommand(t, now)
-	token, err := scheduling.NewAppointmentTokens(offices,
+	token, err := scheduling.NewAppointmentTokens(
 		"test-booking-secret",
 		func() time.Time { return now },
 	).IssueCancellationToken("12345", domain.PatientAppointment{
@@ -182,7 +172,7 @@ func TestBookRejectsCancellationTokenAsRescheduleAuthorization(t *testing.T) {
 	}
 	command.RescheduleToken = token
 
-	_, err = scheduling.New(offices,
+	_, err = scheduling.New(
 		records,
 		"test-booking-secret",
 		func() time.Time { return now },
@@ -196,14 +186,12 @@ func TestBookRejectsCancellationTokenAsRescheduleAuthorization(t *testing.T) {
 }
 
 func TestBookRejectsInvalidRescheduleTokenBeforeWrite(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := bookingRecords()
 	command := signedBookCommand(t, now)
 	command.RescheduleToken = "invalid-token"
 
-	_, err := scheduling.New(offices,
+	_, err := scheduling.New(
 		records,
 		"test-booking-secret",
 		func() time.Time { return now },
@@ -217,14 +205,12 @@ func TestBookRejectsInvalidRescheduleTokenBeforeWrite(t *testing.T) {
 }
 
 func TestBookStillRejectsUnrecognizedTypeWithoutRescheduleAuthorization(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := bookingRecords()
 	command := signedBookCommand(t, now)
 	command.AppointmentTypeID = 9999
 
-	_, err := scheduling.New(offices,
+	_, err := scheduling.New(
 		records,
 		"test-booking-secret",
 		func() time.Time { return now },
@@ -238,8 +224,6 @@ func TestBookStillRejectsUnrecognizedTypeWithoutRescheduleAuthorization(t *testi
 }
 
 func TestBookRevalidatesPatientOfficeTypeProviderCapacityAndForce(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	tests := []struct {
 		name     string
@@ -249,7 +233,7 @@ func TestBookRevalidatesPatientOfficeTypeProviderCapacityAndForce(t *testing.T) 
 		{
 			name: "patient context",
 			mutate: func(records *advancedmdtest.Adapter, _ *scheduling.BookCommand) {
-				records.Demographics["12345"] = domain.PatientDemographics{DOB: "02/20/1990"}
+				records.Demographics["12345"] = domain.PatientDemographics{CarrierName: "Self Pay", CarrierID: "car301672", DOB: "02/20/1990"}
 			},
 			category: scheduling.CategoryPatientContextMismatch,
 		},
@@ -313,7 +297,7 @@ func TestBookRevalidatesPatientOfficeTypeProviderCapacityAndForce(t *testing.T) 
 			command := signedBookCommand(t, now)
 			tt.mutate(records, &command)
 
-			_, err := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+			_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 				Book(context.Background(), command)
 			if scheduling.CategoryOf(err) != tt.category {
 				t.Fatalf("Book error = %v, category = %q, want %q", err, scheduling.CategoryOf(err), tt.category)
@@ -326,11 +310,9 @@ func TestBookRevalidatesPatientOfficeTypeProviderCapacityAndForce(t *testing.T) 
 }
 
 func TestBookUsesVerifiedPatientDOBWhenSignedSlotOmittedIt(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := bookingRecords()
-	records.Demographics["12345"] = domain.PatientDemographics{DOB: "06/01/2020"}
+	records.Demographics["12345"] = domain.PatientDemographics{CarrierName: "Self Pay", CarrierID: "car301672", DOB: "06/01/2020"}
 	token, err := scheduling.SignSlotToken("test-booking-secret", scheduling.SlotPolicy{
 		OfficeID:           "spring_hill",
 		Routing:            string(domain.RoutingBachOnly),
@@ -348,7 +330,7 @@ func TestBookUsesVerifiedPatientDOBWhenSignedSlotOmittedIt(t *testing.T) {
 		t.Fatalf("SignSlotToken error = %v", err)
 	}
 
-	_, err = scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+	_, err = scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Book(context.Background(), scheduling.BookCommand{
 			PatientID:         "12345",
 			BookingToken:      token,
@@ -363,8 +345,6 @@ func TestBookUsesVerifiedPatientDOBWhenSignedSlotOmittedIt(t *testing.T) {
 }
 
 func TestBookReturnsExplicitProviderFailuresWithoutRetry(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	tests := []struct {
 		name            string
@@ -391,7 +371,7 @@ func TestBookReturnsExplicitProviderFailuresWithoutRetry(t *testing.T) {
 			records := bookingRecords()
 			records.BookAppointmentErr = tt.provider
 
-			_, err := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+			_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 				Book(context.Background(), signedBookCommand(t, now))
 			if scheduling.CategoryOf(err) != tt.category {
 				t.Fatalf("Book error = %v, category = %q", err, scheduling.CategoryOf(err))
@@ -407,8 +387,6 @@ func TestBookReturnsExplicitProviderFailuresWithoutRetry(t *testing.T) {
 }
 
 func TestBookReconcilesAmbiguousWriteToSuccess(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := bookingRecords()
 	records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryNetwork)
@@ -417,7 +395,7 @@ func TestBookReconcilesAmbiguousWriteToSuccess(t *testing.T) {
 		true,
 	)
 
-	receipt, err := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+	receipt, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Book(context.Background(), signedBookCommand(t, now))
 	if err != nil {
 		t.Fatalf("Book error = %v", err)
@@ -431,8 +409,6 @@ func TestBookReconcilesAmbiguousWriteToSuccess(t *testing.T) {
 }
 
 func TestBookReconcilesAmbiguousWriteInIntendedMonth(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	start := time.Date(2027, time.January, 3, 9, 0, 0, 0, time.UTC)
 	records := bookingRecords()
@@ -443,7 +419,7 @@ func TestBookReconcilesAmbiguousWriteInIntendedMonth(t *testing.T) {
 		true,
 	)
 
-	receipt, err := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+	receipt, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Book(context.Background(), signedBookCommandAt(t, now, start))
 	if err != nil {
 		t.Fatalf("Book error = %v", err)
@@ -458,8 +434,6 @@ func TestBookReconcilesAmbiguousWriteInIntendedMonth(t *testing.T) {
 }
 
 func TestBookReconciliationRequiresEveryIntendedField(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := bookingRecords()
 	records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryNetwork)
@@ -494,7 +468,7 @@ func TestBookReconciliationRequiresEveryIntendedField(t *testing.T) {
 		},
 	}, true)
 
-	_, err := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Book(context.Background(), signedBookCommand(t, now))
 	if scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed {
 		t.Fatalf("Book error = %v, category = %q", err, scheduling.CategoryOf(err))
@@ -505,8 +479,6 @@ func TestBookReconciliationRequiresEveryIntendedField(t *testing.T) {
 }
 
 func TestBookReturnsIndeterminateWhenReconciliationCannotProveOutcome(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := bookingRecords()
 	records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryTimeout)
@@ -514,7 +486,7 @@ func TestBookReturnsIndeterminateWhenReconciliationCannotProveOutcome(t *testing
 		Err: advancedmd.NewError(safeerrors.CategoryUnavailable),
 	}
 
-	_, err := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Book(context.Background(), signedBookCommand(t, now))
 	if scheduling.CategoryOf(err) != scheduling.CategoryIndeterminateWrite {
 		t.Fatalf("Book error = %v, category = %q", err, scheduling.CategoryOf(err))
@@ -525,14 +497,12 @@ func TestBookReturnsIndeterminateWhenReconciliationCannotProveOutcome(t *testing
 }
 
 func TestBookReturnsIndeterminateWhenReconciliationReadIsIncomplete(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := bookingRecords()
 	records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryTimeout)
 	records.AppointmentResults["12345"] = appointmentResult(nil, false)
 
-	_, err := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Book(context.Background(), signedBookCommand(t, now))
 	if scheduling.CategoryOf(err) != scheduling.CategoryIndeterminateWrite {
 		t.Fatalf("Book error = %v, category = %q", err, scheduling.CategoryOf(err))
@@ -543,13 +513,11 @@ func TestBookReturnsIndeterminateWhenReconciliationReadIsIncomplete(t *testing.T
 }
 
 func TestBookPreservesConfiguredLegacyRawSlotSuccess(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := bookingRecords()
 	records.BookAppointmentID = 98765
 
-	receipt, err := scheduling.NewWithConfig(offices, records, "test-booking-secret", func() time.Time { return now }, scheduling.Config{
+	receipt, err := scheduling.NewWithConfig(records, "test-booking-secret", func() time.Time { return now }, scheduling.Config{
 		AllowRawBooking: true,
 	}).
 		Book(context.Background(), scheduling.BookCommand{
@@ -573,12 +541,10 @@ func TestBookPreservesConfiguredLegacyRawSlotSuccess(t *testing.T) {
 }
 
 func TestCancelReturnsReceiptAfterProvingOwnership(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := cancellationRecords()
 
-	receipt, err := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+	receipt, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Cancel(context.Background(), cancellationCommand())
 	if err != nil {
 		t.Fatalf("Cancel error = %v", err)
@@ -597,14 +563,12 @@ func TestCancelReturnsReceiptAfterProvingOwnership(t *testing.T) {
 }
 
 func TestCancelRejectsOwnershipMismatchBeforeWrite(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := cancellationRecords()
 	command := cancellationCommand()
 	command.AppointmentID = 44444
 
-	_, err := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Cancel(context.Background(), command)
 	if scheduling.CategoryOf(err) != scheduling.CategoryOwnershipMismatch {
 		t.Fatalf("Cancel error = %v, category = %q", err, scheduling.CategoryOf(err))
@@ -615,13 +579,11 @@ func TestCancelRejectsOwnershipMismatchBeforeWrite(t *testing.T) {
 }
 
 func TestCancelRequiresCompleteReadToRejectOwnership(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	records := advancedmdtest.NewAdapter()
 	records.AppointmentResults["12345"] = appointmentResult(nil, false)
 
-	_, err := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Cancel(context.Background(), cancellationCommand())
 	if scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed {
 		t.Fatalf("Cancel error = %v, category = %q", err, scheduling.CategoryOf(err))
@@ -632,8 +594,6 @@ func TestCancelRequiresCompleteReadToRejectOwnership(t *testing.T) {
 }
 
 func TestCancelReturnsExplicitProviderFailuresWithoutRetry(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	tests := []struct {
 		name            string
@@ -659,7 +619,7 @@ func TestCancelReturnsExplicitProviderFailuresWithoutRetry(t *testing.T) {
 			records := cancellationRecords()
 			records.CancelAppointmentErr = tt.provider
 
-			_, err := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+			_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 				Cancel(context.Background(), cancellationCommand())
 			if scheduling.CategoryOf(err) != tt.category {
 				t.Fatalf("Cancel error = %v, category = %q", err, scheduling.CategoryOf(err))
@@ -675,8 +635,6 @@ func TestCancelReturnsExplicitProviderFailuresWithoutRetry(t *testing.T) {
 }
 
 func TestCancelReconcilesAmbiguousWriteOutcomes(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	now := mutationTestNow()
 	tests := []struct {
 		name     string
@@ -716,7 +674,7 @@ func TestCancelReconcilesAmbiguousWriteOutcomes(t *testing.T) {
 			}
 			records.CancelAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryTimeout)
 
-			receipt, err := scheduling.New(offices, records, "test-booking-secret", func() time.Time { return now }).
+			receipt, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 				Cancel(context.Background(), cancellationCommand())
 			if tt.success {
 				if err != nil || receipt.Status != "cancelled" || receipt.AppointmentID != 33333 {
@@ -742,7 +700,7 @@ func mutationTestNow() time.Time {
 
 func bookingRecords() *advancedmdtest.Adapter {
 	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
-	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980"}
+	records.Demographics["12345"] = domain.PatientDemographics{CarrierName: "Self Pay", CarrierID: "car301672", DOB: "01/15/1980"}
 	records.ScheduleReads["2026-06-03"] = completeRead("1513", nil, nil)
 	return records
 }

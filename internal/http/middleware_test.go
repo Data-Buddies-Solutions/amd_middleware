@@ -1,7 +1,6 @@
 package http
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -21,6 +20,44 @@ import (
 
 	"github.com/go-chi/chi/v5"
 )
+
+func TestRequestLogPreservesRescheduleReceiptFailure(t *testing.T) {
+	for _, tc := range []struct {
+		status   string
+		category safeerrors.Category
+	}{{"failed", safeerrors.CategoryRejected}, {"partial", safeerrors.CategoryUnavailable}, {"uncertain", safeerrors.CategoryTimeout}} {
+		t.Run(tc.status, func(t *testing.T) {
+			records := advancedmdtest.NewAdapter()
+			records.SchedulerSetupError = advancedmd.NewError(tc.category)
+			now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+			scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now })
+			_, failure := scheduler.Search(context.Background(), schedulingmodule.SearchCommand{Office: "Spring Hill", RequestedDate: "2026-06-03", Routing: "bach_only"})
+			if failure == nil {
+				t.Fatal("expected scheduling provider failure")
+			}
+			router := NewRouter(&Handlers{scheduling: schedulingStub{rescheduleResult: schedulingmodule.RescheduleReceipt{Status: tc.status, Failure: failure, Message: "Ask staff to reconcile."}}}, "test-secret", nil)
+			var logs bytes.Buffer
+			previous := log.Writer()
+			log.SetOutput(&logs)
+			defer log.SetOutput(previous)
+			req := httptest.NewRequest(http.MethodPost, "/api/appointment/reschedule", strings.NewReader(`{}`))
+			req.Header.Set("Authorization", "Bearer test-secret")
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+			entry := decodeLastLogEntry(t, logs.String())
+			if entry["outcome_category"] != "provider_failure" || entry["provider_failure_category"] != string(tc.category) {
+				t.Fatalf("reschedule failure attribution lost: %v", entry)
+			}
+			var body map[string]any
+			if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+				t.Fatal(err)
+			}
+			if body["status"] != tc.status || len(body) != 2 {
+				t.Fatalf("diagnostics must not alter the public receipt: %s", w.Body.String())
+			}
+		})
+	}
+}
 
 func TestRequestIDMiddlewareHashesCallerValueForLogs(t *testing.T) {
 	var requestID string
@@ -53,15 +90,13 @@ func TestRequestIDMiddlewareHashesCallerValueForLogs(t *testing.T) {
 }
 
 func TestRequestLogIsStructuredAndPHISafe(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	var logs bytes.Buffer
 	previousWriter := log.Writer()
 	log.SetOutput(safelog.NewWriter(&logs))
 	t.Cleanup(func() { log.SetOutput(previousWriter) })
 
 	router := NewRouter(
-		NewHandlers(offices, unavailableSession{}, patientmodule.New(offices, advancedmd.NewAdapter(offices, unavailableSession{}, nil, nil)), nil),
+		NewHandlers(unavailableSession{}, patientmodule.New(advancedmd.NewAdapter(unavailableSession{}, nil, nil)), nil),
 		"test-secret",
 		nil,
 	)
@@ -113,14 +148,12 @@ func TestRequestLogIsStructuredAndPHISafe(t *testing.T) {
 }
 
 func TestRequestLogUsesSafeFallbackForUnmatchedRoute(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	var logs bytes.Buffer
 	previousWriter := log.Writer()
 	log.SetOutput(&logs)
 	t.Cleanup(func() { log.SetOutput(previousWriter) })
 
-	router := NewRouter(NewHandlers(offices, nil, nil, nil), "test-secret", nil)
+	router := NewRouter(NewHandlers(nil, nil, nil), "test-secret", nil)
 	req := httptest.NewRequest(http.MethodGet, "/patients/17604634", nil)
 	w := httptest.NewRecorder()
 
@@ -174,13 +207,12 @@ func TestRequestLogRecoversPanicWithoutLoggingRawError(t *testing.T) {
 }
 
 func TestRequestLogRecordsInvalidJSONWithoutInspectingBodies(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	paths := []string{
 		"/api/patient/resolve",
 		"/api/add-patient",
 		"/api/scheduler/availability",
 		"/api/appointment/book",
+		"/api/appointment/reschedule",
 		"/api/appointment/cancel",
 		"/api/patient/update-insurance",
 	}
@@ -191,7 +223,7 @@ func TestRequestLogRecordsInvalidJSONWithoutInspectingBodies(t *testing.T) {
 			log.SetOutput(&logs)
 			t.Cleanup(func() { log.SetOutput(previousWriter) })
 
-			router := NewRouter(NewHandlers(offices, nil, nil, nil), "test-secret", nil)
+			router := NewRouter(NewHandlers(nil, nil, nil), "test-secret", nil)
 			req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{"patientId":"17604634"`))
 			req.Header.Set("Authorization", "Bearer test-secret")
 			w := httptest.NewRecorder()
@@ -213,8 +245,6 @@ func TestRequestLogRecordsInvalidJSONWithoutInspectingBodies(t *testing.T) {
 }
 
 func TestRequestLogPreservesAvailabilityProviderFailureCategory(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	var logs bytes.Buffer
 	previousWriter := log.Writer()
 	log.SetOutput(&logs)
@@ -223,8 +253,8 @@ func TestRequestLogPreservesAvailabilityProviderFailureCategory(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	records := advancedmdtest.NewAdapter()
 	records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryAuthentication)
-	scheduler := schedulingmodule.New(offices, records, "test-booking-secret", func() time.Time { return now })
-	router := NewRouter(&Handlers{offices: offices, scheduling: scheduler}, "test-secret", nil)
+	scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now })
+	router := NewRouter(&Handlers{scheduling: scheduler}, "test-secret", nil)
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/api/scheduler/availability",
@@ -245,8 +275,6 @@ func TestRequestLogPreservesAvailabilityProviderFailureCategory(t *testing.T) {
 }
 
 func TestRequestLogCategorizesPatientMutationFailures(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	patients := &patientStub{
 		createResult: patientmodule.CreateResult{
 			Status:  patientmodule.CreateStatusError,
@@ -257,7 +285,7 @@ func TestRequestLogCategorizesPatientMutationFailures(t *testing.T) {
 			Outcome: patientmodule.MutationRejected,
 		},
 	}
-	router := NewRouter(&Handlers{offices: offices, patient: patients}, "test-secret", nil)
+	router := NewRouter(&Handlers{patient: patients}, "test-secret", nil)
 	tests := []struct {
 		path            string
 		body            string
@@ -303,8 +331,6 @@ func TestRequestLogCategorizesPatientMutationFailures(t *testing.T) {
 }
 
 func TestRequestLogPreservesPartialPatientProviderFailure(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	var logs bytes.Buffer
 	previousWriter := log.Writer()
 	log.SetOutput(&logs)
@@ -316,7 +342,7 @@ func TestRequestLogPreservesPartialPatientProviderFailure(t *testing.T) {
 		Appointments:       []patientmodule.Appointment{},
 		ProviderFailure:    safeerrors.CategoryUpstreamStatus,
 	}}
-	router := NewRouter(&Handlers{offices: offices, patient: patients}, "test-secret", nil)
+	router := NewRouter(&Handlers{patient: patients}, "test-secret", nil)
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/api/patient/resolve",
@@ -337,8 +363,6 @@ func TestRequestLogPreservesPartialPatientProviderFailure(t *testing.T) {
 }
 
 func TestRequestLogTreatsSuccessfulPatientResolveAsSuccess(t *testing.T) {
-	offices := domain.NewOfficeCatalog("")
-
 	var logs bytes.Buffer
 	previousWriter := log.Writer()
 	log.SetOutput(&logs)
@@ -347,7 +371,7 @@ func TestRequestLogTreatsSuccessfulPatientResolveAsSuccess(t *testing.T) {
 	patients := &patientStub{resolveResult: patientmodule.ResolveResult{
 		Status: patientmodule.StatusVerified,
 	}}
-	router := NewRouter(&Handlers{offices: offices, patient: patients}, "test-secret", nil)
+	router := NewRouter(&Handlers{patient: patients}, "test-secret", nil)
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/api/patient/resolve",
@@ -472,33 +496,4 @@ func decodeLastLogEntry(t *testing.T, output string) map[string]any {
 		t.Fatalf("last log line is not JSON: %q: %v", lines[len(lines)-1], err)
 	}
 	return entry
-}
-
-func TestRequestDeadlineBoundsWorkflowAndPreservesEarlierDeadline(t *testing.T) {
-	for _, shorter := range []bool{false, true} {
-		parent := context.Background()
-		cancel := func() {}
-		if shorter {
-			parent, cancel = context.WithTimeout(parent, time.Second)
-		}
-		var requestContext context.Context
-		before := time.Now()
-		requestDeadline(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { requestContext = r.Context() })).ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil).WithContext(parent))
-		deadline, ok := requestContext.Deadline()
-		if !ok {
-			t.Fatal("workflow deadline missing")
-		}
-		if shorter {
-			want, _ := parent.Deadline()
-			if !deadline.Equal(want) {
-				t.Fatal("caller deadline was extended")
-			}
-		} else if deadline.Before(before.Add(RequestTimeout)) || deadline.After(time.Now().Add(RequestTimeout)) {
-			t.Fatalf("unexpected deadline=%v", deadline)
-		}
-		if requestContext.Err() != context.Canceled || parent.Err() != nil {
-			t.Fatalf("request=%v parent=%v", requestContext.Err(), parent.Err())
-		}
-		cancel()
-	}
 }

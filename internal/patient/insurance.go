@@ -2,37 +2,11 @@ package patient
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
 )
-
-type insuranceSelection struct {
-	entry  domain.InsuranceEntry
-	mode   domain.InsuranceMode
-	policy domain.SchedulingPolicy
-}
-
-func selectInsurance(name, coverageType string, office *domain.OfficeConfig) (insuranceSelection, string) {
-	mode := domain.InsuranceModeForCoverage(coverageType)
-	entry, ok := domain.LookupInsuranceForCoverageAtOffice(name, mode, office)
-	policy := domain.NewSchedulingPolicy(office)
-
-	switch {
-	case mode == domain.InsuranceModeVision && !policy.SupportsRouting(domain.RoutingOpticalOnly):
-		return insuranceSelection{}, fmt.Sprintf("Routine vision coverage is not supported at %s. Route the patient to Spring Hill routine vision scheduling.", office.DisplayName)
-	case mode == domain.InsuranceModeMedical && !policy.SupportsMedical():
-		return insuranceSelection{}, fmt.Sprintf("Medical coverage is not supported at %s. Use routine vision coverage for this office or route medical visits to a medical office.", office.DisplayName)
-	case !ok:
-		return insuranceSelection{}, fmt.Sprintf("Insurance not recognized: %q. Please use an insurance name from the accepted list.", name)
-	case entry.Routing == domain.RoutingNotAccepted:
-		return insuranceSelection{}, fmt.Sprintf("%s is not accepted at %s.", name, office.DisplayName)
-	default:
-		return insuranceSelection{entry: entry, mode: mode, policy: policy}, ""
-	}
-}
 
 func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCommand) (result UpdateInsuranceResult) {
 	defer func() {
@@ -56,16 +30,20 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 			Message: err.Error(),
 		}
 	}
-	office, err := p.offices.ResolveOffice(command.Office)
+	office, err := domain.ResolveOffice(command.Office)
 	if err != nil {
 		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
 	}
-	selection, message := selectInsurance(command.Insurance, command.CoverageType, office)
-	if message != "" {
-		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: message}
+	coverage := command.CoverageType
+	if coverage == "" {
+		coverage = "medical"
+	}
+	decision := domain.DecideInsurance(command.Insurance, coverage, office, command.DOB)
+	if decision.Participation != "accepted" {
+		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
 
-	reconciled, replacementAlreadyActive, outcome := p.endInsurance(ctx, command, selection.entry.CarrierID)
+	reconciled, replacementAlreadyActive, outcome := p.endInsurance(ctx, command, decision.CarrierID)
 	if outcome != "" {
 		return updateInsuranceFailure(outcome, "Failed to update existing insurance in AdvancedMD. Please try again or contact the office.")
 	}
@@ -74,7 +52,7 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 		addReconciled, outcome := p.addInsurance(ctx, domain.PatientInsurance{
 			PatientID:     command.PatientID,
 			RespPartyID:   command.RespPartyID,
-			CarrierID:     selection.entry.CarrierID,
+			CarrierID:     decision.CarrierID,
 			SubscriberNum: command.SubscriberNum,
 		})
 		reconciled = reconciled || addReconciled
@@ -83,18 +61,17 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 		}
 	}
 
-	routing := selection.policy.SchedulingRouting(selection.entry.Routing, command.DOB)
-	_, ambiguous := domain.RoutingForDemographicInsurance(selection.entry.CarrierID, command.Insurance, office)
 	result = UpdateInsuranceResult{
-		Status:           UpdateInsuranceStatusUpdated,
-		PatientID:        command.PatientID,
-		OldInsurance:     command.OldInsurance,
-		NewInsurance:     command.Insurance,
-		Routing:          routing,
-		AllowedProviders: selection.policy.ProviderNames(routing, command.DOB),
-		RoutingAmbiguous: ambiguous,
-		PreauthRequired:  selection.entry.PreauthRequired,
-		Message:          "Insurance updated successfully",
+		Status:            UpdateInsuranceStatusUpdated,
+		PatientID:         command.PatientID,
+		OldInsurance:      command.OldInsurance,
+		NewInsurance:      command.Insurance,
+		Routing:           decision.Routing,
+		AllowedProviders:  decision.AllowedProviders,
+		RoutingAmbiguous:  decision.Participation == "unknown",
+		PreauthRequired:   len(decision.Requirements) > 0,
+		InsuranceDecision: &decision,
+		Message:           "Insurance updated successfully",
 	}
 	if reconciled {
 		result.Outcome = MutationReconciledSuccess

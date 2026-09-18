@@ -24,7 +24,6 @@ var eastern = domain.EasternLocation()
 
 // Adapter is the production adapter for AdvancedMD domain records.
 type Adapter struct {
-	offices    *domain.OfficeCatalog
 	session    session.Session
 	xmlClient  *clients.AdvancedMDClient
 	restClient *clients.AdvancedMDRestClient
@@ -32,7 +31,6 @@ type Adapter struct {
 }
 
 func NewAdapter(
-	offices *domain.OfficeCatalog,
 	amdSession session.Session,
 	xmlClient *clients.AdvancedMDClient,
 	restClient *clients.AdvancedMDRestClient,
@@ -43,7 +41,6 @@ func NewAdapter(
 		now = clock[0]
 	}
 	return &Adapter{
-		offices:    offices,
 		session:    amdSession,
 		xmlClient:  xmlClient,
 		restClient: restClient,
@@ -117,12 +114,6 @@ func (a *Adapter) GetPatientDemographics(ctx context.Context, patientID string) 
 }
 
 func (a *Adapter) CreatePatient(ctx context.Context, command domain.PatientCreate) (domain.CreatedPatient, error) {
-	ctx, cancel := mutationContext(ctx)
-	defer cancel()
-	if err := ctx.Err(); err != nil {
-		return domain.CreatedPatient{}, classify(err)
-	}
-
 	token, err := a.token(ctx)
 	if err != nil {
 		return domain.CreatedPatient{}, err
@@ -130,7 +121,7 @@ func (a *Adapter) CreatePatient(ctx context.Context, command domain.PatientCreat
 	if a.xmlClient == nil {
 		return domain.CreatedPatient{}, NewError(safeerrors.CategoryInternal)
 	}
-	office, ok := a.offices.LookupOfficeByID(command.OfficeID)
+	office, ok := domain.LookupOfficeByID(command.OfficeID)
 	if !ok {
 		return domain.CreatedPatient{}, NewError(safeerrors.CategoryInternal)
 	}
@@ -161,12 +152,6 @@ func (a *Adapter) CreatePatient(ctx context.Context, command domain.PatientCreat
 }
 
 func (a *Adapter) AddPatientInsurance(ctx context.Context, command domain.PatientInsurance) error {
-	ctx, cancel := mutationContext(ctx)
-	defer cancel()
-	if err := ctx.Err(); err != nil {
-		return classify(err)
-	}
-
 	token, err := a.token(ctx)
 	if err != nil {
 		return err
@@ -188,12 +173,6 @@ func (a *Adapter) AddPatientInsurance(ctx context.Context, command domain.Patien
 }
 
 func (a *Adapter) EndDatePatientInsurance(ctx context.Context, command domain.PatientInsuranceEnd) error {
-	ctx, cancel := mutationContext(ctx)
-	defer cancel()
-	if err := ctx.Err(); err != nil {
-		return classify(err)
-	}
-
 	token, err := a.token(ctx)
 	if err != nil {
 		return err
@@ -232,7 +211,7 @@ func (a *Adapter) ReadPatientAppointmentsForMonth(
 		Complete:     true,
 	}
 	for _, officeID := range query.OfficeIDs {
-		office, ok := a.offices.LookupOfficeByID(officeID)
+		office, ok := domain.LookupOfficeByID(officeID)
 		if !ok {
 			return read, NewError(safeerrors.CategoryInternal)
 		}
@@ -266,7 +245,7 @@ func (a *Adapter) readPatientAppointments(ctx context.Context, query domain.Pati
 		return AppointmentRead{}, NewError(safeerrors.CategoryInternal)
 	}
 
-	lookup, err := a.newAppointmentLookup(query.OfficeIDs)
+	lookup, err := newAppointmentLookup(query.OfficeIDs)
 	if err != nil {
 		return AppointmentRead{}, err
 	}
@@ -341,7 +320,7 @@ type appointmentLookup struct {
 	officeByColumn map[int]*domain.OfficeConfig
 }
 
-func (a *Adapter) newAppointmentLookup(officeIDs []string) (appointmentLookup, error) {
+func newAppointmentLookup(officeIDs []string) (appointmentLookup, error) {
 	lookup := appointmentLookup{
 		columnIDs:      make([]string, 0),
 		officeByColumn: make(map[int]*domain.OfficeConfig),
@@ -353,7 +332,7 @@ func (a *Adapter) newAppointmentLookup(officeIDs []string) (appointmentLookup, e
 		}
 		seenOffices[officeID] = true
 
-		office, ok := a.offices.LookupOfficeByID(officeID)
+		office, ok := domain.LookupOfficeByID(officeID)
 		if !ok {
 			return appointmentLookup{}, NewError(safeerrors.CategoryInternal)
 		}
@@ -420,7 +399,7 @@ func patientAppointmentRead(
 		typeName := ""
 		if len(raw.AppointmentTypes) > 0 {
 			providerTypeID := raw.AppointmentTypes[0]
-			canonicalID, ok := office.CanonicalAppointmentTypeID(providerTypeID)
+			canonicalID, ok := domain.CanonicalAppointmentTypeID(providerTypeID)
 			if !ok && providerTypeID <= 0 {
 				read.Complete = false
 			} else if ok {
@@ -498,7 +477,7 @@ func (a *Adapter) ReadAppointmentState(
 	if a.restClient == nil || query.AppointmentID <= 0 || query.Start.IsZero() {
 		return AppointmentState{}, NewError(safeerrors.CategoryInternal)
 	}
-	office, ok := a.offices.LookupOfficeByID(query.OfficeID)
+	office, ok := domain.LookupOfficeByID(query.OfficeID)
 	if !ok {
 		return AppointmentState{}, NewError(safeerrors.CategoryInternal)
 	}
@@ -601,10 +580,11 @@ func (a *Adapter) ReadSchedule(ctx context.Context, query domain.ScheduleReadQue
 	var firstErr error
 	for _, err := range failures {
 		if err != nil {
+			failure := classify(err)
 			if firstErr == nil {
-				firstErr = classify(err)
+				firstErr = failure
 			}
-			log.Printf("schedule read incomplete category=%s", CategoryOf(classify(err)))
+			log.Printf("schedule read incomplete category=%s", CategoryOf(failure))
 		}
 	}
 	if completeColumns == 0 && firstErr != nil {
@@ -615,12 +595,6 @@ func (a *Adapter) ReadSchedule(ctx context.Context, query domain.ScheduleReadQue
 }
 
 func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, error) {
-	ctx, cancel := mutationContext(ctx)
-	defer cancel()
-	if err := ctx.Err(); err != nil {
-		return 0, classify(err)
-	}
-
 	token, err := a.token(ctx)
 	if err != nil {
 		return 0, err
@@ -628,7 +602,7 @@ func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, er
 	if a.restClient == nil {
 		return 0, NewError(safeerrors.CategoryInternal)
 	}
-	office, ok := a.offices.LookupOfficeByID(booking.OfficeID)
+	office, ok := domain.LookupOfficeByID(booking.OfficeID)
 	if !ok {
 		return 0, NewError(safeerrors.CategoryInternal)
 	}
@@ -666,12 +640,6 @@ func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, er
 }
 
 func (a *Adapter) CancelAppointment(ctx context.Context, cancellation Cancellation) error {
-	ctx, cancel := mutationContext(ctx)
-	defer cancel()
-	if err := ctx.Err(); err != nil {
-		return classify(err)
-	}
-
 	token, err := a.token(ctx)
 	if err != nil {
 		return err
@@ -747,13 +715,3 @@ func friendlyFacilityName(name string) string {
 
 var _ PatientRecords = (*Adapter)(nil)
 var _ SchedulingRecords = (*Adapter)(nil)
-
-// Provider writes stop before the request deadline so workflows can reconcile
-// an ambiguous response using the original context. An already exhausted
-// mutation budget is rejected before authentication or a provider write.
-func mutationContext(ctx context.Context) (context.Context, context.CancelFunc) {
-	if deadline, ok := ctx.Deadline(); ok {
-		return context.WithDeadline(ctx, deadline.Add(-5*time.Second))
-	}
-	return context.WithCancel(ctx)
-}

@@ -7,9 +7,7 @@ import (
 )
 
 func TestSchedulingPolicy_PreservesPatientAndSchedulingPediatricRules(t *testing.T) {
-	offices := NewOfficeCatalog("")
-
-	policy := NewSchedulingPolicy(offices.DefaultOffice())
+	policy := NewSchedulingPolicy(DefaultOffice())
 	minorDOB := time.Now().AddDate(-10, 0, 0).Format("01/02/2006")
 
 	if got := policy.SchedulingRouting(RoutingOpticalOnly, minorDOB); got != RoutingOpticalOnly {
@@ -21,9 +19,7 @@ func TestSchedulingPolicy_PreservesPatientAndSchedulingPediatricRules(t *testing
 }
 
 func TestSchedulingPolicy_AllowedAppointmentTypeIDsFiltersByDOB(t *testing.T) {
-	offices := NewOfficeCatalog("")
-
-	policy := NewSchedulingPolicy(offices.DefaultOffice())
+	policy := NewSchedulingPolicy(DefaultOffice())
 	adultDOB := time.Now().AddDate(-30, 0, 0).Format("01/02/2006")
 	minorDOB := time.Now().AddDate(-10, 0, 0).Format("01/02/2006")
 
@@ -36,9 +32,7 @@ func TestSchedulingPolicy_AllowedAppointmentTypeIDsFiltersByDOB(t *testing.T) {
 }
 
 func TestSchedulingPolicy_PrepareBookingRejectsAppointmentTypeForWrongAge(t *testing.T) {
-	offices := NewOfficeCatalog("")
-
-	policy := NewSchedulingPolicy(offices.DefaultOffice())
+	policy := NewSchedulingPolicy(DefaultOffice())
 	adultDOB := time.Now().AddDate(-30, 0, 0).Format("01/02/2006")
 
 	_, policyErr := policy.PrepareBooking(BookingPolicyRequest{

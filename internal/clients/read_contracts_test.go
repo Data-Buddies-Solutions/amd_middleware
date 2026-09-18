@@ -22,7 +22,7 @@ func TestScheduleOccupancyRejectsLostRows(t *testing.T) {
 }
 
 func TestSchedulerSetupRequiresResults(t *testing.T) {
-	for _, body := range []string{`{}`, `null`, `{"PPMDResults":{"Results":null}}`, `{"PPMDResults":{"Error":{"Fault":{"detail":"rejected"}},"Results":{}}}`} {
+	for _, body := range []string{`{"PPMDResults":{"Results":{"columnlist":{"column":false}}}}`, `{"PPMDResults":{"Results":{"columnlist":{"column":[false]}}}}`, `{}`, `null`, `{"PPMDResults":{"Results":null}}`, `{"PPMDResults":{"Error":{"Fault":{"detail":"rejected"}},"Results":{}}}`} {
 		t.Run(body, func(t *testing.T) {
 			client, token, close := newTestXMLRPCClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(body)) }))
 			defer close()

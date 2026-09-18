@@ -4,6 +4,40 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v4.1.0...v5.0.0) (2026-09-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **insurance:** Insurance decisions remove canRegister. Consumers use participation == accepted for registration and insurance updates.
+
+### Bug Fixes
+
+* **insurance:** use accepted plans for registration ([#193](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/193)) ([0e12d84](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/0e12d84610dea98fcde9910488588a61bcc12e77))
+
+## [4.1.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v4.0.0...v4.1.0) (2026-09-17)
+
+
+### Features
+
+* **scheduling:** own appointment metadata and reschedule writes ([#190](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/190)) ([afb7fd1](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/afb7fd117b0541225c90c3059e0c04a8a4e14f21))
+
+
+### Bug Fixes
+
+* **insurance:** centralize plan decisions and enforce scheduling requirements ([#191](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/191)) ([30eb724](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/30eb72405274d7cc5444930ba6e8bb178f4fd025))
+
+## [4.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v3.1.2...v4.0.0) (2026-09-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **patient:** firstName + dob resolves in middleware and no longer returns the broad candidates/source/complete response.
+
+### Bug Fixes
+
+* **patient:** resolve first-name and DOB matches in middleware ([#188](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/188)) ([d5a6c41](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/d5a6c41450083c06db8e3bdbf6b18532a7d4484b))
+
 ## [3.1.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v3.1.1...v3.1.2) (2026-09-10)
 
 

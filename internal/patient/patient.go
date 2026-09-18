@@ -1,3 +1,5 @@
+// Package patient owns patient resolution and construction of complete Acuity
+// patient results.
 package patient
 
 import (
@@ -13,9 +15,9 @@ type Status string
 const (
 	StatusVerified        Status = "verified"
 	StatusCandidate       Status = "candidate"
-	StatusCandidates      Status = "candidates"
 	StatusMultipleMatches Status = "multiple_matches"
 	StatusNotFound        Status = "not_found"
+	StatusUnresolved      Status = "unresolved"
 )
 
 type AppointmentsStatus string
@@ -70,6 +72,7 @@ type Appointment struct {
 	Time              string
 	Provider          string
 	Type              string
+	VisitType         string `json:"visitType,omitempty"`
 	AppointmentTypeID int
 	Facility          string
 	OfficeID          string
@@ -90,8 +93,8 @@ type Candidate struct {
 
 // ResolveResult is one complete Acuity patient resolution outcome.
 type ResolveResult struct {
-	Source              string
-	Complete            *bool
+	InsuranceDecision   *domain.InsuranceDecision
+	Reason              string
 	Status              Status
 	ProviderFailure     safeerrors.Category
 	PatientID           string
@@ -155,15 +158,16 @@ type CreateCommand struct {
 
 // CreateResult preserves the public patient-creation response contract.
 type CreateResult struct {
-	Status           CreateStatus
-	Outcome          MutationOutcome
-	PatientID        string
-	Name             string
-	DOB              string
-	Routing          domain.RoutingRule
-	AllowedProviders []string
-	PreauthRequired  bool
-	Message          string
+	InsuranceDecision *domain.InsuranceDecision
+	Status            CreateStatus
+	Outcome           MutationOutcome
+	PatientID         string
+	Name              string
+	DOB               string
+	Routing           domain.RoutingRule
+	AllowedProviders  []string
+	PreauthRequired   bool
+	Message           string
 }
 
 // UpdateInsuranceCommand is the complete caller intent for replacing primary
@@ -184,16 +188,17 @@ type UpdateInsuranceCommand struct {
 // UpdateInsuranceResult preserves the public insurance-update response
 // contract.
 type UpdateInsuranceResult struct {
-	Status           UpdateInsuranceStatus
-	Outcome          MutationOutcome
-	PatientID        string
-	OldInsurance     string
-	NewInsurance     string
-	Routing          domain.RoutingRule
-	AllowedProviders []string
-	RoutingAmbiguous bool
-	PreauthRequired  bool
-	Message          string
+	InsuranceDecision *domain.InsuranceDecision
+	Status            UpdateInsuranceStatus
+	Outcome           MutationOutcome
+	PatientID         string
+	OldInsurance      string
+	NewInsurance      string
+	Routing           domain.RoutingRule
+	AllowedProviders  []string
+	RoutingAmbiguous  bool
+	PreauthRequired   bool
+	Message           string
 }
 
 // Patient is the single interface used by patient-facing HTTP routes.
@@ -204,7 +209,6 @@ type Patient interface {
 }
 
 type patient struct {
-	offices           *domain.OfficeCatalog
 	advancedMD        advancedmd.PatientRecords
 	appointmentTokens AppointmentTokenIssuer
 }
@@ -214,17 +218,15 @@ type AppointmentTokenIssuer interface {
 	IssueRescheduleToken(string, domain.PatientAppointment) (string, error)
 }
 
-func New(offices *domain.OfficeCatalog, advancedMD advancedmd.PatientRecords) Patient {
-	return &patient{offices: offices, advancedMD: advancedMD}
+func New(advancedMD advancedmd.PatientRecords) Patient {
+	return &patient{advancedMD: advancedMD}
 }
 
 func NewWithAppointmentTokens(
-	offices *domain.OfficeCatalog,
 	advancedMD advancedmd.PatientRecords,
 	appointmentTokens AppointmentTokenIssuer,
 ) Patient {
 	return &patient{
-		offices:           offices,
 		advancedMD:        advancedMD,
 		appointmentTokens: appointmentTokens,
 	}

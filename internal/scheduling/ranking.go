@@ -36,28 +36,19 @@ func validatePreferredTime(preferredTime *AvailabilityTimePreference) error {
 	return nil
 }
 
-// candidates are sorted by selectPreferredAvailabilitySlots. The optimistic
-// future score assumes a perfect time match on the next calendar date. If even
-// that cannot outrank the second distinct offer, further reads add no value.
-func laterDatesCannotImprove(candidates []rankedAvailabilitySlot, command SearchCommand, searchedDate string) bool {
-	if len(candidates) < 2 {
-		return false
-	}
-	next, _ := time.Parse("2006-01-02", searchedDate)
-	next = next.AddDate(0, 0, 1)
-	bestFuture := rankedAvailabilitySlot{}
-	if command.RequestedDate != "" {
-		requested, _ := time.Parse("2006-01-02", command.RequestedDate)
-		bestFuture.mismatchCount = 1
-		bestFuture.distanceMinutes = int(next.Sub(requested).Hours()/24) * 24 * 60
-	}
-	firstKey := availabilitySlotKey(candidates[0].slot)
-	for _, candidate := range candidates[1:] {
-		if availabilitySlotKey(candidate.slot) == firstKey {
+func hasTwoExactAvailabilityMatches(
+	candidates []rankedAvailabilitySlot,
+) bool {
+	firstSlotKey := ""
+	for _, candidate := range candidates {
+		if candidate.mismatchCount != 0 || candidate.distanceMinutes != 0 {
 			continue
 		}
-		return candidate.mismatchCount < bestFuture.mismatchCount ||
-			(candidate.mismatchCount == bestFuture.mismatchCount && candidate.distanceMinutes <= bestFuture.distanceMinutes)
+		slotKey := availabilitySlotKey(candidate.slot)
+		if firstSlotKey != "" && slotKey != firstSlotKey {
+			return true
+		}
+		firstSlotKey = slotKey
 	}
 	return false
 }
