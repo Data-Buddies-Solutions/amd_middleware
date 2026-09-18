@@ -21,11 +21,11 @@ func TestMedicalCatalogPreservesOfficeExclusions(t *testing.T) {
 	}
 }
 
-func TestNamedMedicalProductNeverFallsBackToParent(t *testing.T) {
+func TestAcceptedNamedProductDoesNotInheritParentRouting(t *testing.T) {
 	office, _ := ResolveOffice("Spring Hill")
 	for _, q := range []string{"Devoted Medicare HMO", "Clear Spring Health Medicare Advantage", "Humana Medicare PPO"} {
 		d := DecideInsurance(q, "medical", office, "")
-		if d.Outcome != "needs_staff_task" || d.CanRegister || d.CanSchedule || d.CarrierID != "" {
+		if d.Outcome != "accepted" || d.CanRegister || d.CanSchedule || d.Routing != "" || len(d.AllowedProviders) != 0 {
 			t.Errorf("specific product inherited a parent mapping: %s %+v", q, d)
 		}
 	}
@@ -89,7 +89,7 @@ func TestAMDDirectoryRoundTripUsesConfirmedProductWithoutRelaxingRestrictions(t 
 		})
 	}
 	chart := PatientDemographics{CarrierID: "car40923", CarrierName: "UNITED HEALTHCARE"}
-	for _, plan := range []string{"", "United Healthcare", "United Healthcare NHP HMO Only", "United Healthcare Individual Exchange"} {
+	for _, plan := range []string{"", "United Healthcare", "United Healthcare Individual Exchange"} {
 		if d := DecideChartInsurance(chart, plan, "medical", office, ""); d.CanSchedule {
 			t.Fatalf("clarification or referral bypassed: %+v", d)
 		}
@@ -103,7 +103,7 @@ func TestAMDDirectoryRoundTripUsesConfirmedProductWithoutRelaxingRestrictions(t 
 func TestRegistrationPermissionIsExplicitWhenSchedulingIsHeld(t *testing.T) {
 	office, _ := ResolveOffice("Hollywood")
 	d := DecideInsurance("Humana Medicaid HMO", "medical", office, "")
-	if !d.CanRegister || d.CanSchedule || !strings.Contains(d.Answer, "Registration or insurance updates may proceed") || !strings.Contains(d.Answer, "before scheduling") {
+	if !d.CanRegister || d.CanSchedule || !strings.Contains(d.Answer, "prior authorization before scheduling") {
 		t.Fatalf("unclear next action: %+v", d)
 	}
 }

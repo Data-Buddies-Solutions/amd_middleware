@@ -11,18 +11,15 @@ type medicalPlan struct {
 	CarrierCode     string                         `json:"carrierCode"`
 	CarrierID       string                         `json:"carrierId"`
 	Clarification   string                         `json:"clarification"`
-	Requirements    []InsuranceRequirement         `json:"requirements"`
 	Providers       []string                       `json:"credentialedProviders"`
-	Issue           string                         `json:"issue"`
-	CarrierIssue    string                         `json:"carrierIssue"`
-	OfficeIssues    map[string]string              `json:"officeIssues"`
 	Offices         map[string]medicalOfficePolicy `json:"offices"`
 }
 
 type medicalOfficePolicy struct {
-	Status  string      `json:"status"`
-	Routing RoutingRule `json:"routing"`
-	Notice  string      `json:"notice"`
+	Status       string                 `json:"status"`
+	Routing      RoutingRule            `json:"routing"`
+	Notice       string                 `json:"notice"`
+	Requirements []InsuranceRequirement `json:"requirements,omitempty"`
 }
 
 type medicalCatalogData struct {
@@ -72,11 +69,10 @@ func medicalRules() map[string][]participationRule {
 				canonical = ""
 			}
 			result[office] = append(result[office], participationRule{
-				OfficeUnverified: !configured, Status: policy.Status, Canonical: canonical, Display: p.Name, Aliases: p.Aliases,
+				Status: policy.Status, Canonical: canonical, Display: p.Name, Aliases: p.Aliases,
 				RequiredAliases: p.RequiredAliases, Notice: policy.Notice, Clarification: p.Clarification,
 				CarrierID: p.CarrierID, CarrierCode: p.CarrierCode, Routing: policy.Routing,
-				Requirements: p.Requirements, Providers: p.Providers, Issue: p.Issue,
-				CarrierIssue: p.CarrierIssue, OfficeIssues: p.OfficeIssues,
+				Requirements: policy.Requirements, Providers: p.Providers,
 			})
 		}
 	}

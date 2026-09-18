@@ -43,16 +43,16 @@
       "aliases": [],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "SPRING_HILL_MEDICAL": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "CRYSTAL_RIVER": {
           "status": "needs_clarification"
         }
       },
-      "clarification": "whether Aetna is commercial/employer coverage, Medicare, or Medicaid, and the full product name on the card"
+      "clarification": "Is your Aetna plan Medicare, Medicaid, or another plan?"
     },
     {
       "name": "Aetna Better Health",
@@ -72,10 +72,7 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907",
-      "officeIssues": {
-        "hollywood": "The reference limits this Medicaid plan to Miami-Dade, but the older office list includes it here."
-      }
+      "carrierId": "car40907"
     },
     {
       "name": "Aetna Better Health Of Florida",
@@ -95,10 +92,7 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907",
-      "officeIssues": {
-        "hollywood": "The reference limits this Medicaid plan to Miami-Dade, but the older office list includes it here."
-      }
+      "carrierId": "car40907"
     },
     {
       "name": "Aetna Commercial",
@@ -131,6 +125,12 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "AET07",
@@ -143,6 +143,12 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "AET07",
@@ -166,8 +172,7 @@
         }
       },
       "carrierCode": "AET07",
-      "carrierId": "car40887",
-      "issue": "The exact underlying plan and network limitations need confirmation."
+      "carrierId": "car40887"
     },
     {
       "name": "Aetna EPO North Broward",
@@ -189,13 +194,7 @@
         }
       },
       "carrierCode": "AET07",
-      "carrierId": "car40887",
-      "requirements": [
-        {
-          "kind": "network_review",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40887"
     },
     {
       "name": "Aetna EPO University Of Miami",
@@ -218,13 +217,7 @@
         }
       },
       "carrierCode": "AET07",
-      "carrierId": "car40887",
-      "requirements": [
-        {
-          "kind": "network_review",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40887"
     },
     {
       "name": "Aetna Healthy Kids",
@@ -246,14 +239,7 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907",
-      "requirements": [
-        {
-          "kind": "precertification",
-          "channel": "ehealthdeck",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40907"
     },
     {
       "name": "Aetna HMO",
@@ -261,7 +247,13 @@
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
-          "routing": "bach_only"
+          "routing": "bach_only",
+          "requirements": [
+            {
+              "kind": "prior_authorization",
+              "verification": "unverified"
+            }
+          ]
         },
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
@@ -286,6 +278,9 @@
         "CRYSTAL_RIVER": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
         }
       },
       "carrierCode": "AET07",
@@ -302,6 +297,9 @@
         "CRYSTAL_RIVER": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
         }
       },
       "carrierCode": "ICA01",
@@ -340,6 +338,9 @@
         "CRYSTAL_RIVER": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
         }
       },
       "carrierCode": "ICA01",
@@ -352,6 +353,12 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
+        },
+        "HOLLYWOOD_SWEETWATER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "ICA01",
@@ -368,6 +375,9 @@
         "CRYSTAL_RIVER": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
         }
       },
       "carrierCode": "AET07",
@@ -472,13 +482,7 @@
         }
       },
       "carrierCode": "AMBE1",
-      "carrierId": "car281245",
-      "requirements": [
-        {
-          "kind": "pcp_referral",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car281245"
     },
     {
       "name": "AvMed",
@@ -496,13 +500,7 @@
         }
       },
       "carrierCode": "AVM01",
-      "carrierId": "car40890",
-      "requirements": [
-        {
-          "kind": "network_review",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40890"
     },
     {
       "name": "AvMed Entrust",
@@ -511,8 +509,11 @@
       ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
-          "status": "not_accepted",
+          "status": "accepted",
           "notice": "The document lists this medical plan as nonparticipating."
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
         }
       }
     },
@@ -521,8 +522,11 @@
       "aliases": [],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
-          "status": "not_accepted",
+          "status": "accepted",
           "notice": "The document lists this medical network as nonparticipating."
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
         }
       }
     },
@@ -556,16 +560,13 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
         }
       },
       "carrierCode": "AVM01",
-      "carrierId": "car40890",
-      "requirements": [
-        {
-          "kind": "network_review",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40890"
     },
     {
       "name": "Care Health Plus",
@@ -592,24 +593,24 @@
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
-          "routing": "bach_only"
+          "routing": "bach_only",
+          "requirements": [
+            {
+              "kind": "prior_authorization",
+              "verification": "unverified"
+            }
+          ]
         },
         "SPRING_HILL_MEDICAL": {
           "status": "not_accepted",
           "routing": "not_accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "PREM1",
-      "carrierId": "car281317",
-      "requirements": [
-        {
-          "kind": "prior_authorization",
-          "verification": "unverified"
-        }
-      ],
-      "officeIssues": {
-        "sweetwater": "The reference limits this plan to other offices, but the older office list includes it here."
-      }
+      "carrierId": "car281317"
     },
     {
       "name": "Children's Medical Services",
@@ -618,17 +619,13 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "HOLLYWOOD_SWEETWATER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "AMBE1",
-      "carrierId": "car281245",
-      "requirements": [
-        {
-          "kind": "benefits_review",
-          "channel": "envolve",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car281245"
     },
     {
       "name": "Childrens Medical Services",
@@ -643,14 +640,7 @@
         }
       },
       "carrierCode": "AMBE1",
-      "carrierId": "car281245",
-      "requirements": [
-        {
-          "kind": "benefits_review",
-          "channel": "envolve",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car281245"
     },
     {
       "name": "Cigna",
@@ -666,7 +656,7 @@
           "status": "needs_clarification"
         }
       },
-      "clarification": "whether Cigna is Medicare Advantage or employer/individual coverage, then the card's full product name and HMO, PPO, or Open Access designation"
+      "clarification": "Is your Cigna plan Medicare Advantage or another plan?"
     },
     {
       "name": "Cigna Florida Connect EPO",
@@ -684,7 +674,13 @@
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
-          "routing": "bach_only"
+          "routing": "bach_only",
+          "requirements": [
+            {
+              "kind": "pcp_referral",
+              "verification": "unverified"
+            }
+          ]
         },
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
@@ -696,13 +692,7 @@
         }
       },
       "carrierCode": "CIGN1",
-      "carrierId": "car301345",
-      "requirements": [
-        {
-          "kind": "pcp_referral",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car301345"
     },
     {
       "name": "Cigna Local Plus",
@@ -735,7 +725,14 @@
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
-          "routing": "bach_only"
+          "routing": "bach_only",
+          "requirements": [
+            {
+              "kind": "pcp_referral",
+              "channel": "availity",
+              "verification": "unverified"
+            }
+          ]
         },
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
@@ -747,14 +744,7 @@
         }
       },
       "carrierCode": "CIGN4",
-      "carrierId": "car302890",
-      "requirements": [
-        {
-          "kind": "pcp_referral",
-          "channel": "availity",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car302890"
     },
     {
       "name": "Cigna Medicare Advantage PPO",
@@ -763,6 +753,12 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "CIGN4",
@@ -843,11 +839,16 @@
       ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
-          "status": "needs_staff_task",
+          "status": "accepted",
           "notice": "The document lists medical participation with Dr. Austin Bach but no AMD billing code; staff must confirm the attachment."
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
-      },
-      "issue": "The document requires a staff-arranged medical attachment or special self-pay rate for this product."
+      }
     },
     {
       "name": "Community Care Plan",
@@ -867,14 +868,7 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907",
-      "requirements": [
-        {
-          "kind": "precertification",
-          "channel": "ehealthdeck",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40907"
     },
     {
       "name": "Devoted Medicare HMO",
@@ -885,6 +879,12 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "PREM1",
@@ -897,6 +897,12 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "PREM1",
@@ -925,14 +931,7 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907",
-      "requirements": [
-        {
-          "kind": "precertification",
-          "channel": "ehealthdeck",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40907"
     },
     {
       "name": "Envolve Vision",
@@ -1011,7 +1010,7 @@
       },
       "carrierCode": "FLO01",
       "carrierId": "car40897",
-      "clarification": "the exact Florida Blue plan on the card, including whether it is HMO or PPO"
+      "clarification": "Does your Florida Blue card say HMO or PPO?"
     },
     {
       "name": "Florida Blue HMO",
@@ -1026,7 +1025,14 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only",
-          "notice": "For adults, Florida Blue HMO is accepted only for diplopia (double vision)."
+          "notice": "For adults, Florida Blue HMO is accepted only for diplopia (double vision).",
+          "requirements": [
+            {
+              "kind": "prior_authorization",
+              "channel": "emi_portal",
+              "verification": "unverified"
+            }
+          ]
         },
         "SPRING_HILL_MEDICAL": {
           "status": "not_accepted",
@@ -1038,14 +1044,7 @@
         }
       },
       "carrierCode": "FLOR1",
-      "carrierId": "car280750",
-      "requirements": [
-        {
-          "kind": "prior_authorization",
-          "channel": "emi_portal",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car280750"
     },
     {
       "name": "Florida Blue Medicare HMO",
@@ -1056,22 +1055,24 @@
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
-          "routing": "bach_only"
+          "routing": "bach_only",
+          "requirements": [
+            {
+              "kind": "prior_authorization",
+              "verification": "unverified"
+            }
+          ]
         },
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "FLO01",
-      "carrierId": "car40897",
-      "requirements": [
-        {
-          "kind": "prior_authorization",
-          "verification": "unverified"
-        }
-      ],
-      "issue": "This medical product does not have an unambiguous billing mapping in the document."
+      "carrierId": "car40897"
     },
     {
       "name": "Florida Blue Medicare PPO",
@@ -1084,6 +1085,9 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "FLO01",
@@ -1100,6 +1104,9 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "FLO01",
@@ -1202,14 +1209,7 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907",
-      "requirements": [
-        {
-          "kind": "precertification",
-          "channel": "ehealthdeck",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40907"
     },
     {
       "name": "Florida Complete Care",
@@ -1231,14 +1231,7 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907",
-      "requirements": [
-        {
-          "kind": "precertification",
-          "channel": "ehealthdeck",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40907"
     },
     {
       "name": "Florida Medicaid",
@@ -1297,20 +1290,23 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907",
-      "officeIssues": {
-        "sweetwater": "The reference limits this plan to other offices, but the older office list includes it here."
-      }
+      "carrierId": "car40907"
     },
     {
       "name": "Humana",
       "aliases": [],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "SPRING_HILL_MEDICAL": {
           "status": "needs_clarification"
@@ -1319,7 +1315,7 @@
           "status": "needs_clarification"
         }
       },
-      "clarification": "whether the Humana coverage is Medicare, Medicaid, or an employer/individual plan, using the insurance card"
+      "clarification": "Is your Humana plan Medicare, Medicaid, or another plan?"
     },
     {
       "name": "Humana Care Plus",
@@ -1330,6 +1326,15 @@
         },
         "CRYSTAL_RIVER": {
           "status": "not_accepted"
+        },
+        "HOLLYWOOD_SWEETWATER": {
+          "status": "accepted",
+          "requirements": [
+            {
+              "kind": "prior_authorization",
+              "verification": "unverified"
+            }
+          ]
         }
       }
     },
@@ -1344,17 +1349,19 @@
         "CRYSTAL_RIVER": {
           "status": "not_accepted",
           "routing": "not_accepted"
+        },
+        "HOLLYWOOD_SWEETWATER": {
+          "status": "accepted"
         }
       },
-      "carrierId": "car308175",
-      "issue": "This medical product does not have an unambiguous billing mapping in the document."
+      "carrierId": "car308175"
     },
     {
       "name": "Humana HMO",
       "aliases": [],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "SPRING_HILL_MEDICAL": {
           "status": "not_accepted",
@@ -1365,7 +1372,7 @@
           "routing": "not_accepted"
         }
       },
-      "clarification": "whether this is Humana Medicare HMO, Medicaid HMO, or Premier HMO; read the full plan name from the card"
+      "clarification": "Does your Humana card say Medicare, Medicaid, or Premier?"
     },
     {
       "name": "Humana Medicaid HMO",
@@ -1377,7 +1384,14 @@
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
-          "routing": "bach_only"
+          "routing": "bach_only",
+          "requirements": [
+            {
+              "kind": "prior_authorization",
+              "channel": "availity",
+              "verification": "unverified"
+            }
+          ]
         },
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
@@ -1389,31 +1403,24 @@
         }
       },
       "carrierCode": "HUM02",
-      "carrierId": "car303033",
-      "requirements": [
-        {
-          "kind": "prior_authorization",
-          "channel": "availity",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car303033"
     },
     {
       "name": "Humana Medicare",
       "aliases": [],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "SPRING_HILL_MEDICAL": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "CRYSTAL_RIVER": {
           "status": "not_accepted",
           "routing": "bach_only"
         }
       },
-      "clarification": "whether the Humana Medicare card says HMO or PPO, and the full plan name. Recheck with the insurer and full product name together"
+      "clarification": "Does your Humana Medicare card say HMO or PPO?"
     },
     {
       "name": "Humana Medicare HMO",
@@ -1445,6 +1452,12 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "not_accepted"
         }
       },
       "carrierCode": "HUM PPO",
@@ -1466,8 +1479,7 @@
           "status": "not_accepted",
           "routing": "bach_only"
         }
-      },
-      "issue": "The document uses HUMPPO, while AMD lists HUM PPO; staff must reconcile the exact commercial product code."
+      }
     },
     {
       "name": "Humana PPO Pos",
@@ -1476,9 +1488,14 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "not_accepted"
         }
-      },
-      "issue": "The document uses HUMPPO, while AMD lists HUM PPO; staff must reconcile the exact commercial product code."
+      }
     },
     {
       "name": "Humana Premier HMO",
@@ -1532,8 +1549,7 @@
         }
       },
       "carrierCode": "IMAG1",
-      "carrierId": "car308142",
-      "issue": "The exact underlying plan and network limitations need confirmation."
+      "carrierId": "car308142"
     },
     {
       "name": "Leon Health Plan",
@@ -1561,17 +1577,17 @@
       ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "SPRING_HILL_MEDICAL": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "CRYSTAL_RIVER": {
           "status": "not_accepted",
           "routing": "not_accepted"
         }
       },
-      "clarification": "the exact Medicaid plan, or confirmation of straight Florida Medicaid"
+      "clarification": "Is that straight Florida Medicaid or a plan through another insurance company?"
     },
     {
       "name": "Meritain Health",
@@ -1616,14 +1632,7 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907",
-      "requirements": [
-        {
-          "kind": "precertification",
-          "channel": "ehealthdeck",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40907"
     },
     {
       "name": "Molina",
@@ -1639,7 +1648,7 @@
           "status": "needs_clarification"
         }
       },
-      "clarification": "whether the Molina card says Medicaid, Medicare, or Marketplace"
+      "clarification": "Does your Molina card say Medicaid, Medicare, or Marketplace?"
     },
     {
       "name": "Molina Marketplace",
@@ -1674,10 +1683,7 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907",
-      "officeIssues": {
-        "hollywood": "The reference limits this Medicaid plan to Miami-Dade, but the older office list includes it here."
-      }
+      "carrierId": "car40907"
     },
     {
       "name": "Molina Medicare",
@@ -1690,16 +1696,13 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "MOLI2",
-      "carrierId": "car301507",
-      "requirements": [
-        {
-          "kind": "pcp_referral",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car301507"
     },
     {
       "name": "Multiplan PHCS",
@@ -1717,8 +1720,7 @@
           "routing": "all_three"
         }
       },
-      "carrierId": "car301648",
-      "issue": "The exact underlying plan and network limitations need confirmation."
+      "carrierId": "car301648"
     },
     {
       "name": "Optimum Healthcare",
@@ -1743,10 +1745,7 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907",
-      "officeIssues": {
-        "sweetwater": "The reference limits this plan to other offices, but the older office list includes it here."
-      }
+      "carrierId": "car40907"
     },
     {
       "name": "Oscar Health",
@@ -1780,8 +1779,7 @@
         }
       },
       "carrierCode": "IMAG1",
-      "carrierId": "car308142",
-      "issue": "The document has no billing code for Partners Direct Health; the underlying carrier must be confirmed."
+      "carrierId": "car308142"
     },
     {
       "name": "Preferred Care Partners",
@@ -1845,17 +1843,17 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only",
-          "notice": "Medical visits are limited to Dr. Austin Bach and require a referral."
+          "notice": "Medical visits are limited to Dr. Austin Bach and require a referral.",
+          "requirements": [
+            {
+              "kind": "pcp_referral",
+              "verification": "unverified"
+            }
+          ]
         }
       },
       "carrierCode": "SEMI1",
-      "carrierId": "car301427",
-      "requirements": [
-        {
-          "kind": "pcp_referral",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car301427"
     },
     {
       "name": "Simply Health",
@@ -1866,17 +1864,17 @@
       ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "SPRING_HILL_MEDICAL": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "CRYSTAL_RIVER": {
           "status": "not_accepted",
           "routing": "not_accepted"
         }
       },
-      "clarification": "whether Simply is Medicaid or Medicare, and the full product name on the card"
+      "clarification": "Is your Simply plan Medicaid or Medicare?"
     },
     {
       "name": "Simply Medicaid",
@@ -1896,14 +1894,7 @@
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907",
-      "requirements": [
-        {
-          "kind": "precertification",
-          "channel": "ehealthdeck",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40907"
     },
     {
       "name": "Simply Medicare",
@@ -1914,17 +1905,16 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "ICA01",
-      "carrierId": "car40907",
-      "requirements": [
-        {
-          "kind": "precertification",
-          "channel": "ehealthdeck",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40907"
     },
     {
       "name": "Solis Medicare",
@@ -1934,17 +1924,23 @@
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
-          "routing": "bach_only"
+          "routing": "bach_only",
+          "requirements": [
+            {
+              "kind": "prior_authorization",
+              "verification": "unverified"
+            }
+          ]
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "PREM1",
-      "carrierId": "car281317",
-      "requirements": [
-        {
-          "kind": "prior_authorization",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car281317"
     },
     {
       "name": "SouthBay Medical Center",
@@ -1956,8 +1952,7 @@
           "status": "needs_staff_task",
           "notice": "The document describes Dr. Austin Bach medical visits at a special $75 self-pay rate; staff must arrange this rate."
         }
-      },
-      "issue": "The document requires a staff-arranged medical attachment or special self-pay rate for this product."
+      }
     },
     {
       "name": "Staywell Medicare",
@@ -1979,14 +1974,7 @@
         }
       },
       "carrierCode": "AMBE1",
-      "carrierId": "car281245",
-      "requirements": [
-        {
-          "kind": "benefits_review",
-          "channel": "envolve",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car281245"
     },
     {
       "name": "SunHealth",
@@ -2000,8 +1988,7 @@
           "status": "accepted",
           "routing": "all_three"
         }
-      },
-      "issue": "The document uses SUNHE, while AMD lists SUNHEALT for the discount plan; staff must reconcile the code and patient-pay arrangement."
+      }
     },
     {
       "name": "Sunshine Medicaid",
@@ -2024,30 +2011,23 @@
         }
       },
       "carrierCode": "AMBE1",
-      "carrierId": "car281245",
-      "requirements": [
-        {
-          "kind": "benefits_review",
-          "channel": "envolve",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car281245"
     },
     {
       "name": "Tricare",
       "aliases": [],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "SPRING_HILL_MEDICAL": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "CRYSTAL_RIVER": {
           "status": "needs_clarification"
         }
       },
-      "clarification": "whether the card says Tricare Prime, Select, or For Life"
+      "clarification": "Does your card say Tricare Prime, Select, or For Life?"
     },
     {
       "name": "Tricare For Life",
@@ -2062,16 +2042,13 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "bach_licht"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "TRI05",
-      "carrierId": "car40921",
-      "requirements": [
-        {
-          "kind": "secondary_coverage",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40921"
     },
     {
       "name": "Tricare Forever",
@@ -2079,7 +2056,13 @@
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
-          "routing": "bach_only"
+          "routing": "bach_only",
+          "requirements": [
+            {
+              "kind": "prior_authorization",
+              "verification": "unverified"
+            }
+          ]
         },
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
@@ -2087,14 +2070,7 @@
         }
       },
       "carrierCode": "TRI05",
-      "carrierId": "car40921",
-      "requirements": [
-        {
-          "kind": "prior_authorization",
-          "verification": "unverified"
-        }
-      ],
-      "issue": "This medical product does not have an unambiguous billing mapping in the document."
+      "carrierId": "car40921"
     },
     {
       "name": "Tricare Prime",
@@ -2104,7 +2080,13 @@
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
-          "routing": "bach_only"
+          "routing": "bach_only",
+          "requirements": [
+            {
+              "kind": "prior_authorization",
+              "verification": "unverified"
+            }
+          ]
         },
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
@@ -2112,13 +2094,7 @@
         }
       },
       "carrierCode": "TRI00",
-      "carrierId": "car284327",
-      "requirements": [
-        {
-          "kind": "prior_authorization",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car284327"
     },
     {
       "name": "Tricare Select",
@@ -2151,16 +2127,13 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "UNIT3",
-      "carrierId": "car284838",
-      "requirements": [
-        {
-          "kind": "network_review",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car284838"
     },
     {
       "name": "United Healthcare",
@@ -2172,16 +2145,16 @@
       ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "SPRING_HILL_MEDICAL": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "CRYSTAL_RIVER": {
-          "status": "needs_clarification"
+          "status": "accepted"
         }
       },
-      "clarification": "whether United coverage is Medicare, Medicaid, employer coverage, or an individual/exchange plan, and the full product name on the card"
+      "clarification": "Is your United plan Medicare, Medicaid, or another plan?"
     },
     {
       "name": "United Healthcare AARP Medicare",
@@ -2200,10 +2173,12 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
-      "carrierCode": "AARPM",
-      "carrierIssue": "The document says AARPM; AMD lists AARPMC. Staff must reconcile the code."
+      "carrierCode": "AARPM"
     },
     {
       "name": "United Healthcare All Savers",
@@ -2216,9 +2191,11 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
-      },
-      "issue": "The document uses ALL1, while AMD lists ALL 1; staff must reconcile the carrier code."
+      }
     },
     {
       "name": "United Healthcare Choice",
@@ -2227,6 +2204,12 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
+        },
+        "HOLLYWOOD_SWEETWATER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "UNI20",
@@ -2241,6 +2224,12 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
+        },
+        "HOLLYWOOD_SWEETWATER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "UNI20",
@@ -2259,21 +2248,23 @@
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
-          "routing": "bach_only"
+          "routing": "bach_only",
+          "requirements": [
+            {
+              "kind": "vob_authorization",
+              "verification": "unverified"
+            }
+          ]
         },
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
-      "carrierCode": "UNIT15",
-      "requirements": [
-        {
-          "kind": "vob_authorization",
-          "verification": "unverified"
-        }
-      ],
-      "carrierIssue": "The document says UNIT15; AMD lists UNIT5. Staff must reconcile the code."
+      "carrierCode": "UNIT15"
     },
     {
       "name": "United Healthcare Golden Rule",
@@ -2289,6 +2280,9 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "GOL05",
@@ -2300,21 +2294,24 @@
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
-          "routing": "bach_only"
+          "routing": "bach_only",
+          "requirements": [
+            {
+              "kind": "prior_authorization",
+              "verification": "unverified"
+            }
+          ]
         },
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "UNI20",
-      "carrierId": "car40923",
-      "requirements": [
-        {
-          "kind": "prior_authorization",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40923"
     },
     {
       "name": "United Healthcare Individual Exchange",
@@ -2328,22 +2325,25 @@
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
-          "routing": "bach_only"
+          "routing": "bach_only",
+          "requirements": [
+            {
+              "kind": "pcp_referral",
+              "channel": "uhc_portal",
+              "verification": "unverified"
+            }
+          ]
         },
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "bach_licht"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "UNI20",
-      "carrierId": "car40923",
-      "requirements": [
-        {
-          "kind": "pcp_referral",
-          "channel": "uhc_portal",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40923"
     },
     {
       "name": "United Healthcare Medicare",
@@ -2356,29 +2356,32 @@
       ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "SPRING_HILL_MEDICAL": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "CRYSTAL_RIVER": {
-          "status": "needs_clarification"
+          "status": "accepted"
         }
       },
-      "clarification": "the full United Medicare product name and HMO/PPO type from the card, such as AARP Medicare Complete or Dual Complete. Do not assume AARP from Medicare alone"
+      "clarification": "Does your United Medicare card say AARP Medicare Complete or Dual Complete?"
     },
     {
       "name": "United Healthcare NHP",
       "aliases": [],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
-          "status": "needs_clarification"
+          "status": "accepted"
         },
         "SPRING_HILL_MEDICAL": {
-          "status": "needs_clarification"
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
-      "clarification": "whether the card says NHP HMO Access or NHP HMO Only"
+      "clarification": "Does your card say NHP HMO Access or NHP HMO Only?"
     },
     {
       "name": "United Healthcare NHP HMO Access",
@@ -2387,6 +2390,12 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "UNI20",
@@ -2399,16 +2408,16 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "UNI20",
-      "carrierId": "car40923",
-      "requirements": [
-        {
-          "kind": "pcp_referral",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car40923"
     },
     {
       "name": "United Healthcare Oxford",
@@ -2420,6 +2429,12 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "OX04",
@@ -2439,6 +2454,9 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "UNIT9",
@@ -2459,6 +2477,9 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "UHC STU",
@@ -2479,6 +2500,9 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "BIND1",
@@ -2529,14 +2553,7 @@
         }
       },
       "carrierCode": "AMBE1",
-      "carrierId": "car281245",
-      "requirements": [
-        {
-          "kind": "benefits_review",
-          "channel": "envolve",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car281245"
     },
     {
       "name": "WellCare Medicaid",
@@ -2547,17 +2564,16 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "not_accepted"
         }
       },
       "carrierCode": "AMBE1",
-      "carrierId": "car281245",
-      "requirements": [
-        {
-          "kind": "benefits_review",
-          "channel": "envolve",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car281245"
     },
     {
       "name": "WellCare Medicare Lppo",
@@ -2568,17 +2584,23 @@
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
-          "routing": "bach_only"
+          "routing": "bach_only",
+          "requirements": [
+            {
+              "kind": "prior_authorization",
+              "verification": "unverified"
+            }
+          ]
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted"
         }
       },
       "carrierCode": "PREM1",
-      "carrierId": "car281317",
-      "requirements": [
-        {
-          "kind": "prior_authorization",
-          "verification": "unverified"
-        }
-      ]
+      "carrierId": "car281317"
     }
   ]
 }

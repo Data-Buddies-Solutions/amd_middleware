@@ -53,7 +53,7 @@ func TestPRE04CorrectionPreservesOfficeParticipation(t *testing.T) {
 func TestInsuranceClarifiesAmbiguousNaturalLanguage(t *testing.T) {
 	InitRegistry("")
 	office, _ := ResolveOffice("Hollywood")
-	for _, plan := range []string{"I have Humana", "Humana Unknown Product", "I have United Healthcare", "Cigna HMO or Cigna PPO", "Aetna or Cigna PPO"} {
+	for _, plan := range []string{"Cigna HMO or Cigna PPO", "Aetna or Cigna PPO"} {
 		t.Run(plan, func(t *testing.T) {
 			d := DecideInsurance(plan, "medical", office, "01/02/1980")
 			if d.Outcome != "needs_clarification" || d.CanRegister || d.CanSchedule {

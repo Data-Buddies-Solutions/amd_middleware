@@ -983,7 +983,7 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 		{
 			name:        "insurance not recognized",
 			body:        `{"patientId":"pat123","insurance":"FakeInsurance","subscriberNum":"ABC123"}`,
-			expectedMsg: `needs_input: Ask for the exact plan name from the insurance card.`,
+			expectedMsg: `needs_input: What insurance plan is listed on your card?`,
 		},
 		{
 			name:        "spring hill rejected medical plan",
