@@ -5,6 +5,7 @@ import "strings"
 type participationMatchCandidate struct {
 	rule     *participationRule
 	term     string
+	name     string
 	required bool
 }
 
@@ -22,13 +23,13 @@ func participationMatch(source, query string) *participationRule {
 		for _, name := range append([]string{display}, rule.Aliases...) {
 			term := insuranceNormalize(name)
 			if term != "" && insuranceContains(query, term) {
-				matches = append(matches, participationMatchCandidate{rule, term, false})
+				matches = append(matches, participationMatchCandidate{rule: rule, term: term, name: name})
 			}
 		}
 		for _, name := range rule.RequiredAliases {
 			term := insuranceNormalize(name)
 			if insuranceContainsWords(query, term) {
-				matches = append(matches, participationMatchCandidate{rule, term, true})
+				matches = append(matches, participationMatchCandidate{rule: rule, term: term, name: name, required: true})
 			}
 		}
 	}
@@ -59,6 +60,11 @@ func participationMatch(source, query string) *participationRule {
 	}
 	if selected == nil {
 		return nil
+	}
+	if source == "SPRING_HILL_ROUTINE_VISION" {
+		resolved := *selected.rule
+		resolved.Display = selected.name
+		return &resolved
 	}
 	return selected.rule
 }
