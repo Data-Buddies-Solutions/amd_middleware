@@ -212,6 +212,9 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 	}
 	d.CanSchedule = len(d.Requirements) == 0 && len(d.AllowedProviders) > 0
 	d.Answer = "success: Yes, we accept " + d.CanonicalPlan + "."
+	if coverage == "routine_vision" {
+		d.Answer = "success: Yes, we take " + strings.TrimSpace(plan) + "."
+	}
 	if len(d.Requirements) > 0 {
 		d.Outcome = "needs_staff_task"
 		d.Answer = "blocked: This plan requires prior authorization before scheduling."
