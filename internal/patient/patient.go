@@ -286,8 +286,8 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 		coverage = "medical"
 	}
 	decision := domain.DecideInsurance(command.Insurance, coverage, office, command.DOB)
-	if !decision.CanRegister {
-		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: decision.RegistrationBlockedAnswer()}
+	if decision.Participation != "accepted" {
+		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
 
 	created, createReconciled, outcome := p.createPatient(ctx, command, office)
@@ -439,8 +439,8 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 		coverage = "medical"
 	}
 	decision := domain.DecideInsurance(command.Insurance, coverage, office, command.DOB)
-	if !decision.CanRegister {
-		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: decision.RegistrationBlockedAnswer()}
+	if decision.Participation != "accepted" {
+		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
 
 	reconciled, replacementAlreadyActive, outcome := p.endInsurance(ctx, command, decision.CarrierID)
@@ -1064,7 +1064,7 @@ func applyDemographics(result *ResolveResult, demographics domain.PatientDemogra
 	result.InsuranceDecision = &decision
 	result.Routing = decision.Routing
 	result.AllowedProviders = decision.AllowedProviders
-	result.RoutingAmbiguous = decision.Participation == "unknown" || (decision.Participation == "accepted" && !decision.CanRegister)
+	result.RoutingAmbiguous = decision.Participation == "unknown"
 	result.PreauthRequired = len(decision.Requirements) > 0
 }
 

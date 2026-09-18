@@ -26,7 +26,7 @@ func TestMedicalDocumentCarrierAttachments(t *testing.T) {
 	} {
 		t.Run(tc.plan, func(t *testing.T) {
 			d := DecideInsurance(tc.plan, "medical", office, "01/02/1980")
-			if d.CarrierCode != tc.code || d.CarrierID != tc.id || !d.CanRegister || d.CanSchedule != tc.schedule {
+			if d.CarrierCode != tc.code || d.CarrierID != tc.id || d.Participation != "accepted" || d.CanSchedule != tc.schedule {
 				t.Fatalf("wrong attachment or permission: %+v", d)
 			}
 			// An old/wrong chart attachment must never become schedulable through caller text.
@@ -42,14 +42,14 @@ func TestMedicalDocumentRequirementsAndUnresolvedCodes(t *testing.T) {
 	office, _ := ResolveOffice("Hollywood")
 	for _, plan := range []string{"Aetna Healthy Kids", "Community Care Plan", "Doctors Health Medicare", "Simply Medicaid", "Simply Medicare", "Childrens Medical Services", "WellCare Medicaid", "AvMed Select"} {
 		d := DecideInsurance(plan, "medical", office, "01/02/1980")
-		if !d.CanRegister || !d.CanSchedule || len(d.Requirements) != 0 {
+		if d.Participation != "accepted" || !d.CanSchedule || len(d.Requirements) != 0 {
 			t.Errorf("unexpected review for %s: %+v", plan, d)
 		}
 	}
 	for _, plan := range []string{"Medicaid", "Humana PPO", "Humana PPO Pos", "United Healthcare All Savers", "United Healthcare AARP Medicare", "United Healthcare Global", "SunHealth"} {
 		d := DecideInsurance(plan, "medical", office, "01/02/1980")
-		if d.CanRegister || d.CanSchedule {
-			t.Errorf("unresolved %s allowed a write: %+v", plan, d)
+		if d.Participation != "accepted" || d.CarrierID == "" {
+			t.Errorf("accepted %s lacks carrier mapping: %+v", plan, d)
 		}
 	}
 }

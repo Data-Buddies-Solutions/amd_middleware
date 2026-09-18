@@ -31,7 +31,6 @@
         "Cigna Medicare Advantage Healthspring",
         "Cigna Medicare Advantage HMO",
         "Cigna Medicare Advantage PPO",
-        "Clear Spring Health Medicare Advantage",
         "Devoted Medicare HMO",
         "Devoted Medicare PPO",
         "BCBS out of state",
@@ -125,7 +124,6 @@
         "Cigna Medicare Advantage Healthspring",
         "Cigna Medicare Advantage HMO",
         "Cigna Medicare Advantage PPO",
-        "Clear Spring Health Medicare Advantage",
         "Devoted Medicare HMO",
         "Devoted Medicare PPO",
         "Florida Blue Medicare HMO",
@@ -227,7 +225,6 @@
         "AvMed Entrust",
         "AvMed Entrust Medical",
         "AvMed Jackson First Network HMO",
-        "Clear Spring Health Medicare Advantage",
         "Miami Dade Doctors Health",
         "Florida Community Care (ILF Medicaid",
         "Florida Complete Care - Medicare Medical ONLY",
@@ -279,7 +276,6 @@
         "AvMed Entrust",
         "AvMed Entrust Medical",
         "AvMed Jackson First Network HMO",
-        "Clear Spring Health Medicare Advantage",
         "Miami Dade Doctors Health",
         "Florida Community Care (ILF Medicaid",
         "Florida Complete Care - Medicare Medical ONLY",
@@ -319,6 +315,46 @@
       "inputs": [
         "Humana Care Plus"
       ]
+    },
+    {
+      "office": "Spring Hill",
+      "coverage": "medical",
+      "outcome": "needs_clarification",
+      "priorAuth": false,
+      "inputs": [
+        "Clear Spring Health Medicare Advantage"
+      ],
+      "reason": "User requested Clear Spring stay ambiguous because its AMD carrier mapping is unresolved."
+    },
+    {
+      "office": "Crystal River",
+      "coverage": "medical",
+      "outcome": "needs_clarification",
+      "priorAuth": false,
+      "inputs": [
+        "Clear Spring Health Medicare Advantage"
+      ],
+      "reason": "User requested Clear Spring stay ambiguous because its AMD carrier mapping is unresolved."
+    },
+    {
+      "office": "Hollywood",
+      "coverage": "medical",
+      "outcome": "needs_clarification",
+      "priorAuth": false,
+      "inputs": [
+        "Clear Spring Health Medicare Advantage"
+      ],
+      "reason": "User requested Clear Spring stay ambiguous because its AMD carrier mapping is unresolved."
+    },
+    {
+      "office": "Sweetwater",
+      "coverage": "medical",
+      "outcome": "needs_clarification",
+      "priorAuth": false,
+      "inputs": [
+        "Clear Spring Health Medicare Advantage"
+      ],
+      "reason": "User requested Clear Spring stay ambiguous because its AMD carrier mapping is unresolved."
     }
   ],
   "aliasExceptions": [

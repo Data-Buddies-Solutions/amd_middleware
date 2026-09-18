@@ -8,7 +8,7 @@ func TestMedicalTriageRecognizesClarifiedAetnaCommercial(t *testing.T) {
 	for _, name := range []string{"Hollywood", "Spring Hill"} {
 		office, _ := ResolveOffice(name)
 		d := DecideInsurance("Aetna Commercial", "medical", office, "01/01/2015")
-		if !d.CanRegister || !d.CanSchedule || d.CarrierCode != "AET07" {
+		if d.Participation != "accepted" || !d.CanSchedule || d.CarrierCode != "AET07" {
 			t.Fatalf("clarified product blocked: %+v", d)
 		}
 	}
@@ -30,7 +30,7 @@ func TestMedicalTriageRefinesHumanaWithoutLosingProductRequirements(t *testing.T
 		{"Tricare Prime", "TRI00", false},
 	} {
 		d := DecideInsurance(tc.plan, "medical", office, "")
-		if !d.CanRegister || d.CarrierCode != tc.code || d.CanSchedule != tc.schedule {
+		if d.Participation != "accepted" || d.CarrierCode != tc.code || d.CanSchedule != tc.schedule {
 			t.Errorf("specific product lost: %s %+v", tc.plan, d)
 		}
 	}

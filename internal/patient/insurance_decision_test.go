@@ -9,7 +9,7 @@ import (
 )
 
 func TestCorrectedCarrierIsValidatedBeforeAnyInsuranceMutation(t *testing.T) {
-	for _, plan := range []string{"United AARP Medicare Complete", "United Global International Plan", "Humana PPO", "United Healthcare All Savers", "Medicaid", "Humana", "HUM03"} {
+	for _, plan := range []string{"Clear Spring Health", "Unknown Plan", "HUM03"} {
 		records := advancedmdtest.NewAdapter()
 		create := validCreateCommand()
 		create.Office = "Hollywood"
@@ -42,6 +42,16 @@ func TestPreferredCareUsesItsOwnCarrierAndReceipt(t *testing.T) {
 func TestVerifiedMedicalCarriersReachInsuranceWrite(t *testing.T) {
 	for _, tc := range []struct{ plan, id, code string }{
 		{"Humana Medicaid HMO", "car303033", "HUM02"},
+		{"Aetna", "car40887", "AET07"},
+		{"Humana", "car303062", "HUM PPO"},
+		{"Humana Medicare", "car40906", "HUM01"},
+		{"Humana PPO", "car303062", "HUM PPO"},
+		{"United Healthcare", "car40923", "UNI20"},
+		{"United AARP Medicare Complete", "car302750", "AARPM"},
+		{"United Global International Plan", "car284971", "UNIT15"},
+		{"United Healthcare All Savers", "car284949", "ALL 1"},
+		{"SunHealth", "car308086", "SUNHEALT"},
+		{"Medicaid", "car40899", "FLO03"},
 		{"United Golden Rule", "car40902", "GOL05"},
 		{"United Individual Exchange", "car40923", "UNI20"},
 		{"Cigna PPO", "car40895", "CIG09"},

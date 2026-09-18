@@ -3,7 +3,7 @@ package domain
 import "encoding/json"
 
 // A medical plan is defined once. Offices contain only participation differences.
-// An empty carrier ID means the billing identity still needs verification.
+// Every accepted office policy has a complete carrier mapping.
 type medicalPlan struct {
 	Name            string                         `json:"name"`
 	Aliases         []string                       `json:"aliases"`
@@ -44,6 +44,9 @@ var medicalCatalog = func() medicalCatalogData {
 		}
 		seen[key] = true
 		for _, policy := range p.Offices {
+			if policy.Status == "accepted" && (p.CarrierID == "" || policy.Routing == "" || policy.Routing == RoutingNotAccepted) {
+				panic("accepted insurance requires carrier ID and office routing: " + p.Name)
+			}
 			switch policy.Status {
 			case "accepted", "not_accepted", "needs_clarification", "needs_staff_task":
 			default:

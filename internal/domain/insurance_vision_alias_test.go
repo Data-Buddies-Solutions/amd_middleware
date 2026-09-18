@@ -14,7 +14,7 @@ func TestVisionAliasMigrationPreservesOriginalAcceptance(t *testing.T) {
 					t.Fatalf("original Python accepted %q as %q; got %+v", query, name, rule)
 				}
 				decision := DecideInsurance(query, "routine_vision", office, "01/02/1980")
-				if decision.Participation != "accepted" || !decision.CanRegister || !decision.CanSchedule || decision.CarrierID != "car280612" || decision.Routing != RoutingOpticalOnly {
+				if decision.Participation != "accepted" || !decision.CanSchedule || decision.CarrierID != "car280612" || decision.Routing != RoutingOpticalOnly {
 					t.Fatalf("vision alias no longer preserves Davis acceptance: %+v", decision)
 				}
 			})

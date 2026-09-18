@@ -18,6 +18,9 @@ func TestLegacyOfficeInsuranceOutcomes(t *testing.T) {
 		if d.Outcome != outcome {
 			t.Errorf("outcome=%s; want %s; answer=%s", d.Outcome, outcome, d.Answer)
 		}
+		if d.Participation == "accepted" && (d.CarrierID == "" || d.Routing == "") {
+			t.Errorf("accepted plan cannot be registered: %+v", d)
+		}
 		if priorAuth && (len(d.Requirements) == 0 || d.CanSchedule) {
 			t.Errorf("lost legacy prior authorization: %+v", d)
 		}

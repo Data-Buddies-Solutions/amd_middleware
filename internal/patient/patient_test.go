@@ -80,9 +80,9 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 		InsuranceCarrierID: "car40906",
 		InsPlanID:          "ins789",
 		RespPartyID:        "resp456",
-		Routing:            "",
-		AllowedProviders:   []string{},
-		RoutingAmbiguous:   true,
+		Routing:            domain.RoutingBachOnly,
+		AllowedProviders:   []string{"Dr. Bach"},
+		RoutingAmbiguous:   false,
 		AppointmentsStatus: patient.AppointmentsFound,
 		Appointments: []patient.Appointment{{
 			ID:                9570263,
@@ -921,7 +921,7 @@ func TestResolveRefreshesKnownPatientByID(t *testing.T) {
 	if got.Name != "DOE,JANE" {
 		t.Fatalf("Name = %q, want DOE,JANE", got.Name)
 	}
-	if got.DOB != "01/15/1980" || !got.RoutingAmbiguous || got.InsuranceDecision == nil || got.InsuranceDecision.CanSchedule {
+	if got.DOB != "01/15/1980" || got.RoutingAmbiguous || got.InsuranceDecision == nil || !got.InsuranceDecision.CanSchedule {
 		t.Fatalf("demographics = DOB %q routing %q", got.DOB, got.Routing)
 	}
 	if got.AppointmentsStatus != patient.AppointmentsFound || len(got.Appointments) != 1 {

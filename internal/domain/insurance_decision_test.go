@@ -29,11 +29,8 @@ func TestCorrectedInsuranceIdentities(t *testing.T) {
 			if tc.kind != "" && (len(d.Requirements) != 1 || d.Requirements[0] != (InsuranceRequirement{tc.kind, tc.channel, "unverified"})) {
 				t.Fatalf("requirements=%+v", d.Requirements)
 			}
-			if (tc.code == "AARPM" || tc.code == "UNIT15") && (d.CanRegister || d.CanSchedule || d.CarrierID != "") {
-				t.Fatal("Unverified carrier ID allowed a write")
-			}
-			if tc.code != "AARPM" && tc.code != "UNIT15" && !d.CanRegister {
-				t.Fatalf("verified attachment blocked: %+v", d)
+			if d.CarrierID == "" {
+				t.Fatal("accepted plan lacks carrier mapping")
 			}
 			if tc.kind != "" && d.CanSchedule {
 				t.Fatal("requirement bypassed")
@@ -51,9 +48,9 @@ func TestCorrectedInsuranceIdentities(t *testing.T) {
 
 func TestAmbiguousFamiliesNeverChooseProduct(t *testing.T) {
 	office, _ := ResolveOffice("Hollywood")
-	for _, plan := range []string{"United", "UHC", "United Healthcare", "United Healthcare Unknown Product", "United Golden Rule or United Oxford", "Humana", "Humana HMO", "Humana Medicare", "HUM03"} {
+	for _, plan := range []string{"United Golden Rule or United Oxford", "HUM03", "Clear Spring Health"} {
 		d := DecideInsurance(plan, "medical", office, "")
-		if d.CanRegister || d.CanSchedule || d.CarrierID != "" {
+		if (d.Participation == "accepted") || d.CanSchedule || d.CarrierID != "" {
 			t.Fatalf("%s=%+v", plan, d)
 		}
 	}

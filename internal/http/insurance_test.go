@@ -45,7 +45,7 @@ func TestAcceptedFamilyDoesNotBecomeAProductInterrogation(t *testing.T) {
 		if err := json.Unmarshal(w.Body.Bytes(), &d); err != nil {
 			t.Fatal(err)
 		}
-		if w.Code != http.StatusOK || d.Outcome != "accepted" || d.CanRegister || d.CanSchedule || !strings.Contains(d.Answer, "Yes, we accept") {
+		if w.Code != http.StatusOK || d.Outcome != "accepted" || d.Participation != "accepted" || !d.CanSchedule || !strings.Contains(d.Answer, "Yes, we accept") {
 			t.Fatalf("wrong triage response: %s", w.Body.String())
 		}
 	}

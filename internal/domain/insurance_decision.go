@@ -31,7 +31,6 @@ type InsuranceDecision struct {
 	CredentialedProviders []string               `json:"credentialedProviders,omitempty"`
 	Requirements          []InsuranceRequirement `json:"requirements"`
 	Eligibility           string                 `json:"eligibility"`
-	CanRegister           bool                   `json:"canRegister"`
 	CanSchedule           bool                   `json:"canSchedule"`
 	SelfPay               bool                   `json:"selfPay"`
 	Answer                string                 `json:"answer"`
@@ -107,7 +106,7 @@ func medicalIdentityCode(name string) string {
 	return ""
 }
 
-// DecideInsurance preserves office participation independently of billing readiness. It does
+// DecideInsurance accepts a mapped plan for registration. It does
 // not run eligibility or verify referrals. No caller boolean can mark one verified.
 func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) InsuranceDecision {
 	d := InsuranceDecision{Outcome: "needs_clarification", Participation: "unknown", CoverageType: coverage, OfficeID: office.ID, AllowedProviders: []string{}, Requirements: []InsuranceRequirement{}, Eligibility: "not_checked", Answer: "needs_input: What insurance plan is listed on your card?"}
@@ -211,8 +210,7 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 		}
 		d.AllowedProviders = allowed
 	}
-	d.CanRegister = ok && d.CarrierID != "" && d.Routing != RoutingNotAccepted
-	d.CanSchedule = d.CanRegister && len(d.Requirements) == 0 && len(d.AllowedProviders) > 0
+	d.CanSchedule = len(d.Requirements) == 0 && len(d.AllowedProviders) > 0
 	d.Answer = "success: Yes, we accept " + d.CanonicalPlan + "."
 	if len(d.Requirements) > 0 {
 		d.Outcome = "needs_staff_task"
@@ -260,12 +258,4 @@ func DecideChartInsurance(chart PatientDemographics, plan, coverage string, offi
 		decision.Answer = "blocked: Staff must verify the insurance on the chart before scheduling."
 	}
 	return decision
-}
-
-// RegistrationBlockedAnswer reports a write prerequisite, not plan participation.
-func (d InsuranceDecision) RegistrationBlockedAnswer() string {
-	if d.Outcome == "accepted" {
-		return "blocked: This plan is accepted, but staff must verify its billing setup before creating or updating the chart."
-	}
-	return d.Answer
 }

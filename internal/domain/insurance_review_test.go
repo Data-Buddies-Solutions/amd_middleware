@@ -40,7 +40,7 @@ func TestPRE04CorrectionPreservesOfficeParticipation(t *testing.T) {
 			office, _ := ResolveOffice(name)
 			d := DecideInsurance("Preferred Care Partners", "medical", office, "01/02/1980")
 			if name == "Spring Hill" {
-				if d.CanRegister || d.CanSchedule || d.Participation == "accepted" {
+				if d.Participation == "accepted" || d.CanSchedule {
 					t.Fatalf("correction expanded office participation: %+v", d)
 				}
 			} else if !d.CanSchedule || d.CarrierCode != "PRE04" {
@@ -56,7 +56,7 @@ func TestInsuranceClarifiesAmbiguousNaturalLanguage(t *testing.T) {
 	for _, plan := range []string{"Cigna HMO or Cigna PPO", "Aetna or Cigna PPO"} {
 		t.Run(plan, func(t *testing.T) {
 			d := DecideInsurance(plan, "medical", office, "01/02/1980")
-			if d.Outcome != "needs_clarification" || d.CanRegister || d.CanSchedule {
+			if d.Outcome != "needs_clarification" || (d.Participation == "accepted") || d.CanSchedule {
 				t.Fatalf("ambiguous plan selected: %+v", d)
 			}
 		})
