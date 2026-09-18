@@ -8,11 +8,9 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"sync"
 	"time"
 
 	"advancedmd-token-management/internal/domain"
-	"advancedmd-token-management/internal/safeerrors"
 )
 
 // ParseDateTime parses an AMD datetime string trying multiple known formats.
@@ -92,8 +90,7 @@ func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *d
 	for _, a := range amdAppts {
 		startTime, err := ParseDateTime(a.StartDateTime)
 		if err != nil {
-			log.Printf("WARNING: skipping appointment with invalid start time in column %s: category=%s", columnID, safeerrors.Classify(err))
-			continue
+			return nil, fmt.Errorf("failed to parse appointment start time: %w", err)
 		}
 
 		appointments = append(appointments, domain.Appointment{
@@ -107,33 +104,6 @@ func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *d
 	}
 
 	return appointments, nil
-}
-
-// GetAppointmentsForColumns fetches appointments for multiple columns concurrently.
-// Per-column errors are logged and the column is omitted from results (callers should
-// check key presence before using data — absent key means fetch failed).
-func (c *AdvancedMDRestClient) GetAppointmentsForColumns(ctx context.Context, tokenData *domain.TokenData, columnIDs []string, startDate string) map[string][]domain.Appointment {
-	result := make(map[string][]domain.Appointment)
-	var mu sync.Mutex
-	var wg sync.WaitGroup
-
-	for _, colID := range columnIDs {
-		wg.Add(1)
-		go func(id string) {
-			defer wg.Done()
-			appts, err := c.GetAppointments(ctx, tokenData, id, startDate)
-			mu.Lock()
-			defer mu.Unlock()
-			if err != nil {
-				log.Printf("WARNING: failed to get appointments for column %s: category=%s", id, safeerrors.Classify(err))
-				return
-			}
-			result[id] = appts
-		}(colID)
-	}
-
-	wg.Wait()
-	return result
 }
 
 // AMDBlockHoldResponse represents a block hold from the REST API.
@@ -176,8 +146,7 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 	for _, h := range amdHolds {
 		startTime, err := ParseDateTime(h.StartDateTime)
 		if err != nil {
-			log.Printf("WARNING: skipping block hold with invalid start time: category=%s", safeerrors.Classify(err))
-			continue
+			return nil, fmt.Errorf("failed to parse block hold start time: %w", err)
 		}
 
 		endTime, err := ParseDateTime(h.EndDateTime)
@@ -200,32 +169,6 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 	}
 
 	return holds, nil
-}
-
-// GetBlockHoldsForColumns fetches block holds for multiple columns concurrently.
-// Per-column errors are logged and the column is omitted from results.
-func (c *AdvancedMDRestClient) GetBlockHoldsForColumns(ctx context.Context, tokenData *domain.TokenData, columnIDs []string, startDate string) map[string][]domain.BlockHold {
-	result := make(map[string][]domain.BlockHold)
-	var mu sync.Mutex
-	var wg sync.WaitGroup
-
-	for _, colID := range columnIDs {
-		wg.Add(1)
-		go func(id string) {
-			defer wg.Done()
-			holds, err := c.GetBlockHolds(ctx, tokenData, id, startDate)
-			mu.Lock()
-			defer mu.Unlock()
-			if err != nil {
-				log.Printf("WARNING: failed to get block holds for column %s: category=%s", id, safeerrors.Classify(err))
-				return
-			}
-			result[id] = holds
-		}(colID)
-	}
-
-	wg.Wait()
-	return result
 }
 
 // GetAppointmentsByMonth fetches all appointments for the given columns for a full month.
