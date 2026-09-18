@@ -23,8 +23,6 @@ const maxAppointmentCommentLength = 1000
 // validation, provider write, reconciliation, and receipt.
 type BookCommand struct {
 	InsurancePlan     string `json:"insurancePlan,omitempty"`
-	HospitalName      string `json:"hospitalName,omitempty"`
-	HospitalDate      string `json:"hospitalDate,omitempty"`
 	PatientID         string `json:"patientId"`
 	PatientName       string `json:"patientName,omitempty"`
 	DOB               string `json:"dob,omitempty"`
@@ -291,11 +289,6 @@ func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingCont
 	if !insurance.CanSchedule {
 		return 0, schedulingError(insurance.Answer)
 	}
-	if coverage == domain.AppointmentVisitMedical {
-		if err := validateHospitalFollowUp(booking.command.VisitReason+" "+booking.command.AppointmentReason, booking.command.HospitalName, booking.command.HospitalDate); err != nil {
-			return 0, err
-		}
-	}
 	// Enforce the current backend insurance rule even for a previously signed slot
 	// or a raw-booking consumer. The caller cannot relax credentialing.
 	allowed := domain.NewSchedulingPolicy(booking.office).EligibleColumns(
@@ -321,9 +314,6 @@ func applyBookingPolicy(booking *bookingContext) (
 ) {
 	command := booking.command
 	comments := buildAppointmentComment(command.AppointmentReason, command.ReferringDoctor)
-	if command.HospitalName != "" || command.HospitalDate != "" {
-		comments += "; Hospital: " + strings.TrimSpace(command.HospitalName) + "; Hospital visit: " + strings.TrimSpace(command.HospitalDate)
-	}
 	if len([]rune(comments)) > maxAppointmentCommentLength {
 		return domain.SchedulingPolicy{}, domain.BookingPolicyDecision{}, "", schedulingError(
 			fmt.Sprintf("appointment comments must be %d characters or fewer", maxAppointmentCommentLength),
