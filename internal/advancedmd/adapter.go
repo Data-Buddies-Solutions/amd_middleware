@@ -3,6 +3,7 @@ package advancedmd
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"sort"
 	"strconv"
@@ -545,33 +546,51 @@ func (a *Adapter) ReadSchedule(ctx context.Context, query domain.ScheduleReadQue
 		return domain.ScheduleReadResult{}, NewError(safeerrors.CategoryInternal)
 	}
 
-	var appointments map[string][]domain.Appointment
-	var blockHolds map[string][]domain.BlockHold
+	// Each request owns one result slot. Assemble the map after all reads finish,
+	// so completeness comes from explicit outcomes, never missing map keys.
+	columns := make([]domain.ColumnSchedule, len(query.ColumnIDs))
+	failures := make([]error, 2*len(query.ColumnIDs))
 	var reads sync.WaitGroup
-	reads.Add(2)
-	go func() {
-		defer reads.Done()
-		appointments = a.restClient.GetAppointmentsForColumns(ctx, token, query.ColumnIDs, query.Date)
-	}()
-	go func() {
-		defer reads.Done()
-		blockHolds = a.restClient.GetBlockHoldsForColumns(ctx, token, query.ColumnIDs, query.Date)
-	}()
-	reads.Wait()
-
-	result := domain.ScheduleReadResult{
-		Columns: make(map[string]domain.ColumnSchedule, len(query.ColumnIDs)),
+	for i, columnID := range query.ColumnIDs {
+		reads.Add(2)
+		go func() {
+			defer reads.Done()
+			rows, err := a.restClient.GetAppointments(ctx, token, columnID, query.Date)
+			columns[i].Appointments = rows
+			columns[i].AppointmentsComplete = err == nil
+			failures[2*i] = err
+		}()
+		go func() {
+			defer reads.Done()
+			rows, err := a.restClient.GetBlockHolds(ctx, token, columnID, query.Date)
+			columns[i].BlockHolds = rows
+			columns[i].BlockHoldsComplete = err == nil
+			failures[2*i+1] = err
+		}()
 	}
-	for _, columnID := range query.ColumnIDs {
-		columnAppointments, appointmentsComplete := appointments[columnID]
-		columnBlockHolds, blockHoldsComplete := blockHolds[columnID]
-		result.Columns[columnID] = domain.ColumnSchedule{
-			Appointments:         columnAppointments,
-			BlockHolds:           columnBlockHolds,
-			AppointmentsComplete: appointmentsComplete,
-			BlockHoldsComplete:   blockHoldsComplete,
+	reads.Wait()
+	result := domain.ScheduleReadResult{Columns: make(map[string]domain.ColumnSchedule, len(columns))}
+	completeColumns := 0
+	for i, columnID := range query.ColumnIDs {
+		result.Columns[columnID] = columns[i]
+		if columns[i].Complete() {
+			completeColumns++
 		}
 	}
+	var firstErr error
+	for _, err := range failures {
+		if err != nil {
+			failure := classify(err)
+			if firstErr == nil {
+				firstErr = failure
+			}
+			log.Printf("schedule read incomplete category=%s", CategoryOf(failure))
+		}
+	}
+	if completeColumns == 0 && firstErr != nil {
+		return result, firstErr
+	}
+
 	return result, nil
 }
 

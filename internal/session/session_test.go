@@ -499,6 +499,8 @@ func TestSessionRetriesAfterUnavailableAuthentication(t *testing.T) {
 		t.Fatalf("state after failed initial login = %q, want %q", got, SessionUnavailable)
 	}
 
+	clock.Advance(DefaultSessionRetryDelay)
+
 	token, err := session.Get(context.Background())
 	if err != nil {
 		t.Fatalf("recovery Get() error = %v", err)
@@ -685,4 +687,60 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
 	return f(request)
+}
+
+func TestUnavailableSessionHonorsRetryCooldown(t *testing.T) {
+	clock := &testClock{now: time.Date(2026, 9, 14, 0, 0, 0, 0, time.UTC)}
+	calls := 0
+	s := newSession(loginAdapterFunc(func(context.Context) (string, string, error) { calls++; return "", "", errors.New("offline") }), clock.Now, sessionPolicy{loginTimeout: time.Second, retryDelay: time.Minute})
+	for i := 0; i < 10; i++ {
+		if _, err := s.Get(context.Background()); !errors.Is(err, ErrSessionUnavailable) {
+			t.Fatalf("error=%v", err)
+		}
+	}
+	if calls != 1 {
+		t.Fatalf("login attempts=%d, want 1", calls)
+	}
+	clock.Advance(time.Minute)
+	s.Get(context.Background())
+	if calls != 2 {
+		t.Fatalf("login attempts after cooldown=%d, want 2", calls)
+	}
+}
+
+func TestCancelledColdSessionLoginDoesNotBlockNextCaller(t *testing.T) {
+	clock := &testClock{now: time.Date(2026, 9, 14, 0, 0, 0, 0, time.UTC)}
+	started := make(chan struct{})
+	calls := 0
+	s := newSession(loginAdapterFunc(func(ctx context.Context) (string, string, error) {
+		calls++
+		if calls == 1 {
+			close(started)
+			<-ctx.Done()
+			return "", "", ctx.Err()
+		}
+		return "recovered-token", "https://provider.test/processrequest/api-801/app", nil
+	}), clock.Now, sessionPolicy{
+		staleAfter: DefaultSessionStaleAfter, expiresAfter: DefaultSessionExpiresAfter,
+		loginTimeout: time.Second, retryDelay: time.Minute,
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	finished := make(chan error, 1)
+	go func() { _, err := s.Get(ctx); finished <- err }()
+	<-started
+	cancel()
+	if err := <-finished; !errors.Is(err, ErrSessionUnavailable) {
+		t.Fatalf("cancelled caller error = %v, want session unavailable", err)
+	}
+
+	// The provider did not fail: a different caller can authenticate immediately.
+	// Keep the clock fixed so a retry cooldown cannot conceal the regression.
+	token, err := s.Get(context.Background())
+	if err != nil {
+		t.Fatalf("healthy caller blocked after caller cancellation: %v (login attempts=%d)", err, calls)
+	}
+	if calls != 2 || token == nil || token.Token != "Bearer recovered-token" {
+		t.Fatalf("healthy caller did not recover: login attempts=%d token present=%t", calls, token != nil)
+	}
 }

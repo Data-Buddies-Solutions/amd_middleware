@@ -827,7 +827,7 @@ func bestPatientPhone(contact AMDContactInfo) string {
 type AMDSchedulerSetupResponse struct {
 	PPMDResults struct {
 		Results struct {
-			ColumnList   AMDColumnList   `json:"columnlist"`
+			ColumnList   *AMDColumnList  `json:"columnlist"`
 			ProfileList  AMDProfileList  `json:"profilelist"`
 			FacilityList AMDFacilityList `json:"facilitylist"`
 		} `json:"Results"`
@@ -870,13 +870,29 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *dom
 		return nil, fmt.Errorf("getschedulersetup request failed: %w", err)
 	}
 
+	response, err := parseXMLRPCEnvelope(body, "getschedulersetup")
+	if err != nil {
+		return nil, err
+	}
+	if providerErrorPresent(response.PPMDResults.Error) {
+		return nil, providerRejection("getschedulersetup", body)
+	}
+
 	var resp AMDSchedulerSetupResponse
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return nil, fmt.Errorf("failed to parse scheduler setup response: %w", err)
 	}
 
+	if resp.PPMDResults.Results.ColumnList == nil {
+		return nil, fmt.Errorf("scheduler setup returned unexpected response: missing columnlist")
+	}
+	columns, err := parseColumns(resp.PPMDResults.Results.ColumnList.Columns)
+	if err != nil {
+		return nil, err
+	}
+
 	setup := &domain.SchedulerSetup{
-		Columns:    parseColumns(resp.PPMDResults.Results.ColumnList.Columns),
+		Columns:    columns,
 		Profiles:   parseProfiles(resp.PPMDResults.Results.ProfileList.Profiles),
 		Facilities: parseFacilities(resp.PPMDResults.Results.FacilityList.Facilities),
 	}
@@ -885,27 +901,25 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *dom
 }
 
 // parseColumns converts the AMD column data to domain columns.
-func parseColumns(data interface{}) []domain.SchedulerColumn {
-	if data == nil {
-		return nil
-	}
-
-	var columns []domain.SchedulerColumn
-
+func parseColumns(data interface{}) ([]domain.SchedulerColumn, error) {
 	switch v := data.(type) {
+	case nil:
+		return nil, nil
 	case map[string]interface{}:
-		// Single column
-		columns = append(columns, parseColumnFromMap(v))
+		return []domain.SchedulerColumn{parseColumnFromMap(v)}, nil
 	case []interface{}:
-		// Array of columns
+		columns := make([]domain.SchedulerColumn, 0, len(v))
 		for _, item := range v {
-			if m, ok := item.(map[string]interface{}); ok {
-				columns = append(columns, parseColumnFromMap(m))
+			column, ok := item.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("scheduler setup returned invalid column row")
 			}
+			columns = append(columns, parseColumnFromMap(column))
 		}
+		return columns, nil
+	default:
+		return nil, fmt.Errorf("scheduler setup returned invalid column collection")
 	}
-
-	return columns
 }
 
 // parseColumnFromMap extracts a SchedulerColumn from a map.
