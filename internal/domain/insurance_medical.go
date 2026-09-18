@@ -3,7 +3,7 @@ package domain
 import "encoding/json"
 
 // A medical plan is defined once. Offices contain only participation differences.
-// An empty carrier ID means the billing identity still needs verification.
+// Every accepted office policy has a complete carrier mapping.
 type medicalPlan struct {
 	Name            string                         `json:"name"`
 	Aliases         []string                       `json:"aliases"`
@@ -11,18 +11,15 @@ type medicalPlan struct {
 	CarrierCode     string                         `json:"carrierCode"`
 	CarrierID       string                         `json:"carrierId"`
 	Clarification   string                         `json:"clarification"`
-	Requirements    []InsuranceRequirement         `json:"requirements"`
 	Providers       []string                       `json:"credentialedProviders"`
-	Issue           string                         `json:"issue"`
-	CarrierIssue    string                         `json:"carrierIssue"`
-	OfficeIssues    map[string]string              `json:"officeIssues"`
 	Offices         map[string]medicalOfficePolicy `json:"offices"`
 }
 
 type medicalOfficePolicy struct {
-	Status  string      `json:"status"`
-	Routing RoutingRule `json:"routing"`
-	Notice  string      `json:"notice"`
+	Status       string                 `json:"status"`
+	Routing      RoutingRule            `json:"routing"`
+	Notice       string                 `json:"notice"`
+	Requirements []InsuranceRequirement `json:"requirements,omitempty"`
 }
 
 type medicalCatalogData struct {
@@ -47,6 +44,9 @@ var medicalCatalog = func() medicalCatalogData {
 		}
 		seen[key] = true
 		for _, policy := range p.Offices {
+			if policy.Status == "accepted" && (p.CarrierID == "" || policy.Routing == "" || policy.Routing == RoutingNotAccepted) {
+				panic("accepted insurance requires carrier ID and office routing: " + p.Name)
+			}
 			switch policy.Status {
 			case "accepted", "not_accepted", "needs_clarification", "needs_staff_task":
 			default:
@@ -72,11 +72,10 @@ func medicalRules() map[string][]participationRule {
 				canonical = ""
 			}
 			result[office] = append(result[office], participationRule{
-				OfficeUnverified: !configured, Status: policy.Status, Canonical: canonical, Display: p.Name, Aliases: p.Aliases,
+				Status: policy.Status, Canonical: canonical, Display: p.Name, Aliases: p.Aliases,
 				RequiredAliases: p.RequiredAliases, Notice: policy.Notice, Clarification: p.Clarification,
 				CarrierID: p.CarrierID, CarrierCode: p.CarrierCode, Routing: policy.Routing,
-				Requirements: p.Requirements, Providers: p.Providers, Issue: p.Issue,
-				CarrierIssue: p.CarrierIssue, OfficeIssues: p.OfficeIssues,
+				Requirements: policy.Requirements, Providers: p.Providers,
 			})
 		}
 	}

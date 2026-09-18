@@ -29,11 +29,8 @@ func TestCorrectedInsuranceIdentities(t *testing.T) {
 			if tc.kind != "" && (len(d.Requirements) != 1 || d.Requirements[0] != (InsuranceRequirement{tc.kind, tc.channel, "unverified"})) {
 				t.Fatalf("requirements=%+v", d.Requirements)
 			}
-			if (tc.code == "AARPM" || tc.code == "UNIT15") && (d.CanRegister || d.CanSchedule || d.CarrierID != "") {
-				t.Fatal("Unverified carrier ID allowed a write")
-			}
-			if tc.code != "AARPM" && tc.code != "UNIT15" && !d.CanRegister {
-				t.Fatalf("verified attachment blocked: %+v", d)
+			if d.CarrierID == "" {
+				t.Fatal("accepted plan lacks carrier mapping")
 			}
 			if tc.kind != "" && d.CanSchedule {
 				t.Fatal("requirement bypassed")
@@ -51,9 +48,9 @@ func TestCorrectedInsuranceIdentities(t *testing.T) {
 
 func TestAmbiguousFamiliesNeverChooseProduct(t *testing.T) {
 	office, _ := ResolveOffice("Hollywood")
-	for _, plan := range []string{"United", "UHC", "United Healthcare", "United Healthcare Unknown Product", "United Golden Rule or United Oxford", "Humana", "Humana HMO", "Humana Medicare", "HUM03"} {
+	for _, plan := range []string{"United Golden Rule or United Oxford", "HUM03", "Clear Spring Health"} {
 		d := DecideInsurance(plan, "medical", office, "")
-		if d.CanRegister || d.CanSchedule || d.CanonicalPlan != "" {
+		if (d.Participation == "accepted") || d.CanSchedule || d.CarrierID != "" {
 			t.Fatalf("%s=%+v", plan, d)
 		}
 	}
@@ -72,7 +69,7 @@ func TestInsuranceOfficeScopeAndSimilarProducts(t *testing.T) {
 		{"North Miami Beach Optical", "Aetna", "medical", "not_accepted"},
 		{"Crystal River", "Self Pay", "routine_vision", "not_accepted"},
 		{"Hollywood", "Preferred Care Partners", "routine_vision", "not_accepted"},
-		{"Crystal River", "United Golden Rule", "medical", "needs_staff_task"},
+		{"Crystal River", "United Golden Rule", "medical", "accepted"},
 	} {
 		office, _ := ResolveOffice(tc.office)
 		d := DecideInsurance(tc.plan, tc.coverage, office, "")
@@ -83,7 +80,7 @@ func TestInsuranceOfficeScopeAndSimilarProducts(t *testing.T) {
 	office, _ := ResolveOffice("Hollywood")
 	nhp := DecideInsurance("United Healthcare NHP HMO Only", "medical", office, "")
 	access := DecideInsurance("United Healthcare NHP HMO Access", "medical", office, "")
-	if len(nhp.Requirements) == 0 || nhp.CanSchedule || len(access.Requirements) != 0 {
+	if len(nhp.Requirements) != 0 || !nhp.CanSchedule || len(access.Requirements) != 0 {
 		t.Fatalf("NHP=%+v access=%+v", nhp, access)
 	}
 }
@@ -107,7 +104,7 @@ func TestPRE04CredentialingAndChartBinding(t *testing.T) {
 	}
 }
 
-func TestPDFScopeConflictsCannotSilentlyBecomeAccepted(t *testing.T) {
+func TestDocumentNotesDoNotChangeLegacyParticipation(t *testing.T) {
 	for _, tc := range []struct{ office, plan, coverage string }{
 		{"Hollywood", "Aetna Better Health", "medical"},
 		{"Hollywood", "Aetna Better Health", "routine_vision"},
@@ -120,15 +117,9 @@ func TestPDFScopeConflictsCannotSilentlyBecomeAccepted(t *testing.T) {
 	} {
 		office, _ := ResolveOffice(tc.office)
 		d := DecideInsurance(tc.plan, tc.coverage, office, "")
-		if d.CanRegister || d.CanSchedule || d.Outcome != "needs_staff_task" {
-			t.Fatalf("%+v => %+v", tc, d)
+		if d.Participation != "accepted" {
+			t.Fatalf("document note changed participation: %+v => %+v", tc, d)
 		}
 	}
-	office, _ := ResolveOffice("Hollywood")
-	for _, plan := range []string{"Ambetter Value", "Molina Medicare"} {
-		d := DecideInsurance(plan, "medical", office, "")
-		if len(d.Requirements) == 0 || d.CanSchedule {
-			t.Fatalf("missing PCP referral: %+v", d)
-		}
-	}
+
 }

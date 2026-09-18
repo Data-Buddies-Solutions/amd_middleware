@@ -31,7 +31,6 @@ type InsuranceDecision struct {
 	CredentialedProviders []string               `json:"credentialedProviders,omitempty"`
 	Requirements          []InsuranceRequirement `json:"requirements"`
 	Eligibility           string                 `json:"eligibility"`
-	CanRegister           bool                   `json:"canRegister"`
 	CanSchedule           bool                   `json:"canSchedule"`
 	SelfPay               bool                   `json:"selfPay"`
 	Answer                string                 `json:"answer"`
@@ -48,15 +47,11 @@ type participationRule struct {
 	Clarification   string   `json:"clarificationNeeded"`
 	Preauth         bool     `json:"preauthRequired"`
 	// Medical metadata comes from one catalog; the vision source is unchanged.
-	OfficeUnverified bool
-	CarrierID        string
-	CarrierCode      string
-	Routing          RoutingRule
-	Requirements     []InsuranceRequirement
-	Providers        []string
-	Issue            string
-	CarrierIssue     string
-	OfficeIssues     map[string]string
+	CarrierID    string
+	CarrierCode  string
+	Routing      RoutingRule
+	Requirements []InsuranceRequirement
+	Providers    []string
 }
 
 var insuranceWords = regexp.MustCompile(`[^a-z0-9]+`)
@@ -111,10 +106,10 @@ func medicalIdentityCode(name string) string {
 	return ""
 }
 
-// DecideInsurance is the sole participation/write/scheduling decision. It does
+// DecideInsurance accepts a mapped plan for registration. It does
 // not run eligibility or verify referrals. No caller boolean can mark one verified.
 func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) InsuranceDecision {
-	d := InsuranceDecision{Outcome: "needs_clarification", Participation: "unknown", CoverageType: coverage, OfficeID: office.ID, AllowedProviders: []string{}, Requirements: []InsuranceRequirement{}, Eligibility: "not_checked", Answer: "needs_input: Ask for the exact plan name from the insurance card."}
+	d := InsuranceDecision{Outcome: "needs_clarification", Participation: "unknown", CoverageType: coverage, OfficeID: office.ID, AllowedProviders: []string{}, Requirements: []InsuranceRequirement{}, Eligibility: "not_checked", Answer: "needs_input: What insurance plan is listed on your card?"}
 	if coverage != "medical" && coverage != "routine_vision" {
 		d.Answer = "needs_input: Specify medical or routine vision coverage."
 		return d
@@ -154,12 +149,9 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 	if r == nil {
 		return d
 	}
-	if insuranceNormalize(r.Canonical) == "united healthcare" {
-		return d
-	}
 	if r.Status == "needs_clarification" {
 		if r.Clarification != "" {
-			d.Answer = "needs_input: Ask for " + r.Clarification
+			d.Answer = "needs_input: " + r.Clarification
 		}
 		return d
 	}
@@ -169,23 +161,12 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 		d.Answer = "blocked: This plan is not accepted for this visit type at this office."
 		return d
 	}
-	if r.OfficeUnverified {
+	if r.Status == "needs_staff_task" {
 		d.Outcome = "needs_staff_task"
-		d.CanonicalPlan = r.Canonical
-		d.Answer = "blocked: Staff must confirm this plan's participation at this office."
-		return d
-	}
-	reason := r.Issue
-	if coverage == "medical" {
-		if officeIssue := r.OfficeIssues[office.ID]; officeIssue != "" {
-			reason = officeIssue
+		d.Answer = "blocked: The office needs to confirm this coverage."
+		if r.Notice != "" {
+			d.Answer += " " + r.Notice
 		}
-	} else {
-		reason = visionSourceConflict(plan, r.Canonical, office.ID)
-	}
-	if reason != "" {
-		d.Outcome = "needs_staff_task"
-		d.Answer = "blocked: " + reason + " Staff must confirm participation before proceeding."
 		return d
 	}
 	d.CanonicalPlan = r.Canonical
@@ -210,15 +191,12 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 	d.Routing = entry.Routing
 	d.SelfPay = IsSelfPayInsurance(d.CanonicalPlan)
 
-	if (!ok || entry.Routing == RoutingNotAccepted) && r.Status == "accepted" {
-		d.Outcome = "needs_staff_task"
-		d.Answer = "blocked: Insurance sources conflict for this office and visit type. Ask staff to confirm participation."
-		return d
-	}
 	d.Participation = "accepted"
 	d.Outcome = "accepted"
-	d.Routing = policy.SchedulingRouting(d.Routing, dob)
-	d.AllowedProviders = append([]string{}, policy.ProviderNames(d.Routing, dob)...)
+	if ok {
+		d.Routing = policy.SchedulingRouting(d.Routing, dob)
+		d.AllowedProviders = append([]string{}, policy.ProviderNames(d.Routing, dob)...)
+	}
 	if len(d.CredentialedProviders) > 0 {
 		// Intersection: credentialing never grants an office a new provider column.
 		allowed := []string{}
@@ -232,48 +210,11 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 		}
 		d.AllowedProviders = allowed
 	}
-	d.CanRegister = ok && d.CarrierID != "" && d.Routing != RoutingNotAccepted
-	d.CanSchedule = d.CanRegister && len(d.Requirements) == 0 && len(d.AllowedProviders) > 0 && r.Status == "accepted"
-	prefix := "success: "
-	if !d.CanRegister || len(d.Requirements) > 0 || r.Status == "needs_staff_task" {
-		d.Outcome = "needs_staff_task"
-		prefix = "blocked: "
-	}
-	d.Answer = prefix + "This office participates with " + d.CanonicalPlan + " for this visit type. This does not verify active coverage or benefits."
+	d.CanSchedule = len(d.Requirements) == 0 && len(d.AllowedProviders) > 0
+	d.Answer = "success: Yes, we accept " + d.CanonicalPlan + "."
 	if len(d.Requirements) > 0 {
-		if d.CanRegister {
-			d.Answer += " Registration or insurance updates may proceed, but staff must complete the required insurance review before scheduling."
-		} else {
-			d.Answer += " Staff must complete the required insurance review before scheduling."
-		}
-	}
-	for _, req := range d.Requirements {
-		switch req.Kind {
-		case "pcp_referral":
-			if req.Channel == "uhc_portal" {
-				d.Answer += " A PCP referral must be recorded in the insurer's portal."
-			} else {
-				d.Answer += " A PCP referral is required."
-			}
-		case "prior_authorization":
-			d.Answer += " Prior authorization is required."
-		case "precertification":
-			d.Answer += " Eligibility and pre-certification must be obtained through ehealthdeck."
-		case "benefits_review":
-			d.Answer += " Staff must obtain eligibility and benefits from Envolve."
-		case "secondary_coverage":
-			d.Answer += " Medicare must be primary; staff must verify the coverage order."
-		case "network_review":
-			d.Answer += " The office must confirm network limitations and any required authorization."
-		case "vob_authorization":
-			d.Answer += " Verification of Benefits authorization is required."
-		}
-	}
-	if !d.CanRegister {
-		d.Answer += " Staff must verify the insurance attachment details before registration or insurance changes."
-		if r.CarrierIssue != "" {
-			d.Answer += " " + r.CarrierIssue
-		}
+		d.Outcome = "needs_staff_task"
+		d.Answer = "blocked: This plan requires prior authorization before scheduling."
 	}
 	if r.Notice != "" {
 		d.Answer += " " + r.Notice
@@ -300,6 +241,10 @@ func DecideChartInsurance(chart PatientDemographics, plan, coverage string, offi
 	}
 	// A caller cannot clear a restriction already established by the chart.
 	if !decision.CanSchedule {
+		if decision.Outcome == "accepted" {
+			decision.Outcome = "needs_staff_task"
+			decision.Answer = "blocked: Staff must verify the insurance on the chart before scheduling."
+		}
 		return decision
 	}
 	matches := chart.CarrierID != "" && chart.CarrierID == decision.CarrierID
@@ -313,20 +258,4 @@ func DecideChartInsurance(chart PatientDemographics, plan, coverage string, offi
 		decision.Answer = "blocked: Staff must verify the insurance on the chart before scheduling."
 	}
 	return decision
-}
-
-// The group PDF (7/7/2026) conflicts with some older office lists. Preserve the
-// conflict as a review hold; never expand an office contract by inference.
-func visionSourceConflict(plan, canonical, office string) string {
-	n := insuranceNormalize(plan + " " + canonical)
-	if office == "hollywood" && (strings.Contains(n, "aetna better health") || strings.Contains(n, "molina medicaid")) {
-		return "The reference limits this Medicaid plan to Miami-Dade, but the older office list includes it here."
-	}
-	if office == "sweetwater" && (strings.Contains(n, "freedom") || strings.Contains(n, "optimum")) {
-		return "The reference limits this plan to other offices, but the older office list includes it here."
-	}
-	if strings.Contains(n, "careplus") || strings.Contains(n, "care plus") {
-		return "Routine-vision credentialing is listed as pending in the reference."
-	}
-	return ""
 }

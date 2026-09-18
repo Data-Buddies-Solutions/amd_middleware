@@ -286,7 +286,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 		coverage = "medical"
 	}
 	decision := domain.DecideInsurance(command.Insurance, coverage, office, command.DOB)
-	if !decision.CanRegister {
+	if decision.Participation != "accepted" {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
 
@@ -439,7 +439,7 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 		coverage = "medical"
 	}
 	decision := domain.DecideInsurance(command.Insurance, coverage, office, command.DOB)
-	if !decision.CanRegister {
+	if decision.Participation != "accepted" {
 		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
 

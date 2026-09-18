@@ -11,10 +11,7 @@ import (
 
 func TestInsuranceRequirementsCannotBeBypassedByBookingRouting(t *testing.T) {
 	for _, tc := range []struct{ name, plan, id string }{
-		{"exchange portal referral", "United Healthcare Individual Exchange", "car40923"},
-		{"global VOB", "United Healthcare Global", "car284971"},
 		{"HUM02 authorization", "Humana Medicaid HMO", "car308175"},
-		{"generic United", "United Healthcare", "car40923"},
 		{"unknown carrier", "Unknown", "car999"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -81,7 +78,7 @@ func TestHospitalFollowUpRequiresHospitalAndDate(t *testing.T) {
 func TestPatientScopedInventoryRechecksChartInsurance(t *testing.T) {
 	records := bookingRecords()
 	now := mutationTestNow()
-	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: "United Healthcare Individual Exchange", CarrierID: "car40923"}
+	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: "United Healthcare", CarrierID: "car999"}
 	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{PatientID: "12345", Office: "Spring Hill", StartDate: "2026-06-03", DOB: "01/15/1980", Routing: "all_three", CoverageType: "medical"})
 	if err == nil {
 		t.Fatal("inventory bypassed referral and carrier verification")

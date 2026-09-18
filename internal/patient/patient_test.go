@@ -80,9 +80,9 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 		InsuranceCarrierID: "car40906",
 		InsPlanID:          "ins789",
 		RespPartyID:        "resp456",
-		Routing:            "",
-		AllowedProviders:   []string{},
-		RoutingAmbiguous:   true,
+		Routing:            domain.RoutingBachOnly,
+		AllowedProviders:   []string{"Dr. Bach"},
+		RoutingAmbiguous:   false,
 		AppointmentsStatus: patient.AppointmentsFound,
 		Appointments: []patient.Appointment{{
 			ID:                9570263,
@@ -921,7 +921,7 @@ func TestResolveRefreshesKnownPatientByID(t *testing.T) {
 	if got.Name != "DOE,JANE" {
 		t.Fatalf("Name = %q, want DOE,JANE", got.Name)
 	}
-	if got.DOB != "01/15/1980" || !got.RoutingAmbiguous || got.InsuranceDecision == nil || got.InsuranceDecision.CanSchedule {
+	if got.DOB != "01/15/1980" || got.RoutingAmbiguous || got.InsuranceDecision == nil || !got.InsuranceDecision.CanSchedule {
 		t.Fatalf("demographics = DOB %q routing %q", got.DOB, got.Routing)
 	}
 	if got.AppointmentsStatus != patient.AppointmentsFound || len(got.Appointments) != 1 {
@@ -1095,6 +1095,7 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 
 	tests := []struct {
 		name             string
+		officeName       string
 		demographics     domain.PatientDemographics
 		patientDOB       string
 		wantRouting      domain.RoutingRule
@@ -1103,19 +1104,27 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 		wantProviderList bool
 	}{
 		{
-			name: "preauthorization carrier",
+			name:       "Spring Hill accepted carrier",
+			officeName: "Spring Hill",
 			demographics: domain.PatientDemographics{
 				CarrierName: "CIGNA HMO",
 				CarrierID:   "car301345",
 			},
 			patientDOB:       "01/01/1980",
 			wantRouting:      domain.RoutingAll,
-			wantPreauth:      true,
+			wantPreauth:      false,
 			wantAmbiguous:    false,
 			wantProviderList: true,
 		},
 		{
-			name: "minor uses pediatric routing",
+			name: "Hollywood prior authorization", officeName: "Hollywood",
+			demographics: domain.PatientDemographics{CarrierName: "CIGNA HMO", CarrierID: "car301345"},
+			patientDOB:   "01/01/1980", wantRouting: domain.RoutingBachOnly,
+			wantPreauth: true, wantProviderList: true,
+		},
+		{
+			name:       "minor uses pediatric routing",
+			officeName: "Spring Hill",
 			demographics: domain.PatientDemographics{
 				CarrierName: "AETNA COMMERCIAL",
 				CarrierID:   "car40887",
@@ -1130,6 +1139,7 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			office, _ := domain.LookupOffice(test.officeName)
 			amd := advancedmdtest.NewAdapter()
 			amd.PatientSearches[domain.PatientSearch{Phone: "9542872010"}] = []domain.Patient{{
 				ID: "123", FullName: "DOE,JANE", DOB: test.patientDOB,

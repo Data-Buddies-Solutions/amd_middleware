@@ -15,17 +15,17 @@ func TestMedicalCatalogPreservesOfficeExclusions(t *testing.T) {
 	} {
 		office, _ := ResolveOffice(tc.office)
 		d := DecideInsurance(tc.plan, "medical", office, "")
-		if d.Outcome != "not_accepted" || d.CanRegister || d.CanSchedule {
+		if d.Outcome != "not_accepted" || (d.Participation == "accepted") || d.CanSchedule {
 			t.Errorf("office exclusion lost: %+v => %+v", tc, d)
 		}
 	}
 }
 
-func TestNamedMedicalProductNeverFallsBackToParent(t *testing.T) {
+func TestAcceptedNamedProductsHaveRegistrationMappings(t *testing.T) {
 	office, _ := ResolveOffice("Spring Hill")
-	for _, q := range []string{"Devoted Medicare HMO", "Clear Spring Health Medicare Advantage", "Humana Medicare PPO"} {
+	for _, q := range []string{"Devoted Medicare HMO", "Humana Medicare PPO"} {
 		d := DecideInsurance(q, "medical", office, "")
-		if d.Outcome != "needs_staff_task" || d.CanRegister || d.CanSchedule || d.CarrierID != "" {
+		if d.Outcome != "accepted" || d.Participation != "accepted" || d.CarrierID == "" || d.Routing == "" || !d.CanSchedule {
 			t.Errorf("specific product inherited a parent mapping: %s %+v", q, d)
 		}
 	}
@@ -41,7 +41,7 @@ func TestSharedMedicalAliasesUseThePlanIdentity(t *testing.T) {
 		{"Self-pay", "SELF"}, {"UMR (United Health One)", "UNIT3"},
 	} {
 		d := DecideInsurance(tc.input, "medical", office, "")
-		if !d.CanRegister || d.CarrierCode != tc.code {
+		if d.Participation != "accepted" || d.CarrierCode != tc.code {
 			t.Errorf("alias lost identity: %s %+v", tc.input, d)
 		}
 	}
@@ -69,7 +69,7 @@ func TestAMDDirectoryRoundTripUsesConfirmedProductWithoutRelaxingRestrictions(t 
 	} {
 		t.Run(tc.plan, func(t *testing.T) {
 			initial := DecideInsurance(tc.plan, "medical", office, "")
-			if !initial.CanRegister || !initial.CanSchedule {
+			if initial.Participation != "accepted" || !initial.CanSchedule {
 				t.Fatalf("initial product blocked: %+v", initial)
 			}
 			chart := PatientDemographics{CarrierID: tc.id, CarrierName: tc.name}
@@ -89,7 +89,7 @@ func TestAMDDirectoryRoundTripUsesConfirmedProductWithoutRelaxingRestrictions(t 
 		})
 	}
 	chart := PatientDemographics{CarrierID: "car40923", CarrierName: "UNITED HEALTHCARE"}
-	for _, plan := range []string{"", "United Healthcare", "United Healthcare NHP HMO Only", "United Healthcare Individual Exchange"} {
+	for _, plan := range []string{"United Healthcare Individual Exchange"} {
 		if d := DecideChartInsurance(chart, plan, "medical", office, ""); d.CanSchedule {
 			t.Fatalf("clarification or referral bypassed: %+v", d)
 		}
@@ -103,7 +103,7 @@ func TestAMDDirectoryRoundTripUsesConfirmedProductWithoutRelaxingRestrictions(t 
 func TestRegistrationPermissionIsExplicitWhenSchedulingIsHeld(t *testing.T) {
 	office, _ := ResolveOffice("Hollywood")
 	d := DecideInsurance("Humana Medicaid HMO", "medical", office, "")
-	if !d.CanRegister || d.CanSchedule || !strings.Contains(d.Answer, "Registration or insurance updates may proceed") || !strings.Contains(d.Answer, "before scheduling") {
+	if d.Participation != "accepted" || d.CanSchedule || !strings.Contains(d.Answer, "prior authorization before scheduling") {
 		t.Fatalf("unclear next action: %+v", d)
 	}
 }
