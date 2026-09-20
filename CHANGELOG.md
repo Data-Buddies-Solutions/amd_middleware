@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.0.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.1...v5.0.2) (2026-09-20)
+
+
+### Bug Fixes
+
+* preserve middleware read failures and isolate refresh cancellation ([#186](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/186)) ([a34ba76](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/a34ba7665f79997f2a300b268156ce2c1aa5f81d))
+
 ## [5.0.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.0...v5.0.1) (2026-09-18)
 
 
