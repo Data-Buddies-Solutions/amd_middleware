@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.0.3](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.2...v5.0.3) (2026-09-20)
+
+
+### Bug Fixes
+
+* own insurance replacement and preserve recovery contracts ([#199](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/199)) ([173e3e4](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/173e3e4ddd6a02ff2cfe4caf9204c39791521dfb))
+
 ## [5.0.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.1...v5.0.2) (2026-09-20)
 
 
