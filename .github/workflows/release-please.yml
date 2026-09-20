@@ -12,7 +12,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  agent-contract:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/agent-contract.yml
+
   release-please:
+    needs: agent-contract
     runs-on: ubuntu-latest
     steps:
       - name: Create scoped GitHub App token
