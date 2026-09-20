@@ -201,7 +201,9 @@ requires staff help; it never proves there are no openings.
 
 Cancellation `provider_rejected` and `provider_conflict` are definitive failures,
 not uncertain writes. Refresh appointments before a new action. Validation,
-invalid-token, and ownership failures perform no cancellation. `write_failed`
+invalid-token, and ownership failures perform no cancellation. Legacy validation
+responses may omit the wire outcome; consumers must treat an unclassified error
+conservatively rather than infer no effect. `write_failed`
 means a pre-write failure or a reconciled failed write; `indeterminate_write`
 means the cancellation may have happened and must not be retried automatically.
 A `cancelled` receipt identifies the exact appointment that was cancelled.
