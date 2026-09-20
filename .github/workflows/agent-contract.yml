@@ -1,0 +1,59 @@
+name: Agent middleware contract
+
+on:
+  workflow_call:
+    inputs:
+      agent_ref:
+        description: Exact compatible agent commit
+        type: string
+        required: false
+        default: 709e885c7184e9e405a9aa5355db99b9a4998924
+      middleware_ref:
+        description: Exact middleware commit; defaults to the calling middleware revision
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out middleware
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Data-Buddies-Solutions/advancedmd-token-management
+          ref: ${{ inputs.middleware_ref || github.sha }}
+          path: middleware
+          persist-credentials: false
+      - name: Check out agent
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: chasef07/abita_s2s
+          ref: ${{ inputs.agent_ref }}
+          path: agent
+          persist-credentials: false
+      - name: Record verified source pair
+        run: |
+          git -C middleware rev-parse HEAD
+          git -C agent rev-parse HEAD
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: middleware/go.mod
+          cache-dependency-path: middleware/go.sum
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.12.15'
+          python-version: '3.13.15'
+          enable-cache: true
+      - name: Install locked agent dependencies
+        working-directory: agent
+        run: uv sync --locked
+      - name: Verify actual Python tools against Go handlers
+        working-directory: middleware
+        env:
+          PYTHON_SCHEDULING_WORKTREE: ${{ github.workspace }}/agent
+        run: go test -count=1 -run '^TestPython' -v ./internal/scheduling

@@ -21,7 +21,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  agent-contract:
+    if: github.event_name == 'push' || inputs.sandbox_idle
+    uses: ./.github/workflows/agent-contract.yml
+
   deploy:
+    needs: agent-contract
     if: github.event_name == 'push' || inputs.sandbox_idle
     runs-on: ubuntu-latest
     timeout-minutes: 20
