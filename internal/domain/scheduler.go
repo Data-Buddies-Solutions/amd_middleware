@@ -117,6 +117,8 @@ const (
 	AvailabilityOutcomeFound               = "availability_found"
 	AvailabilityOutcomeNoAvailability      = "no_availability"
 	AvailabilityOutcomeNoEligibleProviders = "no_eligible_providers"
+	AvailabilityOutcomeInvalidInput        = "invalid_input"
+	AvailabilityOutcomePolicyBlocked       = "policy_blocked"
 	AvailabilityOutcomeSearchIncomplete    = "availability_search_incomplete"
 
 	AvailabilityNextActionOfferSlots                  = "offer_slots"

@@ -11,6 +11,7 @@ import (
 func TestCorrectedCarrierIsValidatedBeforeAnyInsuranceMutation(t *testing.T) {
 	for _, plan := range []string{"Clear Spring Health", "Unknown Plan", "HUM03"} {
 		records := advancedmdtest.NewAdapter()
+		records.Demographics["123"] = domain.PatientDemographics{DOB: "01/02/1980", RespPartyID: "resp123", InsuranceStateKnown: true}
 		create := validCreateCommand()
 		create.Office = "Hollywood"
 		create.Insurance = plan
@@ -30,6 +31,7 @@ func TestCorrectedCarrierIsValidatedBeforeAnyInsuranceMutation(t *testing.T) {
 
 func TestPreferredCareUsesItsOwnCarrierAndReceipt(t *testing.T) {
 	records := advancedmdtest.NewAdapter()
+	records.Demographics["123"] = domain.PatientDemographics{DOB: "01/02/1980", RespPartyID: "resp123", InsuranceStateKnown: true}
 	result := patient.New(records).UpdateInsurance(context.Background(), patient.UpdateInsuranceCommand{PatientID: "123", RespPartyID: "resp123", Insurance: "Preferred Care Partners", SubscriberNum: "synthetic", Office: "Hollywood", DOB: "01/02/1980"})
 	if result.Status != patient.UpdateInsuranceStatusUpdated || result.InsuranceDecision == nil || result.InsuranceDecision.CarrierCode != "PRE04" {
 		t.Fatalf("result=%+v", result)
@@ -60,6 +62,7 @@ func TestVerifiedMedicalCarriersReachInsuranceWrite(t *testing.T) {
 	} {
 		t.Run(tc.plan, func(t *testing.T) {
 			records := advancedmdtest.NewAdapter()
+			records.Demographics["123"] = domain.PatientDemographics{DOB: "01/02/1980", RespPartyID: "resp123", InsuranceStateKnown: true}
 			result := patient.New(records).UpdateInsurance(context.Background(), patient.UpdateInsuranceCommand{PatientID: "123", RespPartyID: "resp123", Insurance: tc.plan, SubscriberNum: "synthetic", Office: "Hollywood", DOB: "01/02/1980"})
 			if result.Status != patient.UpdateInsuranceStatusUpdated || result.InsuranceDecision == nil || result.InsuranceDecision.CarrierCode != tc.code || len(records.Insurances) != 1 || records.Insurances[0].CarrierID != tc.id {
 				t.Fatalf("wrong insurance write: result=%+v records=%+v", result, records.Insurances)

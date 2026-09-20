@@ -968,46 +968,46 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 		{
 			name:        "missing patientId",
 			body:        `{"insurance":"Aetna","subscriberNum":"ABC123"}`,
-			expectedMsg: "patientId, insurance, and subscriberNum are required",
+			expectedMsg: "patientId, dob, insurance, and subscriberNum are required",
 		},
 		{
 			name:        "missing insurance",
-			body:        `{"patientId":"pat123","subscriberNum":"ABC123"}`,
-			expectedMsg: "patientId, insurance, and subscriberNum are required",
+			body:        `{"dob":"01/15/1980","patientId":"pat123","subscriberNum":"ABC123"}`,
+			expectedMsg: "patientId, dob, insurance, and subscriberNum are required",
 		},
 		{
 			name:        "missing subscriberNum",
-			body:        `{"patientId":"pat123","insurance":"Aetna"}`,
-			expectedMsg: "patientId, insurance, and subscriberNum are required",
+			body:        `{"dob":"01/15/1980","patientId":"pat123","insurance":"Aetna"}`,
+			expectedMsg: "patientId, dob, insurance, and subscriberNum are required",
 		},
 		{
 			name:        "insurance not recognized",
-			body:        `{"patientId":"pat123","insurance":"FakeInsurance","subscriberNum":"ABC123"}`,
+			body:        `{"dob":"01/15/1980","patientId":"pat123","insurance":"FakeInsurance","subscriberNum":"ABC123"}`,
 			expectedMsg: `needs_input: What insurance plan is listed on your card?`,
 		},
 		{
 			name:        "spring hill rejected medical plan",
-			body:        `{"patientId":"pat123","insurance":"Cigna Local Plus","subscriberNum":"ABC123"}`,
+			body:        `{"dob":"01/15/1980","patientId":"pat123","insurance":"Cigna Local Plus","subscriberNum":"ABC123"}`,
 			expectedMsg: "blocked: This plan is not accepted for this visit type at this office.",
 		},
 		{
 			name:        "crystal river rejected medical plan",
-			body:        `{"patientId":"pat123","insurance":"Ambetter","subscriberNum":"ABC123","office":"+13523202007"}`,
+			body:        `{"dob":"01/15/1980","patientId":"pat123","insurance":"Ambetter","subscriberNum":"ABC123","office":"+13523202007"}`,
 			expectedMsg: "blocked: This plan is not accepted for this visit type at this office.",
 		},
 		{
 			name:        "routine vision requires optical office",
-			body:        `{"patientId":"pat123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13523202007"}`,
+			body:        `{"dob":"01/15/1980","patientId":"pat123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13523202007"}`,
 			expectedMsg: "blocked: This office does not accept coverage for that visit type.",
 		},
 		{
 			name:        "routine-only office rejects medical coverage",
-			body:        `{"patientId":"pat123","insurance":"Aetna","subscriberNum":"ABC123","office":"+13055095333"}`,
+			body:        `{"dob":"01/15/1980","patientId":"pat123","insurance":"Aetna","subscriberNum":"ABC123","office":"+13055095333"}`,
 			expectedMsg: "blocked: This office does not accept coverage for that visit type.",
 		},
 		{
 			name:        "invalid DOB",
-			body:        `{"patientId":"pat123","insurance":"Aetna","subscriberNum":"ABC123","dob":"not-a-date"}`,
+			body:        `{"dob":"01/15/1980","patientId":"pat123","insurance":"Aetna","subscriberNum":"ABC123","dob":"not-a-date"}`,
 			expectedMsg: "dob must be a valid date",
 		},
 	}
@@ -1042,28 +1042,28 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 	}{
 		{
 			name:             "routine vision filters age-restricted providers",
-			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-6, 0, 0).Format("01/02/2006")),
+			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-6, 0, 0).Format("01/02/2006")),
 			wantRouting:      string(domain.RoutingOpticalOnly),
 			wantProviders:    []string{"Dr. Farnan", "Dr. Calero"},
 			wantXMLRPCWrites: 1,
 		},
 		{
 			name:             "routine vision accepts Sunshine Health alias",
-			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insurance":"Sunshine Health","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-16, 0, 0).Format("01/02/2006")),
+			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"Sunshine Health","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-16, 0, 0).Format("01/02/2006")),
 			wantRouting:      string(domain.RoutingOpticalOnly),
 			wantProviders:    []string{"Dr. Farnan", "Dr. Vidal", "Dr. Calero"},
 			wantXMLRPCWrites: 1,
 		},
 		{
 			name:             "north miami beach optical routine vision",
-			body:             `{"patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13055095333"}`,
+			body:             `{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13055095333"}`,
 			wantRouting:      string(domain.RoutingOpticalOnly),
 			wantProviders:    []string{"Dr. Miriam Bach"},
 			wantXMLRPCWrites: 1,
 		},
 		{
 			name:             "medical minor uses pediatric routing",
-			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insPlanId":"ins123","oldInsurance":"Old","insurance":"Aetna Commercial","subscriberNum":"ABC123","office":"Spring Hill","dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
+			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insPlanId":"ins123","oldInsurance":"Old","insurance":"Aetna Commercial","subscriberNum":"ABC123","office":"Spring Hill","dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
 			wantRouting:      string(domain.RoutingBachOnly),
 			wantProviders:    []string{"Dr. Bach"},
 			wantXMLRPCWrites: 2,
@@ -1072,7 +1072,11 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handlers, writes := newUpdateInsuranceTestHandlers(t)
+			var input UpdateInsuranceRequest
+			if err := json.Unmarshal([]byte(tt.body), &input); err != nil {
+				t.Fatal(err)
+			}
+			handlers, writes := newUpdateInsuranceTestHandlers(t, input.DOB, input.InsPlanID)
 			req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(tt.body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -1103,8 +1107,8 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 }
 
 func TestHandleUpdateInsurance_SelfPayAutoSubscriberNum(t *testing.T) {
-	handlers, writes := newUpdateInsuranceTestHandlers(t)
-	req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(`{"patientId":"123","respPartyId":"resp123","insurance":"self-pay","office":"Spring Hill"}`))
+	handlers, writes := newUpdateInsuranceTestHandlers(t, "01/15/1980", "")
+	req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"self-pay","office":"Spring Hill"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -1127,8 +1131,8 @@ func TestHandleUpdateInsurance_SelfPayAutoSubscriberNum(t *testing.T) {
 }
 
 func TestHandleUpdateInsurance_AetnaGovernmentVisionUsesICareCarrier(t *testing.T) {
-	handlers, writes := newUpdateInsuranceTestHandlers(t)
-	req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(`{"patientId":"123","respPartyId":"resp123","insurance":"Aetna Dual Eligible Medicare Advantage","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood"}`))
+	handlers, writes := newUpdateInsuranceTestHandlers(t, "01/15/1980", "")
+	req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"Aetna Dual Eligible Medicare Advantage","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -1202,7 +1206,7 @@ func newProviderFailureTestHandlers(t *testing.T, fail func(*http.Request, []byt
 	return NewHandlers(amdSession, patientmodule.New(records), nil)
 }
 
-func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {
+func newUpdateInsuranceTestHandlers(t *testing.T, dob, insPlanID string) (*Handlers, *[]string) {
 	t.Helper()
 	writes := []string{}
 	httpClient := &http.Client{
@@ -1216,6 +1220,12 @@ func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {
 				response = `<PPMDResults><Results><usercontext webserver="https://mock.advancedmd.test/processrequest/api-801/APP"></usercontext></Results></PPMDResults>`
 			case strings.Contains(contentType, "application/xml"):
 				response = `<PPMDResults><Results success="1"><usercontext>test-token</usercontext></Results></PPMDResults>`
+			case strings.Contains(string(body), "getdemographic"):
+				plan := ""
+				if insPlanID != "" {
+					plan = fmt.Sprintf(`,"insplanlist":{"insplan":{"@id":%q,"@carrier":"car-old","@coverage":"1","@enddate":""}}`, insPlanID)
+				}
+				response = fmt.Sprintf(`{"PPMDResults":{"Results":{"patientlist":{"patient":{"@id":"pat123","@dob":%q,"@respparty":"resp123"%s}}}}}`, dob, plan)
 			default:
 				writes = append(writes, string(body))
 				response = `{"PPMDResults":{"Results":{}}}`

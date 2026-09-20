@@ -9,18 +9,30 @@ import (
 )
 
 func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCommand) (result UpdateInsuranceResult) {
+	oldEnded := false
 	defer func() {
+		switch {
+		case result.Status == UpdateInsuranceStatusUpdated:
+			result.Effect = "completed"
+		case result.Outcome == MutationIndeterminateWrite:
+			result.Effect = "uncertain"
+		case oldEnded:
+			result.Effect = "partial"
+			result.Message = "The old insurance was ended, but the replacement was not attached. Do not retry automatically; contact the office."
+		default:
+			result.Effect = "no_effect"
+		}
 		recordMutation("update_insurance", updateInsuranceOutcome(result))
 	}()
 
 	if domain.IsSelfPayInsurance(command.Insurance) && strings.TrimSpace(command.SubscriberNum) == "" {
 		command.SubscriberNum = "self pay"
 	}
-	if command.PatientID == "" || command.Insurance == "" || command.SubscriberNum == "" {
+	if command.PatientID == "" || command.DOB == "" || command.Insurance == "" || command.SubscriberNum == "" {
 		return UpdateInsuranceResult{
 			Status:  UpdateInsuranceStatusError,
 			Outcome: MutationValidationFailed,
-			Message: "patientId, insurance, and subscriberNum are required",
+			Message: "patientId, dob, insurance, and subscriberNum are required",
 		}
 	}
 	if err := domain.ValidateOptionalDOB(command.DOB); err != nil {
@@ -43,21 +55,42 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
 
-	reconciled, replacementAlreadyActive, outcome := p.endInsurance(ctx, command, decision.CarrierID)
-	if outcome != "" {
-		return updateInsuranceFailure(outcome, "Failed to update existing insurance in AdvancedMD. Please try again or contact the office.")
+	chart, err := retryRead(ctx, func() (domain.PatientDemographics, error) {
+		return p.advancedMD.GetPatientDemographics(ctx, command.PatientID)
+	})
+	if err != nil {
+		return updateInsuranceFailure(failureOutcome(err), "Unable to read current insurance. No update was attempted.")
 	}
-
+	if chart.DOB == "" || domain.NormalizeDOB(chart.DOB) != domain.NormalizeDOB(command.DOB) {
+		return updateInsuranceFailure(MutationValidationFailed, "Patient details changed. Verify the patient again.")
+	}
+	if !chart.InsuranceStateKnown || chart.RespPartyID == "" ||
+		(chart.InsPlanID == "" && (chart.CarrierID != "" || chart.CarrierName != "" || chart.SubscriberNum != "")) {
+		return updateInsuranceFailure(MutationValidationFailed, "Current insurance references are incomplete. Contact the office; no update was attempted.")
+	}
+	// Legacy caller snapshots are accepted but never authorize provider writes.
+	command.InsPlanID = chart.InsPlanID
+	command.RespPartyID = chart.RespPartyID
+	command.OldInsurance = chart.CarrierName
+	replacement := domain.PatientInsurance{
+		PatientID: command.PatientID, RespPartyID: chart.RespPartyID,
+		CarrierID: decision.CarrierID, SubscriberNum: command.SubscriberNum,
+	}
+	replacementAlreadyActive := chart.InsPlanID != "" && insuranceMatches(chart, replacement)
+	reconciled := false
 	if !replacementAlreadyActive {
-		addReconciled, outcome := p.addInsurance(ctx, domain.PatientInsurance{
-			PatientID:     command.PatientID,
-			RespPartyID:   command.RespPartyID,
-			CarrierID:     decision.CarrierID,
-			SubscriberNum: command.SubscriberNum,
-		})
+		var outcome MutationOutcome
+		reconciled, replacementAlreadyActive, outcome = p.endInsurance(ctx, command, decision.CarrierID)
+		if outcome != "" {
+			return updateInsuranceFailure(outcome, "Failed to end current insurance. Contact the office.")
+		}
+		oldEnded = chart.InsPlanID != ""
+	}
+	if !replacementAlreadyActive {
+		addReconciled, outcome := p.addInsurance(ctx, replacement)
 		reconciled = reconciled || addReconciled
 		if outcome != "" {
-			return updateInsuranceFailure(outcome, "Failed to attach new insurance in AdvancedMD. Please try again or contact the office.")
+			return updateInsuranceFailure(outcome, "Failed to attach new insurance. Contact the office.")
 		}
 	}
 
@@ -118,7 +151,10 @@ func (p *patient) endInsurance(ctx context.Context, command UpdateInsuranceComma
 			CarrierID:     replacementCarrierID,
 			SubscriberNum: command.SubscriberNum,
 		}
-		return true, insuranceMatches(demographics, replacement), ""
+		if demographics.InsPlanID != "" && !insuranceMatches(demographics, replacement) {
+			return false, false, MutationIndeterminateWrite
+		}
+		return true, demographics.InsPlanID != "" && insuranceMatches(demographics, replacement), ""
 	default:
 		return false, false, failureOutcome(err)
 	}
@@ -137,10 +173,13 @@ func (p *patient) addInsurance(ctx context.Context, command domain.PatientInsura
 		if !known {
 			return false, MutationIndeterminateWrite
 		}
-		if !insuranceMatches(demographics, command) {
-			return false, MutationReconciledFailure
+		if demographics.InsPlanID != "" && insuranceMatches(demographics, command) {
+			return true, ""
 		}
-		return true, ""
+		if demographics.InsPlanID != "" {
+			return false, MutationIndeterminateWrite
+		}
+		return false, MutationReconciledFailure
 	default:
 		return false, failureOutcome(err)
 	}
@@ -156,7 +195,8 @@ func (p *patient) reconcileInsurance(ctx context.Context, patientID string) (dom
 	demographics, err := retryRead(ctx, func() (domain.PatientDemographics, error) {
 		return p.advancedMD.GetPatientDemographics(ctx, patientID)
 	})
-	if err != nil || !demographics.InsuranceStateKnown {
+	if err != nil || !demographics.InsuranceStateKnown ||
+		(demographics.InsPlanID == "" && (demographics.CarrierID != "" || demographics.CarrierName != "" || demographics.SubscriberNum != "")) {
 		return domain.PatientDemographics{}, false
 	}
 	return demographics, true
