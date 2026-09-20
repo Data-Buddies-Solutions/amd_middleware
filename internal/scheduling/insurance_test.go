@@ -22,8 +22,6 @@ func TestInsuranceRequirementsCannotBeBypassedByBookingRouting(t *testing.T) {
 			command.Routing = "all_three"
 			command.InsurancePlan = tc.plan
 			command.AppointmentReason = "Hospital follow-up"
-			command.HospitalName = "Example Hospital"
-			command.HospitalDate = "2026-06-01"
 			_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).Book(context.Background(), command)
 			if err == nil || len(records.Bookings) > 0 {
 				t.Fatalf("booked %s without insurance clearance", tc.name)
@@ -51,27 +49,21 @@ func TestPRE04CannotBookUncredentialedProvider(t *testing.T) {
 	}
 }
 
-func TestHospitalFollowUpRequiresHospitalAndDate(t *testing.T) {
-	for _, tc := range []struct {
-		hospital, date string
-		missing        int
-	}{{"", "", 2}, {"Example Hospital", "", 1}, {"", "June 1", 1}, {"Example Hospital", "June 1", 0}} {
-		records := bookingRecords()
-		now := mutationTestNow()
-		command := signedBookCommand(t, now)
-		command.AppointmentReason = "Hospital follow-up"
-		command.HospitalName = tc.hospital
-		command.HospitalDate = tc.date
-		_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).Book(context.Background(), command)
-		if tc.missing > 0 {
-			if err == nil || len(scheduling.MissingOf(err)) != tc.missing || len(records.Bookings) > 0 {
-				t.Fatalf("missing=%d err=%v writes=%d", tc.missing, err, len(records.Bookings))
+func TestHospitalFollowUpUsesOrdinaryBookingReason(t *testing.T) {
+	for _, reason := range []string{"Hospital follow-up", "Hospital follow-up at Example Hospital on June 1", "Routine eye exam for a 9-year-old child"} {
+		t.Run(reason, func(t *testing.T) {
+			records := bookingRecords()
+			now := mutationTestNow()
+			command := signedBookCommand(t, now)
+			command.AppointmentReason = reason
+			_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).Book(context.Background(), command)
+			if err != nil || len(records.Bookings) != 1 {
+				t.Fatalf("err=%v writes=%d", err, len(records.Bookings))
 			}
-		} else if err != nil {
-			t.Fatal(err)
-		} else if !strings.Contains(records.Bookings[0].Comments, "Example Hospital") || !strings.Contains(records.Bookings[0].Comments, "June 1") {
-			t.Fatal("hospital details lost from appointment")
-		}
+			if !strings.Contains(strings.ToLower(records.Bookings[0].Comments), strings.ToLower(reason)) {
+				t.Fatal("appointment reason was lost")
+			}
+		})
 	}
 }
 

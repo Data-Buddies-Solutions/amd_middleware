@@ -4,6 +4,14 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.0.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.0...v5.0.1) (2026-09-18)
+
+
+### Bug Fixes
+
+* **insurance:** use resolved plan names in vision responses ([#195](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/195)) ([f60a00b](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/f60a00b5bbace777e9d694a4c7e7b09ee479cb53))
+* **scheduling:** remove hospital keyword booking requirement ([#197](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/197)) ([907ed03](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/907ed03a6d978a22cb8885c7a41859104e9b348a))
+
 ## [5.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v4.1.0...v5.0.0) (2026-09-18)
 
 
