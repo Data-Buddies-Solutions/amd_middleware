@@ -25,7 +25,7 @@ jobs:
       - name: Check out middleware
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: Data-Buddies-Solutions/advancedmd-token-management
+          repository: Data-Buddies-Solutions/amd_middleware
           ref: ${{ inputs.middleware_ref || github.sha }}
           path: middleware
           persist-credentials: false
