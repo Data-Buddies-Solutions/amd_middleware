@@ -175,7 +175,7 @@ type CreateResult struct {
 type UpdateInsuranceCommand struct {
 	PatientID      string
 	DOB            string
-	InsPlanID      string
+	InsPlanID      string // Deprecated caller snapshot; UpdateInsurance reads the current chart.
 	RespPartyID    string
 	OldInsurance   string
 	Insurance      string
@@ -187,7 +187,10 @@ type UpdateInsuranceCommand struct {
 
 // UpdateInsuranceResult preserves the public insurance-update response
 // contract.
+// Effect is the complete operation effect: no_effect, completed, partial, or uncertain.
+// Partial and uncertain must never trigger an automatic replacement retry.
 type UpdateInsuranceResult struct {
+	Effect            string
 	InsuranceDecision *domain.InsuranceDecision
 	Status            UpdateInsuranceStatus
 	Outcome           MutationOutcome

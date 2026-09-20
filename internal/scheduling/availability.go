@@ -362,7 +362,7 @@ func incompleteResponse(
 		SearchedFrom:          searchStartDate,
 		SearchedThrough:       searchEndDate,
 		Message: fmt.Sprintf(
-			"Availability could not be fully checked from %s through %s because appointment data was unavailable for %d provider-date checks. Retry once; if it still cannot be checked, ask for different preferences.",
+			"Availability could not be fully checked from %s through %s because appointment data was unavailable for %d provider-date checks. Retry once; if it still cannot be checked, contact office staff.",
 			searchStartDate,
 			searchEndDate,
 			unavailableDataChecks,

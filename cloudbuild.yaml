@@ -1,10 +1,17 @@
 steps:
   - id: test
-    name: golang:1.26.5-alpine
-    entrypoint: /bin/sh
+    name: golang:1.26.5
+    entrypoint: /bin/bash
     args:
       - -c
-      - go test ./...
+      - |
+        set -euo pipefail
+        go test ./...
+        curl --fail --silent --show-error --location https://github.com/astral-sh/uv/releases/download/0.12.15/uv-x86_64-unknown-linux-gnu.tar.gz --output /tmp/uv.tar.gz
+        echo "f97935763c04be3e692460a7aaeaaab8fc3b78fcf8b389da820b38ae7423a638  /tmp/uv.tar.gz" | sha256sum --check --strict
+        tar -xzf /tmp/uv.tar.gz -C /tmp
+        export PATH="/tmp/uv-x86_64-unknown-linux-gnu:$$PATH"
+        scripts/test-agent-contract.sh
 
   - id: deployment-script-test
     name: gcr.io/google.com/cloudsdktool/google-cloud-cli:stable

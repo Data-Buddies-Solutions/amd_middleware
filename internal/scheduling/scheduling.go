@@ -60,6 +60,7 @@ type Category string
 
 const (
 	CategoryValidation               Category = "validation"
+	CategoryPolicyBlocked            Category = "policy_blocked"
 	CategoryInvalidBookingToken      Category = "invalid_booking_token"
 	CategoryInvalidCancellationToken Category = "invalid_cancellation_token"
 	CategoryInvalidRescheduleToken   Category = "invalid_reschedule_token"

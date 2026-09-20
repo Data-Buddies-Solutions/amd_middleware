@@ -554,28 +554,42 @@ func (h *Handlers) HandleListAppointmentSlots(w http.ResponseWriter, r *http.Req
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
 		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: "Invalid JSON body"})
+		json.NewEncoder(w).Encode(inventoryError(domain.AvailabilityOutcomeInvalidInput, "Invalid JSON body"))
 		return
 	}
 
 	if h.scheduling == nil {
 		recordRequestOutcome(r.Context(), outcomeInternalFailure, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(ErrorResponse{
-			Status:  "error",
-			Message: "Appointment scheduling is temporarily unavailable. Please try again.",
-		})
+		json.NewEncoder(w).Encode(inventoryError(domain.AvailabilityOutcomeSearchIncomplete, "Appointment scheduling is temporarily unavailable. Retry once; if it still fails, contact office staff."))
 		return
 	}
 	response, err := h.scheduling.List(r.Context(), req)
 	if err != nil {
 		recordSchedulingError(r.Context(), err)
-		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: err.Error()})
+		outcome := domain.AvailabilityOutcomeInvalidInput
+		if schedulingmodule.ProviderFailureOf(err) != safeerrors.CategoryNone {
+			outcome = domain.AvailabilityOutcomeSearchIncomplete
+		} else if schedulingmodule.CategoryOf(err) == schedulingmodule.CategoryPolicyBlocked {
+			outcome = domain.AvailabilityOutcomePolicyBlocked
+		}
+		json.NewEncoder(w).Encode(inventoryError(outcome, err.Error()))
 		return
 	}
 	if response.Status == domain.AvailabilityStatusError {
+		response.NextAction = ""
 		recordRequestOutcome(r.Context(), outcomeProviderFailure, safeerrors.CategoryInvalidResponse)
 	}
 	json.NewEncoder(w).Encode(response)
+}
+
+// Inventory errors use the same envelope as successful reads, so consumers can
+// distinguish a correctable request, a policy block, and an unavailable read.
+func inventoryError(outcome, message string) domain.AvailabilityResponse {
+	return domain.AvailabilityResponse{
+		Status: domain.AvailabilityStatusError, Outcome: outcome,
+		ShouldRetrySameSearch: outcome == domain.AvailabilityOutcomeSearchIncomplete,
+		Message:               message, Slots: []domain.AvailabilitySlotOption{},
+	}
 }
 
 // UpdateInsuranceRequest is the expected JSON body for insurance updates.
@@ -594,6 +608,7 @@ type UpdateInsuranceRequest struct {
 
 // UpdateInsuranceResponse is returned after updating insurance.
 type UpdateInsuranceResponse struct {
+	Effect            string                    `json:"effect"`
 	InsuranceDecision *domain.InsuranceDecision `json:"insuranceDecision,omitempty"`
 	Status            string                    `json:"status"`
 	Outcome           string                    `json:"outcome,omitempty"`
@@ -615,6 +630,7 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
 		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
+			Effect:  "no_effect",
 			Status:  "error",
 			Message: "Invalid JSON body",
 		})
@@ -639,6 +655,7 @@ func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request)
 		outcome = string(result.Outcome)
 	}
 	json.NewEncoder(w).Encode(UpdateInsuranceResponse{
+		Effect:            result.Effect,
 		Status:            string(result.Status),
 		Outcome:           outcome,
 		PatientID:         result.PatientID,

@@ -1,0 +1,45 @@
+name: Agent middleware contract
+
+on:
+  workflow_call:
+    inputs:
+      agent_ref:
+        description: Exact compatible agent commit
+        type: string
+        required: false
+        default: ''
+      middleware_ref:
+        description: Exact middleware commit; defaults to the calling middleware revision
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out middleware
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Data-Buddies-Solutions/amd_middleware
+          ref: ${{ inputs.middleware_ref || github.sha }}
+          path: middleware
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: middleware/go.mod
+          cache-dependency-path: middleware/go.sum
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.12.15'
+          python-version: '3.13.15'
+          enable-cache: false
+      - name: Verify actual Python tools against Go handlers
+        working-directory: middleware
+        env:
+          AGENT_REF: ${{ inputs.agent_ref }}
+        run: scripts/test-agent-contract.sh "$AGENT_REF"

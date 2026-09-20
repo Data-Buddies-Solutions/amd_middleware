@@ -176,11 +176,37 @@ Examples of authoritative proof:
 
 - Patient creation compares the pre-write patient baseline with exact
   post-write matches.
-- Insurance updates re-read the active demographic insurance state.
+- Insurance replacement requires patient ID and DOB, loads fresh demographics,
+  verifies DOB, and derives the current primary plan and responsible party.
+  Legacy `insPlanId`, `respPartyId`, and `oldInsurance` inputs are ignored.
+  A known empty current plan attaches directly; an already-matching active
+  replacement performs no writes. Missing references block the operation.
 - Booking reads the intended appointment month and matches the patient, office,
   time, provider, and appointment type.
 - Cancellation reads the original appointment's owning month and proves
   whether it still exists.
+
+Insurance update responses retain `status: updated|error` and diagnostic `outcome`,
+and add `effect: no_effect|completed|partial|uncertain`. `no_effect` proves no
+change from this request; `completed` proves the requested insurance is active;
+`partial` means the old plan ended but the replacement was not attached;
+`uncertain` means a possible effect could not be reconciled. Partial and uncertain
+results require staff recovery, never an automatic repeat of end/add.
+
+`POST /api/scheduler/slots` errors preserve the inventory envelope with `slots: []`.
+`invalid_input` requires corrected input; `policy_blocked` requires resolving the
+chart/office policy with staff. Neither retries the same search.
+`availability_search_incomplete` is a read failure, permits one retry, and then
+requires staff help; it never proves there are no openings.
+
+Cancellation `provider_rejected` and `provider_conflict` are definitive failures,
+not uncertain writes. Refresh appointments before a new action. Validation,
+invalid-token, and ownership failures perform no cancellation. Legacy validation
+responses may omit the wire outcome; consumers must treat an unclassified error
+conservatively rather than infer no effect. `write_failed`
+means a pre-write failure or a reconciled failed write; `indeterminate_write`
+means the cancellation may have happened and must not be retried automatically.
+A `cancelled` receipt identifies the exact appointment that was cancelled.
 
 ## The scheduling handshake
 
@@ -383,3 +409,13 @@ caller sends it once and retains the returned receipt. A replacement is booked
 before the original is cancelled. `partial` and `uncertain` receipts require
 reconciliation and must not be presented as completed moves. See
 [rescheduling](internal/scheduling/reschedule.go) and its tests.
+
+### Paired agent verification
+
+`scripts/test-agent-contract.sh` tests this middleware source against the exact
+agent commit in `tests/agent-contract-ref`; an explicit SHA argument selects another
+reviewed pair. It runs real Python consumers against Go handlers with mocked provider
+records. GitHub CI, release preparation/assets, staging, and the production source
+build run this check before progressing. Update the pin when adopting a new agent
+contract. The deployment-only configuration for an existing image does not rebuild
+or retest its source.
