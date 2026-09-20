@@ -1092,3 +1092,46 @@ func (staticSession) Maintain(context.Context) error {
 func (staticSession) Status() session.SessionStatus {
 	return session.SessionStatus{}
 }
+
+func TestScheduleReadsAreConcurrentAndCannotUseMalformedOccupancy(t *testing.T) {
+	started := make(chan struct{}, 4)
+	release := make(chan struct{})
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		started <- struct{}{}
+		<-release
+		if r.URL.Path == "/scheduler/appointments" {
+			w.Write([]byte(`[{"startdatetime":"invalid"}]`))
+			return
+		}
+		w.Write([]byte(`[]`))
+	}))
+	defer server.Close()
+	adapter := NewAdapter(staticSession{token: &domain.TokenData{RestApiBase: strings.TrimPrefix(server.URL, "https://")}}, nil, clients.NewAdvancedMDRestClient(server.Client()))
+	done := make(chan error, 1)
+	go func() {
+		read, err := adapter.ReadSchedule(context.Background(), domain.ScheduleReadQuery{ColumnIDs: []string{"1513", "1598"}, Date: "2026-09-15"})
+		for _, column := range read.Columns {
+			if column.Complete() {
+				done <- errors.New("malformed occupancy declared complete")
+				return
+			}
+		}
+		if CategoryOf(err) != safeerrors.CategoryInvalidResponse {
+			done <- errors.New("missing invalid-response failure")
+			return
+		}
+		done <- nil
+	}()
+	for i := 0; i < 4; i++ {
+		select {
+		case <-started:
+		case <-time.After(2 * time.Second):
+			close(release)
+			t.Fatal("schedule requests did not start concurrently")
+		}
+	}
+	close(release)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+}
