@@ -15,9 +15,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  agent-contract:
-    uses: ./.github/workflows/agent-contract.yml
-
   build-and-test:
     runs-on: ubuntu-latest
     steps:

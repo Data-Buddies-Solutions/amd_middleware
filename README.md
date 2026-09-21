@@ -409,13 +409,3 @@ caller sends it once and retains the returned receipt. A replacement is booked
 before the original is cancelled. `partial` and `uncertain` receipts require
 reconciliation and must not be presented as completed moves. See
 [rescheduling](internal/scheduling/reschedule.go) and its tests.
-
-### Paired agent verification
-
-`scripts/test-agent-contract.sh` tests this middleware source against the exact
-agent commit in `tests/agent-contract-ref`; an explicit SHA argument selects another
-reviewed pair. It runs real Python consumers against Go handlers with mocked provider
-records. GitHub CI, release preparation/assets, staging, and the production source
-build run this check before progressing. Update the pin when adopting a new agent
-contract. The deployment-only configuration for an existing image does not rebuild
-or retest its source.

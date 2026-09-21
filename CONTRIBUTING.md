@@ -32,3 +32,11 @@ Release Please maintains a release pull request after releasable changes reach
 `main`. Merge that generated pull request with squash merge after CI passes.
 That merge updates the changelog and version manifest; the next Release Please
 run creates the `vMAJOR.MINOR.PATCH` tag and GitHub Release.
+
+Production deploys when Release Please creates that stable version tag, not
+when a commit lands on `main`. The Cloud Build trigger
+`abita-middleware-main-build` (in `acuity-health-prod`, `us-east4`) matches
+`^v[0-9]+\.[0-9]+\.[0-9]+$` tags and runs `cloudbuild.yaml` against the tagged
+commit. Its historical name is retained for the GitHub check integration.
+The Production status workflow tracks that build on the same tag push.
+Creating a matching tag manually also triggers production deployment.

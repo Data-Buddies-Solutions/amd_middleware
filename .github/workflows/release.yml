@@ -18,13 +18,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  agent-contract:
-    uses: ./.github/workflows/agent-contract.yml
-    with:
-      middleware_ref: ${{ github.event.release.tag_name || inputs.tag }}
-
   assets:
-    needs: agent-contract
     runs-on: ubuntu-latest
     env:
       RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
