@@ -304,7 +304,7 @@ func TestListSlotsErrorsPreserveInventoryContract(t *testing.T) {
 		{name: "invalid range", body: `{"office":"Spring Hill","rangeDays":2}`, outcome: "invalid_input"},
 		{name: "unavailable scheduling", body: `{}`, outcome: "availability_search_incomplete", noScheduler: true},
 		{name: "provider read", body: `{"office":"Spring Hill","startDate":"2026-06-03"}`, outcome: "availability_search_incomplete", readFailure: true},
-		{name: "chart policy", body: `{"office":"Spring Hill","startDate":"2026-06-03","patientId":"123","dob":"01/15/1980"}`, outcome: "policy_blocked"},
+		{name: "coverage mismatch", body: `{"office":"Spring Hill","startDate":"2026-06-03","patientId":"123","dob":"01/15/1980","visitType":"medical","coverageType":"routine_vision"}`, outcome: "invalid_input"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			records := advancedmdtest.NewAdapter()

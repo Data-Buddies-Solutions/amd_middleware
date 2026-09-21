@@ -284,20 +284,6 @@ func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingCont
 		)
 	}
 	booking.command.DOB = verifiedDOB
-	coverage := domain.NormalizeAppointmentVisitCategory(booking.command.VisitCategory, booking.command.VisitKind, domain.ParseRoutingRule(booking.command.Routing))
-	insurance := domain.DecideChartInsurance(demographics, booking.command.InsurancePlan, coverage, booking.office, verifiedDOB)
-	if !insurance.CanSchedule {
-		return 0, schedulingError(insurance.Answer)
-	}
-	// Enforce the current backend insurance rule even for a previously signed slot
-	// or a raw-booking consumer. The caller cannot relax credentialing.
-	allowed := domain.NewSchedulingPolicy(booking.office).EligibleColumns(
-		[]domain.SchedulerColumn{{ID: fmt.Sprint(booking.command.ColumnID), ProfileID: fmt.Sprint(booking.command.ProfileID), FacilityID: booking.office.FacilityID}},
-		nil, insurance.Routing, verifiedDOB, "")
-	if len(allowed) == 0 {
-		return 0, schedulingError("The selected provider does not participate with this insurance at this office.")
-	}
-	booking.command.Routing = string(insurance.Routing)
 
 	patientID, err := strconv.Atoi(booking.command.PatientID)
 	if err != nil {
