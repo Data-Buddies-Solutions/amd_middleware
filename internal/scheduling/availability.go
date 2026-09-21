@@ -16,7 +16,7 @@ func (s *service) Search(ctx context.Context, command SearchCommand) (domain.Ava
 }
 
 // ListCommand loads a complete inventory window for conversational selection.
-// Patient eligibility and booking policy are identical to Search.
+// Insurance clarification is not a prerequisite for listing openings.
 type ListCommand struct {
 	PatientID       string `json:"patientId,omitempty"`
 	InsurancePlan   string `json:"insurancePlan,omitempty"`
@@ -31,6 +31,9 @@ type ListCommand struct {
 }
 
 func (s *service) List(ctx context.Context, command ListCommand) (domain.AvailabilityResponse, error) {
+	if command.Routing == "" && command.VisitType == domain.AppointmentVisitRoutineVision {
+		command.Routing = string(domain.RoutingOpticalOnly)
+	}
 	days := command.RangeDays
 	if days == 0 {
 		days = 14
@@ -97,25 +100,10 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 		(command.VisitType == domain.AppointmentVisitRoutineVision && !policy.SupportsRouting(domain.RoutingOpticalOnly)) {
 		return unsupportedVisit(), nil
 	}
-	// Legacy inventory consumers can omit patientId. Booking always rechecks
-	// chart insurance; patient-scoped inventory additionally enforces it here.
-	if command.PatientID != "" {
-		coverage := command.CoverageType
-		if coverage == "" {
-			coverage = command.VisitType
-		}
-		if coverage == "" {
-			coverage = "medical"
-		}
-		if command.VisitType != "" && coverage != command.VisitType {
-			return empty, schedulingError("coverageType must match visitType")
-		}
-		insurance, err := s.insuranceForSearch(ctx, command.PatientID, command.InsurancePlan, coverage, office, command.DOB)
-		if err != nil {
-			return empty, err
-		}
-		command.Routing = string(insurance.Routing)
+	if command.PatientID != "" && command.VisitType != "" && command.CoverageType != "" && command.CoverageType != command.VisitType {
+		return empty, schedulingError("coverageType must match visitType")
 	}
+
 	routing := policy.SchedulingRouting(domain.ParseRoutingRule(command.Routing), command.DOB)
 	if (command.VisitType == domain.AppointmentVisitMedical && routing == domain.RoutingOpticalOnly) ||
 		(command.VisitType == domain.AppointmentVisitRoutineVision && routing != domain.RoutingOpticalOnly) {

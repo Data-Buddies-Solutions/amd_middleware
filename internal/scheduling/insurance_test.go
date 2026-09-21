@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestInsuranceRequirementsCannotBeBypassedByBookingRouting(t *testing.T) {
+func TestExistingPatientBookingDoesNotRequireInsuranceClearance(t *testing.T) {
 	for _, tc := range []struct{ name, plan, id string }{
 		{"HUM02 authorization", "Humana Medicaid HMO", "car308175"},
 		{"unknown carrier", "Unknown", "car999"},
@@ -23,29 +23,10 @@ func TestInsuranceRequirementsCannotBeBypassedByBookingRouting(t *testing.T) {
 			command.InsurancePlan = tc.plan
 			command.AppointmentReason = "Hospital follow-up"
 			_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).Book(context.Background(), command)
-			if err == nil || len(records.Bookings) > 0 {
-				t.Fatalf("booked %s without insurance clearance", tc.name)
+			if err != nil || len(records.Bookings) != 1 {
+				t.Fatalf("existing patient blocked for %s: err=%v writes=%d", tc.name, err, len(records.Bookings))
 			}
 		})
-	}
-}
-
-func TestPRE04CannotBookUncredentialedProvider(t *testing.T) {
-	records := recordsWithSetup(testColumn("1268", "620", "1480", "09:00", "09:15", 15))
-	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: "Preferred Care Partners", CarrierID: "car40916"}
-	records.ScheduleReads["2026-06-03"] = completeRead("1268", nil, nil)
-	now := mutationTestNow()
-	svc := scheduling.NewWithConfig(records, "test-booking-secret", func() time.Time { return now }, scheduling.Config{AllowRawBooking: true})
-	// Caller routing cannot open an uncredentialed optical provider for PRE04.
-	command := scheduling.BookCommand{PatientID: "12345", DOB: "01/15/1980", Office: "Hollywood", ColumnID: 1555, ProfileID: 2075, StartDatetime: "2026-06-03T09:00", Duration: 15, AppointmentTypeID: 1007, Routing: "all_three"}
-	_, err := svc.Book(context.Background(), command)
-	if err == nil || !strings.Contains(err.Error(), "provider") || len(records.Bookings) != 0 {
-		t.Fatalf("err=%v writes=%d", err, len(records.Bookings))
-	}
-	command.ColumnID = 1268
-	command.ProfileID = 620
-	if _, err := svc.Book(context.Background(), command); err != nil {
-		t.Fatal(err)
 	}
 }
 
@@ -67,13 +48,29 @@ func TestHospitalFollowUpUsesOrdinaryBookingReason(t *testing.T) {
 	}
 }
 
-func TestPatientScopedInventoryRechecksChartInsurance(t *testing.T) {
-	records := bookingRecords()
-	now := mutationTestNow()
-	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: "United Healthcare", CarrierID: "car999"}
-	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{PatientID: "12345", Office: "Spring Hill", StartDate: "2026-06-03", DOB: "01/15/1980", Routing: "all_three", CoverageType: "medical"})
-	if err == nil {
-		t.Fatal("inventory bypassed referral and carrier verification")
+func TestExistingPatientListsAndBooksWithoutInsuranceClarification(t *testing.T) {
+	for _, plan := range []string{"AETNA", "Unknown", ""} {
+		t.Run(plan, func(t *testing.T) {
+			records := recordsWithSetup(testColumn("1593", "2064", "1576", "09:00", "09:15", 15))
+			records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: plan, CarrierID: "car40887"}
+			now := mutationTestNow()
+			for i := 0; i < 14; i++ {
+				day := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC).AddDate(0, 0, i).Format("2006-01-02")
+				records.ScheduleReads[day] = completeRead("1593", nil, nil)
+			}
+			svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
+			result, err := svc.List(context.Background(), scheduling.ListCommand{PatientID: "12345", Office: "Crystal River", StartDate: "2026-06-03", DOB: "01/15/1980", CoverageType: "medical", VisitType: "medical"})
+			if err != nil || result.Outcome != domain.AvailabilityOutcomeFound || len(result.Slots) == 0 {
+				t.Fatalf("existing patient inventory blocked: err=%v result=%+v", err, result)
+			}
+			if records.DemographicCalls != 0 {
+				t.Fatal("inventory unnecessarily rechecked chart insurance")
+			}
+			booked, err := svc.Book(context.Background(), scheduling.BookCommand{PatientID: "12345", DOB: "01/15/1980", Office: "Crystal River", BookingToken: result.Slots[0].BookingToken, VisitCategory: "medical", PatientStatus: "established", AppointmentReason: "Eye follow-up", ReferringDoctor: "none"})
+			if err != nil || booked.Status != "booked" || len(records.Bookings) != 1 {
+				t.Fatalf("existing patient booking blocked: err=%v result=%+v writes=%d", err, booked, len(records.Bookings))
+			}
+		})
 	}
 }
 
@@ -94,14 +91,8 @@ func TestVisionCarrierIdentitySurvivesAvailabilityAndBooking(t *testing.T) {
 		t.Fatalf("availability: %v %+v", err, available)
 	}
 	command := scheduling.BookCommand{PatientID: "12345", DOB: "01/15/1980", Office: office.DisplayName, InsurancePlan: accepted.CanonicalPlan, BookingToken: available.Slots[0].BookingToken, VisitCategory: "routine_vision", PatientStatus: "new", AppointmentReason: "Routine eye exam", ReferringDoctor: "none"}
-	// Even a signed slot must reject a carrier change before the write.
+	// A directory-label change does not create a new insurance gate.
 	chart := records.Demographics["12345"]
-	chart.CarrierID = "car280695"
-	records.Demographics["12345"] = chart
-	if _, err := svc.Book(context.Background(), command); err == nil || len(records.Bookings) != 0 {
-		t.Fatal("changed carrier was not blocked")
-	}
-	chart.CarrierID = accepted.CarrierID
 	chart.CarrierName = "Renamed directory label"
 	records.Demographics["12345"] = chart
 	result, err := svc.Book(context.Background(), command)

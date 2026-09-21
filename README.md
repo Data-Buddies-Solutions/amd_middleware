@@ -193,9 +193,15 @@ change from this request; `completed` proves the requested insurance is active;
 `uncertain` means a possible effect could not be reconciled. Partial and uncertain
 results require staff recovery, never an automatic repeat of end/add.
 
+`POST /api/scheduler/slots` lists openings without requiring chart insurance
+clearance. Office, visit type, age, and requested routing select providers;
+routine vision defaults to optical routing. Booking verifies patient identity,
+the signed slot, appointment policy, and live occupancy without re-triaging chart
+insurance. Insurance acceptance remains part of registration and insurance updates.
+
 `POST /api/scheduler/slots` errors preserve the inventory envelope with `slots: []`.
 `invalid_input` requires corrected input; `policy_blocked` requires resolving the
-chart/office policy with staff. Neither retries the same search.
+office policy with staff. Neither retries the same search.
 `availability_search_incomplete` is a read failure, permits one retry, and then
 requires staff help; it never proves there are no openings.
 
