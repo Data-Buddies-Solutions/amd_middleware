@@ -83,8 +83,8 @@ func TestAMDDirectoryRoundTripUsesConfirmedProductWithoutRelaxingRestrictions(t 
 			}
 			chart.CarrierID = tc.id
 			chart.CarrierName = "Unverified carrier display"
-			if DecideChartInsurance(chart, tc.plan, "medical", office, "").CanSchedule {
-				t.Fatal("unknown display relabeled")
+			if !DecideChartInsurance(chart, tc.plan, "medical", office, "").CanSchedule {
+				t.Fatal("confirmed product lost after directory label changed")
 			}
 		})
 	}
@@ -105,5 +105,86 @@ func TestRegistrationPermissionIsExplicitWhenSchedulingIsHeld(t *testing.T) {
 	d := DecideInsurance("Humana Medicaid HMO", "medical", office, "")
 	if d.Participation != "accepted" || d.CanSchedule || !strings.Contains(d.Answer, "prior authorization before scheduling") {
 		t.Fatalf("unclear next action: %+v", d)
+	}
+}
+
+func TestPremierEyeCareChartRoundTrip(t *testing.T) {
+	office, _ := ResolveOffice("North Miami Beach Optical")
+	initial := DecideInsurance("Devoted", "routine_vision", office, "01/02/1980")
+	if !initial.CanSchedule || initial.CanonicalPlan != "Premier" {
+		t.Fatalf("Devoted acceptance: %+v", initial)
+	}
+	chart := PatientDemographics{CarrierID: initial.CarrierID, CarrierName: "PREMIER EYE CARE"}
+	for _, plan := range []string{"", "Premier", "Devoted"} {
+		got := DecideChartInsurance(chart, plan, "routine_vision", office, "01/02/1980")
+		if !got.CanSchedule || got.CanonicalPlan != "Premier" {
+			t.Errorf("chart label lost accepted coverage for %q: %+v", plan, got)
+		}
+	}
+	for _, plan := range []string{"VSP", "Eye Care", "Premier Eye Care or VSP"} {
+		if got := DecideChartInsurance(chart, plan, "routine_vision", office, "01/02/1980"); got.CanSchedule {
+			t.Errorf("conflicting plan %q accepted: %+v", plan, got)
+		}
+	}
+	chart.CarrierID = "car-wrong"
+	if DecideChartInsurance(chart, "Premier", "routine_vision", office, "01/02/1980").CanSchedule {
+		t.Fatal("mismatched chart carrier accepted")
+	}
+}
+
+func TestVisionChartIdentityDoesNotDependOnDirectoryLabel(t *testing.T) {
+	office, _ := ResolveOffice("North Miami Beach Optical")
+	for _, plan := range []string{"Devoted", "VSP", "EyeMed", "SunHealth"} {
+		initial := DecideInsurance(plan, "routine_vision", office, "01/02/1980")
+		for _, label := range []string{"", "Renamed provider directory label", "PREMIER EYE CARE"} {
+			chart := PatientDemographics{CarrierID: initial.CarrierID, CarrierName: label}
+			got := DecideChartInsurance(chart, initial.CanonicalPlan, "routine_vision", office, "01/02/1980")
+			if !got.CanSchedule || got.CarrierID != initial.CarrierID {
+				t.Errorf("%s / %q: %+v", plan, label, got)
+			}
+		}
+	}
+	for _, id := range []string{"", "car-unknown", "car40916"} {
+		got := DecideChartInsurance(PatientDemographics{CarrierID: id, CarrierName: "Premier"}, "Premier", "routine_vision", office, "01/02/1980")
+		if got.CanSchedule {
+			t.Errorf("unmapped carrier accepted: %s", id)
+		}
+	}
+}
+
+func TestMedicalGenericChartNeedsProductAndPreservesItsRequirements(t *testing.T) {
+	office, _ := ResolveOffice("Hollywood")
+	for _, label := range []string{"AETNA", "", "Renamed directory label"} {
+		chart := PatientDemographics{CarrierID: "car40887", CarrierName: label}
+		if d := DecideChartInsurance(chart, "", "medical", office, ""); d.CanSchedule {
+			t.Errorf("generic chart guessed product: %+v", d)
+		}
+		if d := DecideChartInsurance(chart, "Aetna Commercial", "medical", office, ""); !d.CanSchedule {
+			t.Errorf("confirmed commercial product blocked: %+v", d)
+		}
+		if d := DecideChartInsurance(chart, "Aetna HMO", "medical", office, ""); d.CanSchedule || len(d.Requirements) == 0 {
+			t.Errorf("HMO requirements lost: %+v", d)
+		}
+	}
+	chart := PatientDemographics{CarrierID: "car40887", CarrierName: "Aetna HMO"}
+	if d := DecideChartInsurance(chart, "Aetna Commercial", "medical", office, ""); d.CanSchedule {
+		t.Fatal("explicit chart product overridden")
+	}
+}
+
+func TestVisionChartRoundTripPreservesEveryAcceptedAlias(t *testing.T) {
+	office, _ := ResolveOffice("North Miami Beach Optical")
+	for _, rule := range participationSources["SPRING_HILL_ROUTINE_VISION"] {
+		for _, plan := range append([]string{rule.Display}, rule.Aliases...) {
+			accepted := DecideInsurance(plan, "routine_vision", office, "01/02/1980")
+			if !accepted.CanSchedule {
+				continue
+			}
+			chart := PatientDemographics{CarrierID: accepted.CarrierID, CarrierName: "Provider directory label"}
+			got := DecideChartInsurance(chart, accepted.CanonicalPlan, "routine_vision", office, "01/02/1980")
+			if !got.CanSchedule || got.CarrierID != accepted.CarrierID {
+				t.Errorf("accepted %q (%s) lost in chart round trip: %+v", plan, accepted.CanonicalPlan, got)
+			}
+		}
 	}
 }

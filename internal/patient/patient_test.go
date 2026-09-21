@@ -80,9 +80,9 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 		InsuranceCarrierID: "car40906",
 		InsPlanID:          "ins789",
 		RespPartyID:        "resp456",
-		Routing:            domain.RoutingBachOnly,
-		AllowedProviders:   []string{"Dr. Bach"},
-		RoutingAmbiguous:   false,
+		Routing:            "",
+		AllowedProviders:   []string{},
+		RoutingAmbiguous:   true,
 		AppointmentsStatus: patient.AppointmentsFound,
 		Appointments: []patient.Appointment{{
 			ID:                9570263,
@@ -742,7 +742,7 @@ func TestResolveRefreshesKnownPatientByID(t *testing.T) {
 	if got.Name != "DOE,JANE" {
 		t.Fatalf("Name = %q, want DOE,JANE", got.Name)
 	}
-	if got.DOB != "01/15/1980" || got.RoutingAmbiguous || got.InsuranceDecision == nil || !got.InsuranceDecision.CanSchedule {
+	if got.DOB != "01/15/1980" || !got.RoutingAmbiguous || got.InsuranceDecision == nil || got.InsuranceDecision.Outcome != "needs_clarification" || got.InsuranceDecision.CanSchedule {
 		t.Fatalf("demographics = DOB %q routing %q", got.DOB, got.Routing)
 	}
 	if got.AppointmentsStatus != patient.AppointmentsFound || len(got.Appointments) != 1 {
@@ -925,21 +925,21 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 		wantProviderList bool
 	}{
 		{
-			name:       "Spring Hill accepted carrier",
+			name:       "shared carrier directory requires product clarification",
 			officeName: "Spring Hill",
 			demographics: domain.PatientDemographics{
 				CarrierName: "CIGNA HMO",
 				CarrierID:   "car301345",
 			},
 			patientDOB:       "01/01/1980",
-			wantRouting:      domain.RoutingAll,
+			wantRouting:      "",
 			wantPreauth:      false,
-			wantAmbiguous:    false,
-			wantProviderList: true,
+			wantAmbiguous:    true,
+			wantProviderList: false,
 		},
 		{
 			name: "Hollywood prior authorization", officeName: "Hollywood",
-			demographics: domain.PatientDemographics{CarrierName: "CIGNA HMO", CarrierID: "car301345"},
+			demographics: domain.PatientDemographics{CarrierName: "Aetna HMO", CarrierID: "car40887"},
 			patientDOB:   "01/01/1980", wantRouting: domain.RoutingBachOnly,
 			wantPreauth: true, wantProviderList: true,
 		},

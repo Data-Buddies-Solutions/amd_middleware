@@ -137,7 +137,7 @@ func TestPythonOwnershipContract(t *testing.T) {
 		t.Skip("set PYTHON_SCHEDULING_WORKTREE to run the cross-repository contract")
 	}
 	for _, scenario := range []string{
-		"availability_invalid_input", "availability_policy_blocked", "availability_read_failure",
+		"availability_invalid_input", "availability_policy_blocked", "availability_read_failure", "medical_product",
 		"insurance_completed", "insurance_no_current_plan", "insurance_no_effect", "insurance_partial", "insurance_uncertain", "insurance_missing_refs",
 		"cancellation_conflict", "cancellation_rejected", "cancellation_invalid_token", "cancellation_uncertain", "cancellation_completed",
 	} {
@@ -150,9 +150,17 @@ func TestPythonOwnershipContract(t *testing.T) {
 			chart.InsPlanID = "fresh-plan"
 			chart.SubscriberNum = "OLD"
 			records.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true, Patients: []domain.Patient{{ID: "12345", FullName: "DOE,JANE", FirstName: "Jane", LastName: "Doe", DOB: "01/15/1980"}}}
-			wantEnd, wantAdd, wantCancel := 0, 0, 0
+			wantEnd, wantAdd, wantCancel, wantBook := 0, 0, 0, 0
 			provider := &ownershipContractRecords{Adapter: records}
 			switch scenario {
+			case "medical_product":
+				chart.CarrierName = "Renamed directory label"
+				chart.CarrierID = "car40887"
+				wantBook = 1
+				for i := 2; i < 16; i++ {
+					day := mutationTestNow().AddDate(0, 0, i).Format("2006-01-02")
+					records.ScheduleReads[day] = completeRead("1513", nil, nil)
+				}
 			case "availability_policy_blocked":
 				chart.CarrierName = "Unrecognized chart insurance"
 				chart.CarrierID = "unknown-carrier"
@@ -208,8 +216,8 @@ func TestPythonOwnershipContract(t *testing.T) {
 				t.Fatalf("Python ownership contract: %v\n%s", err, output)
 			}
 			t.Log(string(output))
-			if records.EndInsuranceCalls != wantEnd || records.AddInsuranceCalls != wantAdd || len(records.Cancellations) != wantCancel || len(records.Bookings) != 0 {
-				t.Fatalf("provider writes end/add/cancel/book = %d/%d/%d/%d; want %d/%d/%d/0", records.EndInsuranceCalls, records.AddInsuranceCalls, len(records.Cancellations), len(records.Bookings), wantEnd, wantAdd, wantCancel)
+			if records.EndInsuranceCalls != wantEnd || records.AddInsuranceCalls != wantAdd || len(records.Cancellations) != wantCancel || len(records.Bookings) != wantBook {
+				t.Fatalf("provider writes end/add/cancel/book = %d/%d/%d/%d; want %d/%d/%d/%d", records.EndInsuranceCalls, records.AddInsuranceCalls, len(records.Cancellations), len(records.Bookings), wantEnd, wantAdd, wantCancel, wantBook)
 			}
 			for _, write := range records.InsuranceEnds {
 				if write.InsPlanID != "fresh-plan" {

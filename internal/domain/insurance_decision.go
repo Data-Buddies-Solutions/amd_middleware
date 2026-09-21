@@ -229,17 +229,33 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 // on the chart. It never silently changes that chart or trusts request routing.
 func DecideChartInsurance(chart PatientDemographics, plan, coverage string, office *OfficeConfig, dob string) InsuranceDecision {
 	recordedPlan := chart.CarrierName
+	if coverage == "routine_vision" {
+		// Vision carrier IDs identify the billing bucket attached at registration.
+		// Directory labels are display text, not another caller plan to match.
+		recordedPlan = ""
+		for _, rule := range participationSources["SPRING_HILL_ROUTINE_VISION"] {
+			entry, ok := lookupVisionInsurance(rule.Canonical)
+			if ok && chart.CarrierID != "" && entry.CarrierID == chart.CarrierID {
+				recordedPlan = rule.Canonical
+				break
+			}
+		}
+	}
+	if coverage == "medical" {
+		recordedPlan = medicalChartProduct(chart, plan)
+	}
 	if chart.CarrierID == "car40916" {
 		recordedPlan = "Preferred Care Partners"
 	}
 	decision := DecideInsurance(recordedPlan, coverage, office, dob)
-	// AMD stores a carrier directory label, not the patient's exact product.
-	// A card-confirmed product may refine that known label, but must still match
-	// the chart carrier ID below. An explicit chart product remains authoritative.
-	if coverage == "medical" && plan != "" {
-		carrierName := medicalCatalog.CarrierNames[chart.CarrierID]
-		if carrierName != "" && insuranceNormalize(chart.CarrierName) == insuranceNormalize(carrierName) {
-			decision = DecideInsurance(plan, coverage, office, dob)
+	if coverage == "medical" && decision.CanSchedule {
+		// Family participation is not an exact product's scheduling permission.
+		for _, product := range medicalPlans {
+			if product.Name == decision.CanonicalPlan && product.Clarification != "" {
+				decision = DecideInsurance("", coverage, office, dob)
+				decision.Answer = "needs_input: " + product.Clarification
+				return decision
+			}
 		}
 	}
 	// A caller cannot clear a restriction already established by the chart.
@@ -253,7 +269,8 @@ func DecideChartInsurance(chart PatientDemographics, plan, coverage string, offi
 	matches := chart.CarrierID != "" && chart.CarrierID == decision.CarrierID
 	if plan != "" {
 		claimed := DecideInsurance(plan, coverage, office, dob)
-		matches = matches && claimed.CanSchedule && insuranceNormalize(claimed.CanonicalPlan) == insuranceNormalize(decision.CanonicalPlan)
+		matches = matches && claimed.CanSchedule && claimed.CarrierID == decision.CarrierID &&
+			(coverage == "routine_vision" || insuranceNormalize(claimed.CanonicalPlan) == insuranceNormalize(decision.CanonicalPlan))
 	}
 	if !matches {
 		decision.CanSchedule = false
