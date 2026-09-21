@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.0.4](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.3...v5.0.4) (2026-09-21)
+
+
+### Bug Fixes
+
+* verify routine-vision insurance by carrier identity ([#201](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/201)) ([5b0c7f8](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/5b0c7f8c4809b94a858b05c0ac76cd35bc05eeb4))
+
 ## [5.0.3](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.2...v5.0.3) (2026-09-20)
 
 
