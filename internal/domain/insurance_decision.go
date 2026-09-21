@@ -229,6 +229,18 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 // on the chart. It never silently changes that chart or trusts request routing.
 func DecideChartInsurance(chart PatientDemographics, plan, coverage string, office *OfficeConfig, dob string) InsuranceDecision {
 	recordedPlan := chart.CarrierName
+	if coverage == "routine_vision" {
+		// Vision carrier IDs identify the billing bucket attached at registration.
+		// Directory labels are display text, not another caller plan to match.
+		recordedPlan = ""
+		for _, rule := range participationSources["SPRING_HILL_ROUTINE_VISION"] {
+			entry, ok := lookupVisionInsurance(rule.Canonical)
+			if ok && chart.CarrierID != "" && entry.CarrierID == chart.CarrierID {
+				recordedPlan = rule.Canonical
+				break
+			}
+		}
+	}
 	if chart.CarrierID == "car40916" {
 		recordedPlan = "Preferred Care Partners"
 	}
@@ -253,7 +265,11 @@ func DecideChartInsurance(chart PatientDemographics, plan, coverage string, offi
 	matches := chart.CarrierID != "" && chart.CarrierID == decision.CarrierID
 	if plan != "" {
 		claimed := DecideInsurance(plan, coverage, office, dob)
-		matches = matches && claimed.CanSchedule && insuranceNormalize(claimed.CanonicalPlan) == insuranceNormalize(decision.CanonicalPlan)
+		if coverage == "routine_vision" {
+			matches = matches && claimed.CanSchedule && claimed.CarrierID == decision.CarrierID
+		} else {
+			matches = matches && claimed.CanSchedule && insuranceNormalize(claimed.CanonicalPlan) == insuranceNormalize(decision.CanonicalPlan)
+		}
 	}
 	if !matches {
 		decision.CanSchedule = false
