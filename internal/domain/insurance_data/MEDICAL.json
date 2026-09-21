@@ -65,7 +65,9 @@
     },
     {
       "name": "Aetna Better Health",
-      "aliases": [],
+      "aliases": [
+        "Aetna Better Health Medicaid MMA (Medical)"
+      ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
@@ -416,6 +418,10 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted",
+          "routing": "all_three"
         }
       },
       "carrierCode": "AET07",
@@ -514,6 +520,10 @@
           "routing": "bach_only"
         },
         "SPRING_HILL_MEDICAL": {
+          "status": "accepted",
+          "routing": "bach_licht"
+        },
+        "CRYSTAL_RIVER": {
           "status": "accepted",
           "routing": "bach_licht"
         }
@@ -667,6 +677,10 @@
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
+        },
+        "SPRING_HILL_MEDICAL": {
+          "status": "accepted",
+          "routing": "all_three"
         }
       },
       "carrierCode": "AMBE1",
@@ -798,7 +812,10 @@
     },
     {
       "name": "Cigna Miami Dade Public Schools",
-      "aliases": [],
+      "aliases": [
+        "Cigna Miami Dade",
+        "Miami Dade Public Schools"
+      ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
@@ -884,7 +901,9 @@
     },
     {
       "name": "Community Care Plan",
-      "aliases": [],
+      "aliases": [
+        "Community Care"
+      ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
@@ -971,7 +990,9 @@
     },
     {
       "name": "Envolve Vision",
-      "aliases": [],
+      "aliases": [
+        "Envolve"
+      ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
@@ -1009,7 +1030,9 @@
     },
     {
       "name": "Eye Care Health Solutions",
-      "aliases": [],
+      "aliases": [
+        "Eye Care Health"
+      ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
@@ -1600,13 +1623,19 @@
     },
     {
       "name": "Imagine Health",
-      "aliases": [],
+      "aliases": [
+        "Imagine"
+      ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
         },
         "SPRING_HILL_MEDICAL": {
+          "status": "accepted",
+          "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
           "status": "accepted",
           "routing": "all_three"
         }
@@ -1668,6 +1697,10 @@
           "routing": "bach_only"
         },
         "SPRING_HILL_MEDICAL": {
+          "status": "accepted",
+          "routing": "bach_only"
+        },
+        "CRYSTAL_RIVER": {
           "status": "accepted",
           "routing": "bach_only"
         }
@@ -1786,6 +1819,10 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted",
+          "routing": "all_three"
         }
       },
       "carrierId": "car301648"
@@ -1830,6 +1867,10 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "bach_licht"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted",
+          "routing": "bach_licht"
         }
       },
       "carrierCode": "OSCA1",
@@ -1838,7 +1879,8 @@
     {
       "name": "Partners Direct Health",
       "aliases": [
-        "Partners Direct"
+        "Partners Direct",
+        "Partners Direct Health (Medical) Imagine Health"
       ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
@@ -2054,13 +2096,19 @@
     },
     {
       "name": "SunHealth",
-      "aliases": [],
+      "aliases": [
+        "Sun Health"
+      ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {
           "status": "accepted",
           "routing": "bach_only"
         },
         "SPRING_HILL_MEDICAL": {
+          "status": "accepted",
+          "routing": "all_three"
+        },
+        "CRYSTAL_RIVER": {
           "status": "accepted",
           "routing": "all_three"
         }
@@ -2150,6 +2198,10 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "bach_licht"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted",
+          "routing": "bach_licht"
         }
       },
       "carrierCode": "TRI05",
@@ -2174,6 +2226,10 @@
         "SPRING_HILL_MEDICAL": {
           "status": "accepted",
           "routing": "bach_licht"
+        },
+        "CRYSTAL_RIVER": {
+          "status": "accepted",
+          "routing": "bach_licht"
         }
       },
       "carrierCode": "TRI00",
@@ -2190,6 +2246,10 @@
           "routing": "bach_only"
         },
         "SPRING_HILL_MEDICAL": {
+          "status": "accepted",
+          "routing": "bach_licht"
+        },
+        "CRYSTAL_RIVER": {
           "status": "accepted",
           "routing": "bach_licht"
         }
@@ -2314,7 +2374,8 @@
     {
       "name": "United Healthcare Dual Complete",
       "aliases": [
-        "DuoComplete"
+        "DuoComplete",
+        "Duo Complete"
       ],
       "offices": {
         "SPRING_HILL_MEDICAL": {
@@ -2634,7 +2695,8 @@
       "name": "US Health Group",
       "aliases": [
         "Ushealth",
-        "Ushealth Group"
+        "Ushealth Group",
+        "US Health Group - a UnitedHealthcare Company"
       ],
       "offices": {
         "HOLLYWOOD_SWEETWATER": {

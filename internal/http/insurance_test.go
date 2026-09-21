@@ -31,6 +31,18 @@ func TestInsuranceDecisionHTTPContract(t *testing.T) {
 	}
 }
 
+func TestCrystalRiverOscarDecision(t *testing.T) {
+	w := httptest.NewRecorder()
+	(&Handlers{}).HandleInsuranceDecision(w, httptest.NewRequest(http.MethodPost, "/api/insurance/decision", strings.NewReader(`{"plan":"Oscar Health","coverageType":"medical","office":"Crystal River"}`)))
+	var d domain.InsuranceDecision
+	if err := json.Unmarshal(w.Body.Bytes(), &d); err != nil {
+		t.Fatal(err)
+	}
+	if w.Code != http.StatusOK || d.Outcome != "accepted" || d.Participation != "accepted" || !d.CanSchedule || d.Answer != "success: Yes, we accept Oscar Health." {
+		t.Fatalf("wrong Oscar participation response: %s", w.Body.String())
+	}
+}
+
 func TestAcceptedFamilyDoesNotBecomeAProductInterrogation(t *testing.T) {
 	handlers := &Handlers{}
 	for _, tc := range []string{
