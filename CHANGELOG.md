@@ -4,6 +4,14 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.0.5](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.4...v5.0.5) (2026-09-21)
+
+
+### Bug Fixes
+
+* **insurance:** restore omitted office acceptance and aliases ([#204](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/204)) ([37faaa2](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/37faaa2a84b4f7d6d977c52c0f5c0fcb422d5401))
+* **scheduling:** remove chart insurance gates from availability and booking ([#206](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/206)) ([1d5caa3](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/1d5caa372627071e2b177d2d34517d42f3f9847e))
+
 ## [5.0.4](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.3...v5.0.4) (2026-09-21)
 
 
