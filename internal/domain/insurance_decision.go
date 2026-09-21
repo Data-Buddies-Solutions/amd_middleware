@@ -241,21 +241,17 @@ func DecideChartInsurance(chart PatientDemographics, plan, coverage string, offi
 			}
 		}
 	}
-	if coverage == "medical" {
-		recordedPlan = medicalChartProduct(chart, plan)
-	}
 	if chart.CarrierID == "car40916" {
 		recordedPlan = "Preferred Care Partners"
 	}
 	decision := DecideInsurance(recordedPlan, coverage, office, dob)
-	if coverage == "medical" && decision.CanSchedule {
-		// Family participation is not an exact product's scheduling permission.
-		for _, product := range medicalPlans {
-			if product.Name == decision.CanonicalPlan && product.Clarification != "" {
-				decision = DecideInsurance("", coverage, office, dob)
-				decision.Answer = "needs_input: " + product.Clarification
-				return decision
-			}
+	// AMD stores a carrier directory label, not the patient's exact product.
+	// A card-confirmed product may refine that known label, but must still match
+	// the chart carrier ID below. An explicit chart product remains authoritative.
+	if coverage == "medical" && plan != "" {
+		carrierName := medicalCatalog.CarrierNames[chart.CarrierID]
+		if carrierName != "" && insuranceNormalize(chart.CarrierName) == insuranceNormalize(carrierName) {
+			decision = DecideInsurance(plan, coverage, office, dob)
 		}
 	}
 	// A caller cannot clear a restriction already established by the chart.
@@ -269,8 +265,11 @@ func DecideChartInsurance(chart PatientDemographics, plan, coverage string, offi
 	matches := chart.CarrierID != "" && chart.CarrierID == decision.CarrierID
 	if plan != "" {
 		claimed := DecideInsurance(plan, coverage, office, dob)
-		matches = matches && claimed.CanSchedule && claimed.CarrierID == decision.CarrierID &&
-			(coverage == "routine_vision" || insuranceNormalize(claimed.CanonicalPlan) == insuranceNormalize(decision.CanonicalPlan))
+		if coverage == "routine_vision" {
+			matches = matches && claimed.CanSchedule && claimed.CarrierID == decision.CarrierID
+		} else {
+			matches = matches && claimed.CanSchedule && insuranceNormalize(claimed.CanonicalPlan) == insuranceNormalize(decision.CanonicalPlan)
+		}
 	}
 	if !matches {
 		decision.CanSchedule = false

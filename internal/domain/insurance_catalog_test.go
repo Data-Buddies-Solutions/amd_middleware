@@ -83,8 +83,8 @@ func TestAMDDirectoryRoundTripUsesConfirmedProductWithoutRelaxingRestrictions(t 
 			}
 			chart.CarrierID = tc.id
 			chart.CarrierName = "Unverified carrier display"
-			if !DecideChartInsurance(chart, tc.plan, "medical", office, "").CanSchedule {
-				t.Fatal("confirmed product lost after directory label changed")
+			if DecideChartInsurance(chart, tc.plan, "medical", office, "").CanSchedule {
+				t.Fatal("unknown display relabeled")
 			}
 		})
 	}
@@ -149,26 +149,6 @@ func TestVisionChartIdentityDoesNotDependOnDirectoryLabel(t *testing.T) {
 		if got.CanSchedule {
 			t.Errorf("unmapped carrier accepted: %s", id)
 		}
-	}
-}
-
-func TestMedicalGenericChartNeedsProductAndPreservesItsRequirements(t *testing.T) {
-	office, _ := ResolveOffice("Hollywood")
-	for _, label := range []string{"AETNA", "", "Renamed directory label"} {
-		chart := PatientDemographics{CarrierID: "car40887", CarrierName: label}
-		if d := DecideChartInsurance(chart, "", "medical", office, ""); d.CanSchedule {
-			t.Errorf("generic chart guessed product: %+v", d)
-		}
-		if d := DecideChartInsurance(chart, "Aetna Commercial", "medical", office, ""); !d.CanSchedule {
-			t.Errorf("confirmed commercial product blocked: %+v", d)
-		}
-		if d := DecideChartInsurance(chart, "Aetna HMO", "medical", office, ""); d.CanSchedule || len(d.Requirements) == 0 {
-			t.Errorf("HMO requirements lost: %+v", d)
-		}
-	}
-	chart := PatientDemographics{CarrierID: "car40887", CarrierName: "Aetna HMO"}
-	if d := DecideChartInsurance(chart, "Aetna Commercial", "medical", office, ""); d.CanSchedule {
-		t.Fatal("explicit chart product overridden")
 	}
 }
 

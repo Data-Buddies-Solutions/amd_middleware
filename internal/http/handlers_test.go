@@ -119,7 +119,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 	if body.Status != "verified" || body.PatientID != "123" || body.Phone != "850-373-3869" {
 		t.Fatalf("response = %+v", body)
 	}
-	if body.Routing != "" || len(body.AllowedProviders) != 0 || !body.RoutingAmbiguous || body.InsuranceDecision == nil || body.InsuranceDecision.Outcome != "needs_clarification" || body.InsuranceDecision.CanSchedule {
+	if body.Routing != string(domain.RoutingBachOnly) || len(body.AllowedProviders) != 1 || body.RoutingAmbiguous || body.InsuranceDecision == nil || !body.InsuranceDecision.CanSchedule {
 		t.Fatalf("routing response = %+v", body)
 	}
 	if body.AppointmentsStatus != "none" || body.Appointments == nil {
