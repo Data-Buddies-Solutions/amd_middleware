@@ -434,9 +434,9 @@ func TestInitRegistry(t *testing.T) {
 		t.Error("dev registry should NOT have prod column 1513")
 	}
 
-	_, ok = LookupOffice("+17275919997")
-	if ok {
-		t.Error("dev registry should NOT have prod phone +17275919997")
+	shared, ok := LookupOffice("+17275919997")
+	if !ok || shared != office {
+		t.Fatal("Spring Hill selector must resolve to the same sandbox office as the demo phone")
 	}
 
 	devDefault := DefaultOffice()

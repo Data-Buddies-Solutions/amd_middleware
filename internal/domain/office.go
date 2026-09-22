@@ -542,6 +542,7 @@ var prodOffices = map[string]*OfficeConfig{
 }
 
 var devOffices = map[string]*OfficeConfig{
+	"+17275919997": devSpringHillOffice,
 	"+14843989071": devSpringHillOffice,
 }
 
