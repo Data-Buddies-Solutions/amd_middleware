@@ -604,6 +604,7 @@ var prodOffices = map[string]*OfficeConfig{
 
 // devOffices contains office configs keyed by SIP trunk phone number (E.164).
 var devOffices = map[string]*OfficeConfig{
+	"+17275919997": devSpringHillOffice, // Agent office selector; still uses sandbox IDs.
 	"+14843989071": devSpringHillOffice,
 }
 

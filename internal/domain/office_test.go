@@ -579,10 +579,10 @@ func TestInitRegistry(t *testing.T) {
 		t.Error("dev registry should NOT have prod column 1513")
 	}
 
-	// Prod phone should not exist in dev registry
-	_, ok = LookupOffice("+17275919997")
-	if ok {
-		t.Error("dev registry should NOT have prod phone +17275919997")
+	// The agent's shared selector must resolve to sandbox IDs in dev.
+	shared, ok := LookupOffice("+17275919997")
+	if !ok || shared != office {
+		t.Fatal("Spring Hill selector must resolve to the same sandbox office as the demo phone")
 	}
 
 	// DefaultOffice works in dev
