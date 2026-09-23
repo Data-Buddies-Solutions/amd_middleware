@@ -76,14 +76,14 @@ func TestEligibilityReceiptsLogSafeProviderFailures(t *testing.T) {
 				}
 				return &http.Response{StatusCode: tc.httpStatus, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(tc.body)), Request: r}, nil
 			})
-			s, err := eligibility.New("synthetic-secret", map[string]eligibility.Provider{"spring_hill": {OrganizationName: "Synthetic Practice", NPI: "1999999984"}})
+			s, err := eligibility.New("synthetic-secret", map[string]eligibility.Provider{"hollywood": {OrganizationName: "Synthetic Practice", NPI: "1999999984"}})
 			if err != nil {
 				t.Fatal(err)
 			}
 			h := NewHandlers(nil, nil, nil)
 			h.SetEligibility(s)
 			router := NewRouter(h, "secret", nil)
-			req := httptest.NewRequest(http.MethodPost, "/api/eligibility/check", strings.NewReader(`{"firstName":"SyntheticJane","lastName":"PrivateSample","dob":"1980-01-02","memberId":"private-member","plan":"Davis Vision","coverageType":"routine_vision"}`))
+			req := httptest.NewRequest(http.MethodPost, "/api/eligibility/check", strings.NewReader(`{"firstName":"SyntheticJane","lastName":"PrivateSample","dob":"1980-01-02","memberId":"private-member","plan":"Davis Vision","coverageType":"routine_vision","office":"Hollywood"}`))
 			req.Header.Set("Authorization", "secret")
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
@@ -120,6 +120,9 @@ func TestEligibilityUsesExistingOfficeContextAndRejectsBookingInputs(t *testing.
 			t.Fatal(err)
 		}
 		providerName = request.Provider.OrganizationName
+		if providerName == "" {
+			providerName = request.Provider.FirstName + " " + request.Provider.LastName
+		}
 		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"meta":{"applicationMode":"production"},"subscriber":{"firstName":"Jane","lastName":"Sample","dateOfBirth":"19800102"},"benefitsInformation":[{"code":"1","serviceTypeCodes":["30"],"planCoverage":"Aetna Better Health"}]}`)), Request: r}, nil
 	})
 	service, err := eligibility.New("secret", map[string]eligibility.Provider{
@@ -141,7 +144,7 @@ func TestEligibilityUsesExistingOfficeContextAndRejectsBookingInputs(t *testing.
 		return w
 	}
 	body := map[string]any{"firstName": "Jane", "lastName": "Sample", "dob": "1980-01-02", "memberId": "synthetic", "plan": "Davis Vision", "coverageType": "routine_vision"}
-	if w := send(body); w.Code != 200 || providerName != "Default Practice" {
+	if w := send(body); w.Code != 200 || providerName != "Melissa Otero" {
 		t.Fatal("five clinical inputs must suffice with configured default office")
 	}
 	body["office"] = "Hollywood"

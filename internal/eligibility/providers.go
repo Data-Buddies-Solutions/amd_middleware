@@ -18,6 +18,8 @@ var lichtProvider = CheckedProvider{Name: "Dr. Joseph Licht", FirstName: "Joseph
 
 var miriamBachProvider = CheckedProvider{Name: "Dr. Miriam Bach", FirstName: "Miriam", LastName: "Bach", NPI: "1801200977"}
 
+var oteroProvider = CheckedProvider{Name: "Dr. Melissa Otero", FirstName: "Melissa", LastName: "Otero", NPI: "1457904765"}
+
 var springHillMedicalProviders = []CheckedProvider{
 	{Name: "Dr. Austin Bach", FirstName: "Austin", LastName: "Bach", NPI: "1659706588"},
 	lichtProvider,

@@ -425,13 +425,21 @@ provider without automatic retries. Eligibility is evidence, not booking
 permission or proof of provider network participation.
 
 Spring Hill medical intake checks Bach, Licht, and Noel concurrently using
-their verified individual NPIs. `providerResults` retains each complete result
+their verified individual NPIs. `providerResults` retains each assessed result
 with `provider: {profileId, name, firstName, lastName, npi}`. Profile IDs come
 from the active scheduling registry. The top-level status and corrected identity
 are usable only when all three trusted results agree; otherwise it reports
 `review` / `provider_results_need_review`. Successful individual results remain
 available when another request fails. The raw responses are stored only in the
 individual entries, with no duplicated top-level response.
+
+Spring Hill routine vision checks Melissa Otero, OD (NPI `1457904765`,
+[CMS NPPES](https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1457904765))
+using the optical scheduling profile. Optical responses retain benefit rows for
+STC `30` and `AL`; medical responses retain `30` and `98`. Matching rows retain
+all payer qualifiers, zero amounts, and plan descriptions. Other benefit rows
+are removed before the response reaches the agent or portal. Assessment uses
+the original response so filtering cannot erase an error or identity conflict.
 
 `STEDI_API_KEY` enables this path. Production deployment binds it to the
 `stedi-api-key` Secret Manager secret; add a production key version and grant
@@ -442,7 +450,7 @@ shape and registry profile ID as Spring Hill, so the portal can link it to
 the booked physician. North Miami Beach Optical routine vision uses Miriam Bach, OD's verified
 individual NPI (`1801200977`) and its scheduling profile for appointment linkage.
 See [vision payer mappings](docs/vision-eligibility-mapping.md) for supported and
-unsupported Stedi routes. Other offices and Spring Hill routine vision retain the
+unsupported Stedi routes. Other offices retain the
 single-provider configuration in `STEDI_PROVIDERS`; an absent provider stays
 explicitly unavailable, with no organization-NPI fallback for medical fanout.
 Verified booking receipts include `profileId`, allowing the agent to select the

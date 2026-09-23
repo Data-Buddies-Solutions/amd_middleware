@@ -35,7 +35,7 @@ type CheckInput struct {
 
 // Result reports current STC 30 plan activity, not network participation, visit
 // coverage or copay. Review/unknown never establish that the patient is uninsured.
-// ProviderResponse preserves all returned evidence independently of that assessment.
+// ProviderResponse retains visit-relevant benefits and identity/plan evidence.
 type Result struct {
 	InsuranceResolution *InsuranceResolution `json:"insuranceResolution,omitempty"`
 	Provider            *CheckedProvider     `json:"provider,omitempty"`
@@ -124,10 +124,12 @@ func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Re
 	if reason != "" {
 		return out, nil
 	}
-	if (officeID == "spring_hill" && in.CoverageType != "routine_vision") || officeID == "crystal_river" || (officeID == "north_miami_beach_optical" && in.CoverageType == "routine_vision") {
+	if officeID == "spring_hill" || officeID == "crystal_river" || (officeID == "north_miami_beach_optical" && in.CoverageType == "routine_vision") {
 		var providers []CheckedProvider
 		var ok bool
-		if officeID == "north_miami_beach_optical" {
+		if officeID == "spring_hill" && in.CoverageType == "routine_vision" {
+			providers, ok = checkedProviders(officeID, []CheckedProvider{oteroProvider})
+		} else if officeID == "north_miami_beach_optical" {
 			providers, ok = checkedProviders(officeID, []CheckedProvider{miriamBachProvider})
 		} else if officeID == "crystal_river" {
 			providers, ok = checkedProviders(officeID, []CheckedProvider{lichtProvider})
@@ -147,7 +149,7 @@ func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Re
 				child := out
 				child.ProviderResults = nil
 				child.Provider = &provider
-				out.ProviderResults[i] = s.checkProvider(ctx, child, patient, Provider{FirstName: provider.FirstName, LastName: provider.LastName, NPI: provider.NPI})
+				out.ProviderResults[i] = s.checkProvider(ctx, child, patient, Provider{FirstName: provider.FirstName, LastName: provider.LastName, NPI: provider.NPI}, in.CoverageType)
 			}()
 		}
 		pending.Wait()
@@ -159,10 +161,10 @@ func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Re
 		out.ReviewReason = "provider_not_configured"
 		return out, nil
 	}
-	return s.checkProvider(ctx, out, patient, provider), nil
+	return s.checkProvider(ctx, out, patient, provider, in.CoverageType), nil
 }
 
-func (s *Service) checkProvider(ctx context.Context, out Result, patient Person, provider Provider) Result {
+func (s *Service) checkProvider(ctx context.Context, out Result, patient Person, provider Provider, coverage string) Result {
 	// Supply the patient's actual demographics as the initial lookup. Do not
 	// manufacture a policyholder or dependent relationship when it is unknown.
 	// Stedi recommends omitting the service date for a current-date check.
@@ -186,10 +188,10 @@ func (s *Service) checkProvider(ctx context.Context, out Result, patient Person,
 	if err != nil || len(raw) > 8*1024*1024 {
 		return out
 	}
-	// Keep the original JSON without decoding numbers through float64. Invalid
+	// Retain relevant rows without decoding numbers through float64. Invalid
 	// JSON is retained as a JSON string, but can never establish coverage.
 	if json.Valid(raw) {
-		out.ProviderResponse = json.RawMessage(raw)
+		out.ProviderResponse = retainVisitBenefits(raw, coverage)
 	} else {
 		out.ProviderResponse, _ = json.Marshal(string(raw))
 	}

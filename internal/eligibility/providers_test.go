@@ -96,14 +96,14 @@ func TestSpringHillMedicalRetainsPartialFailuresAndConflicts(t *testing.T) {
 	}
 }
 
-func TestSpringHillVisionStillUsesConfiguredProvider(t *testing.T) {
+func TestSpringHillVisionUsesOtero(t *testing.T) {
 	calls := 0
 	s := testService(t, func(w http.ResponseWriter, r *http.Request) {
 		calls++
 		var request Request
 		_ = json.NewDecoder(r.Body).Decode(&request)
-		if request.Provider.OrganizationName != "Synthetic Practice" || request.Provider.FirstName != "" {
-			t.Error("routine vision was sent as a medical doctor")
+		if request.Provider.OrganizationName != "" || request.Provider.FirstName != "Melissa" || request.Provider.LastName != "Otero" || request.Provider.NPI != "1457904765" {
+			t.Error("routine vision must use Otero")
 		}
 		fmt.Fprint(w, fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, ""))
 	})
@@ -112,7 +112,7 @@ func TestSpringHillVisionStillUsesConfiguredProvider(t *testing.T) {
 	in.CoverageType = "routine_vision"
 	in.Plan = "Davis Vision"
 	got, err := s.Check(context.Background(), "spring_hill", in)
-	if err != nil || got.Status != "active" || calls != 1 || len(got.ProviderResults) != 0 {
+	if err != nil || got.Status != "active" || calls != 1 || len(got.ProviderResults) != 1 || got.ProviderResults[0].Provider.ProfileID != "1983" {
 		t.Fatalf("vision behavior changed: %+v %v", got, err)
 	}
 	if _, err := New("secret", nil); err != nil {

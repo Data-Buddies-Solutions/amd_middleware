@@ -140,7 +140,7 @@ func TestHTTPFailuresNeverRetry(t *testing.T) {
 }
 
 // Financial fields and future payer fields must survive independently of assessment.
-func TestCompleteProviderEvidenceSurvivesAssessment(t *testing.T) {
+func TestRelevantProviderEvidenceSurvivesAssessment(t *testing.T) {
 	for _, tc := range []struct {
 		name, extra string
 		httpStatus  int
@@ -160,8 +160,8 @@ func TestCompleteProviderEvidenceSurvivesAssessment(t *testing.T) {
 			var output map[string]json.RawMessage
 			json.Unmarshal(encoded, &output)
 			var want, got bytes.Buffer
-			if json.Compact(&want, []byte(body)) != nil || json.Compact(&got, output["providerResponse"]) != nil || !bytes.Equal(want.Bytes(), got.Bytes()) {
-				t.Fatal("full provider response was not preserved")
+			if json.Compact(&want, retainVisitBenefits([]byte(body), "medical")) != nil || json.Compact(&got, output["providerResponse"]) != nil || !bytes.Equal(want.Bytes(), got.Bytes()) {
+				t.Fatal("relevant provider response was not preserved")
 			}
 			if string(output["providerHttpStatus"]) != fmt.Sprint(tc.httpStatus) {
 				t.Fatal("HTTP status missing")
