@@ -141,6 +141,11 @@ func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Re
 		return providerConsensus(out), nil
 	}
 	provider, ok := s.providers[officeID]
+	// Crystal River uses Licht for eligibility, as confirmed by the practice.
+	if officeID == "crystal_river" {
+		provider = Provider{FirstName: "Joseph", LastName: "Licht", NPI: "1497147680"}
+		ok = true
+	}
 	if !ok {
 		out.ReviewReason = "provider_not_configured"
 		return out, nil

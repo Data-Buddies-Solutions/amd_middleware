@@ -433,7 +433,11 @@ are usable only when all three trusted results agree; otherwise it reports
 available when another request fails. The raw responses are stored only in the
 individual entries, with no duplicated top-level response.
 
-`STEDI_API_KEY` enables this path. Other offices and routine vision retain the
+`STEDI_API_KEY` enables this path. Production deployment binds it to the
+`stedi-api-key` Secret Manager secret; add a production key version and grant
+the runtime service account secret access before deploying.
+Crystal River uses Joseph Licht's individual NPI (`1497147680`) for eligibility,
+as confirmed by the practice. Other offices and Spring Hill routine vision retain the
 single-provider configuration in `STEDI_PROVIDERS`; an absent provider stays
 explicitly unavailable, with no organization-NPI fallback for medical fanout.
 Verified booking receipts include `profileId`, allowing the agent to select the

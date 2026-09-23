@@ -95,7 +95,7 @@ deploy_args=(
   "--port=8080"
   "--startup-probe=httpGet.path=/live,httpGet.port=8080"
   "--readiness-probe=httpGet.path=/ready,httpGet.port=8080"
-  "--set-secrets=ADVANCEDMD_USERNAME=advancedmd-username:2,ADVANCEDMD_PASSWORD=advancedmd-password:2,ADVANCEDMD_OFFICE_KEY=advancedmd-office-key:2,ADVANCEDMD_APP_NAME=advancedmd-app-name:2,API_SECRET=middleware-api-secret:2,BOOKING_TOKEN_SECRET=booking-token-secret:2"
+  "--set-secrets=ADVANCEDMD_USERNAME=advancedmd-username:2,ADVANCEDMD_PASSWORD=advancedmd-password:2,ADVANCEDMD_OFFICE_KEY=advancedmd-office-key:2,ADVANCEDMD_APP_NAME=advancedmd-app-name:2,API_SECRET=middleware-api-secret:2,BOOKING_TOKEN_SECRET=booking-token-secret:2,STEDI_API_KEY=stedi-api-key:latest"
   "--network=acuity-prod"
   "--subnet=cloud-run-us-east4"
   "--vpc-egress=all-traffic"

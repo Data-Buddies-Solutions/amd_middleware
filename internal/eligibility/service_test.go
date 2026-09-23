@@ -212,3 +212,23 @@ func TestCorrectedPatientOnlyExposedAfterTrustedResponse(t *testing.T) {
 		})
 	}
 }
+
+func TestCrystalRiverUsesOnlyLichtWithoutProviderConfiguration(t *testing.T) {
+	calls := 0
+	service := testService(t, func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		var request Request
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Fatal(err)
+		}
+		if request.Provider.NPI != "1497147680" || request.Provider.FirstName != "Joseph" || request.Provider.LastName != "Licht" || request.Provider.OrganizationName != "" {
+			t.Fatalf("wrong Crystal River provider: %+v", request.Provider)
+		}
+		fmt.Fprint(w, fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, ""))
+	})
+	service.providers = nil
+	result, err := service.Check(context.Background(), "crystal_river", input())
+	if err != nil || calls != 1 || result.Status != "active" || len(result.ProviderResults) != 0 {
+		t.Fatalf("result=%+v err=%v calls=%d", result, err, calls)
+	}
+}
