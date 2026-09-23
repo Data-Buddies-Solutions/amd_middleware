@@ -93,3 +93,29 @@ func TestMiddleNameRequiresSeparateToken(t *testing.T) {
 		}
 	}
 }
+
+func TestSupportedNameCorrection(t *testing.T) {
+	expected := Person{FirstName: "Avery", LastName: "Stone Jr.", DateOfBirth: "19800512", MemberID: "EXAMPLE-42"}
+	returned := Person{FirstName: "Mavery", LastName: "Stone", DateOfBirth: "19800512", MemberID: "EXAMPLE-42"}
+	for _, tc := range []struct {
+		name   string
+		change func(*Person)
+		want   bool
+	}{
+		{"missing initial and suffix", func(*Person) {}, true},
+		{"member conflict", func(p *Person) { p.MemberID = "other" }, false},
+		{"missing member", func(p *Person) { p.MemberID = "" }, false},
+		{"DOB conflict", func(p *Person) { p.DateOfBirth = "19800513" }, false},
+		{"different first", func(p *Person) { p.FirstName = "Oliver" }, false},
+		{"different last", func(p *Person) { p.LastName = "Jones" }, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p := returned
+			tc.change(&p)
+			got := Match(expected, p)
+			if (got.Status == "matched_with_name_correction" && !got.ReviewRequired) != tc.want {
+				t.Fatalf("unexpected correction: %+v", got)
+			}
+		})
+	}
+}

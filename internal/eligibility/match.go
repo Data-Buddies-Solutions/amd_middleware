@@ -37,9 +37,21 @@ func sameID(a, b string) bool { return identifier(a) != "" && identifier(a) == i
 
 func validDOB(s string) bool { _, err := time.Parse("20060102", s); return err == nil }
 
-// Match compares names and DOB only. Member-ID changes remain visible but do
-// not change this name/DOB assessment. A matching member ID cannot turn a
-// different name into a verified identity.
+// surname ignores a separately spoken generational suffix, without exposing a
+// suffix field or changing the payer's returned last name.
+func surname(s string) string {
+	parts := strings.Fields(s)
+	if len(parts) > 1 {
+		switch name(parts[len(parts)-1]) {
+		case "JR", "SR", "II", "III", "IV":
+			parts = parts[:len(parts)-1]
+		}
+	}
+	return name(strings.Join(parts, " "))
+}
+
+// Match permits one missing leading letter only with matching DOB, member ID,
+// and surname. Other name differences remain reviewable.
 func Match(expected, returned Person) MatchResult {
 	first, last := name(expected.FirstName), name(expected.LastName)
 	returnedFirst, returnedLast := name(returned.FirstName), name(returned.LastName)
@@ -66,6 +78,20 @@ func Match(expected, returned Person) MatchResult {
 	}
 	if last != returnedLast {
 		result.Reasons = append(result.Reasons, "last_name_conflict")
+	}
+	returnedRunes, firstRunes := []rune(returnedFirst), []rune(first)
+	missingInitial := len(firstRunes) >= 3 && len(returnedRunes) == len(firstRunes)+1 && string(returnedRunes[1:]) == first
+	if expected.DateOfBirth == returned.DateOfBirth && sameID(expected.MemberID, returned.MemberID) && surname(expected.LastName) == surname(returned.LastName) && (first == returnedFirst || missingInitial) && (first != returnedFirst || last != returnedLast) {
+		result.Status = "matched_with_name_correction"
+		result.ReviewRequired = false
+		result.Reasons = []string{}
+		if missingInitial {
+			result.Reasons = append(result.Reasons, "first_name_corrected")
+		}
+		if last != returnedLast {
+			result.Reasons = append(result.Reasons, "last_name_normalized")
+		}
+		return result
 	}
 	if len(result.Reasons) > 0 {
 		result.Status = "identity_conflict"

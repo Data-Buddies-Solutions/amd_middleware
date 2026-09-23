@@ -33,6 +33,7 @@ type CheckInput struct {
 // coverage or copay. Review/unknown never establish that the patient is uninsured.
 // ProviderResponse preserves all returned evidence independently of that assessment.
 type Result struct {
+	MatchedPatient     *Person         `json:"matchedPatient,omitempty"`
 	ProviderResponse   json.RawMessage `json:"providerResponse,omitempty"`
 	ProviderHTTPStatus int             `json:"providerHttpStatus,omitempty"`
 	Status             string          `json:"status"` // active, inactive, review, unknown
@@ -180,6 +181,9 @@ func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Re
 		}
 		return out, nil
 	}
+	// Only expose an actionable name after production, payer, and identity checks.
+	matched := response.Subscriber
+	out.MatchedPatient = &matched
 	if assessment.Coverage == "unknown" {
 		out.ReviewReason = "general_coverage_unknown"
 		return out, nil

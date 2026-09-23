@@ -185,3 +185,30 @@ func TestInvalidProviderJSONRemainsEvidenceNotCoverage(t *testing.T) {
 		t.Fatal("invalid JSON evidence discarded")
 	}
 }
+
+func TestCorrectedPatientOnlyExposedAfterTrustedResponse(t *testing.T) {
+	for _, tc := range []struct {
+		name, extra, mode string
+		want              bool
+	}{
+		{"supported correction", "", "production", true},
+		{"payer rejection", `,"errors":[{"code":"75"}]`, "production", false},
+		{"dependent", `,"dependents":[{"firstName":"Jane","lastName":"Sample","dateOfBirth":"19800102","memberId":"synthetic"}]`, "production", false},
+		{"test response", "", "test", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			body := strings.Replace(fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, tc.extra), `"production"`, `"`+tc.mode+`"`, 1)
+			s := testService(t, func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, body) })
+			in := input()
+			in.FirstName = "Ane"
+			in.LastName = "Sample Jr."
+			got, err := s.Check(context.Background(), "office", in)
+			if err != nil || (got.MatchedPatient != nil) != tc.want {
+				t.Fatalf("unexpected match exposure: %+v %v", got, err)
+			}
+			if tc.want && (got.Status != "active" || got.Match.Status != "matched_with_name_correction" || got.MatchedPatient.FirstName != "Jane" || got.MatchedPatient.LastName != "Sample") {
+				t.Fatalf("correction missing: %+v", got)
+			}
+		})
+	}
+}
