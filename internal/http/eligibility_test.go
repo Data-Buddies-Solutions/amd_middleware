@@ -83,7 +83,7 @@ func TestEligibilityReceiptsLogSafeProviderFailures(t *testing.T) {
 			h := NewHandlers(nil, nil, nil)
 			h.SetEligibility(s)
 			router := NewRouter(h, "secret", nil)
-			req := httptest.NewRequest(http.MethodPost, "/api/eligibility/check", strings.NewReader(`{"firstName":"SyntheticJane","lastName":"PrivateSample","dob":"1980-01-02","memberId":"private-member","plan":"Oscar Health"}`))
+			req := httptest.NewRequest(http.MethodPost, "/api/eligibility/check", strings.NewReader(`{"firstName":"SyntheticJane","lastName":"PrivateSample","dob":"1980-01-02","memberId":"private-member","plan":"Oscar Health","coverageType":"routine_vision"}`))
 			req.Header.Set("Authorization", "secret")
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
@@ -140,7 +140,7 @@ func TestEligibilityUsesExistingOfficeContextAndRejectsBookingInputs(t *testing.
 		router.ServeHTTP(w, r)
 		return w
 	}
-	body := map[string]any{"firstName": "Jane", "lastName": "Sample", "dob": "1980-01-02", "memberId": "synthetic", "plan": "Oscar Health"}
+	body := map[string]any{"firstName": "Jane", "lastName": "Sample", "dob": "1980-01-02", "memberId": "synthetic", "plan": "Oscar Health", "coverageType": "routine_vision"}
 	if w := send(body); w.Code != 200 || providerName != "Default Practice" {
 		t.Fatal("five clinical inputs must suffice with configured default office")
 	}

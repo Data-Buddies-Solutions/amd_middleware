@@ -80,7 +80,7 @@ func TestRescheduleOutcomes(t *testing.T) {
 				}
 			}
 			if expected == "completed" || expected == "partial" {
-				if result.Booking == nil || result.Booking.AppointmentID != 98765 || result.Booking.VisitType != "medical" || result.Booking.OfficeID != "spring_hill" || result.Booking.CancellationToken == "" || result.Booking.RescheduleToken == "" {
+				if result.Booking == nil || result.Booking.AppointmentID != 98765 || result.Booking.ProfileID != "620" || result.Booking.VisitType != "medical" || result.Booking.OfficeID != "spring_hill" || result.Booking.CancellationToken == "" || result.Booking.RescheduleToken == "" {
 					t.Fatalf("missing replacement metadata: %+v", result.Booking)
 				}
 			}

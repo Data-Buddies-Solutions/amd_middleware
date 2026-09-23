@@ -415,3 +415,30 @@ caller sends it once and retains the returned receipt. A replacement is booked
 before the original is cancelled. `partial` and `uncertain` receipts require
 reconciliation and must not be presented as completed moves. See
 [rescheduling](internal/scheduling/reschedule.go) and its tests.
+
+### Intake eligibility
+
+`POST /api/eligibility/check` accepts the patient's `firstName`, `lastName`,
+`dob`, `memberId`, `plan`, trusted `office`, and optional `coverageType`
+(`medical` by default, or `routine_vision`). It requests STC `30` once per
+provider without automatic retries. Eligibility is evidence, not booking
+permission or proof of provider network participation.
+
+Spring Hill medical intake checks Bach, Licht, and Noel concurrently using
+their verified individual NPIs. `providerResults` retains each complete result
+with `provider: {profileId, name, firstName, lastName, npi}`. Profile IDs come
+from the active scheduling registry. The top-level status and corrected identity
+are usable only when all three trusted results agree; otherwise it reports
+`review` / `provider_results_need_review`. Successful individual results remain
+available when another request fails. The raw responses are stored only in the
+individual entries, with no duplicated top-level response.
+
+`STEDI_API_KEY` enables this path. Other offices and routine vision retain the
+single-provider configuration in `STEDI_PROVIDERS`; an absent provider stays
+explicitly unavailable, with no organization-NPI fallback for medical fanout.
+Verified booking receipts include `profileId`, allowing the agent to select the
+matching provider result for the booked appointment. Registry identity sources
+(CMS NPPES, verified September 23, 2026):
+[Austin Bach](https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1659706588),
+[Joseph Licht](https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1497147680),
+[Don Noel](https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1659998482).

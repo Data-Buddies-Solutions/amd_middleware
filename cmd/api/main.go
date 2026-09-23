@@ -78,10 +78,10 @@ func main() {
 
 	// Initialize handlers
 	handlers := apphttp.NewHandlers(amdSession, patients, scheduler)
-	// Eligibility remains off until practice providers and the secret are supplied.
+	// Spring Hill medical providers are verified in code; other offices use configuration.
 	if key, providersJSON := os.Getenv("STEDI_API_KEY"), os.Getenv("STEDI_PROVIDERS"); key != "" || providersJSON != "" {
 		var providers map[string]eligibility.Provider
-		if json.Unmarshal([]byte(providersJSON), &providers) != nil {
+		if providersJSON != "" && json.Unmarshal([]byte(providersJSON), &providers) != nil {
 			log.Fatal("invalid eligibility provider configuration")
 		}
 		service, err := eligibility.New(key, providers)

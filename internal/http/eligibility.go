@@ -47,17 +47,25 @@ func (h *Handlers) HandleEligibility(w http.ResponseWriter, r *http.Request) {
 	}
 	// A receipt is still HTTP 200 when the payer outcome is unknown. Preserve
 	// that contract while exposing failures through the existing safe logs.
-	if result.Status == "unknown" {
-		category := safeerrors.CategoryUpstreamError
-		switch result.ReviewReason {
-		case "stedi_http_failure":
-			category = safeerrors.CategoryUpstreamStatus
-		case "unrecognized_response", "nonproduction_or_unknown_mode":
-			category = safeerrors.CategoryInvalidResponse
+	results := []eligibility.Result{result}
+	if len(result.ProviderResults) > 0 {
+		results = result.ProviderResults
+	}
+	for _, result := range results {
+		if result.Status == "unknown" {
+			category := safeerrors.CategoryUpstreamError
+			switch result.ReviewReason {
+			case "stedi_http_failure":
+				category = safeerrors.CategoryUpstreamStatus
+			case "unrecognized_response", "nonproduction_or_unknown_mode":
+				category = safeerrors.CategoryInvalidResponse
+			}
+			recordRequestOutcome(r.Context(), outcomeProviderFailure, category)
+			break
+		} else if result.ReviewReason == "payer_rejected" {
+			recordRequestOutcome(r.Context(), outcomeProviderFailure, safeerrors.CategoryRejected)
+			break
 		}
-		recordRequestOutcome(r.Context(), outcomeProviderFailure, category)
-	} else if result.ReviewReason == "payer_rejected" {
-		recordRequestOutcome(r.Context(), outcomeProviderFailure, safeerrors.CategoryRejected)
 	}
 	_ = json.NewEncoder(w).Encode(result)
 }
