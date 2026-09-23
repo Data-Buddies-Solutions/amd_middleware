@@ -45,6 +45,7 @@ func (h *Handlers) HandleEligibility(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"invalid_eligibility_input"}`, http.StatusBadRequest)
 		return
 	}
+	result.InsuranceResolution = eligibility.ResolveInsurance(result, office, input.CheckInput)
 	// A receipt is still HTTP 200 when the payer outcome is unknown. Preserve
 	// that contract while exposing failures through the existing safe logs.
 	results := []eligibility.Result{result}

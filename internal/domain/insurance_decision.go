@@ -109,6 +109,15 @@ func medicalIdentityCode(name string) string {
 // DecideInsurance accepts a mapped plan for registration. It does
 // not run eligibility or verify referrals. No caller boolean can mark one verified.
 func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) InsuranceDecision {
+	return decideInsurance(plan, coverage, office, dob, false)
+}
+
+// DecideEligibilityInsurance never reduces an unknown payer product to a parent carrier.
+func DecideEligibilityInsurance(plan, coverage string, office *OfficeConfig, dob string) InsuranceDecision {
+	return decideInsurance(plan, coverage, office, dob, true)
+}
+
+func decideInsurance(plan, coverage string, office *OfficeConfig, dob string, exact bool) InsuranceDecision {
 	d := InsuranceDecision{Outcome: "needs_clarification", Participation: "unknown", CoverageType: coverage, OfficeID: office.ID, AllowedProviders: []string{}, Requirements: []InsuranceRequirement{}, Eligibility: "not_checked", Answer: "needs_input: What insurance plan is listed on your card?"}
 	if coverage != "medical" && coverage != "routine_vision" {
 		d.Answer = "needs_input: Specify medical or routine vision coverage."
@@ -132,6 +141,18 @@ func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) In
 		return d
 	}
 	r := participationMatch(source, plan)
+	if exact && r != nil {
+		known := false
+		for _, alias := range append(append([]string{r.Display, r.Canonical}, r.Aliases...), r.RequiredAliases...) {
+			if insuranceNormalize(alias) == insuranceNormalize(plan) {
+				known = true
+				break
+			}
+		}
+		if !known {
+			r = nil
+		}
+	}
 	if coverage == "routine_vision" {
 		code := medicalIdentityCode(plan)
 		if code == "" && r != nil {

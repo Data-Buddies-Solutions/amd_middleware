@@ -120,7 +120,7 @@ func TestEligibilityUsesExistingOfficeContextAndRejectsBookingInputs(t *testing.
 			t.Fatal(err)
 		}
 		providerName = request.Provider.OrganizationName
-		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"meta":{"applicationMode":"production"},"subscriber":{"firstName":"Jane","lastName":"Sample","dateOfBirth":"19800102"},"benefitsInformation":[{"code":"1","serviceTypeCodes":["30"]}]}`)), Request: r}, nil
+		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"meta":{"applicationMode":"production"},"subscriber":{"firstName":"Jane","lastName":"Sample","dateOfBirth":"19800102"},"benefitsInformation":[{"code":"1","serviceTypeCodes":["30"],"planCoverage":"Aetna Better Health"}]}`)), Request: r}, nil
 	})
 	service, err := eligibility.New("secret", map[string]eligibility.Provider{
 		"spring_hill": {OrganizationName: "Default Practice", NPI: "1999999984"},
@@ -148,14 +148,23 @@ func TestEligibilityUsesExistingOfficeContextAndRejectsBookingInputs(t *testing.
 	if w := send(body); w.Code != 200 || providerName != "Hollywood Practice" {
 		t.Fatal("trusted office context must choose its configured provider")
 	}
+	body["coverageType"] = "medical"
+	w := send(body)
+	var resolved eligibility.Result
+	if err := json.Unmarshal(w.Body.Bytes(), &resolved); err != nil {
+		t.Fatal(err)
+	}
+	if resolved.InsuranceResolution == nil || resolved.InsuranceResolution.Decision == nil || resolved.InsuranceResolution.Decision.CanonicalPlan != "Aetna Better Health" {
+		t.Fatalf("missing specific plan decision: %s", w.Body.String())
+	}
 	body["office"] = "not-an-office"
-	if w := send(body); w.Code != 400 || calls != 2 {
+	if w := send(body); w.Code != 400 || calls != 3 {
 		t.Fatal("unknown office must not fall back")
 	}
 	delete(body, "office")
 	for _, field := range []string{"history", "scope", "patientId", "appointmentId", "intakeId", "serviceDate", "provider", "subscriber", "dependent", "recordedNames"} {
 		body[field] = "unused"
-		if w := send(body); w.Code != 400 || calls != 2 {
+		if w := send(body); w.Code != 400 || calls != 3 {
 			t.Errorf("old/unsupported field %s accepted", field)
 		}
 		delete(body, field)

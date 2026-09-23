@@ -37,20 +37,21 @@ type CheckInput struct {
 // coverage or copay. Review/unknown never establish that the patient is uninsured.
 // ProviderResponse preserves all returned evidence independently of that assessment.
 type Result struct {
-	Provider           *CheckedProvider `json:"provider,omitempty"`
-	ProviderResults    []Result         `json:"providerResults,omitempty"`
-	MatchedPatient     *Person          `json:"matchedPatient,omitempty"`
-	ProviderResponse   json.RawMessage  `json:"providerResponse,omitempty"`
-	ProviderHTTPStatus int              `json:"providerHttpStatus,omitempty"`
-	Status             string           `json:"status"` // active, inactive, review, unknown
-	OfficeID           string           `json:"officeId"`
-	PayerID            string           `json:"payerId,omitempty"`
-	ReviewReason       string           `json:"reviewReason,omitempty"`
-	SearchID           string           `json:"eligibilitySearchId,omitempty"`
-	CheckID            string           `json:"checkId,omitempty"`
-	ErrorCodes         []string         `json:"errorCodes,omitempty"`
-	Match              *MatchResult     `json:"identity,omitempty"`
-	CheckedAt          time.Time        `json:"checkedAt"`
+	InsuranceResolution *InsuranceResolution `json:"insuranceResolution,omitempty"`
+	Provider            *CheckedProvider     `json:"provider,omitempty"`
+	ProviderResults     []Result             `json:"providerResults,omitempty"`
+	MatchedPatient      *Person              `json:"matchedPatient,omitempty"`
+	ProviderResponse    json.RawMessage      `json:"providerResponse,omitempty"`
+	ProviderHTTPStatus  int                  `json:"providerHttpStatus,omitempty"`
+	Status              string               `json:"status"` // active, inactive, review, unknown
+	OfficeID            string               `json:"officeId"`
+	PayerID             string               `json:"payerId,omitempty"`
+	ReviewReason        string               `json:"reviewReason,omitempty"`
+	SearchID            string               `json:"eligibilitySearchId,omitempty"`
+	CheckID             string               `json:"checkId,omitempty"`
+	ErrorCodes          []string             `json:"errorCodes,omitempty"`
+	Match               *MatchResult         `json:"identity,omitempty"`
+	CheckedAt           time.Time            `json:"checkedAt"`
 }
 
 type Service struct {

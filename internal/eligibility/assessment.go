@@ -2,8 +2,13 @@ package eligibility
 
 import "strings"
 
+type planDescription struct {
+	Description string `json:"planDescription"`
+}
+
 type Response struct {
-	Meta struct {
+	PlanInformation planDescription `json:"planInformation"`
+	Meta            struct {
 		Mode string `json:"applicationMode"`
 	} `json:"meta"`
 	ID         string   `json:"id"`
@@ -13,8 +18,10 @@ type Response struct {
 		Code string `json:"code"`
 	} `json:"errors"`
 	Benefits []struct {
-		Code     string   `json:"code"`
-		Services []string `json:"serviceTypeCodes"`
+		Code       string          `json:"code"`
+		Plan       string          `json:"planCoverage"`
+		Additional planDescription `json:"benefitsAdditionalInformation"`
+		Services   []string        `json:"serviceTypeCodes"`
 	} `json:"benefitsInformation"`
 	SearchID string `json:"eligibilitySearchId"`
 }
