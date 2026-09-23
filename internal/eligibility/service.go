@@ -31,16 +31,19 @@ type CheckInput struct {
 
 // Result reports current STC 30 plan activity, not network participation, visit
 // coverage or copay. Review/unknown never establish that the patient is uninsured.
+// ProviderResponse preserves all returned evidence independently of that assessment.
 type Result struct {
-	Status       string       `json:"status"` // active, inactive, review, unknown
-	OfficeID     string       `json:"officeId"`
-	PayerID      string       `json:"payerId,omitempty"`
-	ReviewReason string       `json:"reviewReason,omitempty"`
-	SearchID     string       `json:"eligibilitySearchId,omitempty"`
-	CheckID      string       `json:"checkId,omitempty"`
-	ErrorCodes   []string     `json:"errorCodes,omitempty"`
-	Match        *MatchResult `json:"identity,omitempty"`
-	CheckedAt    time.Time    `json:"checkedAt"`
+	ProviderResponse   json.RawMessage `json:"providerResponse,omitempty"`
+	ProviderHTTPStatus int             `json:"providerHttpStatus,omitempty"`
+	Status             string          `json:"status"` // active, inactive, review, unknown
+	OfficeID           string          `json:"officeId"`
+	PayerID            string          `json:"payerId,omitempty"`
+	ReviewReason       string          `json:"reviewReason,omitempty"`
+	SearchID           string          `json:"eligibilitySearchId,omitempty"`
+	CheckID            string          `json:"checkId,omitempty"`
+	ErrorCodes         []string        `json:"errorCodes,omitempty"`
+	Match              *MatchResult    `json:"identity,omitempty"`
+	CheckedAt          time.Time       `json:"checkedAt"`
 }
 
 type Service struct {
@@ -131,9 +134,17 @@ func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Re
 		return out, nil
 	}
 	defer resp.Body.Close()
+	out.ProviderHTTPStatus = resp.StatusCode
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, 8*1024*1024+1))
 	if err != nil || len(raw) > 8*1024*1024 {
 		return out, nil
+	}
+	// Keep the original JSON without decoding numbers through float64. Invalid
+	// JSON is retained as a JSON string, but can never establish coverage.
+	if json.Valid(raw) {
+		out.ProviderResponse = json.RawMessage(raw)
+	} else {
+		out.ProviderResponse, _ = json.Marshal(string(raw))
 	}
 	if resp.StatusCode != http.StatusOK {
 		out.ReviewReason = "stedi_http_failure"

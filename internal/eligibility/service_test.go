@@ -1,6 +1,7 @@
 package eligibility
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -135,5 +136,52 @@ func TestHTTPFailuresNeverRetry(t *testing.T) {
 		if err != nil || calls != 1 || result.Status != "unknown" {
 			t.Fatalf("%+v err=%v calls=%d", result, err, calls)
 		}
+	}
+}
+
+// Financial fields and future payer fields must survive independently of assessment.
+func TestCompleteProviderEvidenceSurvivesAssessment(t *testing.T) {
+	for _, tc := range []struct {
+		name, extra string
+		httpStatus  int
+	}{
+		{"active", "", 200},
+		{"review", `,"errors":[{"code":"75","description":"Synthetic rejection","futureError":{"value":true}}]`, 200},
+		{"http failure", "", 503},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			body := fixture(`[{"code":"1","serviceTypeCodes":["30"]},{"code":"B","serviceTypeCodes":["98"],"benefitAmount":"35","inPlanNetworkIndicatorCode":"Y"},{"code":"C","serviceTypeCodes":["30"],"benefitAmount":"1500","timeQualifierCode":"29"},{"code":"A","benefitPercent":"0.2","coverageLevelCode":"FAM"}]`, `,"planInformation":{"groupNumber":"synthetic"},"futureField":{"sequence":9007199254740993,"values":[null,true,"text"]}`+tc.extra)
+			s := testService(t, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(tc.httpStatus); fmt.Fprint(w, body) })
+			result, err := s.Check(context.Background(), "office", input())
+			if err != nil {
+				t.Fatal(err)
+			}
+			encoded, _ := json.Marshal(result)
+			var output map[string]json.RawMessage
+			json.Unmarshal(encoded, &output)
+			var want, got bytes.Buffer
+			if json.Compact(&want, []byte(body)) != nil || json.Compact(&got, output["providerResponse"]) != nil || !bytes.Equal(want.Bytes(), got.Bytes()) {
+				t.Fatal("full provider response was not preserved")
+			}
+			if string(output["providerHttpStatus"]) != fmt.Sprint(tc.httpStatus) {
+				t.Fatal("HTTP status missing")
+			}
+			if tc.httpStatus != 200 && result.Status != "unknown" {
+				t.Fatal("failed response established coverage")
+			}
+		})
+	}
+}
+
+func TestInvalidProviderJSONRemainsEvidenceNotCoverage(t *testing.T) {
+	body := "synthetic upstream error"
+	s := testService(t, func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, body) })
+	result, err := s.Check(context.Background(), "office", input())
+	if err != nil || result.Status != "unknown" || result.ReviewReason != "unrecognized_response" {
+		t.Fatalf("unexpected assessment: %+v %v", result, err)
+	}
+	var retained string
+	if err := json.Unmarshal(result.ProviderResponse, &retained); err != nil || retained != body {
+		t.Fatal("invalid JSON evidence discarded")
 	}
 }
