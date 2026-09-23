@@ -44,8 +44,14 @@ func Match(expected, returned Person) MatchResult {
 	first, last := name(expected.FirstName), name(expected.LastName)
 	returnedFirst, returnedLast := name(returned.FirstName), name(returned.LastName)
 	// Separate a middle name only when the payer explicitly returns it.
-	if middle := name(returned.MiddleName); middle != "" && first == returnedFirst+middle {
-		first = returnedFirst
+	if middle := name(returned.MiddleName); middle != "" {
+		parts := strings.Fields(expected.FirstName)
+		for i := 1; i < len(parts); i++ {
+			if name(strings.Join(parts[:i], " ")) == returnedFirst && name(strings.Join(parts[i:], " ")) == middle {
+				first = returnedFirst
+				break
+			}
+		}
 	}
 	result := MatchResult{Status: "insufficient_data", ReviewRequired: true, Reasons: []string{}}
 	if first == "" || last == "" || returnedFirst == "" || returnedLast == "" || !validDOB(expected.DateOfBirth) || !validDOB(returned.DateOfBirth) {

@@ -32,11 +32,12 @@ func NewRouter(handlers *Handlers, apiSecret string, maintenanceAuthorizer Maint
 		r.Use(AuthMiddleware(apiSecret))
 
 		r.Post("/eligibility/check", handlers.HandleEligibility)
-
+		r.Post("/insurance/decision", handlers.HandleInsuranceDecision)
 		r.Post("/patient/resolve", handlers.HandlePatientResolve)
 		r.Post("/add-patient", handlers.HandleAddPatient)
 		r.Post("/scheduler/availability", handlers.HandleGetAvailability)
 		r.Post("/scheduler/slots", handlers.HandleListAppointmentSlots)
+		r.Post("/appointment/reschedule", handlers.HandleRescheduleAppointment)
 		r.Post("/appointment/book", handlers.HandleBookAppointment)
 		r.Post("/appointment/cancel", handlers.HandleCancelAppointment)
 		r.Post("/patient/update-insurance", handlers.HandleUpdateInsurance)

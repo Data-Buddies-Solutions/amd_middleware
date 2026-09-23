@@ -4,6 +4,77 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.0.5](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.4...v5.0.5) (2026-09-21)
+
+
+### Bug Fixes
+
+* **insurance:** restore omitted office acceptance and aliases ([#204](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/204)) ([37faaa2](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/37faaa2a84b4f7d6d977c52c0f5c0fcb422d5401))
+* **scheduling:** remove chart insurance gates from availability and booking ([#206](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/206)) ([1d5caa3](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/1d5caa372627071e2b177d2d34517d42f3f9847e))
+
+## [5.0.4](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.3...v5.0.4) (2026-09-21)
+
+
+### Bug Fixes
+
+* verify routine-vision insurance by carrier identity ([#201](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/201)) ([5b0c7f8](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/5b0c7f8c4809b94a858b05c0ac76cd35bc05eeb4))
+
+## [5.0.3](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.2...v5.0.3) (2026-09-20)
+
+
+### Bug Fixes
+
+* own insurance replacement and preserve recovery contracts ([#199](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/199)) ([173e3e4](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/173e3e4ddd6a02ff2cfe4caf9204c39791521dfb))
+
+## [5.0.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.1...v5.0.2) (2026-09-20)
+
+
+### Bug Fixes
+
+* preserve middleware read failures and isolate refresh cancellation ([#186](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/186)) ([a34ba76](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/a34ba7665f79997f2a300b268156ce2c1aa5f81d))
+
+## [5.0.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.0...v5.0.1) (2026-09-18)
+
+
+### Bug Fixes
+
+* **insurance:** use resolved plan names in vision responses ([#195](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/195)) ([f60a00b](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/f60a00b5bbace777e9d694a4c7e7b09ee479cb53))
+* **scheduling:** remove hospital keyword booking requirement ([#197](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/197)) ([907ed03](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/907ed03a6d978a22cb8885c7a41859104e9b348a))
+
+## [5.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v4.1.0...v5.0.0) (2026-09-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **insurance:** Insurance decisions remove canRegister. Consumers use participation == accepted for registration and insurance updates.
+
+### Bug Fixes
+
+* **insurance:** use accepted plans for registration ([#193](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/193)) ([0e12d84](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/0e12d84610dea98fcde9910488588a61bcc12e77))
+
+## [4.1.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v4.0.0...v4.1.0) (2026-09-17)
+
+
+### Features
+
+* **scheduling:** own appointment metadata and reschedule writes ([#190](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/190)) ([afb7fd1](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/afb7fd117b0541225c90c3059e0c04a8a4e14f21))
+
+
+### Bug Fixes
+
+* **insurance:** centralize plan decisions and enforce scheduling requirements ([#191](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/191)) ([30eb724](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/30eb72405274d7cc5444930ba6e8bb178f4fd025))
+
+## [4.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v3.1.2...v4.0.0) (2026-09-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **patient:** firstName + dob resolves in middleware and no longer returns the broad candidates/source/complete response.
+
+### Bug Fixes
+
+* **patient:** resolve first-name and DOB matches in middleware ([#188](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/188)) ([d5a6c41](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/d5a6c41450083c06db8e3bdbf6b18532a7d4484b))
+
 ## [3.1.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v3.1.1...v3.1.2) (2026-09-10)
 
 

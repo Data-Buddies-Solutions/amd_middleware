@@ -119,7 +119,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 	if body.Status != "verified" || body.PatientID != "123" || body.Phone != "850-373-3869" {
 		t.Fatalf("response = %+v", body)
 	}
-	if body.Routing != "bach_only" || len(body.AllowedProviders) != 1 {
+	if body.Routing != string(domain.RoutingBachOnly) || len(body.AllowedProviders) != 1 || body.RoutingAmbiguous || body.InsuranceDecision == nil || !body.InsuranceDecision.CanSchedule {
 		t.Fatalf("routing response = %+v", body)
 	}
 	if body.AppointmentsStatus != "none" || body.Appointments == nil {
@@ -246,12 +246,13 @@ func TestAvailabilityRouteRetainsAuthenticationAndResponseContract(t *testing.T)
 }
 
 type schedulingStub struct {
-	result       domain.AvailabilityResponse
-	err          error
-	bookResult   schedulingmodule.BookReceipt
-	bookErr      error
-	cancelResult schedulingmodule.CancelReceipt
-	cancelErr    error
+	result           domain.AvailabilityResponse
+	err              error
+	bookResult       schedulingmodule.BookReceipt
+	bookErr          error
+	cancelResult     schedulingmodule.CancelReceipt
+	cancelErr        error
+	rescheduleResult schedulingmodule.RescheduleReceipt
 }
 
 func (s schedulingStub) Search(context.Context, schedulingmodule.SearchCommand) (domain.AvailabilityResponse, error) {
@@ -722,7 +723,7 @@ func TestHandleAddPatient_RoutineVisionRequiresOpticalOffice(t *testing.T) {
 	if body.Status != "error" {
 		t.Fatalf("expected status error, got %q", body.Status)
 	}
-	expected := "Routine vision coverage is not supported at Crystal River. Route the patient to Spring Hill routine vision scheduling."
+	expected := "blocked: This office does not accept coverage for that visit type."
 	if body.Message != expected {
 		t.Fatalf("expected message %q, got %q", expected, body.Message)
 	}
@@ -755,7 +756,7 @@ func TestHandleAddPatient_RoutineOnlyOfficeRejectsMedical(t *testing.T) {
 	if body.Status != "error" {
 		t.Fatalf("expected status error, got %q", body.Status)
 	}
-	expected := "Medical coverage is not supported at North Miami Beach Optical. Use routine vision coverage for this office or route medical visits to a medical office."
+	expected := "blocked: This office does not accept coverage for that visit type."
 	if body.Message != expected {
 		t.Fatalf("expected message %q, got %q", expected, body.Message)
 	}
@@ -967,46 +968,46 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 		{
 			name:        "missing patientId",
 			body:        `{"insurance":"Aetna","subscriberNum":"ABC123"}`,
-			expectedMsg: "patientId, insurance, and subscriberNum are required",
+			expectedMsg: "patientId, dob, insurance, and subscriberNum are required",
 		},
 		{
 			name:        "missing insurance",
-			body:        `{"patientId":"pat123","subscriberNum":"ABC123"}`,
-			expectedMsg: "patientId, insurance, and subscriberNum are required",
+			body:        `{"dob":"01/15/1980","patientId":"pat123","subscriberNum":"ABC123"}`,
+			expectedMsg: "patientId, dob, insurance, and subscriberNum are required",
 		},
 		{
 			name:        "missing subscriberNum",
-			body:        `{"patientId":"pat123","insurance":"Aetna"}`,
-			expectedMsg: "patientId, insurance, and subscriberNum are required",
+			body:        `{"dob":"01/15/1980","patientId":"pat123","insurance":"Aetna"}`,
+			expectedMsg: "patientId, dob, insurance, and subscriberNum are required",
 		},
 		{
 			name:        "insurance not recognized",
-			body:        `{"patientId":"pat123","insurance":"FakeInsurance","subscriberNum":"ABC123"}`,
-			expectedMsg: `Insurance not recognized: "FakeInsurance". Please use an insurance name from the accepted list.`,
+			body:        `{"dob":"01/15/1980","patientId":"pat123","insurance":"FakeInsurance","subscriberNum":"ABC123"}`,
+			expectedMsg: `needs_input: What insurance plan is listed on your card?`,
 		},
 		{
 			name:        "spring hill rejected medical plan",
-			body:        `{"patientId":"pat123","insurance":"Cigna Local Plus","subscriberNum":"ABC123"}`,
-			expectedMsg: "Cigna Local Plus is not accepted at Spring Hill.",
+			body:        `{"dob":"01/15/1980","patientId":"pat123","insurance":"Cigna Local Plus","subscriberNum":"ABC123"}`,
+			expectedMsg: "blocked: This plan is not accepted for this visit type at this office.",
 		},
 		{
 			name:        "crystal river rejected medical plan",
-			body:        `{"patientId":"pat123","insurance":"Ambetter","subscriberNum":"ABC123","office":"+13523202007"}`,
-			expectedMsg: "Ambetter is not accepted at Crystal River.",
+			body:        `{"dob":"01/15/1980","patientId":"pat123","insurance":"Ambetter","subscriberNum":"ABC123","office":"+13523202007"}`,
+			expectedMsg: "blocked: This plan is not accepted for this visit type at this office.",
 		},
 		{
 			name:        "routine vision requires optical office",
-			body:        `{"patientId":"pat123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13523202007"}`,
-			expectedMsg: "Routine vision coverage is not supported at Crystal River. Route the patient to Spring Hill routine vision scheduling.",
+			body:        `{"dob":"01/15/1980","patientId":"pat123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13523202007"}`,
+			expectedMsg: "blocked: This office does not accept coverage for that visit type.",
 		},
 		{
 			name:        "routine-only office rejects medical coverage",
-			body:        `{"patientId":"pat123","insurance":"Aetna","subscriberNum":"ABC123","office":"+13055095333"}`,
-			expectedMsg: "Medical coverage is not supported at North Miami Beach Optical. Use routine vision coverage for this office or route medical visits to a medical office.",
+			body:        `{"dob":"01/15/1980","patientId":"pat123","insurance":"Aetna","subscriberNum":"ABC123","office":"+13055095333"}`,
+			expectedMsg: "blocked: This office does not accept coverage for that visit type.",
 		},
 		{
 			name:        "invalid DOB",
-			body:        `{"patientId":"pat123","insurance":"Aetna","subscriberNum":"ABC123","dob":"not-a-date"}`,
+			body:        `{"dob":"01/15/1980","patientId":"pat123","insurance":"Aetna","subscriberNum":"ABC123","dob":"not-a-date"}`,
 			expectedMsg: "dob must be a valid date",
 		},
 	}
@@ -1041,28 +1042,28 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 	}{
 		{
 			name:             "routine vision filters age-restricted providers",
-			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-6, 0, 0).Format("01/02/2006")),
+			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-6, 0, 0).Format("01/02/2006")),
 			wantRouting:      string(domain.RoutingOpticalOnly),
 			wantProviders:    []string{"Dr. Farnan", "Dr. Calero"},
 			wantXMLRPCWrites: 1,
 		},
 		{
 			name:             "routine vision accepts Sunshine Health alias",
-			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insurance":"Sunshine Health","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-16, 0, 0).Format("01/02/2006")),
+			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"Sunshine Health","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-16, 0, 0).Format("01/02/2006")),
 			wantRouting:      string(domain.RoutingOpticalOnly),
 			wantProviders:    []string{"Dr. Farnan", "Dr. Vidal", "Dr. Calero"},
 			wantXMLRPCWrites: 1,
 		},
 		{
 			name:             "north miami beach optical routine vision",
-			body:             `{"patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13055095333"}`,
+			body:             `{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13055095333"}`,
 			wantRouting:      string(domain.RoutingOpticalOnly),
 			wantProviders:    []string{"Dr. Miriam Bach"},
 			wantXMLRPCWrites: 1,
 		},
 		{
 			name:             "medical minor uses pediatric routing",
-			body:             fmt.Sprintf(`{"patientId":"123","respPartyId":"resp123","insPlanId":"ins123","oldInsurance":"Old","insurance":"Aetna","subscriberNum":"ABC123","office":"Spring Hill","dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
+			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insPlanId":"ins123","oldInsurance":"Old","insurance":"Aetna Commercial","subscriberNum":"ABC123","office":"Spring Hill","dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
 			wantRouting:      string(domain.RoutingBachOnly),
 			wantProviders:    []string{"Dr. Bach"},
 			wantXMLRPCWrites: 2,
@@ -1071,7 +1072,11 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handlers, writes := newUpdateInsuranceTestHandlers(t)
+			var input UpdateInsuranceRequest
+			if err := json.Unmarshal([]byte(tt.body), &input); err != nil {
+				t.Fatal(err)
+			}
+			handlers, writes := newUpdateInsuranceTestHandlers(t, input.DOB, input.InsPlanID)
 			req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(tt.body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -1102,8 +1107,8 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 }
 
 func TestHandleUpdateInsurance_SelfPayAutoSubscriberNum(t *testing.T) {
-	handlers, writes := newUpdateInsuranceTestHandlers(t)
-	req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(`{"patientId":"123","respPartyId":"resp123","insurance":"self-pay","office":"Spring Hill"}`))
+	handlers, writes := newUpdateInsuranceTestHandlers(t, "01/15/1980", "")
+	req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"self-pay","office":"Spring Hill"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -1126,8 +1131,8 @@ func TestHandleUpdateInsurance_SelfPayAutoSubscriberNum(t *testing.T) {
 }
 
 func TestHandleUpdateInsurance_AetnaGovernmentVisionUsesICareCarrier(t *testing.T) {
-	handlers, writes := newUpdateInsuranceTestHandlers(t)
-	req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(`{"patientId":"123","respPartyId":"resp123","insurance":"Aetna Dual Eligible Medicare Advantage","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood"}`))
+	handlers, writes := newUpdateInsuranceTestHandlers(t, "01/15/1980", "")
+	req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"Aetna Dual Eligible Medicare Advantage","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -1201,7 +1206,7 @@ func newProviderFailureTestHandlers(t *testing.T, fail func(*http.Request, []byt
 	return NewHandlers(amdSession, patientmodule.New(records), nil)
 }
 
-func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {
+func newUpdateInsuranceTestHandlers(t *testing.T, dob, insPlanID string) (*Handlers, *[]string) {
 	t.Helper()
 	writes := []string{}
 	httpClient := &http.Client{
@@ -1215,6 +1220,12 @@ func newUpdateInsuranceTestHandlers(t *testing.T) (*Handlers, *[]string) {
 				response = `<PPMDResults><Results><usercontext webserver="https://mock.advancedmd.test/processrequest/api-801/APP"></usercontext></Results></PPMDResults>`
 			case strings.Contains(contentType, "application/xml"):
 				response = `<PPMDResults><Results success="1"><usercontext>test-token</usercontext></Results></PPMDResults>`
+			case strings.Contains(string(body), "getdemographic"):
+				plan := ""
+				if insPlanID != "" {
+					plan = fmt.Sprintf(`,"insplanlist":{"insplan":{"@id":%q,"@carrier":"car-old","@coverage":"1","@enddate":""}}`, insPlanID)
+				}
+				response = fmt.Sprintf(`{"PPMDResults":{"Results":{"patientlist":{"patient":{"@id":"pat123","@dob":%q,"@respparty":"resp123"%s}}}}}`, dob, plan)
 			default:
 				writes = append(writes, string(body))
 				response = `{"PPMDResults":{"Results":{}}}`
@@ -1281,7 +1292,7 @@ func newPatientResolveTestHandlers(
 						"startdatetime": %q,
 						"patientid": 123,
 						"columnid": 1513,
-						"profile": "BACH, AUSTIN",
+						"provider": "BACH, AUSTIN",
 						"facility": "ABITA EYE GROUP SPRING HILL",
 						"appointmenttypeids": [1007]
 					}]`, future.Format("2006-01-02T15:04:05"))
@@ -1397,6 +1408,7 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true, Patients: []domain.Patient{{ID: "1", FirstName: "Jane", LastName: "Meyer", DOB: "01/01/1980"}}}
+	amd.Demographics["1"] = domain.PatientDemographics{FullName: "MEYER,JANE", DOB: "01/01/1980"}
 	handler := NewHandlers(nil, patientmodule.New(amd), nil)
 	for _, tc := range []struct {
 		body  string
@@ -1413,18 +1425,18 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 			t.Fatal(err)
 		}
 		if tc.valid {
-			if body["status"] != "candidates" || body["source"] != "first_name" || body["complete"] != true || body["patientId"] != nil {
-				t.Fatal("invalid candidate-only envelope")
+			if body["status"] != "verified" || body["patientId"] != "1" || body["dob"] != "01/01/1980" {
+				t.Fatal("invalid resolved patient envelope")
 			}
-			if len(body["matches"].([]any)) != 1 {
-				t.Fatal("missing candidate")
+			if len(body["matches"].([]any)) != 0 {
+				t.Fatal("unexpected candidate list")
 			}
 		} else if body["status"] != "error" {
 			t.Fatal("accepted incomplete/invalid identity")
 		}
 	}
-	if amd.SearchPatientCalls != 1 || amd.DemographicCalls != 0 || amd.AppointmentReadCalls != 0 {
-		t.Fatal("HTTP candidate search hydrated a chart")
+	if amd.SearchPatientCalls != 1 || amd.DemographicCalls != 1 || amd.AppointmentReadCalls != 1 {
+		t.Fatal("HTTP search must hydrate exactly one resolved chart")
 	}
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true}
 	writer := httptest.NewRecorder()
@@ -1433,7 +1445,30 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 	if err := json.Unmarshal(writer.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	if matches, ok := body["matches"].([]any); !ok || len(matches) != 0 {
+	if matches, ok := body["matches"].([]any); body["status"] != "not_found" || !ok || len(matches) != 0 {
 		t.Fatal("empty candidate result must retain an array")
 	}
+}
+
+func TestFirstNameDOBUnresolvedHTTPContract(t *testing.T) {
+	domain.InitRegistry("")
+	amd := advancedmdtest.NewAdapter()
+	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: false}
+	handler := NewHandlers(nil, patientmodule.New(amd), nil)
+	writer := httptest.NewRecorder()
+	handler.HandlePatientResolve(writer, httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"firstName":"Jane","dob":"01/01/1980","office":"spring_hill"}`)))
+	var body PatientResolveResponse
+	if err := json.Unmarshal(writer.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if writer.Code != http.StatusOK || body.Status != "unresolved" || body.Reason != "incomplete_search" || body.PatientID != "" || len(body.Matches) != 0 {
+		t.Fatalf("unexpected resolution status=%s reason=%s", body.Status, body.Reason)
+	}
+	if amd.DemographicCalls != 0 || amd.AppointmentReadCalls != 0 {
+		t.Fatal("incomplete search must not hydrate a chart")
+	}
+}
+
+func (s schedulingStub) Reschedule(context.Context, schedulingmodule.BookCommand) (schedulingmodule.RescheduleReceipt, error) {
+	return s.rescheduleResult, nil
 }

@@ -5,44 +5,40 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"net/http"
 	"os"
-	"strconv"
 	"testing"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 func TestEveryOfficeInsuranceHasExplicitPayerDisposition(t *testing.T) {
-	// Include the private office-specific catalog without exporting a production
-	// API just for this test. New catalog entries must get an explicit disposition.
-	source, err := parser.ParseFile(token.NewFileSet(), "../domain/insurance.go", nil, 0)
+	raw, err := os.ReadFile("../domain/insurance_data/MEDICAL.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	catalogs := map[string]bool{"InsuranceNameMap": true, "hollywoodSweetwaterMedicalInsuranceNameMap": true, "VisionInsuranceNameMap": true}
+	var catalog struct {
+		Plans []struct {
+			Name string `json:"name"`
+		} `json:"plans"`
+	}
+	if err := json.Unmarshal(raw, &catalog); err != nil {
+		t.Fatal(err)
+	}
 	seen := map[string]bool{}
-	ast.Inspect(source, func(node ast.Node) bool {
-		spec, ok := node.(*ast.ValueSpec)
-		if !ok || len(spec.Names) != 1 || !catalogs[spec.Names[0].Name] {
-			return true
+	for _, plan := range catalog.Plans {
+		seen[domain.NormalizeForLookup(plan.Name)] = true
+	}
+	for plan := range domain.VisionInsuranceNameMap {
+		seen[plan] = true
+	}
+	if len(catalog.Plans) == 0 {
+		t.Fatal("medical catalog was not inspected")
+	}
+	for plan := range seen {
+		if _, ok := insurancePayers[plan]; !ok {
+			t.Errorf("insurance %q has no explicit payer disposition", plan)
 		}
-		for _, element := range spec.Values[0].(*ast.CompositeLit).Elts {
-			key := element.(*ast.KeyValueExpr).Key.(*ast.BasicLit)
-			plan, err := strconv.Unquote(key.Value)
-			if err != nil {
-				t.Fatal(err)
-			}
-			seen[plan] = true
-			if _, ok := insurancePayers[plan]; !ok {
-				t.Errorf("insurance %q has no explicit payer disposition", plan)
-			}
-		}
-		return false
-	})
-	if len(seen) == 0 {
-		t.Fatal("insurance catalogs were not inspected")
 	}
 	t.Logf("%d distinct office insurance products have explicit payer dispositions", len(seen))
 }
@@ -93,7 +89,7 @@ func TestProductRoutingSeparatesSharedCarriersAndAliases(t *testing.T) {
 		{"United Healthcare Shared Services", "39026"}, {"United Healthcare Surest", "25463"},
 		{"United Healthcare Student Resources", "74227"}, {"United Healthcare Oxford", "06111"},
 		{"UHC Community Plan", "04567"},
-		{"Florida Blue", "BCBSF"}, {"Florida Blue Medicare PPO", "FBM01"},
+		{"Florida Blue Select", "BCBSF"}, {"FL Blue", "BCBSF"}, {"Florida Blue", "BCBSF"}, {"Florida Blue Medicare PPO", "FBM01"},
 		{"Cigna PPO", "62308"}, {"Cigna Medicare Advantage", "63092"},
 		{"TRICARE Prime", "99727"}, {"TRICARE for Life", "TDFIC"},
 		{"Devoted Medicare HMO", "DEVOT"}, {"Solis Medicare", "SOLIS"},
@@ -177,7 +173,7 @@ func TestMappedRoutesSendOnlySTC30AndBlockedRoutesDoNotSend(t *testing.T) {
 
 func TestAmbiguousAndBillingAliasesNeverDispatch(t *testing.T) {
 	s := testService(t, func(w http.ResponseWriter, r *http.Request) { t.Error("ambiguous alias reached Stedi") })
-	for _, plan := range []string{"Preferred Care", "BCBS Medicare HMO", "Wellcare Medicaid", "Metlife", "Versant", "Ambetter Vision"} {
+	for _, plan := range []string{"Preferred Care", "BCBS Medicare HMO", "Wellcare Medicaid", "Metlife", "Versant", "Ambetter Vision", "AvMed Entrust", "Leon Health Plan", "Seminole Tribe", "Aetna and Cigna"} {
 		in := input()
 		in.Plan = plan
 		out, err := s.Check(context.Background(), "office", in)

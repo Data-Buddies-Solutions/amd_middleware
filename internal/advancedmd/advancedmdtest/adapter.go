@@ -52,6 +52,8 @@ type Adapter struct {
 	EndInsuranceError        error
 	CreatePatientCalls       int
 	SearchPatientCalls       int
+	Insurances               []domain.PatientInsurance
+	InsuranceEnds            []domain.PatientInsuranceEnd
 	AddInsuranceCalls        int
 	DemographicCalls         int
 	AppointmentReadCalls     int
@@ -235,13 +237,15 @@ func (a *Adapter) CreatePatient(_ context.Context, _ domain.PatientCreate) (doma
 	return a.CreatedPatient, a.CreatePatientError
 }
 
-func (a *Adapter) AddPatientInsurance(_ context.Context, _ domain.PatientInsurance) error {
+func (a *Adapter) AddPatientInsurance(_ context.Context, command domain.PatientInsurance) error {
 	a.AddInsuranceCalls++
+	a.Insurances = append(a.Insurances, command)
 	return a.AddInsuranceError
 }
 
-func (a *Adapter) EndDatePatientInsurance(_ context.Context, _ domain.PatientInsuranceEnd) error {
+func (a *Adapter) EndDatePatientInsurance(_ context.Context, command domain.PatientInsuranceEnd) error {
 	a.EndInsuranceCalls++
+	a.InsuranceEnds = append(a.InsuranceEnds, command)
 	return a.EndInsuranceError
 }
 

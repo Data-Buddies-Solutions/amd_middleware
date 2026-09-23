@@ -1,5 +1,7 @@
 package eligibility
 
+import "strings"
+
 type Response struct {
 	Meta struct {
 		Mode string `json:"applicationMode"`
@@ -27,6 +29,17 @@ type responseAssessment struct {
 // assessResponse interprets an already-decoded payer response. It neither plans
 // retries nor depends on replay inputs or transport details.
 func assessResponse(response Response, expected Person, dependent bool) responseAssessment {
+	// Empty/null entries are malformed evidence, even alongside valid benefits.
+	for _, benefit := range response.Benefits {
+		if strings.TrimSpace(benefit.Code) == "" {
+			return responseAssessment{Coverage: "unknown"}
+		}
+	}
+	for _, rejection := range response.Errors {
+		if strings.TrimSpace(rejection.Code) == "" {
+			return responseAssessment{Coverage: "unknown"}
+		}
+	}
 	patient := response.Subscriber
 	if len(response.Dependents) == 1 {
 		patient = response.Dependents[0]

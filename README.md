@@ -26,7 +26,7 @@ flowchart LR
     subgraph app["One Go deployable"]
         http["HTTP module<br/>authenticate · decode · map"]
         patient["Patient module<br/>Resolve · Create · UpdateInsurance"]
-        scheduling["Scheduling module<br/>Search · Book · Cancel"]
+        scheduling["Scheduling module<br/>Search · List · Book · Cancel · Reschedule"]
         policy["Domain policy<br/>office · routing · eligibility"]
         session["Session module<br/>Get · Maintain · Status"]
         records["Records interfaces<br/>PatientRecords · SchedulingRecords"]
@@ -89,7 +89,7 @@ gives callers leverage and keeps change local.
 | --- | --- | --- |
 | HTTP | Authenticated JSON routes and stable response shapes | Authentication, request IDs, transport validation, and mapping |
 | Patient | `Resolve`, `Create`, `UpdateInsurance` | Identity resolution, demographics, insurance policy, patient mutations, and reconciliation |
-| Scheduling | `Search`, `Book`, `Cancel` | Availability, purpose-separated signed slots and cancellations, appointment intent, live revalidation, ownership checks, and reconciliation |
+| Scheduling | `Search`, `List`, `Book`, `Cancel`, `Reschedule` | Availability, purpose-separated signed slots and cancellations, appointment intent, live revalidation, ownership checks, and reconciliation |
 | Domain | Policy and domain values | Offices, routing, eligibility, appointment types, capacity, and time rules |
 | Session | `Get`, `Maintain`, `Status` | Credentials, token lifecycle, single-flight login, and last-known-good state |
 | AdvancedMD | `PatientRecords`, `SchedulingRecords` | The external-records seam, production adapter, stable errors, transport, parsing, and normalization |
@@ -137,11 +137,15 @@ These rules are more important than any individual endpoint:
 - **One patient owner.** Patient owns complete resolution and patient mutation
   outcomes, including partial success.
 - **One scheduling owner.** Scheduling owns availability, booking, and
-  cancellation as one coherent workflow.
+  cancellation, and rescheduling as one coherent workflow.
 - **One policy owner.** Domain owns office, routing, DOB, provider,
   appointment-type, and capacity decisions without performing I/O.
 - **Complete reads prove absence.** A missing record from a partial read is
-  unknown, not absent.
+  unknown, not absent. Malformed occupancy fails its column read, and incomplete
+  patient appointment reads return an appointment error rather than "none found".
+- **Refresh is bounded.** Scheduler setup waits honor cancellation. Failed refreshes
+  can reuse cached setup for at most 24 hours after its last successful load.
+  Authentication failures respect the retry cooldown even without a usable token.
 - **Ambiguous writes happen once.** The implementation reconciles through a
   read or returns `indeterminate_write`; callers must not retry automatically.
 - **A slot is a signed promise.** Availability signs the selected policy facts,
@@ -172,11 +176,43 @@ Examples of authoritative proof:
 
 - Patient creation compares the pre-write patient baseline with exact
   post-write matches.
-- Insurance updates re-read the active demographic insurance state.
+- Insurance replacement requires patient ID and DOB, loads fresh demographics,
+  verifies DOB, and derives the current primary plan and responsible party.
+  Legacy `insPlanId`, `respPartyId`, and `oldInsurance` inputs are ignored.
+  A known empty current plan attaches directly; an already-matching active
+  replacement performs no writes. Missing references block the operation.
 - Booking reads the intended appointment month and matches the patient, office,
   time, provider, and appointment type.
 - Cancellation reads the original appointment's owning month and proves
   whether it still exists.
+
+Insurance update responses retain `status: updated|error` and diagnostic `outcome`,
+and add `effect: no_effect|completed|partial|uncertain`. `no_effect` proves no
+change from this request; `completed` proves the requested insurance is active;
+`partial` means the old plan ended but the replacement was not attached;
+`uncertain` means a possible effect could not be reconciled. Partial and uncertain
+results require staff recovery, never an automatic repeat of end/add.
+
+`POST /api/scheduler/slots` lists openings without requiring chart insurance
+clearance. Office, visit type, age, and requested routing select providers;
+routine vision defaults to optical routing. Booking verifies patient identity,
+the signed slot, appointment policy, and live occupancy without re-triaging chart
+insurance. Insurance acceptance remains part of registration and insurance updates.
+
+`POST /api/scheduler/slots` errors preserve the inventory envelope with `slots: []`.
+`invalid_input` requires corrected input; `policy_blocked` requires resolving the
+office policy with staff. Neither retries the same search.
+`availability_search_incomplete` is a read failure, permits one retry, and then
+requires staff help; it never proves there are no openings.
+
+Cancellation `provider_rejected` and `provider_conflict` are definitive failures,
+not uncertain writes. Refresh appointments before a new action. Validation,
+invalid-token, and ownership failures perform no cancellation. Legacy validation
+responses may omit the wire outcome; consumers must treat an unclassified error
+conservatively rather than infer no effect. `write_failed`
+means a pre-write failure or a reconciled failed write; `indeterminate_write`
+means the cancellation may have happened and must not be retried automatically.
+A `cancelled` receipt identifies the exact appointment that was cancelled.
 
 ## The scheduling handshake
 
@@ -247,6 +283,7 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/scheduler/availability` | Find policy-valid slots and sign them |
 | `POST /api/appointment/book` | Revalidate and book a signed slot |
 | `POST /api/appointment/cancel` | Verify ownership and cancel an appointment |
+| `POST /api/appointment/reschedule` | Book a replacement, then cancel the confirmed original |
 
 Each appointment returned by patient resolution may include a private,
 short-lived `cancellationToken`. A cancellation request may send that token
@@ -274,7 +311,7 @@ Operational routes have separate contracts:
 Agent-readable business failures intentionally remain JSON tool results, often
 with HTTP 200 and `status: "error"`. Transport authentication failures use
 HTTP 401, and maintenance failures use a redacted HTTP 503.
-[Provider error diagnostics](docs/error-diagnostics.md) preserve request correlation,
+[Provider error diagnostics](internal/clients/diagnostics.go) preserve request correlation,
 provider operation/status/code, and recovered failures without exposing payloads.
 
 ## Source map
@@ -283,7 +320,7 @@ provider operation/status/code, and recovered failures without exposing payloads
 cmd/api/main.go                  composition root
 internal/http/                   HTTP interface and transport mapping
 internal/patient/                patient workflow
-internal/scheduling/             availability, booking, and cancellation
+internal/scheduling/             availability, booking, cancellation, and rescheduling
 internal/domain/                 pure policy and domain values
 internal/session/                authentication and token lifecycle
 internal/advancedmd/             records interfaces and production adapter
@@ -338,64 +375,43 @@ cache are process-local. Authentication correctness does not depend on
 background CPU: Cloud Scheduler requests maintenance, while `Get` retains
 bounded request-time recovery.
 
-Deployment configuration, smoke checks, and rollback live in
-[the Cloud Run deployment contract](docs/cloud-run-deployment.md).
+Deployment configuration and verification live in the
+[deployment script](scripts/deploy-cloud-run.sh) and
+[staging verification](scripts/staging_deployment.py).
 
 ## Where the details live
 
 The README explains the system. Detailed provider and policy data stay close to
 their owners:
 
-- [AdvancedMD interface notes](docs/advancedmd-api.md) — provider operations,
-  transport families, and normalization
-- [Multi-office registry](MULTI_OFFICE.md) — office identifiers, scheduler
-  columns, and routing lanes
-- [Insurance crosswalk](INSURANCE_CROSSWALK.md) — accepted plans, carrier
-  mappings, and routing outcomes
-- [Patient resolution specification](docs/patient-resolve-and-appointments-spec.md)
-  — identity and appointment-loading semantics
-- [Cloud Run deployment contract](docs/cloud-run-deployment.md) — production
-  pipeline, maintenance identity, smoke checks, and rollback
-- [Release automation](docs/release-automation.md) — version and release flow
-- [Contributing](CONTRIBUTING.md) — pull request and merge conventions
+- [AdvancedMD adapter](internal/advancedmd/adapter.go) — provider records and completeness
+- [Office policy](internal/domain/office.go) — offices, scheduler columns, and routing lanes
+- [Insurance decisions](internal/domain/insurance_decision.go) — participation and scheduling requirements
+- [Patient resolution](internal/patient/resolve.go) — identity and appointment loading
+- [Deployment](scripts/deploy-cloud-run.sh) — production configuration and maintenance identity
+- [Contributing](CONTRIBUTING.md) — pull request, merge, and release conventions
 
-The executable source of truth is the owning module and its interface-level
-tests. Provider reference documents explain the adapter; they do not define
-workflow policy.
+The executable source of truth is the owning module and its interface-level tests.
 
-### Conversational appointment inventory
-
-`POST /api/scheduler/slots` loads every eligible opening in one 14-calendar-day
-window. Optional `startDate` (YYYY-MM-DD) selects a future window; omission starts
-tomorrow, adjusted for preauthorization. `rangeDays` may be omitted or 14; 30/90-day
-scans are rejected. For the next window, use the day after `searchedThrough`.
-Only configured provider working dates are read. Supply the existing office, DOB, routing and
-preauthorization context. The response carries coverage dates, all signed slots,
-and booking-token expiry. Incomplete calendar reads return an explicit incomplete
-outcome rather than presenting partial results as a complete inventory.
-
-Reads use the existing daily appointments/block-holds adapter with at most four
-concurrent days. Booking still validates the signed slot and current schedule.
-Deploy this endpoint before the inventory-based agent; `/scheduler/availability`
-remains available for the deployed agent and rollback. Both paths share scheduling
-policy. This does not introduce pre-call fetching or a shared inventory cache.
-
-## First-name/DOB candidate search
+## First-name/DOB resolution
 
 `POST /api/patient/resolve` accepts `firstName` + valid `dob` without surname.
-This path returns `{status: "candidates", source: "first_name", complete, matches}`
-and never hydrates a singleton. The agent owns first-name/DOB matching and
-activation; it requests `patientId` only after selecting a unique candidate.
-Existing phone, full-name, and patient-ID paths retain their contracts.
+Middleware owns exact first-name/DOB matching against the complete provider
+candidate set. A unique match is checked against demographics and hydrated with
+insurance and appointments. No match returns `not_found`; multiple exact matches
+return `multiple_matches` for staff resolution. Incomplete retrieval or conflicting
+identity returns `unresolved` rather than activating a patient.
 
 The AdvancedMD seam retrieves `lookuppatient` with `@name: ",FirstName"` and
-preserves pagination/count evidence. Completeness requires explicit page 1,
-pagecount 1 (or 0 for empty), matching itemcount, and valid distinct identity
-records. Extra pages or missing/inconsistent metadata remain incomplete; this
-version does not traverse extra pages. First-and-middle provider names are split
-at the retrieval boundary consistently with phone bootstrap. No fuzzy identity
-policy is added to middleware.
+traverses provider pagination, validating page/count evidence. The Patient module
+owns identity validation. See [first-name resolution](internal/patient/first_name.go)
+and its tests for the matching contract.
 
-DEV read-only probes returned complete single-page sets for CODEX (3), COD (3),
-Jane (4), John (2), and a nonexistent-first-name control (0). This is not a
-production retrieval proof. Release this contract before its paired agent change.
+### Rescheduling
+
+Rescheduling uses the existing booking and cancellation paths in one middleware
+command. It needs no additional infrastructure or deployment settings. The
+caller sends it once and retains the returned receipt. A replacement is booked
+before the original is cancelled. `partial` and `uncertain` receipts require
+reconciliation and must not be presented as completed moves. See
+[rescheduling](internal/scheduling/reschedule.go) and its tests.

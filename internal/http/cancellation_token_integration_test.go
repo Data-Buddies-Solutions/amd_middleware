@@ -25,10 +25,12 @@ func TestCancellationTokenCancelsPairedOfficeAppointmentWithoutRediscovery(t *te
 	records.AppointmentResults["12345"] = advancedmdtest.AppointmentResult{
 		Read: advancedmd.AppointmentRead{
 			Appointments: []domain.PatientAppointment{{
-				ID:       33333,
-				Start:    time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
-				OfficeID: "crystal_river",
-				Office:   "Crystal River",
+				ID:                33333,
+				AppointmentTypeID: 6169,
+				Facility:          "Renamed facility with no location hint",
+				Start:             time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
+				OfficeID:          "crystal_river",
+				Office:            "Crystal River",
 			}},
 			Complete: true,
 		},
@@ -49,6 +51,7 @@ func TestCancellationTokenCancelsPairedOfficeAppointmentWithoutRediscovery(t *te
 		Appointments []struct {
 			ID                int    `json:"id"`
 			OfficeID          string `json:"officeId"`
+			VisitType         string `json:"visitType"`
 			CancellationToken string `json:"cancellationToken"`
 			RescheduleToken   string `json:"rescheduleToken"`
 		} `json:"appointments"`
@@ -62,6 +65,7 @@ func TestCancellationTokenCancelsPairedOfficeAppointmentWithoutRediscovery(t *te
 	appointment := resolved.Appointments[0]
 	if appointment.ID != 33333 ||
 		appointment.OfficeID != "crystal_river" ||
+		appointment.VisitType != "medical" ||
 		appointment.CancellationToken == "" ||
 		appointment.RescheduleToken == "" ||
 		appointment.RescheduleToken == appointment.CancellationToken {

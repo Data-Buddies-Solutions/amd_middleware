@@ -1,10 +1,8 @@
 steps:
   - id: test
-    name: golang:1.26.5-alpine
-    entrypoint: /bin/sh
-    args:
-      - -c
-      - go test ./...
+    name: golang:1.26.5
+    entrypoint: go
+    args: [test, ./...]
 
   - id: deployment-script-test
     name: gcr.io/google.com/cloudsdktool/google-cloud-cli:stable

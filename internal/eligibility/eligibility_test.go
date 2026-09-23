@@ -79,3 +79,17 @@ func TestUnknownResponsesAreErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestMiddleNameRequiresSeparateToken(t *testing.T) {
+	returned := example()
+	returned.FirstName, returned.MiddleName = "Anna", "Belle"
+	for _, first := range []string{"Annabelle", "Anna Belle"} {
+		expected := returned
+		expected.FirstName = first
+		expected.MiddleName = ""
+		got := Match(expected, returned)
+		if got.ReviewRequired != (first == "Annabelle") {
+			t.Fatalf("%s: %+v", first, got)
+		}
+	}
+}

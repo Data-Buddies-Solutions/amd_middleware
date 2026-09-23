@@ -233,7 +233,7 @@ func TestBookRevalidatesPatientOfficeTypeProviderCapacityAndForce(t *testing.T) 
 		{
 			name: "patient context",
 			mutate: func(records *advancedmdtest.Adapter, _ *scheduling.BookCommand) {
-				records.Demographics["12345"] = domain.PatientDemographics{DOB: "02/20/1990"}
+				records.Demographics["12345"] = domain.PatientDemographics{CarrierName: "Self Pay", CarrierID: "car301672", DOB: "02/20/1990"}
 			},
 			category: scheduling.CategoryPatientContextMismatch,
 		},
@@ -312,7 +312,7 @@ func TestBookRevalidatesPatientOfficeTypeProviderCapacityAndForce(t *testing.T) 
 func TestBookUsesVerifiedPatientDOBWhenSignedSlotOmittedIt(t *testing.T) {
 	now := mutationTestNow()
 	records := bookingRecords()
-	records.Demographics["12345"] = domain.PatientDemographics{DOB: "06/01/2020"}
+	records.Demographics["12345"] = domain.PatientDemographics{CarrierName: "Self Pay", CarrierID: "car301672", DOB: "06/01/2020"}
 	token, err := scheduling.SignSlotToken("test-booking-secret", scheduling.SlotPolicy{
 		OfficeID:           "spring_hill",
 		Routing:            string(domain.RoutingBachOnly),
@@ -700,7 +700,7 @@ func mutationTestNow() time.Time {
 
 func bookingRecords() *advancedmdtest.Adapter {
 	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
-	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980"}
+	records.Demographics["12345"] = domain.PatientDemographics{CarrierName: "Self Pay", CarrierID: "car301672", DOB: "01/15/1980"}
 	records.ScheduleReads["2026-06-03"] = completeRead("1513", nil, nil)
 	return records
 }

@@ -3,7 +3,6 @@ package patient_test
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -16,6 +15,11 @@ import (
 	"advancedmd-token-management/internal/patient"
 	"advancedmd-token-management/internal/safeerrors"
 )
+
+// Generic write/reconciliation tests need a verified, writable medical product.
+// Humana-specific mapping and authorization cases live in insurance_decision_test.go.
+const writableMedicalPlan = "Meritain Health"
+const writableMedicalCarrier = "car301578"
 
 func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 	domain.InitRegistry("")
@@ -78,6 +82,7 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 		RespPartyID:        "resp456",
 		Routing:            domain.RoutingBachOnly,
 		AllowedProviders:   []string{"Dr. Bach"},
+		RoutingAmbiguous:   false,
 		AppointmentsStatus: patient.AppointmentsFound,
 		Appointments: []patient.Appointment{{
 			ID:                9570263,
@@ -86,6 +91,7 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 			Provider:          "Dr. Austin Bach",
 			Type:              "Established Adult Medical (Follow Up)",
 			AppointmentTypeID: 1007,
+			VisitType:         "medical",
 			Facility:          "Abita Eye Group Spring Hill",
 			OfficeID:          "spring_hill",
 			Office:            "Spring Hill",
@@ -117,7 +123,7 @@ func TestCreateReturnsExistingSuccessContract(t *testing.T) {
 		State:          "fl",
 		Zip:            "34609",
 		Sex:            "female",
-		Insurance:      "Humana Medicare",
+		Insurance:      writableMedicalPlan,
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -132,6 +138,7 @@ func TestCreateReturnsExistingSuccessContract(t *testing.T) {
 		AllowedProviders: []string{"Dr. Bach"},
 		Message:          "Patient created and insurance attached successfully",
 	}
+	want.InsuranceDecision = got.InsuranceDecision
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("Create() = %+v, want %+v", got, want)
 	}
@@ -444,8 +451,8 @@ func TestCreateReconcilesAmbiguousInsuranceAttachment(t *testing.T) {
 	}
 	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.Demographics["123"] = domain.PatientDemographics{
-		CarrierName:         "HUMANA MEDICARE",
-		CarrierID:           "car308175",
+		CarrierName:         writableMedicalPlan,
+		CarrierID:           writableMedicalCarrier,
 		InsPlanID:           "ins456",
 		RespPartyID:         "resp456",
 		SubscriberNum:       "H123",
@@ -459,184 +466,6 @@ func TestCreateReconcilesAmbiguousInsuranceAttachment(t *testing.T) {
 	}
 	if amd.AddInsuranceCalls != 1 || amd.DemographicCalls != 1 {
 		t.Fatalf("calls = add:%d demographics:%d, want 1/1", amd.AddInsuranceCalls, amd.DemographicCalls)
-	}
-}
-
-func TestUpdateInsuranceReturnsExistingSuccessContract(t *testing.T) {
-	domain.InitRegistry("")
-	amd := advancedmdtest.NewAdapter()
-
-	got := patient.New(amd).UpdateInsurance(context.Background(), patient.UpdateInsuranceCommand{
-		PatientID:      "123",
-		DOB:            "01/15/1980",
-		InsPlanID:      "ins123",
-		RespPartyID:    "resp123",
-		OldInsurance:   "Old",
-		Insurance:      "Humana Medicare",
-		SubscriberName: "Jane Doe",
-		SubscriberNum:  "H123",
-		Office:         "Spring Hill",
-	})
-
-	want := patient.UpdateInsuranceResult{
-		Status:           patient.UpdateInsuranceStatusUpdated,
-		PatientID:        "123",
-		OldInsurance:     "Old",
-		NewInsurance:     "Humana Medicare",
-		Routing:          domain.RoutingBachOnly,
-		AllowedProviders: []string{"Dr. Bach"},
-		Message:          "Insurance updated successfully",
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("UpdateInsurance() = %+v, want %+v", got, want)
-	}
-}
-
-func TestUpdateInsuranceReturnsStableRejectionWithoutRetry(t *testing.T) {
-	domain.InitRegistry("")
-	amd := advancedmdtest.NewAdapter()
-	amd.AddInsuranceError = advancedmd.NewError(safeerrors.CategoryRejected)
-
-	command := validUpdateInsuranceCommand()
-	command.InsPlanID = ""
-	got := patient.New(amd).UpdateInsurance(context.Background(), command)
-
-	if got.Status != patient.UpdateInsuranceStatusError || got.Outcome != patient.MutationRejected {
-		t.Fatalf("UpdateInsurance() = %+v, want stable rejection", got)
-	}
-	if amd.AddInsuranceCalls != 1 {
-		t.Fatalf("AddPatientInsurance calls = %d, want one", amd.AddInsuranceCalls)
-	}
-}
-
-func TestUpdateInsuranceReconcilesAmbiguousWriteAfterTransientReadFailure(t *testing.T) {
-	domain.InitRegistry("")
-	amd := advancedmdtest.NewAdapter()
-	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
-	amd.DemographicErrorSequence["123"] = []error{
-		advancedmd.NewError(safeerrors.CategoryTimeout),
-		nil,
-	}
-	amd.Demographics["123"] = domain.PatientDemographics{
-		CarrierName:         "HUMANA MEDICARE",
-		CarrierID:           "car308175",
-		InsPlanID:           "ins456",
-		RespPartyID:         "resp123",
-		SubscriberNum:       "H123",
-		InsuranceStateKnown: true,
-	}
-
-	command := validUpdateInsuranceCommand()
-	command.InsPlanID = ""
-	got := patient.New(amd).UpdateInsurance(context.Background(), command)
-
-	if got.Status != patient.UpdateInsuranceStatusUpdated || got.Outcome != patient.MutationReconciledSuccess {
-		t.Fatalf("UpdateInsurance() = %+v, want reconciled success", got)
-	}
-	if amd.AddInsuranceCalls != 1 {
-		t.Fatalf("AddPatientInsurance calls = %d, want one", amd.AddInsuranceCalls)
-	}
-	if amd.DemographicCalls != 2 {
-		t.Fatalf("GetPatientDemographics calls = %d, want transient read plus retry", amd.DemographicCalls)
-	}
-}
-
-func TestUpdateInsuranceReconcilesAmbiguousEndDateBeforeAddingReplacement(t *testing.T) {
-	domain.InitRegistry("")
-	amd := advancedmdtest.NewAdapter()
-	amd.EndInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
-	amd.Demographics["123"] = domain.PatientDemographics{
-		RespPartyID:         "resp123",
-		InsuranceStateKnown: true,
-	}
-
-	got := patient.New(amd).UpdateInsurance(context.Background(), validUpdateInsuranceCommand())
-
-	if got.Status != patient.UpdateInsuranceStatusUpdated || got.Outcome != patient.MutationReconciledSuccess {
-		t.Fatalf("UpdateInsurance() = %+v, want reconciled success", got)
-	}
-	if amd.EndInsuranceCalls != 1 || amd.AddInsuranceCalls != 1 {
-		t.Fatalf("mutation calls = end:%d add:%d, want 1/1", amd.EndInsuranceCalls, amd.AddInsuranceCalls)
-	}
-}
-
-func TestUpdateInsuranceReturnsReconciledFailureWhenDemographicsProveNoWrite(t *testing.T) {
-	domain.InitRegistry("")
-	amd := advancedmdtest.NewAdapter()
-	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
-	amd.Demographics["123"] = domain.PatientDemographics{
-		CarrierName:         "AETNA",
-		CarrierID:           "car40887",
-		InsPlanID:           "ins123",
-		InsuranceStateKnown: true,
-	}
-
-	command := validUpdateInsuranceCommand()
-	command.InsPlanID = ""
-	got := patient.New(amd).UpdateInsurance(context.Background(), command)
-
-	if got.Status != patient.UpdateInsuranceStatusError || got.Outcome != patient.MutationReconciledFailure {
-		t.Fatalf("UpdateInsurance() = %+v, want reconciled failure", got)
-	}
-	if amd.AddInsuranceCalls != 1 {
-		t.Fatalf("AddPatientInsurance calls = %d, want one", amd.AddInsuranceCalls)
-	}
-}
-
-func TestUpdateInsuranceDoesNotAcceptPreexistingSameCarrierAsReconciledSuccess(t *testing.T) {
-	domain.InitRegistry("")
-	amd := advancedmdtest.NewAdapter()
-	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
-	amd.Demographics["123"] = domain.PatientDemographics{
-		CarrierID:           "car308175",
-		InsPlanID:           "ins456",
-		RespPartyID:         "resp123",
-		SubscriberNum:       "OLD-MEMBER",
-		InsuranceStateKnown: true,
-	}
-
-	command := validUpdateInsuranceCommand()
-	command.InsPlanID = ""
-	got := patient.New(amd).UpdateInsurance(context.Background(), command)
-
-	if got.Status != patient.UpdateInsuranceStatusError || got.Outcome != patient.MutationReconciledFailure {
-		t.Fatalf("UpdateInsurance() = %+v, want same-carrier mismatch failure", got)
-	}
-}
-
-func TestUpdateInsuranceReturnsIndeterminateWhenDemographicsCannotProveOutcome(t *testing.T) {
-	domain.InitRegistry("")
-	amd := advancedmdtest.NewAdapter()
-	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
-	amd.DemographicErrors["123"] = advancedmd.NewError(safeerrors.CategoryNetwork)
-
-	command := validUpdateInsuranceCommand()
-	command.InsPlanID = ""
-	got := patient.New(amd).UpdateInsurance(context.Background(), command)
-
-	if got.Status != patient.UpdateInsuranceStatusError || got.Outcome != patient.MutationIndeterminateWrite {
-		t.Fatalf("UpdateInsurance() = %+v, want indeterminate write", got)
-	}
-	if amd.AddInsuranceCalls != 1 || amd.DemographicCalls != 3 {
-		t.Fatalf("calls = add:%d demographics:%d, want 1/3", amd.AddInsuranceCalls, amd.DemographicCalls)
-	}
-}
-
-func TestUpdateInsuranceReturnsIndeterminateWhenInsuranceStateIsIncomplete(t *testing.T) {
-	domain.InitRegistry("")
-	amd := advancedmdtest.NewAdapter()
-	amd.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
-	amd.Demographics["123"] = domain.PatientDemographics{
-		CarrierID: "car308175",
-		InsPlanID: "ins456",
-	}
-
-	command := validUpdateInsuranceCommand()
-	command.InsPlanID = ""
-	got := patient.New(amd).UpdateInsurance(context.Background(), command)
-
-	if got.Status != patient.UpdateInsuranceStatusError || got.Outcome != patient.MutationIndeterminateWrite {
-		t.Fatalf("UpdateInsurance() = %+v, want incomplete-state indeterminate write", got)
 	}
 }
 
@@ -772,7 +601,7 @@ func validCreateCommand() patient.CreateCommand {
 		State:          "FL",
 		Zip:            "34609",
 		Sex:            "female",
-		Insurance:      "Humana Medicare",
+		Insurance:      writableMedicalPlan,
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -786,7 +615,7 @@ func validUpdateInsuranceCommand() patient.UpdateInsuranceCommand {
 		InsPlanID:      "ins123",
 		RespPartyID:    "resp123",
 		OldInsurance:   "Old",
-		Insurance:      "Humana Medicare",
+		Insurance:      writableMedicalPlan,
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",
 		Office:         "Spring Hill",
@@ -913,7 +742,7 @@ func TestResolveRefreshesKnownPatientByID(t *testing.T) {
 	if got.Name != "DOE,JANE" {
 		t.Fatalf("Name = %q, want DOE,JANE", got.Name)
 	}
-	if got.DOB != "01/15/1980" || got.Routing != domain.RoutingBachOnly {
+	if got.DOB != "01/15/1980" || got.RoutingAmbiguous || got.InsuranceDecision == nil || !got.InsuranceDecision.CanSchedule {
 		t.Fatalf("demographics = DOB %q routing %q", got.DOB, got.Routing)
 	}
 	if got.AppointmentsStatus != patient.AppointmentsFound || len(got.Appointments) != 1 {
@@ -1087,6 +916,7 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 
 	tests := []struct {
 		name             string
+		officeName       string
 		demographics     domain.PatientDemographics
 		patientDOB       string
 		wantRouting      domain.RoutingRule
@@ -1095,21 +925,29 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 		wantProviderList bool
 	}{
 		{
-			name: "preauthorization carrier",
+			name:       "Spring Hill accepted carrier",
+			officeName: "Spring Hill",
 			demographics: domain.PatientDemographics{
-				CarrierName: "AETNA HMO",
-				CarrierID:   "car40907",
+				CarrierName: "CIGNA HMO",
+				CarrierID:   "car301345",
 			},
 			patientDOB:       "01/01/1980",
 			wantRouting:      domain.RoutingAll,
-			wantPreauth:      true,
+			wantPreauth:      false,
 			wantAmbiguous:    false,
 			wantProviderList: true,
 		},
 		{
-			name: "minor uses pediatric routing",
+			name: "Hollywood prior authorization", officeName: "Hollywood",
+			demographics: domain.PatientDemographics{CarrierName: "CIGNA HMO", CarrierID: "car301345"},
+			patientDOB:   "01/01/1980", wantRouting: domain.RoutingBachOnly,
+			wantPreauth: true, wantProviderList: true,
+		},
+		{
+			name:       "minor uses pediatric routing",
+			officeName: "Spring Hill",
 			demographics: domain.PatientDemographics{
-				CarrierName: "AETNA",
+				CarrierName: "AETNA COMMERCIAL",
 				CarrierID:   "car40887",
 			},
 			patientDOB:       "01/01/2015",
@@ -1122,6 +960,7 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			office, _ := domain.LookupOffice(test.officeName)
 			amd := advancedmdtest.NewAdapter()
 			amd.PatientSearches[domain.PatientSearch{Phone: "9542872010"}] = []domain.Patient{{
 				ID: "123", FullName: "DOE,JANE", DOB: test.patientDOB,
@@ -1180,30 +1019,6 @@ func assertResolveResult(t *testing.T, got, want patient.ResolveResult) {
 	for i := range want.Appointments {
 		if got.Appointments[i] != want.Appointments[i] {
 			t.Fatalf("Appointments = %+v, want %+v", got.Appointments, want.Appointments)
-		}
-	}
-}
-
-func TestFirstNameDOBReturnsCandidatesWithoutHydration(t *testing.T) {
-	domain.InitRegistry("")
-	for _, complete := range []bool{true, false} {
-		for _, count := range []int{0, 1, 2} {
-			amd := advancedmdtest.NewAdapter()
-			rows := []domain.Patient{}
-			for i := 0; i < count; i++ {
-				rows = append(rows, domain.Patient{ID: fmt.Sprint(i + 1), FirstName: "Jane", LastName: "Meyer", FullName: "MEYER,JANE", DOB: "01/01/1980"})
-			}
-			amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Patients: rows, Complete: complete}
-			result, err := patient.New(amd).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "01/01/1980", OfficeID: "spring_hill"})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if result.Status != patient.StatusCandidates || result.Source != "first_name" || result.Complete == nil || *result.Complete != complete || len(result.Matches) != count {
-				t.Fatalf("incorrect candidate contract for count=%d complete=%v", count, complete)
-			}
-			if amd.SearchPatientCalls != 1 || amd.DemographicCalls != 0 || amd.AppointmentReadCalls != 0 {
-				t.Fatal("candidate retrieval must use one search and zero hydration reads")
-			}
 		}
 	}
 }

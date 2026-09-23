@@ -9,7 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"advancedmd-token-management/internal/advancedmd"
+	"advancedmd-token-management/internal/advancedmd/advancedmdtest"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/safeerrors"
 	schedulingmodule "advancedmd-token-management/internal/scheduling"
 )
 
@@ -284,5 +287,48 @@ func TestListSlotsRejectsOldPreferenceContract(t *testing.T) {
 	handlers.HandleListAppointmentSlots(response, request)
 	if scheduler.listCalls != 0 || !strings.Contains(response.Body.String(), "Invalid JSON body") {
 		t.Fatalf("old contract accepted: %s", response.Body.String())
+	}
+}
+
+func (s *recordingScheduling) Reschedule(context.Context, schedulingmodule.BookCommand) (schedulingmodule.RescheduleReceipt, error) {
+	return schedulingmodule.RescheduleReceipt{}, nil
+}
+
+func TestListSlotsErrorsPreserveInventoryContract(t *testing.T) {
+	for _, tc := range []struct {
+		name, body, outcome string
+		noScheduler         bool
+		readFailure         bool
+	}{
+		{name: "invalid JSON", body: `{`, outcome: "invalid_input"},
+		{name: "invalid range", body: `{"office":"Spring Hill","rangeDays":2}`, outcome: "invalid_input"},
+		{name: "unavailable scheduling", body: `{}`, outcome: "availability_search_incomplete", noScheduler: true},
+		{name: "provider read", body: `{"office":"Spring Hill","startDate":"2026-06-03"}`, outcome: "availability_search_incomplete", readFailure: true},
+		{name: "coverage mismatch", body: `{"office":"Spring Hill","startDate":"2026-06-03","patientId":"123","dob":"01/15/1980","visitType":"medical","coverageType":"routine_vision"}`, outcome: "invalid_input"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			records := advancedmdtest.NewAdapter()
+			records.Demographics["123"] = domain.PatientDemographics{DOB: "01/15/1980", InsuranceStateKnown: true, CarrierID: "unknown", CarrierName: "Unrecognized plan"}
+			if tc.readFailure {
+				records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryUnavailable)
+			}
+			var scheduler schedulingmodule.Scheduling = schedulingmodule.New(records, "secret", func() time.Time { return time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC) })
+			if tc.noScheduler {
+				scheduler = nil
+			}
+			handlers := NewHandlers(nil, nil, scheduler)
+			response := httptest.NewRecorder()
+			handlers.HandleListAppointmentSlots(response, httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(tc.body)))
+			var got domain.AvailabilityResponse
+			if err := json.Unmarshal(response.Body.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			if got.Status != "error" || got.Outcome != tc.outcome || got.Slots == nil || len(got.Slots) != 0 || got.ShouldRetrySameSearch != (tc.outcome == "availability_search_incomplete") || got.Message == "" {
+				t.Fatalf("inventory=%s", response.Body.String())
+			}
+			if len(records.Bookings) != 0 || len(records.Cancellations) != 0 {
+				t.Fatal("unexpected write")
+			}
+		})
 	}
 }
