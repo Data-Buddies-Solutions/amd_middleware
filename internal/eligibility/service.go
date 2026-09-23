@@ -119,8 +119,14 @@ func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Re
 	if reason != "" {
 		return out, nil
 	}
-	if officeID == "spring_hill" && in.CoverageType != "routine_vision" {
-		providers, ok := medicalProviders()
+	if (officeID == "spring_hill" && in.CoverageType != "routine_vision") || officeID == "crystal_river" {
+		var providers []CheckedProvider
+		var ok bool
+		if officeID == "crystal_river" {
+			providers, ok = checkedProviders(officeID, []CheckedProvider{lichtProvider})
+		} else {
+			providers, ok = medicalProviders()
+		}
 		if !ok {
 			out.ReviewReason = "provider_profile_unavailable"
 			return out, nil
@@ -141,11 +147,7 @@ func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Re
 		return providerConsensus(out), nil
 	}
 	provider, ok := s.providers[officeID]
-	// Crystal River uses Licht for eligibility, as confirmed by the practice.
-	if officeID == "crystal_river" {
-		provider = Provider{FirstName: "Joseph", LastName: "Licht", NPI: "1497147680"}
-		ok = true
-	}
+
 	if !ok {
 		out.ReviewReason = "provider_not_configured"
 		return out, nil

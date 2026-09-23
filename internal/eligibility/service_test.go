@@ -228,7 +228,7 @@ func TestCrystalRiverUsesOnlyLichtWithoutProviderConfiguration(t *testing.T) {
 	})
 	service.providers = nil
 	result, err := service.Check(context.Background(), "crystal_river", input())
-	if err != nil || calls != 1 || result.Status != "active" || len(result.ProviderResults) != 0 {
+	if err != nil || calls != 1 || result.Status != "active" || len(result.ProviderResults) != 1 || result.ProviderResults[0].Provider == nil || result.ProviderResults[0].Provider.ProfileID == "" || result.ProviderResults[0].Provider.NPI != "1497147680" {
 		t.Fatalf("result=%+v err=%v calls=%d", result, err, calls)
 	}
 }

@@ -55,10 +55,15 @@ func ResolveInsurance(result Result, office *domain.OfficeConfig, input CheckInp
 			add(benefit.Additional.Description)
 		}
 	}
+	unmapped := false
 	for _, plan := range out.Plans {
 		decision := domain.DecideEligibilityInsurance(plan, coverage, office, input.DOB)
 		if decision.Participation == "unknown" || decision.SelfPay {
-			out.Status, out.Decision = "unmapped", nil
+			unmapped = true
+			continue
+		}
+		if decision.Participation == "not_accepted" {
+			out.Status, out.Decision = "resolved", &decision
 			return out
 		}
 		if out.Decision != nil && (out.Decision.CanonicalPlan != decision.CanonicalPlan || out.Decision.Participation != decision.Participation || out.Decision.CarrierCode != decision.CarrierCode) {
@@ -66,6 +71,9 @@ func ResolveInsurance(result Result, office *domain.OfficeConfig, input CheckInp
 			return out
 		}
 		out.Status, out.Decision = "resolved", &decision
+	}
+	if unmapped {
+		out.Status, out.Decision = "unmapped", nil
 	}
 	return out
 }

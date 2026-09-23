@@ -42,7 +42,7 @@ func TestResolveInsurance(t *testing.T) {
 		})
 	}
 	crystal, _ := domain.LookupOfficeByID("crystal_river")
-	got := ResolveInsurance(planResult("Aetna Better Health"), crystal, CheckInput{CoverageType: "medical"})
+	got := ResolveInsurance(planResult("Unknown Product", "Aetna Better Health"), crystal, CheckInput{CoverageType: "medical"})
 	if got.Status != "resolved" || got.Decision.Participation != "not_accepted" {
 		t.Fatalf("rejected plan: %+v", got)
 	}

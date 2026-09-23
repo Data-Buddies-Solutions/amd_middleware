@@ -437,7 +437,9 @@ individual entries, with no duplicated top-level response.
 `stedi-api-key` Secret Manager secret; add a production key version and grant
 the runtime service account secret access before deploying.
 Crystal River uses Joseph Licht's individual NPI (`1497147680`) for eligibility,
-as confirmed by the practice. Other offices and Spring Hill routine vision retain the
+as confirmed by the practice. Its single result uses the same `providerResults`
+shape and registry profile ID as Spring Hill, so the portal can link it to
+the booked physician. Other offices and Spring Hill routine vision retain the
 single-provider configuration in `STEDI_PROVIDERS`; an absent provider stays
 explicitly unavailable, with no organization-NPI fallback for medical fanout.
 Verified booking receipts include `profileId`, allowing the agent to select the
