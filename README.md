@@ -439,7 +439,10 @@ the runtime service account secret access before deploying.
 Crystal River uses Joseph Licht's individual NPI (`1497147680`) for eligibility,
 as confirmed by the practice. Its single result uses the same `providerResults`
 shape and registry profile ID as Spring Hill, so the portal can link it to
-the booked physician. Other offices and Spring Hill routine vision retain the
+the booked physician. North Miami Beach Optical routine vision uses Miriam Bach, OD's verified
+individual NPI (`1801200977`) and its scheduling profile for appointment linkage.
+See [vision payer mappings](docs/vision-eligibility-mapping.md) for supported and
+unsupported Stedi routes. Other offices and Spring Hill routine vision retain the
 single-provider configuration in `STEDI_PROVIDERS`; an absent provider stays
 explicitly unavailable, with no organization-NPI fallback for medical fanout.
 Verified booking receipts include `profileId`, allowing the agent to select the

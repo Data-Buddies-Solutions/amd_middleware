@@ -13,8 +13,10 @@ type CheckedProvider struct {
 
 // Type 1 identities verified against CMS NPPES on 2026-09-23:
 // https://npiregistry.cms.hhs.gov/api/?version=2.1&number=<npi>
-// Profile IDs come from the Spring Hill medical scheduling registry.
+// Profile IDs come from each office scheduling registry.
 var lichtProvider = CheckedProvider{Name: "Dr. Joseph Licht", FirstName: "Joseph", LastName: "Licht", NPI: "1497147680"}
+
+var miriamBachProvider = CheckedProvider{Name: "Dr. Miriam Bach", FirstName: "Miriam", LastName: "Bach", NPI: "1801200977"}
 
 var springHillMedicalProviders = []CheckedProvider{
 	{Name: "Dr. Austin Bach", FirstName: "Austin", LastName: "Bach", NPI: "1659706588"},

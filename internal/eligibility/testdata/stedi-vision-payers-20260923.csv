@@ -1,0 +1,13 @@
+StediId,PrimaryPayerId,DisplayName,EligibilityInquiry,EligibilityInquiryEnrollmentRequired,CoverageTypes
+BHOZF,31165,EyeMed,false,false,medical|vision
+CTWJH,46278,Centene Dental and Vision Services,true,false,dental|medical|vision
+EOFHN,64246,Guardian,true,false,dental|medical|vision
+GWRCD,94163,VSP Vision Service Plan,false,false,medical|vision
+HEDBA,65054,Premier Eye Care,false,false,medical|vision
+IPUKT,13305,Superior Vision,false,false,medical|vision
+KMRPU,26054,iCare Health Options TPA,false,false,medical|vision
+NKTIX,76578,Solstice,false,false,dental|medical
+QKZWY,00157,Davis Vision,true,false,medical|vision
+UQFWA,ALIVI,Alivi Health,false,false,medical
+WFWIK,NVADM,National Vision Administrators,false,false,medical|vision
+ZNIZJ,00773,Optum Health Vision,true,false,dental|medical|vision

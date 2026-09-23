@@ -110,6 +110,7 @@ func TestSpringHillVisionStillUsesConfiguredProvider(t *testing.T) {
 	s.providers["spring_hill"] = s.providers["office"]
 	in := input()
 	in.CoverageType = "routine_vision"
+	in.Plan = "Davis Vision"
 	got, err := s.Check(context.Background(), "spring_hill", in)
 	if err != nil || got.Status != "active" || calls != 1 || len(got.ProviderResults) != 0 {
 		t.Fatalf("vision behavior changed: %+v %v", got, err)

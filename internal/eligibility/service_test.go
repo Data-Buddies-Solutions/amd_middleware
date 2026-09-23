@@ -232,3 +232,39 @@ func TestCrystalRiverUsesOnlyLichtWithoutProviderConfiguration(t *testing.T) {
 		t.Fatalf("result=%+v err=%v calls=%d", result, err, calls)
 	}
 }
+
+func TestNorthMiamiBeachOpticalUsesMiriamBach(t *testing.T) {
+	calls := 0
+	service := testService(t, func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		var request Request
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Fatal(err)
+		}
+		if request.Provider.NPI != "1801200977" || request.Provider.FirstName != "Miriam" || request.Provider.LastName != "Bach" || request.Payer != "00157" {
+			t.Errorf("wrong optical provider or payer: %+v", request)
+		}
+		fmt.Fprint(w, fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, ""))
+	})
+	service.providers = nil
+	in := input()
+	in.Plan, in.CoverageType = "Davis Vision", "routine_vision"
+	result, err := service.Check(context.Background(), "north_miami_beach_optical", in)
+	if err != nil || calls != 1 || result.Status != "active" || len(result.ProviderResults) != 1 {
+		t.Fatalf("result=%+v err=%v calls=%d", result, err, calls)
+	}
+	provider := result.ProviderResults[0].Provider
+	if provider == nil || provider.ProfileID != "621" || provider.NPI != "1801200977" {
+		t.Fatalf("wrong booking linkage: %+v", provider)
+	}
+	in.Plan = "Oscar"
+	result, err = service.Check(context.Background(), "north_miami_beach_optical", in)
+	if err != nil || calls != 1 || result.ReviewReason != "vision_product_required" {
+		t.Fatalf("medical Oscar route used for vision: %+v", result)
+	}
+	in.Plan = "VSP"
+	result, err = service.Check(context.Background(), "north_miami_beach_optical", in)
+	if err != nil || calls != 1 || result.ReviewReason != "payer_eligibility_not_supported" {
+		t.Fatalf("unsupported vision payer dispatched: %+v", result)
+	}
+}

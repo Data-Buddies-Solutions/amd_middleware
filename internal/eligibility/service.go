@@ -115,14 +115,21 @@ func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Re
 	}
 	now := s.now()
 	payer, reason := Route(in.Plan, now.In(domain.EasternLocation()).Format("20060102"))
+	// Oscar's directory route covers medical/dental; its optional Davis product
+	// must be identified separately for routine vision.
+	if in.CoverageType == "routine_vision" && payer == "OSCAR" {
+		reason = "vision_product_required"
+	}
 	out := Result{OfficeID: officeID, PayerID: payer, Status: "review", ReviewReason: reason, CheckedAt: now.UTC()}
 	if reason != "" {
 		return out, nil
 	}
-	if (officeID == "spring_hill" && in.CoverageType != "routine_vision") || officeID == "crystal_river" {
+	if (officeID == "spring_hill" && in.CoverageType != "routine_vision") || officeID == "crystal_river" || (officeID == "north_miami_beach_optical" && in.CoverageType == "routine_vision") {
 		var providers []CheckedProvider
 		var ok bool
-		if officeID == "crystal_river" {
+		if officeID == "north_miami_beach_optical" {
+			providers, ok = checkedProviders(officeID, []CheckedProvider{miriamBachProvider})
+		} else if officeID == "crystal_river" {
 			providers, ok = checkedProviders(officeID, []CheckedProvider{lichtProvider})
 		} else {
 			providers, ok = medicalProviders()

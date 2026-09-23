@@ -12,6 +12,19 @@ type payerRoute struct {
 // verified on 2026-09-16 against Stedi's public export (subset in testdata):
 // https://payers.us.stedi.com/2024-04-01/public/payers/csv
 var insurancePayers = map[string]payerRoute{
+	// Vision identities reverified 2026-09-23; billing aliases do not select payers.
+	"superior":                       {"13305", "payer_eligibility_not_supported"},
+	"superior vision":                {"13305", "payer_eligibility_not_supported"},
+	"versant":                        {"", "payer_product_required"},
+	"versant health":                 {"", "payer_product_required"},
+	"vsp vision service plan":        {"94163", "payer_eligibility_not_supported"},
+	"eyefinity":                      {"94163", "payer_eligibility_not_supported"},
+	"national vision administrators": {"NVADM", "payer_eligibility_not_supported"},
+	"icare health options tpa":       {"26054", "payer_eligibility_not_supported"},
+	"premier eye care":               {"65054", "payer_eligibility_not_supported"},
+	"optum health vision":            {"00773", ""},
+	"unitedhealthcare vision":        {"00773", ""},
+	"united healthcare vision":       {"00773", ""},
 	// Newly cataloged products remain blocked until their eligibility route is verified.
 	"avmed entrust":                   {"", "plan_route_review"},
 	"avmed jackson first network hmo": {"", "plan_route_review"},

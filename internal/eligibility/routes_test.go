@@ -57,6 +57,18 @@ func TestPayerRoutesMatchVerifiedStediDirectory(t *testing.T) {
 	for _, row := range rows[1:] {
 		directory[row[1]] = row
 	}
+	visionFile, err := os.Open("testdata/stedi-vision-payers-20260923.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer visionFile.Close()
+	visionRows, err := csv.NewReader(visionFile).ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range visionRows[1:] {
+		directory[row[1]] = row
+	}
 	for plan, route := range insurancePayers {
 		if route.payer == "" {
 			if route.review == "" {
@@ -179,6 +191,23 @@ func TestAmbiguousAndBillingAliasesNeverDispatch(t *testing.T) {
 		out, err := s.Check(context.Background(), "office", in)
 		if err != nil || out.Status != "review" || out.ReviewReason == "" {
 			t.Errorf("%s: %+v %v", plan, out, err)
+		}
+	}
+}
+
+func TestVisionPayerIdentitiesDoNotUseBillingAliases(t *testing.T) {
+	for _, tc := range []struct{ plan, payer, review string }{
+		{"Davis Vision", "00157", ""}, {"Spectera Vision", "00773", ""},
+		{"UnitedHealthcare Vision", "00773", ""}, {"Envolve Vision", "46278", ""}, {"Guardian Vision", "64246", ""},
+		{"VSP", "94163", "payer_eligibility_not_supported"}, {"EyeMed", "31165", "payer_eligibility_not_supported"},
+		{"iCare", "26054", "payer_eligibility_not_supported"}, {"NVA", "NVADM", "payer_eligibility_not_supported"},
+		{"Premier Eye Care", "65054", "payer_eligibility_not_supported"}, {"Solstice", "76578", "payer_eligibility_not_supported"},
+		{"Alivi", "ALIVI", "payer_eligibility_not_supported"}, {"Superior", "13305", "payer_eligibility_not_supported"},
+		{"Superior Vision", "13305", "payer_eligibility_not_supported"}, {"Versant", "", "payer_product_required"}, {"Versant Health", "", "payer_product_required"},
+	} {
+		payer, review := Route(tc.plan, "20260923")
+		if payer != tc.payer || review != tc.review {
+			t.Errorf("%s got %s/%s", tc.plan, payer, review)
 		}
 	}
 }
