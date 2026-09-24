@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.2.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.1.0...v5.2.0) (2026-09-24)
+
+
+### Features
+
+* **eligibility:** configure Sweetwater medical and optical providers ([#208](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/208)) ([5d3a0ec](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/5d3a0ec44336d52e652613074fe2d7063f733456))
+
 ## [5.1.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.5...v5.1.0) (2026-09-24)
 
 
