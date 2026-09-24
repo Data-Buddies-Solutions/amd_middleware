@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"advancedmd-token-management/internal/clients"
 	"advancedmd-token-management/internal/config"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/eligibility"
 	apphttp "advancedmd-token-management/internal/http"
 	"advancedmd-token-management/internal/patient"
 	"advancedmd-token-management/internal/safeerrors"
@@ -76,6 +78,18 @@ func main() {
 
 	// Initialize handlers
 	handlers := apphttp.NewHandlers(amdSession, patients, scheduler)
+	// Spring Hill medical providers are verified in code; other offices use configuration.
+	if key, providersJSON := os.Getenv("STEDI_API_KEY"), os.Getenv("STEDI_PROVIDERS"); key != "" || providersJSON != "" {
+		var providers map[string]eligibility.Provider
+		if providersJSON != "" && json.Unmarshal([]byte(providersJSON), &providers) != nil {
+			log.Fatal("invalid eligibility provider configuration")
+		}
+		service, err := eligibility.New(key, providers)
+		if err != nil {
+			log.Fatal("invalid eligibility configuration")
+		}
+		handlers.SetEligibility(service)
+	}
 
 	// Create router
 	maintenanceAuthorizer := apphttp.NewMaintenanceAuthorizer(

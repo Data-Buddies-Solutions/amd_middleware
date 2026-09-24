@@ -27,6 +27,7 @@ func TestBookReturnsReceiptAfterRevalidatingSignedSlot(t *testing.T) {
 		receipt.PatientID != "12345" ||
 		receipt.PatientName != "Jane Doe" ||
 		receipt.ProviderName != "Dr. Austin Bach" ||
+		receipt.ProfileID != "620" ||
 		receipt.LocationName != "Spring Hill" ||
 		receipt.StartDatetime != "2026-06-03T09:00" ||
 		receipt.Duration != 15 ||

@@ -214,6 +214,42 @@ func isAetnaGovernmentVisionPlan(name string) bool {
 	return hasAetna && hasGovernmentProgram
 }
 
+// CanonicalInsuranceName resolves exact product names and identity aliases only.
+// Office participation and billing carrier IDs do not establish a payer route.
+func CanonicalInsuranceName(name string) (string, bool) {
+	normalized := NormalizeForLookup(name)
+	for _, plan := range medicalPlans {
+		if NormalizeForLookup(plan.Name) == normalized {
+			return normalized, true
+		}
+	}
+	canonical := ""
+	for _, plan := range medicalPlans {
+		for _, alias := range plan.Aliases {
+			if NormalizeForLookup(alias) == normalized {
+				key := NormalizeForLookup(plan.Name)
+				if canonical != "" && canonical != key {
+					return "", false
+				}
+				canonical = key
+			}
+		}
+	}
+	if canonical != "" {
+		return canonical, true
+	}
+	if _, ok := VisionInsuranceNameMap[normalized]; ok {
+		return normalized, true
+	}
+	// Other vision aliases describe billing networks, not insurance products.
+	switch normalized {
+	case "eye med", "eye med vision", "eye med vision care", "national vision", "national vision administrators",
+		"davis vision", "spectera vision", "soltice", "solstice vision", "guardian vision", "alivi health", "sunhealth vision", "i care":
+		return VisionInsuranceAliases[normalized], true
+	}
+	return "", false
+}
+
 // IsSelfPayInsurance reports whether a caller-facing insurance value means self-pay.
 func IsSelfPayInsurance(name string) bool {
 	normalized := NormalizeForLookup(name)

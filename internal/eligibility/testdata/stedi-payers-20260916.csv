@@ -1,0 +1,50 @@
+StediId,PrimaryPayerId,DisplayName,EligibilityInquiry,EligibilityInquiryEnrollmentRequired
+HPQRS,60054,Aetna,true,false
+POYUE,128FL,Aetna Better Health Florida,true,false
+UQFWA,ALIVI,Alivi Health,false,false
+AFLEJ,81400,All Savers,true,false
+NOGQI,59274,AvMed,true,false
+LVFMN,95092,CarePlus,true,false
+IMJGY,68069,Centene (Medical),true,false
+CTWJH,46278,Centene Dental and Vision Services,true,false
+HGJLR,62308,Cigna,true,false
+QKZWY,00157,Davis Vision,true,false
+ZRSYL,DEVOT,Devoted Health,true,false
+ASQFX,DRHCP,Doctors HealthCare Plans,true,false
+BHOZF,31165,EyeMed,false,false
+ULXRI,BCBSF,Florida Blue,true,false
+TRQGK,FBM01,Florida Blue Medicare,true,false
+DKTZK,FLCCR,Florida Community Care,false,false
+RQZOX,FLCPC,Florida Complete Care,false,false
+KCEJC,41212,Freedom Health,true,false
+FXORF,62324,Freedom Life Insurance of America,true,false
+INRAO,37602,Golden Rule,true,false
+EOFHN,64246,Guardian,true,false
+QRPMU,63092,HealthSpring,true,false
+UYORK,61101,Humana,true,false
+ZDEIS,77027,Medicaid Florida,true,false
+NPFPE,41124,Meritain Health,true,false
+GINRZ,82832,Miami Children's Health Plan,false,false
+IPMKW,51062,Molina Healthcare Florida,true,false
+JDNSN,CMS,National Centers for Medicare & Medicaid Services,true,true
+WFWIK,NVADM,National Vision Administrators,false,false
+MNYSB,20133,Optimum Healthcare,true,false
+ZNIZJ,00773,Optum Health Vision,true,false
+TAZWT,OSCAR,Oscar Health,true,false
+CYRGF,06111,Oxford,true,false
+NSJHP,78857,Preferred Care Network,true,false
+PDERF,65088,Preferred Care Partners,true,false
+HEDBA,65054,Premier Eye Care,false,false
+POEXK,SMPLY,Simply Healthcare,true,false
+PCOFI,SOLIS,Solis Health Plans,true,false
+NKTIX,76578,Solstice,false,false
+WVPHC,74227,Student Resources (UnitedHealthcare),true,false
+QSOCK,25463,Surest,true,false
+IYHIG,99727,TRICARE East,true,false
+EPIVM,TDFIC,TRICARE for Life,true,false
+UWTOI,39026,UMR,true,false
+KMQTZ,87726,UnitedHealthcare,true,false
+MCHVL,04567,UnitedHealthcare Community Plan,true,false
+GWRCD,94163,VSP Vision Service Plan,false,false
+EGASA,14163,Wellcare,true,false
+KMRPU,26054,iCare Health Options TPA,false,false

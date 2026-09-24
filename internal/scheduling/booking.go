@@ -57,6 +57,7 @@ type BookReceipt struct {
 	PatientID           string   `json:"patientId,omitempty"`
 	PatientName         string   `json:"patientName,omitempty"`
 	ProviderName        string   `json:"providerName,omitempty"`
+	ProfileID           string   `json:"profileId,omitempty"`
 	LocationName        string   `json:"locationName,omitempty"`
 	StartDatetime       string   `json:"startDatetime,omitempty"`
 	Duration            int      `json:"duration,omitempty"`
@@ -535,6 +536,7 @@ func buildBookReceipt(command BookCommand, office *domain.OfficeConfig, appointm
 		PatientID:           command.PatientID,
 		PatientName:         normalizePatientName(command.PatientName),
 		ProviderName:        column.DisplayName,
+		ProfileID:           strconv.Itoa(command.ProfileID),
 		LocationName:        office.DisplayName,
 		StartDatetime:       command.StartDatetime,
 		Duration:            command.Duration,
