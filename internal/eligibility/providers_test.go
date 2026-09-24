@@ -45,7 +45,7 @@ func TestSpringHillMedicalChecksThreeDoctorsConcurrently(t *testing.T) {
 	if len(got.ProviderResults) != 3 || len(got.ProviderResponse) != 0 {
 		t.Fatal("must keep three responses without duplicating provider evidence")
 	}
-	providers, _ := medicalProviders()
+	providers, _ := checkedProviders("spring_hill", springHillMedicalProviders)
 	for i, child := range got.ProviderResults {
 		provider := providers[i]
 		request := requests[provider.NPI]
@@ -131,7 +131,7 @@ func TestMedicalProvidersUseCurrentSchedulingRegistry(t *testing.T) {
 		ids []string
 	}{{"prod", []string{"620", "2064", "2076"}}, {"dev", []string{"1135", "1141", "1137"}}} {
 		domain.InitRegistry(tc.env)
-		providers, ok := medicalProviders()
+		providers, ok := checkedProviders("spring_hill", springHillMedicalProviders)
 		if !ok || len(providers) != 3 {
 			t.Fatal("missing medical provider mapping")
 		}

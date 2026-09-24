@@ -1,6 +1,9 @@
 package eligibility
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 type planDescription struct {
 	Description string `json:"planDescription"`
@@ -82,13 +85,7 @@ func generalCoverage(response Response) string {
 	}
 	active, inactive := false, false
 	for _, b := range response.Benefits {
-		general := false
-		for _, code := range b.Services {
-			if code == "30" {
-				general = true
-			}
-		}
-		if !general {
+		if !slices.Contains(b.Services, "30") {
 			continue
 		}
 		switch b.Code {

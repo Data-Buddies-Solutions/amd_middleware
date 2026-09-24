@@ -1,6 +1,9 @@
 package eligibility
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"slices"
+)
 
 // Filter benefit rows once at the middleware boundary. Keep complete matching
 // rows, including network, tier, plan descriptions and unknown payer qualifiers.
@@ -29,11 +32,8 @@ func retainVisitBenefits(raw json.RawMessage, coverage string) json.RawMessage {
 			if json.Unmarshal(row, &benefit) != nil {
 				continue
 			}
-			for _, code := range benefit.Codes {
-				if code == "30" || code == visit {
-					retained = append(retained, row)
-					break
-				}
+			if slices.Contains(benefit.Codes, "30") || slices.Contains(benefit.Codes, visit) {
+				retained = append(retained, row)
 			}
 		}
 		response[field], _ = json.Marshal(retained)

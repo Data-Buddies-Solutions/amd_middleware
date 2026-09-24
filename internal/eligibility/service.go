@@ -124,18 +124,19 @@ func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Re
 	if reason != "" {
 		return out, nil
 	}
-	if officeID == "spring_hill" || officeID == "crystal_river" || (officeID == "north_miami_beach_optical" && in.CoverageType == "routine_vision") {
-		var providers []CheckedProvider
-		var ok bool
-		if officeID == "spring_hill" && in.CoverageType == "routine_vision" {
-			providers, ok = checkedProviders(officeID, []CheckedProvider{oteroProvider})
-		} else if officeID == "north_miami_beach_optical" {
-			providers, ok = checkedProviders(officeID, []CheckedProvider{miriamBachProvider})
-		} else if officeID == "crystal_river" {
-			providers, ok = checkedProviders(officeID, []CheckedProvider{lichtProvider})
-		} else {
-			providers, ok = medicalProviders()
-		}
+	var identities []CheckedProvider
+	switch {
+	case officeID == "spring_hill" && in.CoverageType == "routine_vision":
+		identities = []CheckedProvider{oteroProvider}
+	case officeID == "spring_hill":
+		identities = springHillMedicalProviders
+	case officeID == "crystal_river":
+		identities = []CheckedProvider{lichtProvider}
+	case officeID == "north_miami_beach_optical" && in.CoverageType == "routine_vision":
+		identities = []CheckedProvider{miriamBachProvider}
+	}
+	if len(identities) > 0 {
+		providers, ok := checkedProviders(officeID, identities)
 		if !ok {
 			out.ReviewReason = "provider_profile_unavailable"
 			return out, nil

@@ -2,6 +2,7 @@ package eligibility
 
 import (
 	"encoding/json"
+	"slices"
 	"strings"
 
 	"advancedmd-token-management/internal/domain"
@@ -44,11 +45,7 @@ func ResolveInsurance(result Result, office *domain.OfficeConfig, input CheckInp
 		}
 		add(response.PlanInformation.Description)
 		for _, benefit := range response.Benefits {
-			general := false
-			for _, service := range benefit.Services {
-				general = general || service == "30"
-			}
-			if !general || len(benefit.Code) != 1 || !strings.Contains("12345678", benefit.Code) {
+			if !slices.Contains(benefit.Services, "30") || len(benefit.Code) != 1 || !strings.Contains("12345678", benefit.Code) {
 				continue
 			}
 			add(benefit.Plan)

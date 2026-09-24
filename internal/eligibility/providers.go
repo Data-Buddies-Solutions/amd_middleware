@@ -27,10 +27,6 @@ var springHillMedicalProviders = []CheckedProvider{
 }
 
 // The sandbox and production scheduling registries use different profile IDs.
-func medicalProviders() ([]CheckedProvider, bool) {
-	return checkedProviders("spring_hill", springHillMedicalProviders)
-}
-
 func checkedProviders(officeID string, identities []CheckedProvider) ([]CheckedProvider, bool) {
 	office, ok := domain.LookupOfficeByID(officeID)
 	if !ok {
