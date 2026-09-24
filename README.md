@@ -447,7 +447,24 @@ the runtime service account secret access before deploying.
 Crystal River uses Joseph Licht's individual NPI (`1497147680`) for eligibility,
 as confirmed by the practice. Its single result uses the same `providerResults`
 shape and registry profile ID as Spring Hill, so the portal can link it to
-the booked physician. North Miami Beach Optical routine vision uses Miriam Bach, OD's verified
+the booked physician. Sweetwater medical eligibility uses Austin Bach's individual
+NPI (`1659706588`), as confirmed by the practice, with his scheduling profile in
+the same single-result shape. This applies to explicit `medical` coverage and
+the default when `coverageType` is omitted.
+
+Sweetwater `routine_vision` checks Maria M. Casas (`1851438519`), Kyler Farnan
+(`1568198158`), and Gisselle Calero (`1619592607`) concurrently, using the same
+per-provider results and consensus rules as Spring Hill medical. Optical benefits
+retain STC `30` and `AL`; partial failures retain successful provider results and
+require review. Individual identities were verified against CMS NPPES on
+September 24, 2026:
+[Casas](https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1851438519),
+[Farnan](https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1568198158),
+[Calero](https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1619592607).
+The scheduling registry supplies their Sweetwater association and profile IDs;
+NPPES identity verification does not establish payer enrollment or live success.
+
+North Miami Beach Optical routine vision uses Miriam Bach, OD's verified
 individual NPI (`1801200977`) and its scheduling profile for appointment linkage.
 See [vision payer mappings](docs/vision-eligibility-mapping.md) for supported and
 unsupported Stedi routes. Other offices retain the

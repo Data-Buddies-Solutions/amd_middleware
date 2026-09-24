@@ -14,6 +14,8 @@ type CheckedProvider struct {
 // Type 1 identities verified against CMS NPPES on 2026-09-23:
 // https://npiregistry.cms.hhs.gov/api/?version=2.1&number=<npi>
 // Profile IDs come from each office scheduling registry.
+var austinBachProvider = CheckedProvider{Name: "Dr. Austin Bach", FirstName: "Austin", LastName: "Bach", NPI: "1659706588"}
+
 var lichtProvider = CheckedProvider{Name: "Dr. Joseph Licht", FirstName: "Joseph", LastName: "Licht", NPI: "1497147680"}
 
 var miriamBachProvider = CheckedProvider{Name: "Dr. Miriam Bach", FirstName: "Miriam", LastName: "Bach", NPI: "1801200977"}
@@ -21,9 +23,17 @@ var miriamBachProvider = CheckedProvider{Name: "Dr. Miriam Bach", FirstName: "Mi
 var oteroProvider = CheckedProvider{Name: "Dr. Melissa Otero", FirstName: "Melissa", LastName: "Otero", NPI: "1457904765"}
 
 var springHillMedicalProviders = []CheckedProvider{
-	{Name: "Dr. Austin Bach", FirstName: "Austin", LastName: "Bach", NPI: "1659706588"},
+	austinBachProvider,
 	lichtProvider,
 	{Name: "Dr. Noel", FirstName: "Don", LastName: "Noel", NPI: "1659998482"},
+}
+
+// Type 1 optometrist identities verified against CMS NPPES on 2026-09-24.
+// Casas is Maria M. Casas, not Maria L. Casas, who has a different NPI.
+var sweetwaterOpticalProviders = []CheckedProvider{
+	{Name: "Dr. Maria Casas", FirstName: "Maria", LastName: "Casas", NPI: "1851438519"},
+	{Name: "Dr. Kyler Farnan", FirstName: "Kyler", LastName: "Farnan", NPI: "1568198158"},
+	{Name: "Dr. Gisselle Calero", FirstName: "Gisselle", LastName: "Calero", NPI: "1619592607"},
 }
 
 // The sandbox and production scheduling registries use different profile IDs.
