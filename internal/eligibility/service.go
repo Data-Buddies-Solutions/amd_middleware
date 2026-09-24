@@ -132,6 +132,10 @@ func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Re
 		identities = springHillMedicalProviders
 	case officeID == "crystal_river":
 		identities = []CheckedProvider{lichtProvider}
+	case officeID == "sweetwater" && in.CoverageType == "routine_vision":
+		identities = sweetwaterOpticalProviders
+	case officeID == "sweetwater":
+		identities = []CheckedProvider{austinBachProvider}
 	case officeID == "north_miami_beach_optical" && in.CoverageType == "routine_vision":
 		identities = []CheckedProvider{miriamBachProvider}
 	}

@@ -96,6 +96,74 @@ func TestSpringHillMedicalRetainsPartialFailuresAndConflicts(t *testing.T) {
 	}
 }
 
+func TestSweetwaterVisionChecksThreeDoctors(t *testing.T) {
+	for _, failFarnan := range []bool{false, true} {
+		t.Run(fmt.Sprintf("failFarnan=%t", failFarnan), func(t *testing.T) {
+			var mu sync.Mutex
+			requests := map[string]Request{}
+			allStarted := make(chan struct{})
+			s := testService(t, func(w http.ResponseWriter, r *http.Request) {
+				var request Request
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+					t.Error(err)
+					return
+				}
+				mu.Lock()
+				requests[request.Provider.NPI] = request
+				if len(requests) == 3 {
+					close(allStarted)
+				}
+				mu.Unlock()
+				select {
+				case <-allStarted:
+				case <-r.Context().Done():
+					return
+				}
+				if failFarnan && request.Provider.NPI == "1568198158" {
+					w.WriteHeader(http.StatusServiceUnavailable)
+					return
+				}
+				fmt.Fprint(w, fixture(`[{"code":"1","serviceTypeCodes":["30"]},{"code":"B","serviceTypeCodes":["AL"],"benefitAmount":"20"},{"code":"B","serviceTypeCodes":["98"],"benefitAmount":"35"}]`, ""))
+			})
+			s.providers = nil
+			in := input()
+			in.Plan, in.CoverageType = "Davis Vision", "routine_vision"
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			got, err := s.Check(ctx, "sweetwater", in)
+			if err != nil || len(got.ProviderResults) != 3 {
+				t.Fatalf("missing optical checks: %+v err=%v", got, err)
+			}
+			if failFarnan {
+				if got.Status != "review" || got.ReviewReason != "provider_results_need_review" || got.MatchedPatient != nil || got.ProviderResults[1].Status != "unknown" {
+					t.Fatalf("unsafe partial result: %+v", got)
+				}
+			} else if got.Status != "active" || got.MatchedPatient == nil {
+				t.Fatalf("missing consensus: %+v", got)
+			}
+			want := []CheckedProvider{
+				{ProfileID: "1996", Name: "Dr. Maria Casas", FirstName: "Maria", LastName: "Casas", NPI: "1851438519"},
+				{ProfileID: "2075", Name: "Dr. Kyler Farnan", FirstName: "Kyler", LastName: "Farnan", NPI: "1568198158"},
+				{ProfileID: "1993", Name: "Dr. Gisselle Calero", FirstName: "Gisselle", LastName: "Calero", NPI: "1619592607"},
+			}
+			for i, provider := range want {
+				child := got.ProviderResults[i]
+				request := requests[provider.NPI]
+				if child.Provider == nil || *child.Provider != provider || request.Provider.FirstName != provider.FirstName || request.Provider.LastName != provider.LastName || request.Provider.OrganizationName != "" || request.Payer != "00157" {
+					t.Fatalf("wrong optical provider/request: %+v %+v", child.Provider, request)
+				}
+				if failFarnan && i == 1 {
+					continue
+				}
+				var raw map[string]any
+				if child.Status != "active" || json.Unmarshal(child.ProviderResponse, &raw) != nil || len(raw["benefitsInformation"].([]any)) != 2 {
+					t.Fatalf("optical benefit evidence missing: %+v", child)
+				}
+			}
+		})
+	}
+}
+
 func TestSpringHillVisionUsesOtero(t *testing.T) {
 	calls := 0
 	s := testService(t, func(w http.ResponseWriter, r *http.Request) {
