@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.1.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.5...v5.1.0) (2026-09-24)
+
+
+### Features
+
+* **eligibility:** check office providers and return visit-specific benefits ([#187](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/187)) ([ca9247a](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/ca9247a4c7ebe99e2ceb6d8246927f3dbb7b3406))
+
 ## [5.0.5](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.0.4...v5.0.5) (2026-09-21)
 
 
