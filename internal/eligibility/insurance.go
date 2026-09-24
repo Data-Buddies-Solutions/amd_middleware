@@ -55,6 +55,10 @@ func ResolveInsurance(result Result, office *domain.OfficeConfig, input CheckInp
 	unmapped := false
 	for _, plan := range out.Plans {
 		decision := domain.DecideEligibilityInsurance(plan, coverage, office, input.DOB)
+		if decision.Outcome == "needs_staff_task" && decision.Participation == "unknown" {
+			out.Status, out.Decision = "resolved", &decision
+			return out
+		}
 		if decision.Participation == "unknown" || decision.SelfPay {
 			unmapped = true
 			continue

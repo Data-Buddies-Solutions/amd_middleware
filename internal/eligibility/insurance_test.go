@@ -97,3 +97,19 @@ func TestDocumentedPlanDescriptions(t *testing.T) {
 		})
 	}
 }
+
+func TestKnownStaffRequiredPlansDoNotUseUnmappedFallback(t *testing.T) {
+	for _, tc := range []struct{ office, coverage, plan string }{
+		{"spring_hill", "routine_vision", "CarePlus Medicare Routine Vision"},
+		{"spring_hill", "medical", "SouthBay Medical Center"},
+		{"hollywood", "medical", "SouthBay Medical Center"},
+	} {
+		t.Run(tc.office+tc.plan, func(t *testing.T) {
+			office, _ := domain.LookupOfficeByID(tc.office)
+			got := ResolveInsurance(planResult(tc.plan), office, CheckInput{CoverageType: tc.coverage, DOB: "01/02/1980"})
+			if got.Status != "resolved" || got.Decision == nil || got.Decision.Outcome != "needs_staff_task" || got.Decision.Participation != "unknown" {
+				t.Fatalf("staff decision lost: %+v", got)
+			}
+		})
+	}
+}
