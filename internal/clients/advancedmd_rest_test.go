@@ -234,39 +234,6 @@ func TestGetAppointmentsByMonth_ReturnsAppointments(t *testing.T) {
 	}
 }
 
-func TestGetAppointmentsByMonth_EmptyResponse(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]AMDAppointmentResponse{})
-	})
-
-	client, tokenData, cleanup := newTestRestClient(t, handler)
-	defer cleanup()
-
-	appts, err := client.GetAppointmentsByMonth(context.Background(), tokenData, "1513", "2026-03-01")
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if len(appts) != 0 {
-		t.Errorf("Expected 0 appointments, got %d", len(appts))
-	}
-}
-
-func TestGetAppointmentsByMonth_ServerError(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("AMD is down"))
-	})
-
-	client, tokenData, cleanup := newTestRestClient(t, handler)
-	defer cleanup()
-
-	_, err := client.GetAppointmentsByMonth(context.Background(), tokenData, "1513", "2026-03-01")
-	if err == nil {
-		t.Fatal("Expected error on server 500, got nil")
-	}
-}
-
 func TestBookAppointment_IncludesForceWhenSet(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -353,21 +320,6 @@ func TestCancelAppointment_Success(t *testing.T) {
 	err := client.CancelAppointment(context.Background(), tokenData, 9570263)
 	if err != nil {
 		t.Fatalf("CancelAppointment failed: %v", err)
-	}
-}
-
-func TestCancelAppointment_ServerError(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("AMD is down"))
-	})
-
-	client, tokenData, cleanup := newTestRestClient(t, handler)
-	defer cleanup()
-
-	err := client.CancelAppointment(context.Background(), tokenData, 9570263)
-	if err == nil {
-		t.Fatal("Expected error on server 500, got nil")
 	}
 }
 

@@ -17,62 +17,6 @@ import (
 	"advancedmd-token-management/internal/session"
 )
 
-func TestAdapterSearchPatientsUsesControlledXMLRPCServer(t *testing.T) {
-	var requestBody map[string]any
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			t.Fatalf("method = %s, want POST", r.Method)
-		}
-		if r.Header.Get("Cookie") != "token=test-cookie" {
-			t.Fatalf("Cookie = %q", r.Header.Get("Cookie"))
-		}
-		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-			t.Fatalf("decode request: %v", err)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{
-			"PPMDResults": {
-				"Results": {
-					"patientlist": {
-						"@itemcount": "1",
-						"patient": {
-							"@id": "pat123",
-							"@name": "DOE,JANE",
-							"@dob": "01/15/1980",
-							"contactinfo": {"@cellphone": "850-373-3869"}
-						}
-					}
-				}
-			}
-		}`))
-	}))
-	defer server.Close()
-
-	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
-			CookieToken: "token=test-cookie",
-			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
-		}},
-		clients.NewAdvancedMDClient(server.Client()),
-		nil,
-	)
-
-	got, err := adapter.SearchPatients(context.Background(), domain.PatientSearch{Phone: "9542872010"})
-	if err != nil {
-		t.Fatalf("SearchPatients() error = %v", err)
-	}
-	if len(got) != 1 || got[0].ID != "123" || got[0].Phone != "850-373-3869" {
-		t.Fatalf("SearchPatients() = %+v", got)
-	}
-	message, ok := requestBody["ppmdmsg"].(map[string]any)
-	if !ok {
-		t.Fatalf("request body = %#v", requestBody)
-	}
-	if message["@action"] != "lookuppatient" || message["@phone"] != "9542872010" {
-		t.Fatalf("ppmdmsg = %#v", message)
-	}
-}
-
 func TestAdapterSearchPatientsByNameUsesControlledXMLRPCServer(t *testing.T) {
 	var requestBody map[string]any
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

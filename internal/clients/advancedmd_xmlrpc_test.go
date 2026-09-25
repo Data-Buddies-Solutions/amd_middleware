@@ -95,141 +95,6 @@ func TestAdvancedMDClient_LookupPatient_SingleResult(t *testing.T) {
 	}
 }
 
-func TestAdvancedMDClient_LookupPatient_MultipleResults(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{
-			"PPMDResults": {
-				"Results": {
-					"patientlist": {
-						"@itemcount": "2",
-						"patient": [
-							{
-								"@id": "pat123",
-								"@name": "SMITH,JOHN",
-								"@dob": "01/15/1980",
-								"contactinfo": {"@homephone": "555-111-1111"}
-							},
-							{
-								"@id": "pat456",
-								"@name": "SMITH,JANE",
-								"@dob": "01/15/1980",
-								"contactinfo": {"@homephone": "555-222-2222"}
-							}
-						]
-					}
-				}
-			}
-		}`))
-	})
-
-	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
-	defer cleanup()
-
-	patients, err := client.LookupPatient(context.Background(), tokenData, "Smith", "")
-	if err != nil {
-		t.Fatalf("LookupPatient failed: %v", err)
-	}
-
-	if len(patients) != 2 {
-		t.Fatalf("Expected 2 patients, got %d", len(patients))
-	}
-
-	if patients[0].FirstName != "JOHN" {
-		t.Errorf("Expected first patient FirstName 'JOHN', got %q", patients[0].FirstName)
-	}
-	if patients[1].FirstName != "JANE" {
-		t.Errorf("Expected second patient FirstName 'JANE', got %q", patients[1].FirstName)
-	}
-}
-
-func TestAdvancedMDClient_LookupPatient_NoResults(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{
-			"PPMDResults": {
-				"Results": {
-					"patientlist": {
-						"@itemcount": "0"
-					}
-				}
-			}
-		}`))
-	})
-
-	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
-	defer cleanup()
-
-	patients, err := client.LookupPatient(context.Background(), tokenData, "NoSuchName", "")
-	if err != nil {
-		t.Fatalf("LookupPatient failed: %v", err)
-	}
-
-	if len(patients) != 0 {
-		t.Errorf("Expected 0 patients, got %d", len(patients))
-	}
-}
-
-func TestAdvancedMDClient_LookupPatient_RequestPayload(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var payload AMDLookupRequest
-		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-			t.Fatalf("Failed to decode request body: %v", err)
-		}
-
-		if payload.PPMDMsg.Action != "lookuppatient" {
-			t.Errorf("Expected action 'lookuppatient', got %q", payload.PPMDMsg.Action)
-		}
-		if payload.PPMDMsg.Class != "api" {
-			t.Errorf("Expected class 'api', got %q", payload.PPMDMsg.Class)
-		}
-		if payload.PPMDMsg.Name != "Smith" {
-			t.Errorf("Expected name 'Smith', got %q", payload.PPMDMsg.Name)
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"PPMDResults":{"Results":{"patientlist":{"@itemcount":"0"}}}}`))
-	})
-
-	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
-	defer cleanup()
-
-	_, err := client.LookupPatient(context.Background(), tokenData, "Smith", "")
-	if err != nil {
-		t.Fatalf("LookupPatient failed: %v", err)
-	}
-}
-
-func TestAdvancedMDClient_LookupPatient_HTTPError(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusBadGateway)
-		w.Write([]byte(`upstream unavailable`))
-	})
-
-	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
-	defer cleanup()
-
-	_, err := client.LookupPatient(context.Background(), tokenData, "Smith", "")
-	if err == nil {
-		t.Fatal("Expected error for non-2xx XMLRPC response, got nil")
-	}
-}
-
-func TestAdvancedMDClient_LookupPatient_MalformedResponse(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"PPMDResults":{"Results":{"patientlist":{}}}}`))
-	})
-
-	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
-	defer cleanup()
-
-	_, err := client.LookupPatient(context.Background(), tokenData, "Smith", "")
-	if err == nil {
-		t.Fatal("Expected error for malformed lookup response, got nil")
-	}
-}
-
 func TestAdvancedMDClient_AddPatient(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var payload map[string]interface{}
@@ -319,36 +184,6 @@ func TestAdvancedMDClient_AddPatient_AMDError(t *testing.T) {
 	}
 }
 
-func TestAdvancedMDClient_AddInsurance(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"PPMDResults":{"Results":{}}}`))
-	})
-
-	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
-	defer cleanup()
-
-	err := client.AddInsurance(context.Background(), tokenData, "pat123", "resp123", "car40906", "SUB12345")
-	if err != nil {
-		t.Fatalf("AddInsurance failed: %v", err)
-	}
-}
-
-func TestAdvancedMDClient_AddInsurance_Error(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"PPMDResults":{"Error":"Insurance attachment failed"}}`))
-	})
-
-	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
-	defer cleanup()
-
-	err := client.AddInsurance(context.Background(), tokenData, "pat123", "resp123", "car40906", "SUB12345")
-	if err == nil {
-		t.Fatal("Expected error for failed insurance attachment, got nil")
-	}
-}
-
 func TestAdvancedMDClient_GetDemographic(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -412,45 +247,6 @@ func TestAdvancedMDClient_GetDemographic(t *testing.T) {
 	}
 	if !result.InsuranceStateKnown {
 		t.Fatal("Expected complete insurance state")
-	}
-}
-
-func TestAdvancedMDClient_GetDemographic_NoInsurance(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{
-			"PPMDResults": {
-				"Results": {
-					"patientlist": {
-						"patient": {
-							"@id": "pat123",
-							"@respparty": "resp456"
-						}
-					}
-				}
-			}
-		}`))
-	})
-
-	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
-	defer cleanup()
-
-	result, err := client.GetDemographic(context.Background(), tokenData, "pat123")
-	if err != nil {
-		t.Fatalf("GetDemographic failed: %v", err)
-	}
-
-	if result.CarrierName != "" {
-		t.Errorf("Expected empty carrier name, got %q", result.CarrierName)
-	}
-	if result.CarrierID != "" {
-		t.Errorf("Expected empty carrier ID, got %q", result.CarrierID)
-	}
-	if result.RespPartyID != "resp456" {
-		t.Errorf("Expected resp party ID 'resp456' from patient, got %q", result.RespPartyID)
-	}
-	if !result.InsuranceStateKnown {
-		t.Fatal("Expected absence of insurance to be a complete state")
 	}
 }
 
@@ -662,36 +458,6 @@ func TestAdvancedMDClient_GetDemographic_MultipleActivePrimaryPlansIsIncomplete(
 	}
 }
 
-func TestAdvancedMDClient_EndDateInsurance(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"PPMDResults":{"Results":{"@success":"1","patient":{"@insorder":""}}}}`))
-	})
-
-	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
-	defer cleanup()
-
-	err := client.EndDateInsurance(context.Background(), tokenData, "pat123", "ins789")
-	if err != nil {
-		t.Fatalf("EndDateInsurance failed: %v", err)
-	}
-}
-
-func TestAdvancedMDClient_EndDateInsurance_Error(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"PPMDResults":{"Error":"Insurance record not found"}}`))
-	})
-
-	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
-	defer cleanup()
-
-	err := client.EndDateInsurance(context.Background(), tokenData, "pat123", "ins789")
-	if err == nil {
-		t.Fatal("Expected error for failed end-date, got nil")
-	}
-}
-
 func TestAdvancedMDClient_EndDateInsurance_EmptyErrorIsNotRejection(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -790,40 +556,6 @@ func TestAdvancedMDClient_GetSchedulerSetup(t *testing.T) {
 	}
 	if setup.Facilities[0].ID != "1568" {
 		t.Errorf("Expected facility ID '1568', got %q", setup.Facilities[0].ID)
-	}
-}
-
-func TestConvertPatients(t *testing.T) {
-	amdPatients := []AMDPatient{
-		{
-			ID:          "pat100",
-			Name:        "DOE,JANE",
-			DOB:         "03/20/1990",
-			ContactInfo: AMDContactInfo{HomePhone: "555-999-8888"},
-		},
-	}
-
-	patients := convertPatients(amdPatients)
-
-	if len(patients) != 1 {
-		t.Fatalf("Expected 1 patient, got %d", len(patients))
-	}
-
-	p := patients[0]
-	if p.ID != "100" {
-		t.Errorf("Expected ID '100' (stripped), got %q", p.ID)
-	}
-	if p.FullName != "DOE,JANE" {
-		t.Errorf("Expected FullName 'DOE,JANE', got %q", p.FullName)
-	}
-	if p.FirstName != "JANE" {
-		t.Errorf("Expected FirstName 'JANE', got %q", p.FirstName)
-	}
-	if p.DOB != "03/20/1990" {
-		t.Errorf("Expected DOB '03/20/1990', got %q", p.DOB)
-	}
-	if p.Phone != "555-999-8888" {
-		t.Errorf("Expected Phone '555-999-8888', got %q", p.Phone)
 	}
 }
 

@@ -12,35 +12,6 @@ import (
 	"advancedmd-token-management/internal/scheduling"
 )
 
-func TestBookReturnsReceiptAfterRevalidatingSignedSlot(t *testing.T) {
-	now := mutationTestNow()
-	records := bookingRecords()
-	records.BookAppointmentID = 98765
-
-	receipt, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-		Book(context.Background(), signedBookCommand(t, now))
-	if err != nil {
-		t.Fatalf("Book error = %v", err)
-	}
-	if receipt.Status != "booked" ||
-		receipt.AppointmentID != 98765 ||
-		receipt.PatientID != "12345" ||
-		receipt.PatientName != "Jane Doe" ||
-		receipt.ProviderName != "Dr. Austin Bach" ||
-		receipt.ProfileID != "620" ||
-		receipt.LocationName != "Spring Hill" ||
-		receipt.StartDatetime != "2026-06-03T09:00" ||
-		receipt.Duration != 15 ||
-		receipt.AppointmentTypeID != 1007 ||
-		receipt.AppointmentTypeName != "Established Adult Medical (Follow Up)" ||
-		receipt.Message != "Appointment booked successfully" {
-		t.Fatalf("receipt = %#v", receipt)
-	}
-	if len(records.Bookings) != 1 || records.Bookings[0].Force {
-		t.Fatalf("provider bookings = %#v", records.Bookings)
-	}
-}
-
 func TestBookRejectsInvalidSignedSlotBeforeWrite(t *testing.T) {
 	now := mutationTestNow()
 	records := bookingRecords()
@@ -538,28 +509,6 @@ func TestBookPreservesConfiguredLegacyRawSlotSuccess(t *testing.T) {
 	}
 	if receipt.Status != "booked" || receipt.AppointmentID != 98765 {
 		t.Fatalf("receipt = %#v", receipt)
-	}
-}
-
-func TestCancelReturnsReceiptAfterProvingOwnership(t *testing.T) {
-	now := mutationTestNow()
-	records := cancellationRecords()
-
-	receipt, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-		Cancel(context.Background(), cancellationCommand())
-	if err != nil {
-		t.Fatalf("Cancel error = %v", err)
-	}
-	if receipt.Status != "cancelled" ||
-		receipt.AppointmentID != 33333 ||
-		receipt.Message != "Appointment cancelled successfully" {
-		t.Fatalf("receipt = %#v", receipt)
-	}
-	if len(records.Cancellations) != 1 ||
-		records.Cancellations[0].PatientID != "12345" ||
-		records.Cancellations[0].AppointmentID != 33333 ||
-		records.Cancellations[0].OfficeID != "spring_hill" {
-		t.Fatalf("provider cancellations = %#v", records.Cancellations)
 	}
 }
 

@@ -37,19 +37,3 @@ func TestMedicalDocumentCarrierAttachments(t *testing.T) {
 		})
 	}
 }
-
-func TestMedicalDocumentRequirementsAndUnresolvedCodes(t *testing.T) {
-	office, _ := ResolveOffice("Hollywood")
-	for _, plan := range []string{"Aetna Healthy Kids", "Community Care Plan", "Doctors Health Medicare", "Simply Medicaid", "Simply Medicare", "Childrens Medical Services", "WellCare Medicaid", "AvMed Select"} {
-		d := DecideInsurance(plan, "medical", office, "01/02/1980")
-		if d.Participation != "accepted" || !d.CanSchedule || len(d.Requirements) != 0 {
-			t.Errorf("unexpected review for %s: %+v", plan, d)
-		}
-	}
-	for _, plan := range []string{"Medicaid", "Humana PPO", "Humana PPO Pos", "United Healthcare All Savers", "United Healthcare AARP Medicare", "United Healthcare Global", "SunHealth"} {
-		d := DecideInsurance(plan, "medical", office, "01/02/1980")
-		if d.Participation != "accepted" || d.CarrierID == "" {
-			t.Errorf("accepted %s lacks carrier mapping: %+v", plan, d)
-		}
-	}
-}

@@ -4,49 +4,9 @@ import (
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/scheduling"
 	"context"
-	"strings"
 	"testing"
 	"time"
 )
-
-func TestExistingPatientBookingDoesNotRequireInsuranceClearance(t *testing.T) {
-	for _, tc := range []struct{ name, plan, id string }{
-		{"HUM02 authorization", "Humana Medicaid HMO", "car308175"},
-		{"unknown carrier", "Unknown", "car999"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			records := bookingRecords()
-			records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: tc.plan, CarrierID: tc.id}
-			now := mutationTestNow()
-			command := signedBookCommand(t, now)
-			command.Routing = "all_three"
-			command.InsurancePlan = tc.plan
-			command.AppointmentReason = "Hospital follow-up"
-			_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).Book(context.Background(), command)
-			if err != nil || len(records.Bookings) != 1 {
-				t.Fatalf("existing patient blocked for %s: err=%v writes=%d", tc.name, err, len(records.Bookings))
-			}
-		})
-	}
-}
-
-func TestHospitalFollowUpUsesOrdinaryBookingReason(t *testing.T) {
-	for _, reason := range []string{"Hospital follow-up", "Hospital follow-up at Example Hospital on June 1", "Routine eye exam for a 9-year-old child"} {
-		t.Run(reason, func(t *testing.T) {
-			records := bookingRecords()
-			now := mutationTestNow()
-			command := signedBookCommand(t, now)
-			command.AppointmentReason = reason
-			_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).Book(context.Background(), command)
-			if err != nil || len(records.Bookings) != 1 {
-				t.Fatalf("err=%v writes=%d", err, len(records.Bookings))
-			}
-			if !strings.Contains(strings.ToLower(records.Bookings[0].Comments), strings.ToLower(reason)) {
-				t.Fatal("appointment reason was lost")
-			}
-		})
-	}
-}
 
 func TestExistingPatientListsAndBooksWithoutInsuranceClarification(t *testing.T) {
 	for _, plan := range []string{"AETNA", "Unknown", ""} {

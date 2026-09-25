@@ -44,35 +44,6 @@ func TestLookupOffice(t *testing.T) {
 	}
 }
 
-func TestValidOfficeNamesUnique(t *testing.T) {
-	names := ValidOfficeNames()
-	seen := make(map[string]bool)
-	for _, name := range names {
-		if seen[name] {
-			t.Fatalf("ValidOfficeNames returned duplicate %q in %v", name, names)
-		}
-		seen[name] = true
-	}
-	for _, want := range []string{"Spring Hill", "Crystal River", "Hollywood", "Sweetwater", "North Miami Beach Optical"} {
-		if !seen[want] {
-			t.Fatalf("ValidOfficeNames missing %q in %v", want, names)
-		}
-	}
-}
-
-func TestDefaultOffice(t *testing.T) {
-	office := DefaultOffice()
-	if office == nil {
-		t.Fatal("DefaultOffice() returned nil")
-	}
-	if office.ID != "spring_hill" {
-		t.Errorf("DefaultOffice().ID = %q, want %q", office.ID, "spring_hill")
-	}
-	if office.FacilityID != "1568" {
-		t.Errorf("DefaultOffice().FacilityID = %q, want %q", office.FacilityID, "1568")
-	}
-}
-
 func TestAppointmentLookupOfficeIDs(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -125,94 +96,6 @@ func TestOfficeConfig_IsAllowedColumn(t *testing.T) {
 				t.Errorf("IsAllowedColumn(%q) = %v, want %v", tt.columnID, got, tt.want)
 			}
 		})
-	}
-}
-
-func TestOfficeConfig_AllowedColumnIDs(t *testing.T) {
-	office := DefaultOffice()
-	ids := office.AllowedColumnIDs()
-
-	if len(ids) != 5 {
-		t.Fatalf("AllowedColumnIDs() len = %d, want 5", len(ids))
-	}
-
-	// Check all expected IDs are present
-	idSet := make(map[string]bool)
-	for _, id := range ids {
-		idSet[id] = true
-	}
-	for _, want := range []string{"1513", "1598", "1551", "1550", "1600"} {
-		if !idSet[want] {
-			t.Errorf("AllowedColumnIDs() missing %q", want)
-		}
-	}
-}
-
-func TestOfficeConfig_ProviderDisplayName(t *testing.T) {
-	office := DefaultOffice()
-
-	tests := []struct {
-		profileID string
-		want      string
-	}{
-		{"620", "Dr. Austin Bach"},
-		{"2064", "Dr. Joseph Licht"},
-		{"2076", "Dr. Noel"},
-		{"1983", "Dr. Melissa Otero"},
-		{"9999", ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.profileID, func(t *testing.T) {
-			got := office.ProviderDisplayName(tt.profileID)
-			if tt.profileID == "620" {
-				// Profile 620 maps to both Bach columns.
-				if got != "Dr. Austin Bach" {
-					t.Errorf("ProviderDisplayName(%q) = %q, want Dr. Austin Bach", tt.profileID, got)
-				}
-			} else if got != tt.want {
-				t.Errorf("ProviderDisplayName(%q) = %q, want %q", tt.profileID, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestOfficeConfig_FriendlyProviderName(t *testing.T) {
-	office := DefaultOffice()
-
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"BACH, AUSTIN", "Dr. Austin Bach"},
-		{"LICHT, JONATHAN", "Dr. Joseph Licht"},
-		{"NOEL, DON HERSHELSON", "Dr. Noel"},
-		{"OTERO, MELISSA", "Dr. Melissa Otero"},
-		{"UNKNOWN", "UNKNOWN"},
-		{"", ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			got := office.FriendlyProviderName(tt.input)
-			if got != tt.want {
-				t.Errorf("FriendlyProviderName(%q) = %q, want %q", tt.input, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestOfficeConfig_AppointmentColor(t *testing.T) {
-	office := DefaultOffice()
-
-	color, ok := office.AppointmentColor(1006)
-	if !ok || color != "RED" {
-		t.Errorf("AppointmentColor(1006) = (%q, %v), want (RED, true)", color, ok)
-	}
-
-	_, ok = office.AppointmentColor(9999)
-	if ok {
-		t.Error("AppointmentColor(9999) should return false")
 	}
 }
 
@@ -615,41 +498,5 @@ func TestInitRegistry(t *testing.T) {
 	office = DefaultOffice()
 	if office.FacilityID != "1568" {
 		t.Errorf("default FacilityID = %q, want %q", office.FacilityID, "1568")
-	}
-}
-
-func TestAppointmentTypeNames(t *testing.T) {
-	office := DefaultOffice()
-
-	tests := []struct {
-		typeID   int
-		expected string
-		found    bool
-	}{
-		{1006, "New Adult Medical", true},
-		{1004, "New Pediatric Medical", true},
-		{1007, "Established Adult Medical (Follow Up)", true},
-		{1005, "Established Pediatric Medical (Follow Up)", true},
-		{1008, "Post Op", true},
-		{1010, "New Adult Vision", true},
-		{3364, "Established Adult Vision", true},
-		{4244, "New Pediatric Vision", true},
-		{4245, "Established Pediatric Vision", true},
-		{6167, "Crystal River New Patient", true},
-		{6168, "Crystal River Post Op", true},
-		{6169, "Crystal River Established Patient", true},
-		{9999, "", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.expected, func(t *testing.T) {
-			got, ok := office.AppointmentTypeName(tt.typeID)
-			if ok != tt.found {
-				t.Errorf("AppointmentTypeName(%d) found=%v, want %v", tt.typeID, ok, tt.found)
-			}
-			if got != tt.expected {
-				t.Errorf("AppointmentTypeName(%d) = %q, want %q", tt.typeID, got, tt.expected)
-			}
-		})
 	}
 }

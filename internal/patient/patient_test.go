@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"log"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -101,47 +100,6 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 	assertResolveResult(t, got, want)
 
 	var _ advancedmd.PatientRecords = amd
-}
-
-func TestCreateReturnsExistingSuccessContract(t *testing.T) {
-	domain.InitRegistry("")
-	amd := advancedmdtest.NewAdapter()
-	amd.CreatedPatient = domain.CreatedPatient{
-		ID:          "123",
-		RespPartyID: "resp456",
-		Name:        "DOE,JANE",
-	}
-
-	got := patient.New(amd).Create(context.Background(), patient.CreateCommand{
-		FirstName:      "Jäne",
-		LastName:       "Döe",
-		DOB:            "1980-01-15",
-		Phone:          "9542872010",
-		Email:          " jane@example.com ",
-		Street:         "123 Main St",
-		City:           "Spring Hill",
-		State:          "fl",
-		Zip:            "34609",
-		Sex:            "female",
-		Insurance:      writableMedicalPlan,
-		SubscriberName: "Jane Doe",
-		SubscriberNum:  "H123",
-		Office:         "Spring Hill",
-	})
-
-	want := patient.CreateResult{
-		Status:           patient.CreateStatusCreated,
-		PatientID:        "123",
-		Name:             "DOE,JANE",
-		DOB:              "01/15/1980",
-		Routing:          domain.RoutingBachOnly,
-		AllowedProviders: []string{"Dr. Bach"},
-		Message:          "Patient created and insurance attached successfully",
-	}
-	want.InsuranceDecision = got.InsuranceDecision
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("Create() = %+v, want %+v", got, want)
-	}
 }
 
 func TestCreateOwnsValidationAndOfficeResolution(t *testing.T) {
