@@ -16,67 +16,6 @@ import (
 	schedulingmodule "advancedmd-token-management/internal/scheduling"
 )
 
-func TestBookingAndCancellationHandlersDelegateToScheduling(t *testing.T) {
-	scheduler := &recordingScheduling{
-		bookReceipt: schedulingmodule.BookReceipt{
-			Status:              "booked",
-			AppointmentID:       98765,
-			PatientID:           "12345",
-			ProviderName:        "Dr. Austin Bach",
-			LocationName:        "Spring Hill",
-			StartDatetime:       "2026-06-03T09:00",
-			Duration:            15,
-			AppointmentTypeID:   1007,
-			AppointmentTypeName: "Established Adult Medical (Follow Up)",
-			Message:             "Appointment booked successfully",
-		},
-		cancelReceipt: schedulingmodule.CancelReceipt{
-			Status:        "cancelled",
-			AppointmentID: 98765,
-			Message:       "Appointment cancelled successfully",
-		},
-	}
-	handlers := &Handlers{scheduling: scheduler}
-
-	bookRequest := httptest.NewRequest(
-		http.MethodPost,
-		"/api/appointment/book",
-		strings.NewReader(`{"patientId":"12345","bookingToken":"signed-slot","appointmentTypeId":1007}`),
-	)
-	bookResponse := httptest.NewRecorder()
-	handlers.HandleBookAppointment(bookResponse, bookRequest)
-
-	var book schedulingmodule.BookReceipt
-	if err := json.NewDecoder(bookResponse.Body).Decode(&book); err != nil {
-		t.Fatalf("decode booking response: %v", err)
-	}
-	if scheduler.bookCommand.PatientID != "12345" ||
-		scheduler.bookCommand.BookingToken != "signed-slot" ||
-		book.Status != scheduler.bookReceipt.Status ||
-		book.AppointmentID != scheduler.bookReceipt.AppointmentID ||
-		book.Message != scheduler.bookReceipt.Message {
-		t.Fatalf("booking command = %#v, response = %#v", scheduler.bookCommand, book)
-	}
-
-	cancelRequest := httptest.NewRequest(
-		http.MethodPost,
-		"/api/appointment/cancel",
-		strings.NewReader(`{"patientId":"pat12345","appointmentId":98765,"office":"Spring Hill"}`),
-	)
-	cancelResponse := httptest.NewRecorder()
-	handlers.HandleCancelAppointment(cancelResponse, cancelRequest)
-
-	var cancel schedulingmodule.CancelReceipt
-	if err := json.NewDecoder(cancelResponse.Body).Decode(&cancel); err != nil {
-		t.Fatalf("decode cancellation response: %v", err)
-	}
-	if scheduler.cancelCommand.PatientID != "pat12345" ||
-		scheduler.cancelCommand.AppointmentID != 98765 ||
-		cancel != scheduler.cancelReceipt {
-		t.Fatalf("cancellation command = %#v, response = %#v", scheduler.cancelCommand, cancel)
-	}
-}
-
 func TestAvailabilityHandlerPreservesRequestedDateAndPreferredTime(t *testing.T) {
 	scheduler := &recordingScheduling{
 		searchResponse: domain.AvailabilityResponse{

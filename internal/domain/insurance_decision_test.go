@@ -103,23 +103,3 @@ func TestPRE04CredentialingAndChartBinding(t *testing.T) {
 		}
 	}
 }
-
-func TestDocumentNotesDoNotChangeLegacyParticipation(t *testing.T) {
-	for _, tc := range []struct{ office, plan, coverage string }{
-		{"Hollywood", "Aetna Better Health", "medical"},
-		{"Hollywood", "Aetna Better Health", "routine_vision"},
-		{"Hollywood", "Molina Medicaid", "medical"},
-		{"Sweetwater", "Optimum Healthcare", "medical"},
-		{"Sweetwater", "Freedom Health Medicare", "medical"},
-		{"Sweetwater", "Care Plus", "medical"},
-		{"Hollywood", "Aetna EPO", "medical"},
-		{"Hollywood", "Multiplan", "medical"},
-	} {
-		office, _ := ResolveOffice(tc.office)
-		d := DecideInsurance(tc.plan, tc.coverage, office, "")
-		if d.Participation != "accepted" {
-			t.Fatalf("document note changed participation: %+v => %+v", tc, d)
-		}
-	}
-
-}

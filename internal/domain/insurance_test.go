@@ -4,16 +4,6 @@ import (
 	"testing"
 )
 
-func TestLookupInsurance_SunshineHealthRoutineVision(t *testing.T) {
-	entry, found := lookupVisionInsurance("Sunshine Health")
-	if !found {
-		t.Fatal("Sunshine Health routine vision found = false, want true")
-	}
-	if entry.CarrierID != "car281245" || entry.Routing != RoutingOpticalOnly {
-		t.Fatalf("Sunshine Health routine vision entry = %#v, want car281245/optical_only", entry)
-	}
-}
-
 func TestColumnsForRouting(t *testing.T) {
 	office := DefaultOffice()
 

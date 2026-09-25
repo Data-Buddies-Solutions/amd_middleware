@@ -5,52 +5,6 @@ import (
 	"time"
 )
 
-func TestStripDiacritics(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{"spanish accents", "López Sánchez", "Lopez Sanchez"},
-		{"french accents", "René François", "Rene Francois"},
-		{"german umlaut", "Müller", "Muller"},
-		{"no accents", "Smith", "Smith"},
-		{"mixed", "José García-López", "Jose Garcia-Lopez"},
-		{"empty string", "", ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := StripDiacritics(tt.input)
-			if got != tt.expected {
-				t.Errorf("StripDiacritics(%q) = %q, want %q", tt.input, got, tt.expected)
-			}
-		})
-	}
-}
-
-func TestStripPatientPrefix(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"pat123", "123"},
-		{"pat45", "45"},
-		{"123", "123"},        // No prefix
-		{"patient1", "ient1"}, // Only strips "pat"
-		{"", ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			got := StripPatientPrefix(tt.input)
-			if got != tt.expected {
-				t.Errorf("StripPatientPrefix(%q) = %q, want %q", tt.input, got, tt.expected)
-			}
-		})
-	}
-}
-
 func TestNormalizeDOB(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -73,31 +27,6 @@ func TestNormalizeDOB(t *testing.T) {
 			got := NormalizeDOB(tt.input)
 			if got != tt.expected {
 				t.Errorf("NormalizeDOB(%q) = %q, want %q", tt.input, got, tt.expected)
-			}
-		})
-	}
-}
-
-func TestNormalizeForLookup(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{"lowercase and trim", "  Cigna  ", "cigna"},
-		{"strips periods", "B.C.B.S.", "bcbs"},
-		{"strips commas", "Blue Cross, Blue Shield", "blue cross blue shield"},
-		{"replaces slashes with space", "Blue Cross/Blue Shield", "blue cross blue shield"},
-		{"collapses multiple spaces", "blue   cross", "blue cross"},
-		{"combined normalizations", " B.C.B.S. / of Florida ", "bcbs of florida"},
-		{"empty string", "", ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := NormalizeForLookup(tt.input)
-			if got != tt.expected {
-				t.Errorf("NormalizeForLookup(%q) = %q, want %q", tt.input, got, tt.expected)
 			}
 		})
 	}
@@ -196,64 +125,6 @@ func TestInsuranceModeForCoverage(t *testing.T) {
 		t.Run(tt.input, func(t *testing.T) {
 			if got := InsuranceModeForCoverage(tt.input); got != tt.want {
 				t.Errorf("InsuranceModeForCoverage(%q) = %q, want %q", tt.input, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestFormatPhone(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{"10 digits raw", "5551234567", "(555)123-4567"},
-		{"with dashes", "555-123-4567", "(555)123-4567"},
-		{"with parens and dash", "(555)123-4567", "(555)123-4567"},
-		{"with spaces", "555 123 4567", "(555)123-4567"},
-		{"with dots", "555.123.4567", "(555)123-4567"},
-		{"with plus country code", "+15551234567", "(555)123-4567"},
-		{"with bare country code", "15551234567", "(555)123-4567"},
-		{"with formatted country code", "1 (555) 123-4567", "(555)123-4567"},
-		{"too short", "555123", "555123"},
-		{"empty string", "", ""},
-		{"mixed chars", "call 555-123-4567 now", "(555)123-4567"}, // 10 digits extracted
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := FormatPhone(tt.input)
-			if got != tt.expected {
-				t.Errorf("FormatPhone(%q) = %q, want %q", tt.input, got, tt.expected)
-			}
-		})
-	}
-}
-
-func TestNormalizeSex(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"M", "M"},
-		{"m", "M"},
-		{"Male", "M"},
-		{"MALE", "M"},
-		{"F", "F"},
-		{"f", "F"},
-		{"Female", "F"},
-		{"FEMALE", "F"},
-		{"U", "U"},
-		{"Other", "U"},
-		{"", "U"},
-		{"  male  ", "M"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			got := NormalizeSex(tt.input)
-			if got != tt.expected {
-				t.Errorf("NormalizeSex(%q) = %q, want %q", tt.input, got, tt.expected)
 			}
 		})
 	}

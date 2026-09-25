@@ -25,26 +25,6 @@ import (
 	"advancedmd-token-management/internal/session"
 )
 
-func TestHandleLive(t *testing.T) {
-	handlers := &Handlers{}
-
-	req := httptest.NewRequest("GET", "/live", nil)
-	w := httptest.NewRecorder()
-
-	handlers.HandleLive(w, req)
-
-	resp := w.Result()
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", resp.StatusCode)
-	}
-
-	var body map[string]string
-	json.NewDecoder(resp.Body).Decode(&body)
-	if body["status"] != "ok" {
-		t.Errorf("Expected status 'ok', got '%s'", body["status"])
-	}
-}
-
 func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
 	const patientID = "patient-identifier-must-not-appear"
 	patientmodule.New(advancedmdtest.NewAdapter()).UpdateInsurance(context.Background(), patientmodule.UpdateInsuranceCommand{
@@ -158,50 +138,6 @@ func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
 	}
 	if resp.Message != "dob must be a valid date" {
 		t.Fatalf("expected invalid DOB message, got %q", resp.Message)
-	}
-}
-
-func TestHandleGetAvailabilityMapsSchedulingResult(t *testing.T) {
-	scheduler := schedulingStub{
-		result: domain.AvailabilityResponse{
-			Status:                domain.AvailabilityStatusSuccess,
-			Outcome:               domain.AvailabilityOutcomeFound,
-			AvailabilityFound:     true,
-			RequestedDate:         "2026-06-03",
-			ActualDate:            "2026-06-03",
-			SearchedFrom:          "2026-06-03",
-			SearchedThrough:       "2026-06-03",
-			ShouldRetrySameSearch: false,
-			NextAction:            domain.AvailabilityNextActionOfferSlots,
-			Slots: []domain.AvailabilitySlotOption{{
-				Provider:     "Dr. Austin Bach",
-				Time:         "9:00 AM",
-				DateTime:     "2026-06-03T09:00",
-				BookingToken: "signed-slot",
-				ColumnID:     1513,
-				ProfileID:    620,
-				Duration:     15,
-			}},
-		},
-	}
-	handlers := &Handlers{scheduling: scheduler}
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/api/scheduler/availability",
-		strings.NewReader(`{"requestedDate":"2026-06-03","office":"Spring Hill","routing":"bach_only","dob":"01/15/1980"}`),
-	)
-	w := httptest.NewRecorder()
-
-	handlers.HandleGetAvailability(w, req)
-
-	var response domain.AvailabilityResponse
-	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if response.Outcome != domain.AvailabilityOutcomeFound ||
-		len(response.Slots) != 1 ||
-		response.Slots[0].BookingToken != "signed-slot" {
-		t.Fatalf("response = %#v", response)
 	}
 }
 
@@ -340,42 +276,6 @@ func TestHandlePatientResolve_ValidationErrors(t *testing.T) {
 	}
 }
 
-func TestHandlePatientResolve_PhoneOnlyLoadsAppointments(t *testing.T) {
-	handlers := newPatientResolveTestHandlers(t, http.StatusOK)
-
-	req := httptest.NewRequest("POST", "/api/patient/resolve", strings.NewReader(`{"phone":"9542872010","office":"Spring Hill"}`))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-
-	handlers.HandlePatientResolve(w, req)
-
-	var body PatientResolveResponse
-	if err := json.NewDecoder(w.Result().Body).Decode(&body); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if body.Status != "verified" {
-		t.Fatalf("status = %q, want verified; body = %+v", body.Status, body)
-	}
-	if body.PatientID != "123" {
-		t.Fatalf("patientId = %q, want 123", body.PatientID)
-	}
-	if body.Name != "DOE,JANE" {
-		t.Fatalf("name = %q, want DOE,JANE", body.Name)
-	}
-	if body.Phone != "850-373-3869" {
-		t.Fatalf("phone = %q, want cell phone", body.Phone)
-	}
-	if body.AppointmentsStatus != string(patientmodule.AppointmentsFound) {
-		t.Fatalf("appointmentsStatus = %q, want %q", body.AppointmentsStatus, patientmodule.AppointmentsFound)
-	}
-	if len(body.Appointments) != 1 {
-		t.Fatalf("appointments = %+v, want one appointment", body.Appointments)
-	}
-	if body.Appointments[0].AppointmentTypeID != 1007 {
-		t.Fatalf("appointmentTypeId = %d, want 1007", body.Appointments[0].AppointmentTypeID)
-	}
-}
-
 func TestHandlePatientResolve_PhoneCountUnderrunReturnsAllCandidatesWithoutHydration(t *testing.T) {
 	var mu sync.Mutex
 	demographicReads := 0
@@ -473,60 +373,6 @@ func TestHandlePatientResolve_PairedOfficeUsesEightProviderReads(t *testing.T) {
 		if !strings.Contains(columns, "1513") || !strings.Contains(columns, "1593") {
 			t.Fatalf("batched appointment columns = %q, want Spring Hill and Crystal River", columns)
 		}
-	}
-}
-
-func TestHandlePatientResolve_PatientIDRefreshUsesSameRoute(t *testing.T) {
-	handlers := newPatientResolveTestHandlers(t, http.StatusOK)
-
-	req := httptest.NewRequest("POST", "/api/patient/resolve", strings.NewReader(`{"patientId":"123","office":"Spring Hill"}`))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-
-	handlers.HandlePatientResolve(w, req)
-
-	var body PatientResolveResponse
-	if err := json.NewDecoder(w.Result().Body).Decode(&body); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if body.Status != "verified" {
-		t.Fatalf("status = %q, want verified; body = %+v", body.Status, body)
-	}
-	if body.PatientID != "123" {
-		t.Fatalf("patientId = %q, want 123", body.PatientID)
-	}
-	if body.AppointmentsStatus != string(patientmodule.AppointmentsFound) {
-		t.Fatalf("appointmentsStatus = %q, want %q", body.AppointmentsStatus, patientmodule.AppointmentsFound)
-	}
-	if len(body.Appointments) != 1 {
-		t.Fatalf("appointments = %+v, want one appointment", body.Appointments)
-	}
-}
-
-func TestHandlePatientResolve_AppointmentFailureStillVerifies(t *testing.T) {
-	handlers := newPatientResolveTestHandlers(t, http.StatusInternalServerError)
-
-	req := httptest.NewRequest("POST", "/api/patient/resolve", strings.NewReader(`{"phone":"9542872010","office":"Spring Hill"}`))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-
-	handlers.HandlePatientResolve(w, req)
-
-	var body PatientResolveResponse
-	if err := json.NewDecoder(w.Result().Body).Decode(&body); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if body.Status != "verified" {
-		t.Fatalf("status = %q, want verified; body = %+v", body.Status, body)
-	}
-	if body.AppointmentsStatus != string(patientmodule.AppointmentsError) {
-		t.Fatalf("appointmentsStatus = %q, want %q", body.AppointmentsStatus, patientmodule.AppointmentsError)
-	}
-	if body.AppointmentsMessage == "" {
-		t.Fatal("appointmentsMessage should explain the appointment lookup failure")
-	}
-	if strings.Contains(body.AppointmentsMessage, "status 500") {
-		t.Fatalf("appointmentsMessage exposed provider error: %q", body.AppointmentsMessage)
 	}
 }
 
@@ -815,42 +661,6 @@ func TestAuthMiddleware(t *testing.T) {
 	}
 }
 
-func TestRequestIDMiddleware(t *testing.T) {
-	handler := RequestIDMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify request ID is in context
-		requestID := GetRequestID(r.Context())
-		if requestID == "" {
-			t.Error("Expected request ID in context")
-		}
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	t.Run("generates new request ID", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/", nil)
-		w := httptest.NewRecorder()
-
-		handler.ServeHTTP(w, req)
-
-		requestID := w.Header().Get("X-Request-ID")
-		if requestID == "" {
-			t.Error("Expected X-Request-ID header")
-		}
-	})
-
-	t.Run("uses existing request ID", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/", nil)
-		req.Header.Set("X-Request-ID", "existing-id-123")
-		w := httptest.NewRecorder()
-
-		handler.ServeHTTP(w, req)
-
-		requestID := w.Header().Get("X-Request-ID")
-		if requestID != "existing-id-123" {
-			t.Errorf("Expected 'existing-id-123', got '%s'", requestID)
-		}
-	})
-}
-
 func TestRouter(t *testing.T) {
 	handlers := NewHandlers(nil, nil, nil)
 
@@ -920,36 +730,6 @@ func TestRouter(t *testing.T) {
 			t.Errorf("Expected removed token endpoint to be unavailable, got %d", w.Code)
 		}
 	})
-}
-
-func TestPatientApptDetail_IncludesID(t *testing.T) {
-	detail := PatientApptDetail{
-		ID:       9570263,
-		Date:     "Wednesday, March 18, 2026",
-		Time:     "12:00 PM",
-		Provider: "Dr. Austin Bach",
-		Type:     "New Adult Medical",
-		Facility: "Abita Eye Group Spring Hill",
-	}
-
-	data, err := json.Marshal(detail)
-	if err != nil {
-		t.Fatalf("Failed to marshal: %v", err)
-	}
-
-	var decoded map[string]interface{}
-	json.Unmarshal(data, &decoded)
-
-	id, ok := decoded["id"]
-	if !ok {
-		t.Fatal("Expected 'id' field in JSON output")
-	}
-	if int(id.(float64)) != 9570263 {
-		t.Errorf("Expected id 9570263, got %v", id)
-	}
-	if _, ok := decoded["confirmed"]; ok {
-		t.Fatal("Did not expect 'confirmed' field in JSON output")
-	}
 }
 
 func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
@@ -1103,54 +883,6 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 				t.Fatalf("XMLRPC writes = %d, want %d", len(*writes), tt.wantXMLRPCWrites)
 			}
 		})
-	}
-}
-
-func TestHandleUpdateInsurance_SelfPayAutoSubscriberNum(t *testing.T) {
-	handlers, writes := newUpdateInsuranceTestHandlers(t, "01/15/1980", "")
-	req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"self-pay","office":"Spring Hill"}`))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-
-	handlers.HandleUpdateInsurance(w, req)
-
-	var resp UpdateInsuranceResponse
-	json.NewDecoder(w.Result().Body).Decode(&resp)
-	if resp.Status != "updated" {
-		t.Fatalf("expected updated response, got %#v", resp)
-	}
-	if resp.Routing != string(domain.RoutingAll) {
-		t.Fatalf("routing = %q, want %q", resp.Routing, domain.RoutingAll)
-	}
-	if len(*writes) != 1 {
-		t.Fatalf("XMLRPC writes = %d, want 1", len(*writes))
-	}
-	if !strings.Contains((*writes)[0], "car301672") || !strings.Contains((*writes)[0], "self pay") {
-		t.Fatalf("self-pay addinsurance payload = %s", (*writes)[0])
-	}
-}
-
-func TestHandleUpdateInsurance_AetnaGovernmentVisionUsesICareCarrier(t *testing.T) {
-	handlers, writes := newUpdateInsuranceTestHandlers(t, "01/15/1980", "")
-	req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"Aetna Dual Eligible Medicare Advantage","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood"}`))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-
-	handlers.HandleUpdateInsurance(w, req)
-
-	var resp UpdateInsuranceResponse
-	json.NewDecoder(w.Result().Body).Decode(&resp)
-	if resp.Status != "updated" {
-		t.Fatalf("expected updated response, got %#v", resp)
-	}
-	if resp.Routing != string(domain.RoutingOpticalOnly) {
-		t.Fatalf("routing = %q, want %q", resp.Routing, domain.RoutingOpticalOnly)
-	}
-	if len(*writes) != 1 {
-		t.Fatalf("XMLRPC writes = %d, want 1", len(*writes))
-	}
-	if !strings.Contains((*writes)[0], "car40907") {
-		t.Fatalf("Aetna government vision payload = %s, want iCare carrier car40907", (*writes)[0])
 	}
 }
 

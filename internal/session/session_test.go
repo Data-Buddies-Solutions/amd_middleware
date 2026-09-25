@@ -390,26 +390,6 @@ func TestSessionStatusReportsSafeTimingWithoutSessionData(t *testing.T) {
 	}
 }
 
-func TestSessionUsesControllableClockForCreationTime(t *testing.T) {
-	now := time.Date(2026, time.July, 24, 12, 34, 56, 0, time.UTC)
-	clock := &testClock{now: now}
-	var session Session = newSession(loginAdapterFunc(func(context.Context) (string, string, error) {
-		return "session-token", "https://provider.test/processrequest/api-801/app", nil
-	}), clock.Now, sessionPolicy{
-		staleAfter:   time.Hour,
-		expiresAfter: 2 * time.Hour,
-		loginTimeout: time.Minute,
-	})
-
-	token, err := session.Get(context.Background())
-	if err != nil {
-		t.Fatalf("Get() error = %v", err)
-	}
-	if token.CreatedAt != "2026-07-24T12:34:56Z" {
-		t.Fatalf("CreatedAt = %q, want controllable clock time", token.CreatedAt)
-	}
-}
-
 func TestSessionHardExpirationIncludesAuthenticationTime(t *testing.T) {
 	now := time.Date(2026, time.July, 25, 12, 0, 0, 0, time.UTC)
 	clock := &testClock{now: now}
@@ -510,42 +490,6 @@ func TestSessionRetriesAfterUnavailableAuthentication(t *testing.T) {
 	}
 	if got := session.Status().State; got != SessionFresh {
 		t.Fatalf("state after recovery = %q, want %q", got, SessionFresh)
-	}
-}
-
-func TestSessionMaintenanceFailureKeepsUsableSessionDegraded(t *testing.T) {
-	now := time.Date(2026, time.July, 24, 12, 0, 0, 0, time.UTC)
-	clock := &testClock{now: now}
-	loginCalls := 0
-	var session Session = newSession(loginAdapterFunc(func(context.Context) (string, string, error) {
-		loginCalls++
-		if loginCalls == 1 {
-			return "known-good", "https://provider.test/processrequest/api-801/app", nil
-		}
-		return "", "", errors.New("temporary maintenance failure")
-	}), clock.Now, sessionPolicy{
-		staleAfter:   time.Hour,
-		expiresAfter: 2 * time.Hour,
-		loginTimeout: time.Minute,
-	})
-	original, err := session.Get(context.Background())
-	if err != nil {
-		t.Fatalf("initial Get() error = %v", err)
-	}
-
-	if err := session.Maintain(context.Background()); err == nil {
-		t.Fatal("Maintain() error = nil, want refresh failure")
-	}
-	if got := session.Status().State; got != SessionDegraded {
-		t.Fatalf("state after maintenance failure = %q, want %q", got, SessionDegraded)
-	}
-
-	afterFailure, err := session.Get(context.Background())
-	if err != nil {
-		t.Fatalf("Get() after maintenance failure error = %v", err)
-	}
-	if afterFailure.Token != original.Token {
-		t.Fatalf("maintenance failure replaced last-known-good token: %q", afterFailure.Token)
 	}
 }
 

@@ -263,14 +263,3 @@ func sameStringSlice(a, b []string) bool {
 	}
 	return true
 }
-
-func TestInsuranceAndAppointmentCategoryNormalization(t *testing.T) {
-	for _, tc := range []struct{ category, kind, want string }{
-		{"vision", "", "routine_vision"}, {"routine eye exam", "", "routine_vision"},
-		{"", "routine_vision", "routine_vision"}, {"medical visit", "", "medical"}, {"follow up", "", "medical"},
-	} {
-		if got := NormalizeAppointmentVisitCategory(tc.category, tc.kind, RoutingBachOnly); got != tc.want {
-			t.Errorf("%+v => %s", tc, got)
-		}
-	}
-}

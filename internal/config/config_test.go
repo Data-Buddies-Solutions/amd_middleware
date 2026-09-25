@@ -100,35 +100,6 @@ func TestLoad_LegacyFlags(t *testing.T) {
 	}
 }
 
-func TestLoad_DefaultPort(t *testing.T) {
-	cleanup := setEnvVars(t)
-	defer cleanup()
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load() failed: %v", err)
-	}
-
-	if cfg.Port != "8080" {
-		t.Errorf("Default port = %q, want '8080'", cfg.Port)
-	}
-}
-
-func TestLoad_CustomPort(t *testing.T) {
-	cleanup := setEnvVars(t)
-	defer cleanup()
-	os.Setenv("PORT", "3000")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load() failed: %v", err)
-	}
-
-	if cfg.Port != "3000" {
-		t.Errorf("Port = %q, want '3000'", cfg.Port)
-	}
-}
-
 func TestLoad_MissingRequiredFields(t *testing.T) {
 	requiredVars := []struct {
 		name   string

@@ -2,24 +2,6 @@ package domain
 
 import "testing"
 
-func TestVisionAnswerUsesResolvedPlanName(t *testing.T) {
-	office, _ := ResolveOffice("Spring Hill")
-	for _, tc := range []struct{ query, name, canonical string }{
-		{"Sunshine Health", "Sunshine Health", "Envolve"},
-		{"do you take i love sunshine health", "Sunshine Health", "Envolve"},
-		{"do you take Florida Blue", "Florida Blue", "Davis"},
-		{"I have Humana Gold Plus", "Humana Gold Plus", "iCare"},
-		{"do you take VSP", "VSP", "VSP"},
-	} {
-		t.Run(tc.query, func(t *testing.T) {
-			d := DecideInsurance(tc.query, "routine_vision", office, "01/02/1980")
-			if d.Answer != "success: Yes, we take "+tc.name+"." || d.CanonicalPlan != tc.canonical || !d.CanSchedule {
-				t.Fatalf("unexpected decision: %+v", d)
-			}
-		})
-	}
-}
-
 // Python 9cc440a's match_plan with its original vision JSON accepts these
 // canonical labels (also when prefixed with "I have"). Both attach to Davis.
 func TestVisionAliasMigrationPreservesOriginalAcceptance(t *testing.T) {

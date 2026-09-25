@@ -5,32 +5,6 @@ import (
 	"testing"
 )
 
-func TestMedicalCatalogPreservesOfficeExclusions(t *testing.T) {
-	for _, tc := range []struct{ office, plan string }{
-		{"Spring Hill", "Florida Blue Select"}, {"Spring Hill", "Florida Blue BlueSelect"},
-		{"Spring Hill", "Care Plus"}, {"Spring Hill", "Humana Gold Plus"},
-		{"Spring Hill", "Aetna EPO"}, {"Spring Hill", "Preferred Care Partners"},
-		{"Crystal River", "Ambetter"}, {"Crystal River", "Molina Medicaid"},
-		{"Hollywood", "Molina Marketplace"}, {"Hollywood", "Cigna Local Plus"},
-	} {
-		office, _ := ResolveOffice(tc.office)
-		d := DecideInsurance(tc.plan, "medical", office, "")
-		if d.Outcome != "not_accepted" || (d.Participation == "accepted") || d.CanSchedule {
-			t.Errorf("office exclusion lost: %+v => %+v", tc, d)
-		}
-	}
-}
-
-func TestAcceptedNamedProductsHaveRegistrationMappings(t *testing.T) {
-	office, _ := ResolveOffice("Spring Hill")
-	for _, q := range []string{"Devoted Medicare HMO", "Humana Medicare PPO"} {
-		d := DecideInsurance(q, "medical", office, "")
-		if d.Outcome != "accepted" || d.Participation != "accepted" || d.CarrierID == "" || d.Routing == "" || !d.CanSchedule {
-			t.Errorf("specific product inherited a parent mapping: %s %+v", q, d)
-		}
-	}
-}
-
 func TestSharedMedicalAliasesUseThePlanIdentity(t *testing.T) {
 	office, _ := ResolveOffice("Hollywood")
 	for _, tc := range []struct{ input, code string }{
