@@ -153,6 +153,9 @@ func TestEligibilityUsesExistingOfficeContextAndRejectsBookingInputs(t *testing.
 	}
 	body["coverageType"] = "medical"
 	w := send(body)
+	if w.Code != 200 || providerName != "Austin Bach" {
+		t.Fatal("Hollywood medical must use Austin Bach instead of the configured organization")
+	}
 	var resolved eligibility.Result
 	if err := json.Unmarshal(w.Body.Bytes(), &resolved); err != nil {
 		t.Fatal(err)

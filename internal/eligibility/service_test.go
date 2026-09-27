@@ -233,34 +233,36 @@ func TestCrystalRiverUsesOnlyLichtWithoutProviderConfiguration(t *testing.T) {
 	}
 }
 
-func TestSweetwaterMedicalUsesAustinBach(t *testing.T) {
-	for _, coverage := range []string{"", "medical"} {
-		t.Run("coverage="+coverage, func(t *testing.T) {
-			calls := 0
-			service := testService(t, func(w http.ResponseWriter, r *http.Request) {
-				calls++
-				var request Request
-				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-					t.Error(err)
-					return
+func TestSweetwaterAndHollywoodMedicalUseAustinBach(t *testing.T) {
+	for _, office := range []string{"sweetwater", "hollywood"} {
+		for _, coverage := range []string{"", "medical"} {
+			t.Run(office+"/coverage="+coverage, func(t *testing.T) {
+				calls := 0
+				service := testService(t, func(w http.ResponseWriter, r *http.Request) {
+					calls++
+					var request Request
+					if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+						t.Error(err)
+						return
+					}
+					if request.Provider.NPI != "1659706588" || request.Provider.FirstName != "Austin" || request.Provider.LastName != "Bach" || request.Provider.OrganizationName != "" {
+						t.Errorf("wrong medical provider: %+v", request.Provider)
+					}
+					fmt.Fprint(w, fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, ""))
+				})
+				service.providers = nil
+				in := input()
+				in.CoverageType = coverage
+				result, err := service.Check(context.Background(), office, in)
+				if err != nil || calls != 1 || result.Status != "active" || len(result.ProviderResults) != 1 {
+					t.Fatalf("result=%+v err=%v calls=%d", result, err, calls)
 				}
-				if request.Provider.NPI != "1659706588" || request.Provider.FirstName != "Austin" || request.Provider.LastName != "Bach" || request.Provider.OrganizationName != "" {
-					t.Errorf("wrong Sweetwater provider: %+v", request.Provider)
+				provider := result.ProviderResults[0].Provider
+				if provider == nil || provider.ProfileID != "620" || provider.NPI != "1659706588" {
+					t.Fatalf("wrong booking linkage: %+v", provider)
 				}
-				fmt.Fprint(w, fixture(`[{"code":"1","serviceTypeCodes":["30"]}]`, ""))
 			})
-			service.providers = nil
-			in := input()
-			in.CoverageType = coverage
-			result, err := service.Check(context.Background(), "sweetwater", in)
-			if err != nil || calls != 1 || result.Status != "active" || len(result.ProviderResults) != 1 {
-				t.Fatalf("result=%+v err=%v calls=%d", result, err, calls)
-			}
-			provider := result.ProviderResults[0].Provider
-			if provider == nil || provider.ProfileID != "620" || provider.NPI != "1659706588" {
-				t.Fatalf("wrong booking linkage: %+v", provider)
-			}
-		})
+		}
 	}
 }
 

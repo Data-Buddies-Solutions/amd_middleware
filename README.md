@@ -464,6 +464,10 @@ September 24, 2026:
 The scheduling registry supplies their Sweetwater association and profile IDs;
 NPPES identity verification does not establish payer enrollment or live success.
 
+Hollywood medical eligibility uses Austin Bach (`1659706588`) and scheduling
+profile `620`, matching Sweetwater medical without requiring `STEDI_PROVIDERS`.
+Hollywood routine vision retains its configured provider.
+
 North Miami Beach Optical routine vision uses Miriam Bach, OD's verified
 individual NPI (`1801200977`) and its scheduling profile for appointment linkage.
 See [vision payer mappings](docs/vision-eligibility-mapping.md) for supported and
