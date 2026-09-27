@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/safeerrors"
 )
 
 // newTestXMLRPCClient creates a TLS test server and XMLRPC client wired together.
@@ -181,6 +183,31 @@ func TestAdvancedMDClient_AddPatient_AMDError(t *testing.T) {
 
 	if err == nil {
 		t.Fatal("Expected error for AMD error response, got nil")
+	}
+}
+
+func TestAdvancedMDClient_AddPatientUnexpectedResponseOmitsProviderBody(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"PPMDResults": {"Results": {"note": "DOE,JANE 352-401-5555"}}}`))
+	})
+
+	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
+	defer cleanup()
+
+	_, _, _, err := client.AddPatient(context.Background(), tokenData, AddPatientParams{
+		FirstName: "Jane",
+		LastName:  "Doe",
+		ProfileID: "620",
+	})
+	if err == nil {
+		t.Fatal("Expected error for unexpected response, got nil")
+	}
+	if strings.Contains(err.Error(), "DOE") || strings.Contains(err.Error(), "401") {
+		t.Fatalf("error retains provider body: %q", err.Error())
+	}
+	if got := safeerrors.Classify(err); got != safeerrors.CategoryInvalidResponse {
+		t.Fatalf("Classify() = %q, want %q", got, safeerrors.CategoryInvalidResponse)
 	}
 }
 

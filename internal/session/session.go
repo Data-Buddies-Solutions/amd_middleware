@@ -83,8 +83,9 @@ type sessionImpl struct {
 }
 
 type refreshFlight struct {
-	done chan struct{}
-	err  error
+	done           chan struct{}
+	err            error
+	callerCanceled bool
 }
 
 func newSession(login loginAdapter, now func() time.Time, policy sessionPolicy) *sessionImpl {
@@ -129,31 +130,47 @@ func (s *sessionImpl) Maintain(ctx context.Context) error {
 }
 
 func (s *sessionImpl) refresh(ctx context.Context, force bool) error {
-	s.mu.Lock()
-	if !force {
-		now := s.now()
-		if s.freshLocked(now) {
-			s.mu.Unlock()
-			return nil
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
 		}
-		if now.Before(s.retryAt) {
-			usable := s.usableLocked(now)
-			s.mu.Unlock()
-			if usable {
+		s.mu.Lock()
+		if !force {
+			now := s.now()
+			if s.freshLocked(now) {
+				s.mu.Unlock()
 				return nil
 			}
-			return ErrSessionUnavailable
+			if now.Before(s.retryAt) {
+				usable := s.usableLocked(now)
+				s.mu.Unlock()
+				if usable {
+					return nil
+				}
+				return ErrSessionUnavailable
+			}
 		}
-	}
-	if active := s.flight; active != nil {
+		active := s.flight
+		if active == nil {
+			return s.authenticateLocked(ctx)
+		}
 		s.mu.Unlock()
 		select {
 		case <-active.done:
+			if active.callerCanceled {
+				// A different request's cancellation must not fail this caller.
+				continue
+			}
 			return active.err
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
+}
+
+// authenticateLocked leads one login flight. It must be called with s.mu held
+// and returns with s.mu released.
+func (s *sessionImpl) authenticateLocked(ctx context.Context) error {
 	active := &refreshFlight{done: make(chan struct{})}
 	s.flight = active
 	loginStartedAt := s.now()
@@ -166,6 +183,7 @@ func (s *sessionImpl) refresh(ctx context.Context, force bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	active.err = err
+	active.callerCanceled = err != nil && ctx.Err() != nil
 	s.flight = nil
 	close(active.done)
 	if err != nil {

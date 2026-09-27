@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"encoding/xml"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,6 +38,43 @@ func TestAdvancedMDLoginGetsAuthToken(t *testing.T) {
 
 	if token != "mock-session-token-12345" {
 		t.Errorf("Expected token 'mock-session-token-12345', got '%s'", token)
+	}
+}
+
+func TestAdvancedMDLoginEscapesCredentialAttributes(t *testing.T) {
+	creds := Credentials{
+		Username:  `user<"name">`,
+		Password:  `p&ss"w<rd>'`,
+		OfficeKey: "991&TEST",
+		AppName:   `app"name`,
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var message struct {
+			Username  string `xml:"username,attr"`
+			Password  string `xml:"psw,attr"`
+			OfficeKey string `xml:"officecode,attr"`
+			AppName   string `xml:"appname,attr"`
+		}
+		if err := xml.NewDecoder(r.Body).Decode(&message); err != nil {
+			t.Errorf("login message is not valid XML: %v", err)
+		}
+		got := Credentials{
+			Username:  message.Username,
+			Password:  message.Password,
+			OfficeKey: message.OfficeKey,
+			AppName:   message.AppName,
+		}
+		if got != creds {
+			t.Errorf("login credentials were altered in transit")
+		}
+		w.Header().Set("Content-Type", "application/xml")
+		w.Write([]byte(`<PPMDResults><Results success="1"><usercontext>token</usercontext></Results></PPMDResults>`))
+	}))
+	defer server.Close()
+
+	login := &advancedMDLogin{creds: creds, client: server.Client()}
+	if _, err := login.getAuthToken(context.Background(), server.URL); err != nil {
+		t.Fatalf("getAuthToken failed: %v", err)
 	}
 }
 

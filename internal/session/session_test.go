@@ -688,3 +688,57 @@ func TestCancelledColdSessionLoginDoesNotBlockNextCaller(t *testing.T) {
 		t.Fatalf("healthy caller did not recover: login attempts=%d token present=%t", calls, token != nil)
 	}
 }
+
+func TestSessionWaiterRecoversWhenLeadingCallerCancels(t *testing.T) {
+	base := time.Date(2026, 9, 26, 0, 0, 0, 0, time.UTC)
+	started := make(chan struct{})
+	waiterJoined := make(chan struct{})
+	var loginStarted, waiterSeen atomic.Bool
+	// After the first login starts, the leader is blocked in Authenticate, so the
+	// next clock read is the waiter checking state under the lock just before it
+	// waits on the active flight.
+	now := func() time.Time {
+		if loginStarted.Load() && waiterSeen.CompareAndSwap(false, true) {
+			close(waiterJoined)
+		}
+		return base
+	}
+	var calls atomic.Int32
+	s := newSession(loginAdapterFunc(func(ctx context.Context) (string, string, error) {
+		if calls.Add(1) == 1 {
+			loginStarted.Store(true)
+			close(started)
+			<-ctx.Done()
+			return "", "", ctx.Err()
+		}
+		return "recovered-token", "https://provider.test/processrequest/api-801/app", nil
+	}), now, sessionPolicy{
+		staleAfter: DefaultSessionStaleAfter, expiresAfter: DefaultSessionExpiresAfter,
+		loginTimeout: time.Minute, retryDelay: time.Minute,
+	})
+
+	leaderCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	leader := make(chan struct{})
+	go func() { s.Get(leaderCtx); close(leader) }()
+	<-started
+
+	waiter := make(chan error, 1)
+	go func() {
+		token, err := s.Get(context.Background())
+		if err == nil && token.Token != "Bearer recovered-token" {
+			err = &unexpectedTokenError{got: token.Token}
+		}
+		waiter <- err
+	}()
+	<-waiterJoined
+	cancel()
+	<-leader
+
+	if err := <-waiter; err != nil {
+		t.Fatalf("waiting caller failed after leader cancellation: %v", err)
+	}
+	if got := calls.Load(); got != 2 {
+		t.Fatalf("login attempts = %d, want 2", got)
+	}
+}

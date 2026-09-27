@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -91,11 +92,13 @@ var requestLogMu sync.Mutex
 func AuthMiddleware(apiSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			auth := r.Header.Get("Authorization")
-			expectedBearer := "Bearer " + apiSecret
+			auth := []byte(r.Header.Get("Authorization"))
 
-			// Accept either "Bearer {secret}" or raw "{secret}"
-			if auth != expectedBearer && auth != apiSecret {
+			// Accept either "Bearer {secret}" or raw "{secret}". Compare in
+			// constant time so response timing cannot reveal the secret.
+			bearerMatch := subtle.ConstantTimeCompare(auth, []byte("Bearer "+apiSecret))
+			rawMatch := subtle.ConstantTimeCompare(auth, []byte(apiSecret))
+			if bearerMatch|rawMatch != 1 {
 				recordRequestOutcome(r.Context(), outcomeAuthenticationRejected, safeerrors.CategoryNone)
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusUnauthorized)
