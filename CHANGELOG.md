@@ -4,6 +4,14 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.2.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.0...v5.2.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* harden login, session, auth, and slot generation ([#211](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/211)) ([e1a6969](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/e1a69699df402cc96fe463080ba7675128db16b2))
+* use Austin Bach for Hollywood medical eligibility ([#213](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/213)) ([0a32f63](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/0a32f637ab83eaac1cbd0dd75017c54ebd113e58))
+
 ## [5.2.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.1.0...v5.2.0) (2026-09-24)
 
 
