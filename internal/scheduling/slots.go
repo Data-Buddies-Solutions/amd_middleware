@@ -53,15 +53,17 @@ func availableSlots(
 	nowEastern time.Time,
 ) []domain.AvailableSlot {
 	slots := make([]domain.AvailableSlot, 0)
+	// Booking requires a positive interval, so any other value cannot produce a
+	// bookable slot; a negative one would also never advance past workEnd.
+	if column.Interval <= 0 {
+		return slots
+	}
 	workStart, workEnd, err := column.ParseWorkHours(date)
 	if err != nil {
 		return slots
 	}
 
 	interval := time.Duration(column.Interval) * time.Minute
-	if interval == 0 {
-		interval = 15 * time.Minute
-	}
 	for slotTime := workStart; slotTime.Before(workEnd); slotTime = slotTime.Add(interval) {
 		if date.Format("2006-01-02") == nowEastern.Format("2006-01-02") &&
 			slotTime.Before(nowEastern.Add(30*time.Minute)) {

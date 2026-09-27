@@ -71,11 +71,19 @@ func (a *advancedMDLogin) buildLoginXML() string {
 	return fmt.Sprintf(
 		`<ppmdmsg action="login" class="login" msgtime="%s" username="%s" psw="%s" officecode="%s" appname="%s"/>`,
 		now,
-		a.creds.Username,
-		a.creds.Password,
-		a.creds.OfficeKey,
-		a.creds.AppName,
+		escapeXMLAttr(a.creds.Username),
+		escapeXMLAttr(a.creds.Password),
+		escapeXMLAttr(a.creds.OfficeKey),
+		escapeXMLAttr(a.creds.AppName),
 	)
+}
+
+// escapeXMLAttr keeps credential characters such as &, <, and " from breaking
+// the login message.
+func escapeXMLAttr(value string) string {
+	var escaped strings.Builder
+	xml.EscapeText(&escaped, []byte(value))
+	return escaped.String()
 }
 
 // parseXMLResponse parses AdvancedMD XML responses with charset support.

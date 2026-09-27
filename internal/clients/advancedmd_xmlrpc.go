@@ -433,7 +433,7 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.Tok
 		}
 	}
 
-	return "", "", "", fmt.Errorf("addpatient returned unexpected response: %s", string(body))
+	return "", "", "", fmt.Errorf("addpatient returned unexpected response")
 }
 
 // AddInsurance attaches an insurance record to an existing patient in AdvancedMD.
