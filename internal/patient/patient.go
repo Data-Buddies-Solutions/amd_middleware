@@ -1,11 +1,11 @@
 package patient
 
 import (
-	"advancedmd-token-management/internal/insurance"
 	"context"
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 	"advancedmd-token-management/internal/safeerrors"
 )
 

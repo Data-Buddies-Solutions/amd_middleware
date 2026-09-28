@@ -1,12 +1,12 @@
 package patient
 
 import (
-	"advancedmd-token-management/internal/insurance"
 	"context"
 	"strings"
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 )
 
 func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCommand) (result UpdateInsuranceResult) {

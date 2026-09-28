@@ -1,12 +1,13 @@
 package http
 
 import (
-	"advancedmd-token-management/internal/insurance"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"advancedmd-token-management/internal/insurance"
 )
 
 func TestInsuranceDecisionHTTPContract(t *testing.T) {

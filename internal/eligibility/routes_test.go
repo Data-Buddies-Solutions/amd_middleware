@@ -1,7 +1,6 @@
 package eligibility
 
 import (
-	"advancedmd-token-management/internal/insurance"
 	"context"
 	"encoding/csv"
 	"encoding/json"
@@ -11,6 +10,7 @@ import (
 	"testing"
 
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 )
 
 func TestEveryOfficeInsuranceHasExplicitPayerDisposition(t *testing.T) {

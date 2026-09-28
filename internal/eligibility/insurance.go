@@ -1,12 +1,12 @@
 package eligibility
 
 import (
-	"advancedmd-token-management/internal/insurance"
 	"encoding/json"
 	"slices"
 	"strings"
 
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 )
 
 type InsuranceResolution struct {

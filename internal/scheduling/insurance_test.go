@@ -1,12 +1,13 @@
 package scheduling_test
 
 import (
-	"advancedmd-token-management/internal/domain"
-	"advancedmd-token-management/internal/insurance"
-	"advancedmd-token-management/internal/scheduling"
 	"context"
 	"testing"
 	"time"
+
+	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
+	"advancedmd-token-management/internal/scheduling"
 )
 
 func TestExistingPatientListsAndBooksWithoutInsuranceClarification(t *testing.T) {

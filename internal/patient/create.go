@@ -1,7 +1,6 @@
 package patient
 
 import (
-	"advancedmd-token-management/internal/insurance"
 	"context"
 	"errors"
 	"fmt"
@@ -9,6 +8,7 @@ import (
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 )
 
 func (p *patient) Create(ctx context.Context, command CreateCommand) (result CreateResult) {

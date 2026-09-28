@@ -1,11 +1,12 @@
 package insurance
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"embed"
 	"encoding/json"
 	"regexp"
 	"strings"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 //go:embed data/*.json

@@ -1,10 +1,11 @@
 package insurance
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"encoding/json"
 	"os"
 	"testing"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 func TestLegacyOfficeInsuranceOutcomes(t *testing.T) {

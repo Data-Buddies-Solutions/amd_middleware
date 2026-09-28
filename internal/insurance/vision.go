@@ -1,9 +1,10 @@
 package insurance
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"strings"
 	"unicode"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 type InsuranceEntry struct {

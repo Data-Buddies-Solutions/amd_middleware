@@ -1,10 +1,11 @@
 package insurance
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 func TestCorrectedInsuranceIdentities(t *testing.T) {

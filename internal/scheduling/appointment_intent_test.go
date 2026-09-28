@@ -1,8 +1,9 @@
 package scheduling
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"testing"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 func TestResolveAppointmentTypeForIntent(t *testing.T) {

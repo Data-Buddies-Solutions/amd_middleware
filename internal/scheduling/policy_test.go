@@ -1,9 +1,10 @@
 package scheduling
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"testing"
 	"time"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 func TestSchedulingPolicy_PrepareBookingRejectsAppointmentTypeForWrongAge(t *testing.T) {

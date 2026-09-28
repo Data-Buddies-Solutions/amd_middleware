@@ -1,10 +1,11 @@
 package http
 
 import (
-	"advancedmd-token-management/internal/domain"
-	"advancedmd-token-management/internal/insurance"
 	"encoding/json"
 	"net/http"
+
+	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 )
 
 func (h *Handlers) HandleInsuranceDecision(w http.ResponseWriter, r *http.Request) {

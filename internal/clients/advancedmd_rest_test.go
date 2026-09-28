@@ -1,7 +1,6 @@
 package clients
 
 import (
-	"advancedmd-token-management/internal/session"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -14,6 +13,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"advancedmd-token-management/internal/session"
 )
 
 func newTestRestClient(t *testing.T, handler http.Handler) (*AdvancedMDRestClient, *session.TokenData, func()) {

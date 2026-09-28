@@ -1,9 +1,10 @@
 package insurance
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"strings"
 	"testing"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 func TestSharedMedicalAliasesUseThePlanIdentity(t *testing.T) {

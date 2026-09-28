@@ -1,8 +1,9 @@
 package insurance
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"encoding/json"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 type medicalPlan struct {

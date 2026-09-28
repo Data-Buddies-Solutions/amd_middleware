@@ -1,8 +1,9 @@
 package scheduling
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"time"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 type availableSlot struct {

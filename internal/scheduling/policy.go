@@ -1,13 +1,14 @@
 package scheduling
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"fmt"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 const defaultSameStartCapacity = 1

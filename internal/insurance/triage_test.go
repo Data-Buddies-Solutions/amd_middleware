@@ -1,8 +1,9 @@
 package insurance
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"testing"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 func TestLegacyAuthorizationIsOfficeScoped(t *testing.T) {

@@ -1,9 +1,10 @@
 package scheduling
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"fmt"
 	"strings"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 type appointmentIntent struct {

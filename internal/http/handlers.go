@@ -1,7 +1,6 @@
 package http
 
 import (
-	"advancedmd-token-management/internal/insurance"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,6 +10,7 @@ import (
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/eligibility"
+	"advancedmd-token-management/internal/insurance"
 	patientmodule "advancedmd-token-management/internal/patient"
 	"advancedmd-token-management/internal/safeerrors"
 	schedulingmodule "advancedmd-token-management/internal/scheduling"
