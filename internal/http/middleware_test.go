@@ -187,8 +187,8 @@ func TestRequestLogRecoversPanicWithoutLoggingRawError(t *testing.T) {
 
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("status = %d, want 500", w.Code)
+	if w.Code != http.StatusInternalServerError || w.Header().Get("Content-Type") != "application/json" {
+		t.Fatalf("status = %d, content type = %q", w.Code, w.Header().Get("Content-Type"))
 	}
 	entry := decodeLastLogEntry(t, logs.String())
 	if entry["outcome_category"] != "internal_failure" {
