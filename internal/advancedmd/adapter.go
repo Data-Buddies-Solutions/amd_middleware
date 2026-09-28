@@ -64,12 +64,12 @@ func (a *Adapter) SearchPatients(ctx context.Context, search domain.PatientSearc
 	return patients, nil
 }
 
-func (a *Adapter) ReadPatientCandidates(ctx context.Context, firstName string) (domain.PatientCandidateRead, error) {
+func (a *Adapter) ReadPatientCandidates(ctx context.Context, firstName, dob string) (domain.PatientCandidateRead, error) {
 	token, err := a.token(ctx)
 	if err != nil {
 		return domain.PatientCandidateRead{}, err
 	}
-	read, err := a.xmlClient.LookupPatientCandidates(ctx, token, firstName)
+	read, err := a.xmlClient.LookupPatientCandidates(ctx, token, firstName, dob)
 	if err != nil {
 		return domain.PatientCandidateRead{}, classify(err)
 	}

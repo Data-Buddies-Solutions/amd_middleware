@@ -36,7 +36,7 @@ func usableDOB(dob string) bool {
 
 func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveCommand, office *domain.OfficeConfig) (ResolveResult, error) {
 	started := time.Now()
-	read, err := p.advancedMD.ReadPatientCandidates(ctx, domain.StripDiacritics(command.FirstName))
+	read, err := p.advancedMD.ReadPatientCandidates(ctx, domain.StripDiacritics(command.FirstName), domain.NormalizeDOB(command.DOB))
 	observation := ResolutionObservation{
 		Recorded: true, PatientSearchReads: 1,
 		PatientSearchDurationMS: time.Since(started).Milliseconds(),
