@@ -1,6 +1,7 @@
 package http
 
 import (
+	"advancedmd-token-management/internal/insurance"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -31,26 +32,26 @@ type PatientResolveRequest struct {
 }
 
 type PatientResolveResponse struct {
-	InsuranceDecision   *domain.InsuranceDecision  `json:"insuranceDecision,omitempty"`
-	Reason              string                     `json:"reason,omitempty"`
-	Status              string                     `json:"status"`
-	PatientID           string                     `json:"patientId,omitempty"`
-	Name                string                     `json:"name,omitempty"`
-	DOB                 string                     `json:"dob,omitempty"`
-	Phone               string                     `json:"phone,omitempty"`
-	InsuranceCarrier    string                     `json:"insuranceCarrier,omitempty"`
-	InsuranceCarrierID  string                     `json:"insuranceCarrierId,omitempty"`
-	InsPlanID           string                     `json:"insPlanId,omitempty"`
-	RespPartyID         string                     `json:"respPartyId,omitempty"`
-	Routing             string                     `json:"routing,omitempty"`
-	AllowedProviders    []string                   `json:"allowedProviders,omitempty"`
-	RoutingAmbiguous    bool                       `json:"routingAmbiguous,omitempty"`
-	PreauthRequired     bool                       `json:"preauthRequired,omitempty"`
-	AppointmentsStatus  string                     `json:"appointmentsStatus,omitempty"`
-	Appointments        []PatientApptDetail        `json:"appointments"`
-	AppointmentsMessage string                     `json:"appointmentsMessage,omitempty"`
-	Message             string                     `json:"message,omitempty"`
-	Matches             []PatientCandidateResponse `json:"matches"`
+	InsuranceDecision   *insurance.InsuranceDecision `json:"insuranceDecision,omitempty"`
+	Reason              string                       `json:"reason,omitempty"`
+	Status              string                       `json:"status"`
+	PatientID           string                       `json:"patientId,omitempty"`
+	Name                string                       `json:"name,omitempty"`
+	DOB                 string                       `json:"dob,omitempty"`
+	Phone               string                       `json:"phone,omitempty"`
+	InsuranceCarrier    string                       `json:"insuranceCarrier,omitempty"`
+	InsuranceCarrierID  string                       `json:"insuranceCarrierId,omitempty"`
+	InsPlanID           string                       `json:"insPlanId,omitempty"`
+	RespPartyID         string                       `json:"respPartyId,omitempty"`
+	Routing             string                       `json:"routing,omitempty"`
+	AllowedProviders    []string                     `json:"allowedProviders,omitempty"`
+	RoutingAmbiguous    bool                         `json:"routingAmbiguous,omitempty"`
+	PreauthRequired     bool                         `json:"preauthRequired,omitempty"`
+	AppointmentsStatus  string                       `json:"appointmentsStatus,omitempty"`
+	Appointments        []PatientApptDetail          `json:"appointments"`
+	AppointmentsMessage string                       `json:"appointmentsMessage,omitempty"`
+	Message             string                       `json:"message,omitempty"`
+	Matches             []PatientCandidateResponse   `json:"matches"`
 }
 
 type PatientCandidateResponse struct {
@@ -138,16 +139,16 @@ type AddPatientRequest struct {
 }
 
 type AddPatientResponse struct {
-	InsuranceDecision *domain.InsuranceDecision `json:"insuranceDecision,omitempty"`
-	Status            string                    `json:"status"`
-	Outcome           string                    `json:"outcome,omitempty"`
-	PatientID         string                    `json:"patientId,omitempty"`
-	Name              string                    `json:"name,omitempty"`
-	DOB               string                    `json:"dob,omitempty"`
-	Routing           string                    `json:"routing,omitempty"`
-	AllowedProviders  []string                  `json:"allowedProviders,omitempty"`
-	PreauthRequired   bool                      `json:"preauthRequired,omitempty"`
-	Message           string                    `json:"message,omitempty"`
+	InsuranceDecision *insurance.InsuranceDecision `json:"insuranceDecision,omitempty"`
+	Status            string                       `json:"status"`
+	Outcome           string                       `json:"outcome,omitempty"`
+	PatientID         string                       `json:"patientId,omitempty"`
+	Name              string                       `json:"name,omitempty"`
+	DOB               string                       `json:"dob,omitempty"`
+	Routing           string                       `json:"routing,omitempty"`
+	AllowedProviders  []string                     `json:"allowedProviders,omitempty"`
+	PreauthRequired   bool                         `json:"preauthRequired,omitempty"`
+	Message           string                       `json:"message,omitempty"`
 }
 
 func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
@@ -537,18 +538,18 @@ type UpdateInsuranceRequest struct {
 }
 
 type UpdateInsuranceResponse struct {
-	Effect            string                    `json:"effect"`
-	InsuranceDecision *domain.InsuranceDecision `json:"insuranceDecision,omitempty"`
-	Status            string                    `json:"status"`
-	Outcome           string                    `json:"outcome,omitempty"`
-	PatientID         string                    `json:"patientId,omitempty"`
-	OldInsurance      string                    `json:"oldInsurance,omitempty"`
-	NewInsurance      string                    `json:"newInsurance,omitempty"`
-	Routing           string                    `json:"routing,omitempty"`
-	AllowedProviders  []string                  `json:"allowedProviders,omitempty"`
-	RoutingAmbiguous  bool                      `json:"routingAmbiguous,omitempty"`
-	PreauthRequired   bool                      `json:"preauthRequired,omitempty"`
-	Message           string                    `json:"message,omitempty"`
+	Effect            string                       `json:"effect"`
+	InsuranceDecision *insurance.InsuranceDecision `json:"insuranceDecision,omitempty"`
+	Status            string                       `json:"status"`
+	Outcome           string                       `json:"outcome,omitempty"`
+	PatientID         string                       `json:"patientId,omitempty"`
+	OldInsurance      string                       `json:"oldInsurance,omitempty"`
+	NewInsurance      string                       `json:"newInsurance,omitempty"`
+	Routing           string                       `json:"routing,omitempty"`
+	AllowedProviders  []string                     `json:"allowedProviders,omitempty"`
+	RoutingAmbiguous  bool                         `json:"routingAmbiguous,omitempty"`
+	PreauthRequired   bool                         `json:"preauthRequired,omitempty"`
+	Message           string                       `json:"message,omitempty"`
 }
 
 func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request) {

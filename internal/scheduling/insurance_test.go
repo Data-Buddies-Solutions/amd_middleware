@@ -2,6 +2,7 @@ package scheduling_test
 
 import (
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 	"advancedmd-token-management/internal/scheduling"
 	"context"
 	"testing"
@@ -36,7 +37,7 @@ func TestExistingPatientListsAndBooksWithoutInsuranceClarification(t *testing.T)
 
 func TestVisionCarrierIdentitySurvivesAvailabilityAndBooking(t *testing.T) {
 	office, _ := domain.ResolveOffice("North Miami Beach Optical")
-	accepted := domain.DecideInsurance("Devoted", "routine_vision", office, "01/15/1980")
+	accepted := insurance.DecideInsurance("Devoted", "routine_vision", office, "01/15/1980")
 	records := recordsWithSetup(testColumn("1601", "621", "1582", "09:00", "09:15", 15))
 	records.SchedulerSetup.Profiles = append(records.SchedulerSetup.Profiles, domain.SchedulerProfile{ID: "621", Name: "BACH, MIRIAM"})
 	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierID: accepted.CarrierID, CarrierName: "PREMIER EYE CARE"}

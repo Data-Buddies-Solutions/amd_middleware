@@ -2,6 +2,7 @@ package http
 
 import (
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 	"encoding/json"
 	"net/http"
 )
@@ -25,5 +26,5 @@ func (h *Handlers) HandleInsuranceDecision(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Unknown office", http.StatusBadRequest)
 		return
 	}
-	json.NewEncoder(w).Encode(domain.DecideInsurance(req.Plan, req.CoverageType, office, req.DOB))
+	json.NewEncoder(w).Encode(insurance.DecideInsurance(req.Plan, req.CoverageType, office, req.DOB))
 }

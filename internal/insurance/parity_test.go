@@ -1,16 +1,17 @@
-package domain
+package insurance
 
 import (
+	"advancedmd-token-management/internal/domain"
 	"encoding/json"
 	"os"
 	"testing"
 )
 
 func TestLegacyOfficeInsuranceOutcomes(t *testing.T) {
-	InitRegistry("")
+	domain.InitRegistry("")
 	check := func(t *testing.T, officeName, coverage, input, outcome string, priorAuth bool) {
 		t.Helper()
-		office, err := ResolveOffice(officeName)
+		office, err := domain.ResolveOffice(officeName)
 		if err != nil {
 			t.Fatal(err)
 		}

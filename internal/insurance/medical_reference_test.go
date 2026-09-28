@@ -1,9 +1,12 @@
-package domain
+package insurance
 
-import "testing"
+import (
+	"advancedmd-token-management/internal/domain"
+	"testing"
+)
 
 func TestMedicalDocumentCarrierAttachments(t *testing.T) {
-	office, _ := ResolveOffice("Sweetwater")
+	office, _ := domain.ResolveOffice("Sweetwater")
 	for _, tc := range []struct {
 		plan, code, id string
 		schedule       bool
@@ -29,7 +32,7 @@ func TestMedicalDocumentCarrierAttachments(t *testing.T) {
 			if d.CarrierCode != tc.code || d.CarrierID != tc.id || d.Participation != "accepted" || d.CanSchedule != tc.schedule {
 				t.Fatalf("wrong attachment or permission: %+v", d)
 			}
-			chart := PatientDemographics{CarrierName: tc.plan, CarrierID: "car308175"}
+			chart := domain.PatientDemographics{CarrierName: tc.plan, CarrierID: "car308175"}
 			if DecideChartInsurance(chart, tc.plan, "medical", office, "01/02/1980").CanSchedule {
 				t.Fatal("stale carrier attachment allowed scheduling")
 			}

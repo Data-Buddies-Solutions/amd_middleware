@@ -1,6 +1,9 @@
-package domain
+package insurance
 
-import "encoding/json"
+import (
+	"advancedmd-token-management/internal/domain"
+	"encoding/json"
+)
 
 type medicalPlan struct {
 	Name            string                         `json:"name"`
@@ -15,7 +18,7 @@ type medicalPlan struct {
 
 type medicalOfficePolicy struct {
 	Status       string                 `json:"status"`
-	Routing      RoutingRule            `json:"routing"`
+	Routing      domain.RoutingRule     `json:"routing"`
 	Notice       string                 `json:"notice"`
 	Requirements []InsuranceRequirement `json:"requirements,omitempty"`
 }
@@ -26,7 +29,7 @@ type medicalCatalogData struct {
 }
 
 var medicalCatalog = func() medicalCatalogData {
-	b, err := insuranceSources.ReadFile("insurance_data/MEDICAL.json")
+	b, err := insuranceSources.ReadFile("data/MEDICAL.json")
 	if err != nil {
 		panic(err)
 	}
@@ -42,7 +45,7 @@ var medicalCatalog = func() medicalCatalogData {
 		}
 		seen[key] = true
 		for _, policy := range p.Offices {
-			if policy.Status == "accepted" && (p.CarrierID == "" || policy.Routing == "" || policy.Routing == RoutingNotAccepted) {
+			if policy.Status == "accepted" && (p.CarrierID == "" || policy.Routing == "" || policy.Routing == domain.RoutingNotAccepted) {
 				panic("accepted insurance requires carrier ID and office routing: " + p.Name)
 			}
 			switch policy.Status {

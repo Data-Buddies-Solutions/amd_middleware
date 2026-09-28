@@ -1,16 +1,19 @@
-package domain
+package insurance
 
-import "testing"
+import (
+	"advancedmd-token-management/internal/domain"
+	"testing"
+)
 
 func TestChartProductCannotLoseRequirementsThroughSharedCarrier(t *testing.T) {
-	InitRegistry("")
-	office, _ := ResolveOffice("Hollywood")
+	domain.InitRegistry("")
+	office, _ := domain.ResolveOffice("Hollywood")
 	for _, tc := range []struct{ chart, requested, carrier string }{
 		{"Cigna HMO", "Cigna PPO", "car301345"},
 		{"United Healthcare NHP HMO Only", "United Healthcare NHP HMO Access", "car40923"},
 	} {
 		t.Run(tc.chart, func(t *testing.T) {
-			d := DecideChartInsurance(PatientDemographics{CarrierName: tc.chart, CarrierID: tc.carrier}, tc.requested, "medical", office, "01/02/1980")
+			d := DecideChartInsurance(domain.PatientDemographics{CarrierName: tc.chart, CarrierID: tc.carrier}, tc.requested, "medical", office, "01/02/1980")
 			if d.CanSchedule {
 				t.Fatalf("caller removed chart product requirements: %+v", d)
 			}
@@ -19,9 +22,9 @@ func TestChartProductCannotLoseRequirementsThroughSharedCarrier(t *testing.T) {
 }
 
 func TestChartProductAcceptsCanonicalAliasesButNotUnknownCarrier(t *testing.T) {
-	InitRegistry("")
-	office, _ := ResolveOffice("Hollywood")
-	chart := PatientDemographics{CarrierName: "Preferred Care Partners Medical", CarrierID: "car40916"}
+	domain.InitRegistry("")
+	office, _ := domain.ResolveOffice("Hollywood")
+	chart := domain.PatientDemographics{CarrierName: "Preferred Care Partners Medical", CarrierID: "car40916"}
 	d := DecideChartInsurance(chart, "Preferred Care Partners", "medical", office, "01/02/1980")
 	if !d.CanSchedule || d.CarrierCode != "PRE04" {
 		t.Fatalf("same product alias blocked: %+v", d)

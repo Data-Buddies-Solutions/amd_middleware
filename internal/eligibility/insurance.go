@@ -1,6 +1,7 @@
 package eligibility
 
 import (
+	"advancedmd-token-management/internal/insurance"
 	"encoding/json"
 	"slices"
 	"strings"
@@ -9,9 +10,9 @@ import (
 )
 
 type InsuranceResolution struct {
-	Status   string                    `json:"status"`
-	Plans    []string                  `json:"plans"`
-	Decision *domain.InsuranceDecision `json:"decision,omitempty"`
+	Status   string                       `json:"status"`
+	Plans    []string                     `json:"plans"`
+	Decision *insurance.InsuranceDecision `json:"decision,omitempty"`
 }
 
 func ResolveInsurance(result Result, office *domain.OfficeConfig, input CheckInput) *InsuranceResolution {
@@ -52,7 +53,7 @@ func ResolveInsurance(result Result, office *domain.OfficeConfig, input CheckInp
 	}
 	unmapped := false
 	for _, plan := range out.Plans {
-		decision := domain.DecideEligibilityInsurance(plan, coverage, office, input.DOB)
+		decision := insurance.DecideEligibilityInsurance(plan, coverage, office, input.DOB)
 		if decision.Outcome == "needs_staff_task" && decision.Participation == "unknown" {
 			out.Status, out.Decision = "resolved", &decision
 			return out

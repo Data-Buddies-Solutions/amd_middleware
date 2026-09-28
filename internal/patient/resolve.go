@@ -1,6 +1,7 @@
 package patient
 
 import (
+	"advancedmd-token-management/internal/insurance"
 	"context"
 	"fmt"
 	"log"
@@ -310,7 +311,7 @@ func applyDemographics(result *ResolveResult, demographics domain.PatientDemogra
 	if demographics.CarrierID == "" {
 		return
 	}
-	decision := domain.DecideChartInsurance(demographics, "", "medical", office, patientDOB)
+	decision := insurance.DecideChartInsurance(demographics, "", "medical", office, patientDOB)
 	result.InsuranceDecision = &decision
 	result.Routing = decision.Routing
 	result.AllowedProviders = decision.AllowedProviders

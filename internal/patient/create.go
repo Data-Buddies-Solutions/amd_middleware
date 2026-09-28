@@ -1,6 +1,7 @@
 package patient
 
 import (
+	"advancedmd-token-management/internal/insurance"
 	"context"
 	"errors"
 	"fmt"
@@ -19,7 +20,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 	if err != nil {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
 	}
-	if domain.IsSelfPayInsurance(command.Insurance) && strings.TrimSpace(command.SubscriberNum) == "" {
+	if insurance.IsSelfPayInsurance(command.Insurance) && strings.TrimSpace(command.SubscriberNum) == "" {
 		command.SubscriberNum = "self pay"
 	}
 	if missing := createMissingFields(command); len(missing) > 0 {
@@ -33,7 +34,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 	if coverage == "" {
 		coverage = "medical"
 	}
-	decision := domain.DecideInsurance(command.Insurance, coverage, office, command.DOB)
+	decision := insurance.DecideInsurance(command.Insurance, coverage, office, command.DOB)
 	if decision.Participation != "accepted" {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
