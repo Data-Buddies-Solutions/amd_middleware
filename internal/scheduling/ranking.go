@@ -1,6 +1,7 @@
 package scheduling
 
 import (
+	"advancedmd-token-management/internal/domain"
 	"errors"
 	"fmt"
 	"sort"
@@ -56,7 +57,7 @@ func rankedSlot(
 	requestedDate string,
 	preferredTime *AvailabilityTimePreference,
 ) (rankedAvailabilitySlot, error) {
-	start, err := time.Parse("2006-01-02T15:04", slot.DateTime)
+	start, err := time.Parse(domain.SlotDateTimeLayout, slot.DateTime)
 	if err != nil {
 		return rankedAvailabilitySlot{}, fmt.Errorf("invalid slot datetime %q", slot.DateTime)
 	}
@@ -173,7 +174,7 @@ func availabilitySlotLess(left, right AvailabilitySlotOption) bool {
 }
 
 func slotMinuteOfDay(slot AvailabilitySlotOption) int {
-	start, _ := time.Parse("2006-01-02T15:04", slot.DateTime)
+	start, _ := time.Parse(domain.SlotDateTimeLayout, slot.DateTime)
 	return start.Hour()*60 + start.Minute()
 }
 
