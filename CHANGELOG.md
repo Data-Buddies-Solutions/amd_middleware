@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.2.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.1...v5.2.2) (2026-09-28)
+
+
+### Bug Fixes
+
+* filter patient candidate lookups by date of birth ([#218](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/218)) ([88a22d9](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/88a22d91d22d2461f65acd285dc7da74f7845fd4))
+
 ## [5.2.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.0...v5.2.1) (2026-09-27)
 
 
