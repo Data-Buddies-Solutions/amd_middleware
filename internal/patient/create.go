@@ -8,21 +8,18 @@ import (
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
-	"advancedmd-token-management/internal/insurance"
 )
 
 func (p *patient) Create(ctx context.Context, command CreateCommand) (result CreateResult) {
 	defer func() {
-		recordMutation("create", createOutcome(result))
+		recordMutation("create", mutationLabel(result.Outcome, result.Status == CreateStatusCreated))
 	}()
 
 	office, err := domain.ResolveOffice(command.Office)
 	if err != nil {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
 	}
-	if insurance.IsSelfPayInsurance(command.Insurance) && strings.TrimSpace(command.SubscriberNum) == "" {
-		command.SubscriberNum = "self pay"
-	}
+	command.SubscriberNum = subscriberNumber(command.Insurance, command.SubscriberNum)
 	if missing := createMissingFields(command); len(missing) > 0 {
 		return CreateResult{
 			Status:  CreateStatusError,
@@ -30,11 +27,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 			Message: fmt.Sprintf("Missing required fields: %s", strings.Join(missing, ", ")),
 		}
 	}
-	coverage := command.CoverageType
-	if coverage == "" {
-		coverage = "medical"
-	}
-	decision := insurance.DecideInsurance(command.Insurance, coverage, office, command.DOB)
+	decision := decidePlan(command.Insurance, command.CoverageType, office, command.DOB)
 	if decision.Participation != "accepted" {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
@@ -252,16 +245,8 @@ func (p *patient) loadCreatedPatient(ctx context.Context, match domain.Patient) 
 }
 
 func creationMatch(candidate domain.Patient, command CreateCommand) bool {
-	firstName := candidate.FirstName
-	if firstName == "" {
-		firstName = domain.ParseFirstName(candidate.FullName)
-	}
-	lastName := candidate.LastName
-	if lastName == "" {
-		lastName = strings.TrimSpace(strings.SplitN(candidate.FullName, ",", 2)[0])
-	}
-	return strings.EqualFold(domain.StripDiacritics(firstName), domain.StripDiacritics(command.FirstName)) &&
-		strings.EqualFold(domain.StripDiacritics(lastName), domain.StripDiacritics(command.LastName)) &&
+	return strings.EqualFold(domain.StripDiacritics(patientFirstName(candidate)), domain.StripDiacritics(command.FirstName)) &&
+		strings.EqualFold(domain.StripDiacritics(patientLastName(candidate)), domain.StripDiacritics(command.LastName)) &&
 		domain.NormalizeDOB(candidate.DOB) == domain.NormalizeDOB(command.DOB) &&
 		(candidate.Phone == "" || domain.NormalizePhoneDigits(candidate.Phone) == domain.NormalizePhoneDigits(command.Phone))
 }
