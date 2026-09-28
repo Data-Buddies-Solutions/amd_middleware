@@ -270,21 +270,16 @@ func (rw *responseWriter) WriteHeader(code int) {
 	}
 	rw.wroteHeader = true
 	rw.statusCode = code
-	if rw.state != nil {
-		outcome := rw.state.outcome
-		if outcome == "" {
-			outcome = outcomeForStatus(code)
-		}
-		rw.Header().Set("X-Abita-Outcome", string(outcome))
-		rw.Header().Set("X-Abita-Error-Category", string(rw.state.providerFailure))
+	outcome := rw.state.outcome
+	if outcome == "" {
+		outcome = outcomeForStatus(code)
 	}
-	if rw.diagnostics != nil {
-		failures, count := rw.diagnostics.Snapshot()
-		if count > 0 {
-			encoded, _ := json.Marshal(failures)
-			rw.Header().Set("X-Abita-Provider-Errors", string(encoded))
-			rw.Header().Set("X-Abita-Provider-Error-Count", fmt.Sprint(count))
-		}
+	rw.Header().Set("X-Abita-Outcome", string(outcome))
+	rw.Header().Set("X-Abita-Error-Category", string(rw.state.providerFailure))
+	if failures, count := rw.diagnostics.Snapshot(); count > 0 {
+		encoded, _ := json.Marshal(failures)
+		rw.Header().Set("X-Abita-Provider-Errors", string(encoded))
+		rw.Header().Set("X-Abita-Provider-Error-Count", fmt.Sprint(count))
 	}
 	rw.ResponseWriter.WriteHeader(code)
 }
