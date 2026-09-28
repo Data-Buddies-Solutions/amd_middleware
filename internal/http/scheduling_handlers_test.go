@@ -59,7 +59,7 @@ func TestAvailabilityHandlerRejectsLegacyDate(t *testing.T) {
 
 	handlers.HandleGetAvailability(response, request)
 
-	var body ErrorResponse
+	var body errorResponse
 	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
 		t.Fatalf("decode availability response: %v", err)
 	}

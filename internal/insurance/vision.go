@@ -7,13 +7,13 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
-type InsuranceEntry struct {
+type insuranceEntry struct {
 	CarrierID       string
 	Routing         domain.RoutingRule
 	PreauthRequired bool
 }
 
-var VisionInsuranceNameMap = map[string]InsuranceEntry{
+var VisionInsuranceNameMap = map[string]insuranceEntry{
 	"vsp":                     {CarrierID: "car280695", Routing: domain.RoutingOpticalOnly},
 	"eyemed":                  {CarrierID: "car280684", Routing: domain.RoutingOpticalOnly},
 	"nva":                     {CarrierID: "car308794", Routing: domain.RoutingOpticalOnly},
@@ -31,7 +31,7 @@ var VisionInsuranceNameMap = map[string]InsuranceEntry{
 	"self pay":                {CarrierID: "car301672", Routing: domain.RoutingOpticalOnly},
 }
 
-var VisionInsuranceAliases = map[string]string{
+var visionInsuranceAliases = map[string]string{
 	"eye med":                        "eyemed",
 	"eye med vision":                 "eyemed",
 	"eye med vision care":            "eyemed",
@@ -149,7 +149,7 @@ var VisionInsuranceAliases = map[string]string{
 	"wellcare medicare hmo vision":             "premier",
 }
 
-func lookupInsuranceEntry(name string, entries map[string]InsuranceEntry, aliases map[string]string) (InsuranceEntry, string, bool) {
+func lookupInsuranceEntry(name string, entries map[string]insuranceEntry, aliases map[string]string) (insuranceEntry, string, bool) {
 	normalized := domain.NormalizeForLookup(name)
 
 	if entry, ok := entries[normalized]; ok {
@@ -161,19 +161,19 @@ func lookupInsuranceEntry(name string, entries map[string]InsuranceEntry, aliase
 		return entry, canonical, ok
 	}
 
-	return InsuranceEntry{}, "", false
+	return insuranceEntry{}, "", false
 }
 
-func lookupInsuranceFromMaps(name string, entries map[string]InsuranceEntry, aliases map[string]string) (InsuranceEntry, bool) {
+func lookupInsuranceFromMaps(name string, entries map[string]insuranceEntry, aliases map[string]string) (insuranceEntry, bool) {
 	entry, _, ok := lookupInsuranceEntry(name, entries, aliases)
 	return entry, ok
 }
 
-func lookupVisionInsurance(name string) (InsuranceEntry, bool) {
+func lookupVisionInsurance(name string) (insuranceEntry, bool) {
 	if isAetnaGovernmentVisionPlan(name) {
 		return VisionInsuranceNameMap["icare"], true
 	}
-	return lookupInsuranceFromMaps(name, VisionInsuranceNameMap, VisionInsuranceAliases)
+	return lookupInsuranceFromMaps(name, VisionInsuranceNameMap, visionInsuranceAliases)
 }
 
 func isAetnaGovernmentVisionPlan(name string) bool {
@@ -221,7 +221,7 @@ func CanonicalInsuranceName(name string) (string, bool) {
 	switch normalized {
 	case "eye med", "eye med vision", "eye med vision care", "national vision", "national vision administrators",
 		"davis vision", "spectera vision", "soltice", "solstice vision", "guardian vision", "alivi health", "sunhealth vision", "i care":
-		return VisionInsuranceAliases[normalized], true
+		return visionInsuranceAliases[normalized], true
 	}
 	return "", false
 }
@@ -230,5 +230,5 @@ func IsSelfPayInsurance(name string) bool {
 	normalized := domain.NormalizeForLookup(name)
 	return normalized == "self pay" ||
 		normalized == "selfpay" || normalized == "cash" || normalized == "cash pay" ||
-		VisionInsuranceAliases[normalized] == "self pay"
+		visionInsuranceAliases[normalized] == "self pay"
 }

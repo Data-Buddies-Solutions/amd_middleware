@@ -10,7 +10,7 @@ func TestBuildTokenData(t *testing.T) {
 				retainedPrefix = ""
 			}
 			host := retainedPrefix + "providerapi.advancedmd.com"
-			got := BuildTokenData("test-token", prefix+"providerapi.advancedmd.com/processrequest/api-801/myapp")
+			got := buildTokenData("test-token", prefix+"providerapi.advancedmd.com/processrequest/api-801/myapp")
 			want := TokenData{
 				Token:       "Bearer test-token",
 				CookieToken: "token=test-token",

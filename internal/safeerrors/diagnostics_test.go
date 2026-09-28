@@ -19,7 +19,7 @@ func TestDiagnosticsBoundConcurrentProviderFailuresAndIsolateRequests(t *testing
 	}
 	workers.Wait()
 	failures, count := diagnostics.Snapshot()
-	if count != 100 || len(failures) != MaxProviderDiagnostics {
+	if count != 100 || len(failures) != maxProviderDiagnostics {
 		t.Fatalf("count=%d retained=%d", count, len(failures))
 	}
 	failures[0].Operation = "changed"
