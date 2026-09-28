@@ -11,7 +11,7 @@ type TokenData struct {
 	RestApiBase string
 }
 
-func BuildTokenData(token, webserverURL string) *TokenData {
+func buildTokenData(token, webserverURL string) *TokenData {
 	base := strings.TrimPrefix(webserverURL, "https://")
 	return &TokenData{
 		Token:       "Bearer " + token,

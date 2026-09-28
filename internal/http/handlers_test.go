@@ -60,7 +60,7 @@ func TestPatientResolveKeepsStableResponseWhenSessionUnavailable(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("status code = %d, want 200", w.Code)
 	}
-	var body ErrorResponse
+	var body errorResponse
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
 
 	handlers.HandleGetAvailability(w, req)
 
-	var resp ErrorResponse
+	var resp errorResponse
 	json.NewDecoder(w.Result().Body).Decode(&resp)
 	if resp.Status != "error" {
 		t.Fatalf("expected status error, got %q", resp.Status)
@@ -608,7 +608,7 @@ func TestHandleAddPatient_RoutineOnlyOfficeRejectsMedical(t *testing.T) {
 
 func TestAuthMiddleware(t *testing.T) {
 	apiSecret := "test-secret-123"
-	middleware := AuthMiddleware(apiSecret)
+	middleware := authMiddleware(apiSecret)
 
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

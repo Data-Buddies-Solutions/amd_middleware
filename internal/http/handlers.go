@@ -15,7 +15,7 @@ import (
 	"advancedmd-token-management/internal/session"
 )
 
-type ErrorResponse struct {
+type errorResponse struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
 }
@@ -135,7 +135,7 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 	respond(w, result)
 }
 
-type CancelAppointmentRequest struct {
+type cancelAppointmentRequest struct {
 	AppointmentID     int    `json:"appointmentId,omitempty"`
 	PatientID         string `json:"patientId,omitempty"`
 	Office            string `json:"office,omitempty"`
@@ -144,8 +144,8 @@ type CancelAppointmentRequest struct {
 	cancellationTokenProvided bool
 }
 
-func (r *CancelAppointmentRequest) UnmarshalJSON(data []byte) error {
-	type request CancelAppointmentRequest
+func (r *cancelAppointmentRequest) UnmarshalJSON(data []byte) error {
+	type request cancelAppointmentRequest
 	var decoded request
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return err
@@ -154,12 +154,12 @@ func (r *CancelAppointmentRequest) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return err
 	}
-	*r = CancelAppointmentRequest(decoded)
+	*r = cancelAppointmentRequest(decoded)
 	_, r.cancellationTokenProvided = fields["cancellationToken"]
 	return nil
 }
 
-func (r CancelAppointmentRequest) command() schedulingmodule.CancelCommand {
+func (r cancelAppointmentRequest) command() schedulingmodule.CancelCommand {
 	var cancellationToken *string
 	if r.cancellationTokenProvided {
 		cancellationToken = &r.CancellationToken
@@ -173,7 +173,7 @@ func (r CancelAppointmentRequest) command() schedulingmodule.CancelCommand {
 }
 
 func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Request) {
-	var req CancelAppointmentRequest
+	var req cancelAppointmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		rejectInvalidRequest(w, r, schedulingmodule.CancelReceipt{
 			Status:  "error",
@@ -231,14 +231,14 @@ func schedulingOutcome(err error) string {
 func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	var req schedulingmodule.SearchCommand
 	if err := decodeStrict(r, &req); err != nil {
-		rejectInvalidRequest(w, r, ErrorResponse{Status: "error", Message: "Invalid JSON body"})
+		rejectInvalidRequest(w, r, errorResponse{Status: "error", Message: "Invalid JSON body"})
 		return
 	}
 
 	response, err := h.scheduling.Search(r.Context(), req)
 	if err != nil {
 		recordSchedulingError(r.Context(), err)
-		respond(w, ErrorResponse{Status: "error", Message: err.Error()})
+		respond(w, errorResponse{Status: "error", Message: err.Error()})
 		return
 	}
 	if response.Status == schedulingmodule.AvailabilityStatusError {

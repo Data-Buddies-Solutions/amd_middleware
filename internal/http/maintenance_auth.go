@@ -78,7 +78,7 @@ func (a *maintenanceAuthorizer) Authorize(r *http.Request) bool {
 		identity.Email == a.serviceAccount
 }
 
-func MaintenanceAuthMiddleware(authorizer MaintenanceAuthorizer) func(http.Handler) http.Handler {
+func maintenanceAuthMiddleware(authorizer MaintenanceAuthorizer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if authorizer == nil || !authorizer.Authorize(r) {

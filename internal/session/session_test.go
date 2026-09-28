@@ -95,8 +95,8 @@ func TestSessionReusesDocumentedFreshTokenBefore20Hours(t *testing.T) {
 		}
 		return "refreshed-too-soon", "https://provider.test/processrequest/api-801/app", nil
 	}), clock.Now, sessionPolicy{
-		staleAfter:   DefaultSessionStaleAfter,
-		expiresAfter: DefaultSessionExpiresAfter,
+		staleAfter:   defaultSessionStaleAfter,
+		expiresAfter: defaultSessionExpiresAfter,
 		loginTimeout: time.Minute,
 	})
 
@@ -130,8 +130,8 @@ func TestSessionUsesLastKnownGoodUntilDocumented24HourExpiration(t *testing.T) {
 		}
 		return "", "", errors.New("temporary login failure")
 	}), clock.Now, sessionPolicy{
-		staleAfter:   DefaultSessionStaleAfter,
-		expiresAfter: DefaultSessionExpiresAfter,
+		staleAfter:   defaultSessionStaleAfter,
+		expiresAfter: defaultSessionExpiresAfter,
 		loginTimeout: time.Minute,
 	})
 
@@ -402,8 +402,8 @@ func TestSessionHardExpirationIncludesAuthenticationTime(t *testing.T) {
 		}
 		return "", "", errors.New("temporary login failure")
 	}), clock.Now, sessionPolicy{
-		staleAfter:   DefaultSessionStaleAfter,
-		expiresAfter: DefaultSessionExpiresAfter,
+		staleAfter:   defaultSessionStaleAfter,
+		expiresAfter: defaultSessionExpiresAfter,
 		loginTimeout: time.Minute,
 	})
 
@@ -479,7 +479,7 @@ func TestSessionRetriesAfterUnavailableAuthentication(t *testing.T) {
 		t.Fatalf("state after failed initial login = %q, want %q", got, SessionUnavailable)
 	}
 
-	clock.Advance(DefaultSessionRetryDelay)
+	clock.Advance(defaultSessionRetryDelay)
 
 	token, err := session.Get(context.Background())
 	if err != nil {
@@ -665,7 +665,7 @@ func TestCancelledColdSessionLoginDoesNotBlockNextCaller(t *testing.T) {
 		}
 		return "recovered-token", "https://provider.test/processrequest/api-801/app", nil
 	}), clock.Now, sessionPolicy{
-		staleAfter: DefaultSessionStaleAfter, expiresAfter: DefaultSessionExpiresAfter,
+		staleAfter: defaultSessionStaleAfter, expiresAfter: defaultSessionExpiresAfter,
 		loginTimeout: time.Second, retryDelay: time.Minute,
 	})
 	ctx, cancel := context.WithCancel(context.Background())
@@ -708,7 +708,7 @@ func TestSessionWaiterRecoversWhenLeadingCallerCancels(t *testing.T) {
 		}
 		return "recovered-token", "https://provider.test/processrequest/api-801/app", nil
 	}), now, sessionPolicy{
-		staleAfter: DefaultSessionStaleAfter, expiresAfter: DefaultSessionExpiresAfter,
+		staleAfter: defaultSessionStaleAfter, expiresAfter: defaultSessionExpiresAfter,
 		loginTimeout: time.Minute, retryDelay: time.Minute,
 	})
 
