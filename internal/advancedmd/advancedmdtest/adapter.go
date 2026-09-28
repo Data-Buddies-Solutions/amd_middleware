@@ -25,12 +25,17 @@ type PatientSearchStep struct {
 	Err      error
 }
 
+type CandidateQuery struct {
+	FirstName string
+	DOB       string
+}
+
 // Adapter returns caller-controlled domain results without provider I/O.
 type Adapter struct {
 	scheduleMu               sync.Mutex
 	CandidateReads           map[string]domain.PatientCandidateRead
 	CandidateReadErrors      map[string]error
-	CandidateQueries         []string
+	CandidateQueries         []CandidateQuery
 	PatientSearches          map[domain.PatientSearch][]domain.Patient
 	PatientErrors            map[domain.PatientSearch]error
 	PatientSearchSequence    map[domain.PatientSearch][]PatientSearchStep
@@ -101,8 +106,8 @@ func (a *Adapter) SearchPatients(_ context.Context, search domain.PatientSearch)
 	return append([]domain.Patient(nil), a.PatientSearches[search]...), nil
 }
 
-func (a *Adapter) ReadPatientCandidates(_ context.Context, firstName string) (domain.PatientCandidateRead, error) {
-	a.CandidateQueries = append(a.CandidateQueries, firstName)
+func (a *Adapter) ReadPatientCandidates(_ context.Context, firstName, dob string) (domain.PatientCandidateRead, error) {
+	a.CandidateQueries = append(a.CandidateQueries, CandidateQuery{FirstName: firstName, DOB: dob})
 	a.SearchPatientCalls++
 	return a.CandidateReads[firstName], a.CandidateReadErrors[firstName]
 }

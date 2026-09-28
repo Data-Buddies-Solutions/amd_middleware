@@ -34,7 +34,7 @@ func TestLookupPatientCandidatesReadsLaterPages(t *testing.T) {
 	})
 	client, token, cleanup := newTestXMLRPCClient(t, handler)
 	defer cleanup()
-	read, err := client.LookupPatientCandidates(context.Background(), token, "Jane")
+	read, err := client.LookupPatientCandidates(context.Background(), token, "Jane", "01/15/1980")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +139,7 @@ func TestLookupPatientRetainsRecordsWhenReportedCountIsTooLow(t *testing.T) {
 						t.Fatal("phone lookup lost returned candidates")
 					}
 				} else {
-					read, err := client.LookupPatientCandidates(context.Background(), token, "Jane")
+					read, err := client.LookupPatientCandidates(context.Background(), token, "Jane", "01/15/1980")
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -155,5 +155,27 @@ func TestLookupPatientRetainsRecordsWhenReportedCountIsTooLow(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestLookupPatientCandidatesSendsDOBOnEveryPage(t *testing.T) {
+	reads := 0
+	client, token, cleanup := newTestXMLRPCClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request struct {
+			Msg map[string]any `json:"ppmdmsg"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Fatal(err)
+		}
+		if request.Msg["@dob"] != "01/15/1980" {
+			t.Errorf("DOB missing from provider search: %v", request.Msg["@dob"])
+		}
+		reads++
+		json.NewEncoder(w).Encode(lookupPageFixture(reads, 2, 2, fmt.Sprint(reads)))
+	}))
+	defer cleanup()
+	read, err := client.LookupPatientCandidates(context.Background(), token, "Jane", "01/15/1980")
+	if err != nil || !read.Complete || len(read.Patients) != 2 || reads != 2 {
+		t.Fatalf("reads=%d complete=%v err=%v", reads, read.Complete, err)
 	}
 }

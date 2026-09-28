@@ -69,8 +69,8 @@ func (a *Adapter) SearchPatients(ctx context.Context, search domain.PatientSearc
 	return patients, nil
 }
 
-// ReadPatientCandidates retrieves first-name prefix candidates without identity policy or hydration.
-func (a *Adapter) ReadPatientCandidates(ctx context.Context, firstName string) (domain.PatientCandidateRead, error) {
+// ReadPatientCandidates retrieves provider candidates without identity policy or hydration.
+func (a *Adapter) ReadPatientCandidates(ctx context.Context, firstName, dob string) (domain.PatientCandidateRead, error) {
 	token, err := a.token(ctx)
 	if err != nil {
 		return domain.PatientCandidateRead{}, err
@@ -78,7 +78,7 @@ func (a *Adapter) ReadPatientCandidates(ctx context.Context, firstName string) (
 	if a.xmlClient == nil {
 		return domain.PatientCandidateRead{}, NewError(safeerrors.CategoryInternal)
 	}
-	read, err := a.xmlClient.LookupPatientCandidates(ctx, token, firstName)
+	read, err := a.xmlClient.LookupPatientCandidates(ctx, token, firstName, dob)
 	if err != nil {
 		return domain.PatientCandidateRead{}, classify(err)
 	}

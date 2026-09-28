@@ -1079,3 +1079,36 @@ func TestScheduleReadsAreConcurrentAndCannotUseMalformedOccupancy(t *testing.T) 
 		t.Fatal(err)
 	}
 }
+
+func TestAdapterPatientCandidatesForwardsDOB(t *testing.T) {
+	for _, dob := range []string{"01/15/1980", ""} {
+		t.Run("dob="+dob, func(t *testing.T) {
+			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				var request struct {
+					Msg map[string]any `json:"ppmdmsg"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+					t.Fatal(err)
+				}
+				if request.Msg["@name"] != ",Jane" {
+					t.Errorf("name = %v", request.Msg["@name"])
+				}
+				if dob == "" {
+					if _, exists := request.Msg["@dob"]; exists {
+						t.Error("empty DOB must be omitted")
+					}
+				} else if request.Msg["@dob"] != dob {
+					t.Errorf("DOB = %v, want %s", request.Msg["@dob"], dob)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte(`{"PPMDResults":{"Results":{"patientlist":{"@page":"1","@pagecount":"1","@itemcount":"0"}}}}`))
+			}))
+			defer server.Close()
+			adapter := NewAdapter(staticSession{token: &domain.TokenData{CookieToken: "token=test", XmlrpcURL: strings.TrimPrefix(server.URL, "https://")}}, clients.NewAdvancedMDClient(server.Client()), nil)
+			got, err := adapter.ReadPatientCandidates(context.Background(), "Jane", dob)
+			if err != nil || !got.Complete || len(got.Patients) != 0 {
+				t.Fatalf("read=%+v err=%v", got, err)
+			}
+		})
+	}
+}
