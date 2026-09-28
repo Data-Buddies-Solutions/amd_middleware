@@ -123,7 +123,7 @@ type PatientInsuranceEnd struct {
 }
 
 func StripPatientPrefix(id string) string {
-	return strings.TrimPrefix(id, "pat")
+	return strings.TrimPrefix(strings.TrimSpace(id), "pat")
 }
 
 func NormalizeDOB(dob string) string {

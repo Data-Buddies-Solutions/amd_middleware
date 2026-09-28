@@ -151,7 +151,7 @@ func (s *service) prepareBooking(ctx context.Context, booking bookingContext) (p
 }
 
 func (s *service) resolveBookingContext(command BookCommand) (bookingContext, error) {
-	command.PatientID = domain.StripPatientPrefix(strings.TrimSpace(command.PatientID))
+	command.PatientID = domain.StripPatientPrefix(command.PatientID)
 	booking := bookingContext{
 		command: command,
 		signed:  command.BookingToken != "",
@@ -348,7 +348,7 @@ func (s *service) revalidateBookingSlot(
 		)
 	}
 
-	start, err := time.Parse("2006-01-02T15:04", command.StartDatetime)
+	start, err := time.Parse(domain.SlotDateTimeLayout, command.StartDatetime)
 	if err != nil {
 		if booking.signed {
 			return time.Time{}, false, invalidBookingTokenError()

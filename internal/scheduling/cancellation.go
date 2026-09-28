@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	"advancedmd-token-management/internal/advancedmd"
@@ -83,7 +82,7 @@ func (s *service) Cancel(ctx context.Context, command CancelCommand) (receipt Ca
 	if command.AppointmentID == 0 {
 		return CancelReceipt{}, schedulingError("appointmentId is required")
 	}
-	command.PatientID = domain.StripPatientPrefix(strings.TrimSpace(command.PatientID))
+	command.PatientID = domain.StripPatientPrefix(command.PatientID)
 	if command.PatientID == "" {
 		return CancelReceipt{}, schedulingError("patientId is required")
 	}
@@ -143,7 +142,7 @@ func (s *service) cancelWithToken(
 		return CancelReceipt{}, invalidCancellationTokenError()
 	}
 	if command.PatientID != "" {
-		patientID := domain.StripPatientPrefix(strings.TrimSpace(command.PatientID))
+		patientID := domain.StripPatientPrefix(command.PatientID)
 		if patientID != policy.PatientID {
 			return CancelReceipt{}, invalidCancellationTokenError()
 		}

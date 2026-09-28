@@ -118,7 +118,7 @@ func (t *AppointmentTokens) verifyReschedule(token string, now time.Time) (appoi
 }
 
 func (t *AppointmentTokens) issue(patientID string, appointment domain.PatientAppointment, purpose, domainSeparator string) (string, error) {
-	patientID = domain.StripPatientPrefix(strings.TrimSpace(patientID))
+	patientID = domain.StripPatientPrefix(patientID)
 	if _, err := strconv.Atoi(patientID); err != nil ||
 		appointment.ID <= 0 ||
 		appointment.OfficeID == "" ||

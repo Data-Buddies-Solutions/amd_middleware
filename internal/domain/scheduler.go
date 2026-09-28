@@ -112,6 +112,8 @@ func (c *SchedulerColumn) ParseWorkHours(date time.Time) (start, end time.Time, 
 	return start, end, nil
 }
 
+const SlotDateTimeLayout = "2006-01-02T15:04"
+
 func FormatSlotDateTime(t time.Time) string {
-	return t.Format("2006-01-02T15:04")
+	return t.Format(SlotDateTimeLayout)
 }
