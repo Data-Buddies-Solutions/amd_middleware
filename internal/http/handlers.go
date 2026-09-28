@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/eligibility"
-	"advancedmd-token-management/internal/insurance"
 	patientmodule "advancedmd-token-management/internal/patient"
 	"advancedmd-token-management/internal/safeerrors"
 	schedulingmodule "advancedmd-token-management/internal/scheduling"
@@ -20,46 +18,6 @@ import (
 type ErrorResponse struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
-}
-
-type PatientResolveRequest struct {
-	PatientID string `json:"patientId,omitempty"`
-	LastName  string `json:"lastName,omitempty"`
-	DOB       string `json:"dob,omitempty"`
-	FirstName string `json:"firstName,omitempty"`
-	Phone     string `json:"phone,omitempty"`
-	Office    string `json:"office,omitempty"`
-}
-
-type PatientResolveResponse struct {
-	InsuranceDecision   *insurance.InsuranceDecision `json:"insuranceDecision,omitempty"`
-	Reason              string                       `json:"reason,omitempty"`
-	Status              string                       `json:"status"`
-	PatientID           string                       `json:"patientId,omitempty"`
-	Name                string                       `json:"name,omitempty"`
-	DOB                 string                       `json:"dob,omitempty"`
-	Phone               string                       `json:"phone,omitempty"`
-	InsuranceCarrier    string                       `json:"insuranceCarrier,omitempty"`
-	InsuranceCarrierID  string                       `json:"insuranceCarrierId,omitempty"`
-	InsPlanID           string                       `json:"insPlanId,omitempty"`
-	RespPartyID         string                       `json:"respPartyId,omitempty"`
-	Routing             string                       `json:"routing,omitempty"`
-	AllowedProviders    []string                     `json:"allowedProviders,omitempty"`
-	RoutingAmbiguous    bool                         `json:"routingAmbiguous,omitempty"`
-	PreauthRequired     bool                         `json:"preauthRequired,omitempty"`
-	AppointmentsStatus  string                       `json:"appointmentsStatus,omitempty"`
-	Appointments        []PatientApptDetail          `json:"appointments"`
-	AppointmentsMessage string                       `json:"appointmentsMessage,omitempty"`
-	Message             string                       `json:"message,omitempty"`
-	Matches             []PatientCandidateResponse   `json:"matches"`
-}
-
-type PatientCandidateResponse struct {
-	Status    string `json:"status"`
-	PatientID string `json:"patientId"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	DOB       string `json:"dob"`
 }
 
 type Handlers struct {
@@ -73,11 +31,13 @@ func NewHandlers(
 	amdSession session.Session,
 	patient patientmodule.Patient,
 	scheduling schedulingmodule.Scheduling,
+	eligibility *eligibility.Service,
 ) *Handlers {
 	return &Handlers{
-		session:    amdSession,
-		patient:    patient,
-		scheduling: scheduling,
+		session:     amdSession,
+		patient:     patient,
+		scheduling:  scheduling,
+		eligibility: eligibility,
 	}
 }
 
@@ -118,145 +78,40 @@ func (h *Handlers) HandleSessionMaintenance(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNoContent)
 }
 
-type AddPatientRequest struct {
-	FirstName      string `json:"firstName"`
-	LastName       string `json:"lastName"`
-	DOB            string `json:"dob"`
-	Phone          string `json:"phone"`
-	Email          string `json:"email"`
-	Street         string `json:"street"`
-	AptSuite       string `json:"aptSuite"`
-	City           string `json:"city"`
-	State          string `json:"state"`
-	Zip            string `json:"zip"`
-	Sex            string `json:"sex"`
-	SSN            string `json:"ssn,omitempty"`
-	Insurance      string `json:"insurance"`
-	CoverageType   string `json:"coverageType,omitempty"`
-	SubscriberName string `json:"subscriberName"`
-	SubscriberNum  string `json:"subscriberNum"`
-	Office         string `json:"office,omitempty"`
-}
-
-type AddPatientResponse struct {
-	InsuranceDecision *insurance.InsuranceDecision `json:"insuranceDecision,omitempty"`
-	Status            string                       `json:"status"`
-	Outcome           string                       `json:"outcome,omitempty"`
-	PatientID         string                       `json:"patientId,omitempty"`
-	Name              string                       `json:"name,omitempty"`
-	DOB               string                       `json:"dob,omitempty"`
-	Routing           string                       `json:"routing,omitempty"`
-	AllowedProviders  []string                     `json:"allowedProviders,omitempty"`
-	PreauthRequired   bool                         `json:"preauthRequired,omitempty"`
-	Message           string                       `json:"message,omitempty"`
-}
-
 func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var req AddPatientRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(AddPatientResponse{
-			Status:  "error",
-			Message: "Invalid JSON body",
-		})
+	var command patientmodule.CreateCommand
+	if err := json.NewDecoder(r.Body).Decode(&command); err != nil {
+		rejectInvalidRequest(w, r, patientmodule.CreateResult{Status: patientmodule.CreateStatusError, Message: "Invalid JSON body"})
 		return
 	}
 
-	result := h.patient.Create(r.Context(), patientmodule.CreateCommand{
-		FirstName:      req.FirstName,
-		LastName:       req.LastName,
-		DOB:            req.DOB,
-		Phone:          req.Phone,
-		Email:          req.Email,
-		Street:         req.Street,
-		AptSuite:       req.AptSuite,
-		City:           req.City,
-		State:          req.State,
-		Zip:            req.Zip,
-		Sex:            req.Sex,
-		SSN:            req.SSN,
-		Insurance:      req.Insurance,
-		CoverageType:   req.CoverageType,
-		SubscriberName: req.SubscriberName,
-		SubscriberNum:  req.SubscriberNum,
-		Office:         req.Office,
-	})
+	result := h.patient.Create(r.Context(), command)
 	recordPatientMutationOutcome(r.Context(), result.Outcome)
-	outcome := ""
-	if result.Status != patientmodule.CreateStatusCreated {
-		outcome = string(result.Outcome)
+	if result.Status == patientmodule.CreateStatusCreated {
+		result.Outcome = ""
 	}
-	json.NewEncoder(w).Encode(AddPatientResponse{
-		Status:            string(result.Status),
-		Outcome:           outcome,
-		PatientID:         result.PatientID,
-		Name:              result.Name,
-		DOB:               result.DOB,
-		Routing:           string(result.Routing),
-		AllowedProviders:  result.AllowedProviders,
-		PreauthRequired:   result.PreauthRequired,
-		InsuranceDecision: result.InsuranceDecision,
-		Message:           result.Message,
-	})
-}
-
-type PatientApptDetail struct {
-	ID                int    `json:"id"`
-	Date              string `json:"date"`
-	Time              string `json:"time"`
-	Provider          string `json:"provider,omitempty"`
-	Type              string `json:"type,omitempty"`
-	VisitType         string `json:"visitType,omitempty"`
-	AppointmentTypeID int    `json:"appointmentTypeId,omitempty"`
-	Facility          string `json:"facility,omitempty"`
-	OfficeID          string `json:"officeId,omitempty"`
-	Office            string `json:"office,omitempty"`
-	CancellationToken string `json:"cancellationToken,omitempty"`
-	RescheduleToken   string `json:"rescheduleToken,omitempty"`
+	respond(w, result)
 }
 
 func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var req PatientResolveRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(PatientResolveResponse{
-			Status:  "error",
-			Message: "Invalid JSON body",
-		})
+	var command patientmodule.ResolveCommand
+	if err := json.NewDecoder(r.Body).Decode(&command); err != nil {
+		rejectInvalidRequest(w, r, patientmodule.ResolveResult{Status: "error", Message: "Invalid JSON body"})
 		return
 	}
 
-	office, err := domain.ResolveOffice(req.Office)
+	office, err := domain.ResolveOffice(command.Office)
 	if err != nil {
-		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(PatientResolveResponse{
-			Status:  "error",
-			Message: err.Error(),
-		})
+		rejectInvalidRequest(w, r, patientmodule.ResolveResult{Status: "error", Message: err.Error()})
 		return
 	}
-
-	if msg := validatePatientResolveRequest(req); msg != "" {
-		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(PatientResolveResponse{
-			Status:  "error",
-			Message: msg,
-		})
+	if message := command.Validate(); message != "" {
+		rejectInvalidRequest(w, r, patientmodule.ResolveResult{Status: "error", Message: message})
 		return
 	}
+	command.OfficeID = office.ID
 
-	result, err := h.patient.Resolve(r.Context(), patientmodule.ResolveCommand{
-		PatientID: req.PatientID,
-		LastName:  req.LastName,
-		DOB:       req.DOB,
-		FirstName: req.FirstName,
-		Phone:     req.Phone,
-		OfficeID:  office.ID,
-	})
+	result, err := h.patient.Resolve(r.Context(), command)
 	recordPatientResolutionObservation(r.Context(), result.Observation)
 	if err != nil {
 		category := advancedmd.CategoryOf(err)
@@ -265,96 +120,19 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 		if category == safeerrors.CategoryAuthentication || category == safeerrors.CategoryUnavailable {
 			message = "Service authentication is temporarily unavailable. Please try again."
 		}
-		json.NewEncoder(w).Encode(PatientResolveResponse{
-			Status:  "error",
-			Message: message,
-		})
+		respond(w, patientmodule.ResolveResult{Status: "error", Message: message})
 		return
 	}
 	if result.ProviderFailure != "" && result.ProviderFailure != safeerrors.CategoryNone {
 		recordRequestOutcome(r.Context(), outcomeProviderFailure, result.ProviderFailure)
 	}
-
-	json.NewEncoder(w).Encode(patientResolveResponse(result))
-}
-
-func patientResolveResponse(result patientmodule.ResolveResult) PatientResolveResponse {
-	appointments := make([]PatientApptDetail, len(result.Appointments))
-	for i, appointment := range result.Appointments {
-		appointments[i] = PatientApptDetail{
-			ID:                appointment.ID,
-			Date:              appointment.Date,
-			Time:              appointment.Time,
-			Provider:          appointment.Provider,
-			Type:              appointment.Type,
-			AppointmentTypeID: appointment.AppointmentTypeID,
-			VisitType:         appointment.VisitType,
-			Facility:          appointment.Facility,
-			OfficeID:          appointment.OfficeID,
-			Office:            appointment.Office,
-			CancellationToken: appointment.CancellationToken,
-			RescheduleToken:   appointment.RescheduleToken,
-		}
+	if result.Appointments == nil {
+		result.Appointments = []patientmodule.Appointment{}
 	}
-	matches := make([]PatientCandidateResponse, len(result.Matches))
-	for i, match := range result.Matches {
-		matches[i] = PatientCandidateResponse{
-			Status:    string(match.Status),
-			PatientID: match.PatientID,
-			FirstName: match.FirstName,
-			LastName:  match.LastName,
-			DOB:       match.DOB,
-		}
+	if result.Matches == nil {
+		result.Matches = []patientmodule.Candidate{}
 	}
-	return PatientResolveResponse{
-		Reason:              result.Reason,
-		Status:              string(result.Status),
-		PatientID:           result.PatientID,
-		Name:                result.Name,
-		DOB:                 result.DOB,
-		Phone:               result.Phone,
-		InsuranceCarrier:    result.InsuranceCarrier,
-		InsuranceCarrierID:  result.InsuranceCarrierID,
-		InsPlanID:           result.InsPlanID,
-		RespPartyID:         result.RespPartyID,
-		Routing:             string(result.Routing),
-		AllowedProviders:    result.AllowedProviders,
-		RoutingAmbiguous:    result.RoutingAmbiguous,
-		PreauthRequired:     result.PreauthRequired,
-		InsuranceDecision:   result.InsuranceDecision,
-		AppointmentsStatus:  string(result.AppointmentsStatus),
-		Appointments:        appointments,
-		AppointmentsMessage: result.AppointmentsMessage,
-		Message:             result.Message,
-		Matches:             matches,
-	}
-}
-
-func validatePatientResolveRequest(req PatientResolveRequest) string {
-	hasPatientID := req.PatientID != ""
-	hasLookupFields := req.Phone != "" || req.FirstName != "" || req.LastName != "" || req.DOB != ""
-	if hasPatientID {
-		if _, err := strconv.Atoi(req.PatientID); err != nil {
-			return "patientId must be numeric"
-		}
-		if hasLookupFields {
-			return "Provide either patientId or lookup fields, not both"
-		}
-		return ""
-	}
-	if req.Phone != "" {
-		if domain.NormalizePhoneDigits(req.Phone) == "" {
-			return "phone must contain at least one digit"
-		}
-		return ""
-	}
-	if (req.FirstName != "" || req.LastName != "") && req.DOB != "" {
-		if err := domain.ValidateOptionalDOB(req.DOB); err != nil {
-			return err.Error()
-		}
-		return ""
-	}
-	return "Provide patientId, phone, phone + firstName, phone + dob, firstName + dob, or lastName + dob"
+	respond(w, result)
 }
 
 type CancelAppointmentRequest struct {
@@ -394,15 +172,10 @@ func (r CancelAppointmentRequest) command() schedulingmodule.CancelCommand {
 	}
 }
 
-type CancelAppointmentResponse = schedulingmodule.CancelReceipt
-
 func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	var req CancelAppointmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(CancelAppointmentResponse{
+		rejectInvalidRequest(w, r, schedulingmodule.CancelReceipt{
 			Status:  "error",
 			Message: "Invalid JSON body",
 		})
@@ -417,32 +190,26 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 	response, err := h.scheduling.Cancel(ctx, req.command())
 	if err != nil {
 		recordSchedulingError(r.Context(), err)
-		json.NewEncoder(w).Encode(CancelAppointmentResponse{
+		respond(w, schedulingmodule.CancelReceipt{
 			Status:  "error",
 			Outcome: schedulingOutcome(err),
 			Message: err.Error(),
 		})
 		return
 	}
-	json.NewEncoder(w).Encode(response)
+	respond(w, response)
 }
 
-type BookAppointmentRequest = schedulingmodule.BookCommand
-type BookAppointmentResponse = schedulingmodule.BookReceipt
-
 func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var req BookAppointmentRequest
+	var req schedulingmodule.BookCommand
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: "Invalid JSON body"})
+		rejectInvalidRequest(w, r, schedulingmodule.BookReceipt{Status: "error", Message: "Invalid JSON body"})
 		return
 	}
 	response, err := h.scheduling.Book(r.Context(), req)
 	if err != nil {
 		recordSchedulingError(r.Context(), err)
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
+		respond(w, schedulingmodule.BookReceipt{
 			Status:  "error",
 			Outcome: schedulingOutcome(err),
 			Message: err.Error(),
@@ -450,7 +217,7 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 		})
 		return
 	}
-	json.NewEncoder(w).Encode(response)
+	respond(w, response)
 }
 
 func schedulingOutcome(err error) string {
@@ -461,41 +228,29 @@ func schedulingOutcome(err error) string {
 	return string(category)
 }
 
-type AvailabilityRequest = schedulingmodule.SearchCommand
-
 func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var req AvailabilityRequest
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&req); err != nil {
-		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: "Invalid JSON body"})
+	var req schedulingmodule.SearchCommand
+	if err := decodeStrict(r, &req); err != nil {
+		rejectInvalidRequest(w, r, ErrorResponse{Status: "error", Message: "Invalid JSON body"})
 		return
 	}
 
 	response, err := h.scheduling.Search(r.Context(), req)
 	if err != nil {
 		recordSchedulingError(r.Context(), err)
-		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: err.Error()})
+		respond(w, ErrorResponse{Status: "error", Message: err.Error()})
 		return
 	}
 	if response.Status == schedulingmodule.AvailabilityStatusError {
 		recordRequestOutcome(r.Context(), outcomeProviderFailure, safeerrors.CategoryInvalidResponse)
 	}
-	json.NewEncoder(w).Encode(response)
+	respond(w, response)
 }
 
 func (h *Handlers) HandleListAppointmentSlots(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	var req schedulingmodule.ListCommand
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&req); err != nil {
-		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(inventoryError(schedulingmodule.AvailabilityOutcomeInvalidInput, "Invalid JSON body"))
+	if err := decodeStrict(r, &req); err != nil {
+		rejectInvalidRequest(w, r, inventoryError(schedulingmodule.AvailabilityOutcomeInvalidInput, "Invalid JSON body"))
 		return
 	}
 
@@ -506,14 +261,14 @@ func (h *Handlers) HandleListAppointmentSlots(w http.ResponseWriter, r *http.Req
 		if schedulingmodule.ProviderFailureOf(err) != safeerrors.CategoryNone {
 			outcome = schedulingmodule.AvailabilityOutcomeSearchIncomplete
 		}
-		json.NewEncoder(w).Encode(inventoryError(outcome, err.Error()))
+		respond(w, inventoryError(outcome, err.Error()))
 		return
 	}
 	if response.Status == schedulingmodule.AvailabilityStatusError {
 		response.NextAction = ""
 		recordRequestOutcome(r.Context(), outcomeProviderFailure, safeerrors.CategoryInvalidResponse)
 	}
-	json.NewEncoder(w).Encode(response)
+	respond(w, response)
 }
 
 func inventoryError(outcome, message string) schedulingmodule.AvailabilityResponse {
@@ -524,79 +279,19 @@ func inventoryError(outcome, message string) schedulingmodule.AvailabilityRespon
 	}
 }
 
-type UpdateInsuranceRequest struct {
-	PatientID      string `json:"patientId"`
-	DOB            string `json:"dob,omitempty"`
-	InsPlanID      string `json:"insPlanId"`
-	RespPartyID    string `json:"respPartyId"`
-	OldInsurance   string `json:"oldInsurance"`
-	Insurance      string `json:"insurance"`
-	CoverageType   string `json:"coverageType,omitempty"`
-	SubscriberName string `json:"subscriberName"`
-	SubscriberNum  string `json:"subscriberNum"`
-	Office         string `json:"office,omitempty"`
-}
-
-type UpdateInsuranceResponse struct {
-	Effect            string                       `json:"effect"`
-	InsuranceDecision *insurance.InsuranceDecision `json:"insuranceDecision,omitempty"`
-	Status            string                       `json:"status"`
-	Outcome           string                       `json:"outcome,omitempty"`
-	PatientID         string                       `json:"patientId,omitempty"`
-	OldInsurance      string                       `json:"oldInsurance,omitempty"`
-	NewInsurance      string                       `json:"newInsurance,omitempty"`
-	Routing           string                       `json:"routing,omitempty"`
-	AllowedProviders  []string                     `json:"allowedProviders,omitempty"`
-	RoutingAmbiguous  bool                         `json:"routingAmbiguous,omitempty"`
-	PreauthRequired   bool                         `json:"preauthRequired,omitempty"`
-	Message           string                       `json:"message,omitempty"`
-}
-
 func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var req UpdateInsuranceRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(UpdateInsuranceResponse{
-			Effect:  "no_effect",
-			Status:  "error",
-			Message: "Invalid JSON body",
-		})
+	var command patientmodule.UpdateInsuranceCommand
+	if err := json.NewDecoder(r.Body).Decode(&command); err != nil {
+		rejectInvalidRequest(w, r, patientmodule.UpdateInsuranceResult{Effect: "no_effect", Status: patientmodule.UpdateInsuranceStatusError, Message: "Invalid JSON body"})
 		return
 	}
 
-	result := h.patient.UpdateInsurance(r.Context(), patientmodule.UpdateInsuranceCommand{
-		PatientID:      req.PatientID,
-		DOB:            req.DOB,
-		InsPlanID:      req.InsPlanID,
-		RespPartyID:    req.RespPartyID,
-		OldInsurance:   req.OldInsurance,
-		Insurance:      req.Insurance,
-		CoverageType:   req.CoverageType,
-		SubscriberName: req.SubscriberName,
-		SubscriberNum:  req.SubscriberNum,
-		Office:         req.Office,
-	})
+	result := h.patient.UpdateInsurance(r.Context(), command)
 	recordPatientMutationOutcome(r.Context(), result.Outcome)
-	outcome := ""
-	if result.Status != patientmodule.UpdateInsuranceStatusUpdated {
-		outcome = string(result.Outcome)
+	if result.Status == patientmodule.UpdateInsuranceStatusUpdated {
+		result.Outcome = ""
 	}
-	json.NewEncoder(w).Encode(UpdateInsuranceResponse{
-		Effect:            result.Effect,
-		Status:            string(result.Status),
-		Outcome:           outcome,
-		PatientID:         result.PatientID,
-		OldInsurance:      result.OldInsurance,
-		NewInsurance:      result.NewInsurance,
-		Routing:           string(result.Routing),
-		AllowedProviders:  result.AllowedProviders,
-		RoutingAmbiguous:  result.RoutingAmbiguous,
-		PreauthRequired:   result.PreauthRequired,
-		InsuranceDecision: result.InsuranceDecision,
-		Message:           result.Message,
-	})
+	respond(w, result)
 }
 
 func recordPatientMutationOutcome(ctx context.Context, outcome patientmodule.MutationOutcome) {
@@ -632,13 +327,9 @@ func recordSchedulingError(ctx context.Context, err error) {
 }
 
 func (h *Handlers) HandleRescheduleAppointment(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	var req schedulingmodule.BookCommand
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&req); err != nil {
-		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(schedulingmodule.RescheduleReceipt{Status: "failed", Message: "Invalid JSON body"})
+	if err := decodeStrict(r, &req); err != nil {
+		rejectInvalidRequest(w, r, schedulingmodule.RescheduleReceipt{Status: "failed", Message: "Invalid JSON body"})
 		return
 	}
 	receipt, err := h.scheduling.Reschedule(r.Context(), req)
@@ -653,5 +344,5 @@ func (h *Handlers) HandleRescheduleAppointment(w http.ResponseWriter, r *http.Re
 			recordRequestOutcome(r.Context(), outcomeCategory("reschedule_"+receipt.Status), safeerrors.CategoryNone)
 		}
 	}
-	json.NewEncoder(w).Encode(receipt)
+	respond(w, receipt)
 }

@@ -10,10 +10,7 @@ import (
 	"advancedmd-token-management/internal/safeerrors"
 )
 
-func (h *Handlers) SetEligibility(service *eligibility.Service) { h.eligibility = service }
-
 func (h *Handlers) HandleEligibility(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	if h.eligibility == nil {
 		http.Error(w, `{"error":"eligibility_not_configured"}`, http.StatusServiceUnavailable)
@@ -44,25 +41,8 @@ func (h *Handlers) HandleEligibility(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result.InsuranceResolution = eligibility.ResolveInsurance(result, office, input.CheckInput)
-	results := []eligibility.Result{result}
-	if len(result.ProviderResults) > 0 {
-		results = result.ProviderResults
+	if category := result.ProviderFailure(); category != safeerrors.CategoryNone {
+		recordRequestOutcome(r.Context(), outcomeProviderFailure, category)
 	}
-	for _, result := range results {
-		if result.Status == "unknown" {
-			category := safeerrors.CategoryUpstreamError
-			switch result.ReviewReason {
-			case "stedi_http_failure":
-				category = safeerrors.CategoryUpstreamStatus
-			case "unrecognized_response", "nonproduction_or_unknown_mode":
-				category = safeerrors.CategoryInvalidResponse
-			}
-			recordRequestOutcome(r.Context(), outcomeProviderFailure, category)
-			break
-		} else if result.ReviewReason == "payer_rejected" {
-			recordRequestOutcome(r.Context(), outcomeProviderFailure, safeerrors.CategoryRejected)
-			break
-		}
-	}
-	_ = json.NewEncoder(w).Encode(result)
+	respond(w, result)
 }

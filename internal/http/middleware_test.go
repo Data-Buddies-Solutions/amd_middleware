@@ -91,7 +91,7 @@ func TestRequestLogIsStructuredAndPHISafe(t *testing.T) {
 	t.Cleanup(func() { log.SetOutput(previousWriter) })
 
 	router := NewRouter(
-		NewHandlers(unavailableSession{}, patientmodule.New(advancedmd.NewAdapter(unavailableSession{}, nil, nil), testAppointmentTokens), nil),
+		NewHandlers(unavailableSession{}, patientmodule.New(advancedmd.NewAdapter(unavailableSession{}, nil, nil), testAppointmentTokens), nil, nil),
 		"test-secret",
 		nil,
 	)
@@ -148,7 +148,7 @@ func TestRequestLogUsesSafeFallbackForUnmatchedRoute(t *testing.T) {
 	log.SetOutput(&logs)
 	t.Cleanup(func() { log.SetOutput(previousWriter) })
 
-	router := NewRouter(NewHandlers(nil, nil, nil), "test-secret", nil)
+	router := NewRouter(NewHandlers(nil, nil, nil, nil), "test-secret", nil)
 	req := httptest.NewRequest(http.MethodGet, "/patients/17604634", nil)
 	w := httptest.NewRecorder()
 
@@ -218,7 +218,7 @@ func TestRequestLogRecordsInvalidJSONWithoutInspectingBodies(t *testing.T) {
 			log.SetOutput(&logs)
 			t.Cleanup(func() { log.SetOutput(previousWriter) })
 
-			router := NewRouter(NewHandlers(nil, nil, nil), "test-secret", nil)
+			router := NewRouter(NewHandlers(nil, nil, nil, nil), "test-secret", nil)
 			req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{"patientId":"17604634"`))
 			req.Header.Set("Authorization", "Bearer test-secret")
 			w := httptest.NewRecorder()

@@ -15,7 +15,7 @@ import (
 )
 
 func TestEligibilityRouteAuthAndStrictInput(t *testing.T) {
-	h := NewHandlers(nil, nil, nil)
+	h := NewHandlers(nil, nil, nil, nil)
 	router := NewRouter(h, "secret", nil)
 	req := httptest.NewRequest("POST", "/api/eligibility/check", strings.NewReader(`{}`))
 	w := httptest.NewRecorder()
@@ -34,7 +34,7 @@ func TestEligibilityRouteAuthAndStrictInput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h.SetEligibility(s)
+	router = NewRouter(NewHandlers(nil, nil, nil, s), "secret", nil)
 	for _, body := range []string{`{"serviceTypeCodes":["98"]}`, `{} {}`, `{"scope":{}}`} {
 		req = httptest.NewRequest("POST", "/api/eligibility/check", strings.NewReader(body))
 		req.Header.Set("Authorization", "secret")
@@ -78,8 +78,7 @@ func TestEligibilityReceiptsLogSafeProviderFailures(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			h := NewHandlers(nil, nil, nil)
-			h.SetEligibility(s)
+			h := NewHandlers(nil, nil, nil, s)
 			router := NewRouter(h, "secret", nil)
 			req := httptest.NewRequest(http.MethodPost, "/api/eligibility/check", strings.NewReader(`{"firstName":"SyntheticJane","lastName":"PrivateSample","dob":"1980-01-02","memberId":"private-member","plan":"Davis Vision","coverageType":"routine_vision","office":"Hollywood"}`))
 			req.Header.Set("Authorization", "secret")
@@ -130,8 +129,7 @@ func TestEligibilityUsesExistingOfficeContextAndRejectsBookingInputs(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := NewHandlers(nil, nil, nil)
-	h.SetEligibility(service)
+	h := NewHandlers(nil, nil, nil, service)
 	router := NewRouter(h, "secret", nil)
 	send := func(body map[string]any) *httptest.ResponseRecorder {
 		data, _ := json.Marshal(body)

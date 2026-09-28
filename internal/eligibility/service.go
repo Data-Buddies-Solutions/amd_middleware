@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/safeerrors"
 )
 
 const endpoint = "https://healthcare.us.stedi.com/2024-04-01/change/medicalnetwork/eligibility/v3"
@@ -48,6 +49,26 @@ type Result struct {
 	ErrorCodes          []string             `json:"errorCodes,omitempty"`
 	Match               *MatchResult         `json:"identity,omitempty"`
 	CheckedAt           time.Time            `json:"checkedAt"`
+}
+
+func (r Result) ProviderFailure() safeerrors.Category {
+	results := r.ProviderResults
+	if len(results) == 0 {
+		results = []Result{r}
+	}
+	for _, result := range results {
+		switch {
+		case result.Status == "unknown" && result.ReviewReason == "stedi_http_failure":
+			return safeerrors.CategoryUpstreamStatus
+		case result.Status == "unknown" && (result.ReviewReason == "unrecognized_response" || result.ReviewReason == "nonproduction_or_unknown_mode"):
+			return safeerrors.CategoryInvalidResponse
+		case result.Status == "unknown":
+			return safeerrors.CategoryUpstreamError
+		case result.ReviewReason == "payer_rejected":
+			return safeerrors.CategoryRejected
+		}
+	}
+	return safeerrors.CategoryNone
 }
 
 type Service struct {
