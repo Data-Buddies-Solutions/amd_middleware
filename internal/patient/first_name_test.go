@@ -17,6 +17,8 @@ func TestFirstNameDOBResolution(t *testing.T) {
 	otherName := missing
 	otherName.FirstName = "Janet"
 	otherName.FullName = "OTHER,JANET"
+	sameDOBOtherName := otherName
+	sameDOBOtherName.DOB = valid.DOB
 	manyMissing := []domain.Patient{valid}
 	for i := 0; i < 20; i++ {
 		manyMissing = append(manyMissing, domain.Patient{ID: fmt.Sprint(i + 2), FirstName: "Jane", FullName: "OTHER,JANE"})
@@ -36,6 +38,8 @@ func TestFirstNameDOBResolution(t *testing.T) {
 	}{
 		{name: "two exact matches remain ambiguous", rows: []domain.Patient{valid, {ID: "2", FirstName: "Jane", LastName: "Other", FullName: "OTHER,JANE", DOB: "01/01/1980"}}, want: patient.StatusMultipleMatches},
 		{name: "exact match ignores many missing DOB records", rows: manyMissing, want: patient.StatusVerified, reads: 1},
+		{name: "DOB results include other names", rows: []domain.Patient{sameDOBOtherName, valid}, want: patient.StatusVerified, reads: 1},
+		{name: "DOB results have no matching name", rows: []domain.Patient{sameDOBOtherName}, want: patient.StatusNotFound},
 		{name: "unique", rows: []domain.Patient{valid}, want: patient.StatusVerified, reads: 1},
 		{name: "missing DOB on nonmatching prefix", rows: []domain.Patient{valid, otherName}, want: patient.StatusVerified, reads: 1},
 		{name: "missing name with different DOB", rows: []domain.Patient{valid, otherDOB}, want: patient.StatusVerified, reads: 1},
@@ -56,6 +60,9 @@ func TestFirstNameDOBResolution(t *testing.T) {
 			result, err := patient.New(amd).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "1980-01-01", OfficeID: "spring_hill"})
 			if err != nil || result.Status != tc.want || result.Reason != tc.reason {
 				t.Fatalf("status=%s reason=%s err=%v", result.Status, result.Reason, err)
+			}
+			if len(amd.CandidateQueries) != 1 || amd.CandidateQueries[0] != (advancedmdtest.CandidateQuery{FirstName: "Jane", DOB: "01/01/1980"}) {
+				t.Fatalf("candidate query = %v", amd.CandidateQueries)
 			}
 			if amd.DemographicCalls != tc.reads {
 				t.Fatalf("demographics=%d want=%d", amd.DemographicCalls, tc.reads)

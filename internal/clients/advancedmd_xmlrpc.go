@@ -26,6 +26,7 @@ type AMDLookupMsg struct {
 	Class  string `json:"@class"`
 	Name   string `json:"@name,omitempty"`
 	Phone  string `json:"@phone,omitempty"`
+	DOB    string `json:"@dob,omitempty"`
 	Page   int    `json:"@page,omitempty"`
 }
 
@@ -161,11 +162,12 @@ func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *domain.
 	return read.Patients, err
 }
 
-// LookupPatientCandidates returns only the provider's name-prefix candidates.
+// LookupPatientCandidates narrows by DOB when present. AMD gives DOB precedence
+// over name, so callers must still validate both against every candidate.
 // A candidate result is complete only after explicit pagination/count metadata
 // proves every page was read. The Patient module owns identity validation/repair.
-func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *domain.TokenData, firstName string) (read domain.PatientCandidateRead, resultErr error) {
-	read, err := c.doPatientLookup(ctx, tokenData, AMDLookupRequest{PPMDMsg: AMDLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName}})
+func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *domain.TokenData, firstName, dob string) (read domain.PatientCandidateRead, resultErr error) {
+	read, err := c.doPatientLookup(ctx, tokenData, AMDLookupRequest{PPMDMsg: AMDLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName, DOB: dob}})
 	if err != nil {
 		return read, err
 	}
