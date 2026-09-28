@@ -85,7 +85,15 @@ type bookingContext struct {
 }
 
 func (s *service) Book(ctx context.Context, command BookCommand) (BookReceipt, error) {
-	prepared, err := s.prepareBooking(ctx, command)
+	booking, err := s.resolveBookingContext(command)
+	if err != nil {
+		return BookReceipt{}, err
+	}
+	return s.book(ctx, booking)
+}
+
+func (s *service) book(ctx context.Context, booking bookingContext) (BookReceipt, error) {
+	prepared, err := s.prepareBooking(ctx, booking)
 	if err != nil {
 		return BookReceipt{}, err
 	}
@@ -139,11 +147,7 @@ func (s *service) Book(ctx context.Context, command BookCommand) (BookReceipt, e
 	}
 }
 
-func (s *service) prepareBooking(ctx context.Context, command BookCommand) (preparedBooking, error) {
-	booking, err := s.resolveBookingContext(command)
-	if err != nil {
-		return preparedBooking{}, err
-	}
+func (s *service) prepareBooking(ctx context.Context, booking bookingContext) (preparedBooking, error) {
 	patientID, err := s.verifyBookingPatient(ctx, &booking)
 	if err != nil {
 		return preparedBooking{}, err

@@ -139,7 +139,7 @@ func (s *service) cancelWithToken(
 	command CancelCommand,
 	telemetry *cancellationTelemetry,
 ) (CancelReceipt, error) {
-	policy, err := s.appointmentTokens.verify(*command.CancellationToken, s.now().UTC())
+	policy, err := s.appointmentTokens.verifyCancellation(*command.CancellationToken, s.now().UTC())
 	if err != nil {
 		return CancelReceipt{}, invalidCancellationTokenError()
 	}
