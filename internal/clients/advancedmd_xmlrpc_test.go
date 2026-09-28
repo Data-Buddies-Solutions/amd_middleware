@@ -628,7 +628,7 @@ func TestLookupPatientCandidatesCompleteness(t *testing.T) {
 				w.Write([]byte(`{"PPMDResults":{"Results":{"patientlist":{` + tc.metadata + `,"patient":` + tc.rows + `}}}}`))
 			}))
 			defer cleanup()
-			read, err := client.LookupPatientCandidates(context.Background(), token, "Jane")
+			read, err := client.LookupPatientCandidates(context.Background(), token, "Jane", "01/15/1980")
 			if tc.wantError {
 				if err == nil || read.Complete || len(read.Patients) != 0 {
 					t.Fatal("malformed lookup must fail without partial candidates")
