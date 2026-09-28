@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/session"
 )
 
@@ -159,7 +158,7 @@ type recordingMaintenanceSession struct {
 	maintainErr   error
 }
 
-func (s *recordingMaintenanceSession) Get(context.Context) (*domain.TokenData, error) {
+func (s *recordingMaintenanceSession) Get(context.Context) (*session.TokenData, error) {
 	s.getCalls++
 	return nil, nil
 }

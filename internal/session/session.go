@@ -6,12 +6,10 @@ import (
 	"net/http"
 	"sync"
 	"time"
-
-	"advancedmd-token-management/internal/domain"
 )
 
 type Session interface {
-	Get(context.Context) (*domain.TokenData, error)
+	Get(context.Context) (*TokenData, error)
 	Maintain(context.Context) error
 	Status() SessionStatus
 }
@@ -59,7 +57,7 @@ type sessionImpl struct {
 	policy sessionPolicy
 
 	mu        sync.Mutex
-	tokenData *domain.TokenData
+	tokenData *TokenData
 	createdAt time.Time
 	retryAt   time.Time
 	state     SessionState
@@ -93,7 +91,7 @@ func NewSession(creds Credentials, client *http.Client) Session {
 	})
 }
 
-func (s *sessionImpl) Get(ctx context.Context) (*domain.TokenData, error) {
+func (s *sessionImpl) Get(ctx context.Context) (*TokenData, error) {
 	if err := s.refresh(ctx, false); err != nil {
 		s.mu.Lock()
 		defer s.mu.Unlock()
@@ -182,7 +180,7 @@ func (s *sessionImpl) authenticateLocked(ctx context.Context) error {
 		return err
 	}
 	s.createdAt = loginStartedAt
-	s.tokenData = domain.BuildTokenDataAt(token, webserverURL, s.createdAt)
+	s.tokenData = BuildTokenData(token, webserverURL)
 	s.retryAt = time.Time{}
 	s.state = SessionFresh
 	return nil
@@ -232,7 +230,7 @@ func (s *sessionImpl) statusLocked(now time.Time) SessionStatus {
 	return status
 }
 
-func cloneTokenData(data *domain.TokenData) *domain.TokenData {
+func cloneTokenData(data *TokenData) *TokenData {
 	if data == nil {
 		return nil
 	}

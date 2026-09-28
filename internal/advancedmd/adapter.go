@@ -234,7 +234,7 @@ func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.Pati
 
 func (a *Adapter) patientAppointmentsForOfficeMonth(
 	ctx context.Context,
-	token *domain.TokenData,
+	token *session.TokenData,
 	patientID int,
 	office *domain.OfficeConfig,
 	month time.Time,
@@ -578,7 +578,7 @@ func (a *Adapter) CancelAppointment(ctx context.Context, cancellation Cancellati
 	return nil
 }
 
-func (a *Adapter) token(ctx context.Context) (*domain.TokenData, error) {
+func (a *Adapter) token(ctx context.Context) (*session.TokenData, error) {
 	if a.session == nil {
 		return nil, NewError(safeerrors.CategoryUnavailable)
 	}

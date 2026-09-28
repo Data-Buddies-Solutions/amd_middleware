@@ -11,9 +11,10 @@ import (
 
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/safeerrors"
+	"advancedmd-token-management/internal/session"
 )
 
-func newTestXMLRPCClient(t *testing.T, handler http.Handler) (*AdvancedMDClient, *domain.TokenData, func()) {
+func newTestXMLRPCClient(t *testing.T, handler http.Handler) (*AdvancedMDClient, *session.TokenData, func()) {
 	t.Helper()
 	server := httptest.NewTLSServer(handler)
 
@@ -25,7 +26,7 @@ func newTestXMLRPCClient(t *testing.T, handler http.Handler) (*AdvancedMDClient,
 
 	xmlrpcURL := server.URL[8:]
 
-	tokenData := &domain.TokenData{
+	tokenData := &session.TokenData{
 		Token:       "Bearer test-token",
 		CookieToken: "token=test-token",
 		XmlrpcURL:   xmlrpcURL,

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/safeerrors"
+	"advancedmd-token-management/internal/session"
 )
 
 func TestPatientLookupDiagnostics(t *testing.T) {
@@ -39,7 +39,7 @@ func TestPatientLookupDiagnostics(t *testing.T) {
 					defer cancel()
 				}
 				client := NewAdvancedMDClient(provider.Client())
-				token := &domain.TokenData{XmlrpcURL: strings.TrimPrefix(provider.URL, "https://")}
+				token := &session.TokenData{XmlrpcURL: strings.TrimPrefix(provider.URL, "https://")}
 				var err error
 				if lookup == "phone" {
 					_, err = client.LookupPatientByPhone(ctx, token, "2025550100")
@@ -92,7 +92,7 @@ func TestProviderDiagnosticsPreserveStatusAndNumericFaultWithoutPayload(t *testi
 			defer provider.Close()
 			ctx, diagnostics := safeerrors.WithDiagnostics(context.Background())
 			client := NewAdvancedMDClient(provider.Client())
-			_, err := client.GetDemographic(ctx, &domain.TokenData{XmlrpcURL: strings.TrimPrefix(provider.URL, "https://")}, "synthetic-patient")
+			_, err := client.GetDemographic(ctx, &session.TokenData{XmlrpcURL: strings.TrimPrefix(provider.URL, "https://")}, "synthetic-patient")
 			if err == nil {
 				t.Fatal("expected failure")
 			}
@@ -119,7 +119,7 @@ func TestRestMutationDiagnosticsPreserveStatusError(t *testing.T) {
 	provider := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(503) }))
 	defer provider.Close()
 	ctx, diagnostics := safeerrors.WithDiagnostics(context.Background())
-	_, err := NewAdvancedMDRestClient(provider.Client()).BookAppointment(ctx, &domain.TokenData{RestApiBase: strings.TrimPrefix(provider.URL, "https://")}, BookAppointmentParams{})
+	_, err := NewAdvancedMDRestClient(provider.Client()).BookAppointment(ctx, &session.TokenData{RestApiBase: strings.TrimPrefix(provider.URL, "https://")}, BookAppointmentParams{})
 	var status *HTTPStatusError
 	if !errors.As(err, &status) || status.StatusCode != 503 {
 		t.Fatalf("booking error = %v, want status 503", err)

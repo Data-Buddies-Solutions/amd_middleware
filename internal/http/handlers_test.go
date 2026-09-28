@@ -109,7 +109,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 
 type unavailableSession struct{}
 
-func (unavailableSession) Get(context.Context) (*domain.TokenData, error) {
+func (unavailableSession) Get(context.Context) (*session.TokenData, error) {
 	return nil, session.ErrSessionUnavailable
 }
 

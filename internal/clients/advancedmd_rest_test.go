@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"advancedmd-token-management/internal/session"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -13,11 +14,9 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"advancedmd-token-management/internal/domain"
 )
 
-func newTestRestClient(t *testing.T, handler http.Handler) (*AdvancedMDRestClient, *domain.TokenData, func()) {
+func newTestRestClient(t *testing.T, handler http.Handler) (*AdvancedMDRestClient, *session.TokenData, func()) {
 	t.Helper()
 	server := httptest.NewTLSServer(handler)
 
@@ -29,7 +28,7 @@ func newTestRestClient(t *testing.T, handler http.Handler) (*AdvancedMDRestClien
 
 	restBase := server.URL[8:]
 
-	tokenData := &domain.TokenData{
+	tokenData := &session.TokenData{
 		Token:       "Bearer test-token",
 		RestApiBase: restBase,
 	}
@@ -106,17 +105,17 @@ func TestScheduleReadLogsUpstreamStatus(t *testing.T) {
 	for _, tc := range []struct {
 		operation string
 		status    int
-		read      func(*AdvancedMDRestClient, *domain.TokenData) error
+		read      func(*AdvancedMDRestClient, *session.TokenData) error
 	}{
-		{"appointments", http.StatusTooManyRequests, func(c *AdvancedMDRestClient, token *domain.TokenData) error {
+		{"appointments", http.StatusTooManyRequests, func(c *AdvancedMDRestClient, token *session.TokenData) error {
 			_, err := c.GetAppointments(context.Background(), token, "1513", "2026-03-03")
 			return err
 		}},
-		{"block holds", http.StatusServiceUnavailable, func(c *AdvancedMDRestClient, token *domain.TokenData) error {
+		{"block holds", http.StatusServiceUnavailable, func(c *AdvancedMDRestClient, token *session.TokenData) error {
 			_, err := c.GetBlockHolds(context.Background(), token, "1513", "2026-03-03")
 			return err
 		}},
-		{"monthly appointments", http.StatusForbidden, func(c *AdvancedMDRestClient, token *domain.TokenData) error {
+		{"monthly appointments", http.StatusForbidden, func(c *AdvancedMDRestClient, token *session.TokenData) error {
 			_, err := c.GetAppointmentsByMonth(context.Background(), token, "1513", "2026-03-01")
 			return err
 		}},
