@@ -168,3 +168,26 @@ func TestLoad_RejectsInvalidMaintenanceOIDCConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestLoad_EligibilitySettings(t *testing.T) {
+	cleanup := setEnvVars(t)
+	defer cleanup()
+
+	cfg, err := Load()
+	if err != nil || cfg.StediAPIKey != "" || cfg.StediProviders != nil {
+		t.Fatalf("unset eligibility settings = %+v, err = %v", cfg, err)
+	}
+
+	t.Setenv("AMD_ENV", "dev")
+	t.Setenv("STEDI_API_KEY", "stedi-key")
+	t.Setenv("STEDI_PROVIDERS", `{"hollywood":{"organizationName":"Hollywood Practice","npi":"1659862753"}}`)
+	cfg, err = Load()
+	if err != nil || cfg.AMDEnv != "dev" || cfg.StediAPIKey != "stedi-key" || cfg.StediProviders["hollywood"].NPI != "1659862753" {
+		t.Fatalf("eligibility settings = %+v, err = %v", cfg, err)
+	}
+
+	t.Setenv("STEDI_PROVIDERS", `not-json`)
+	if _, err := Load(); err == nil {
+		t.Fatal("invalid STEDI_PROVIDERS must fail configuration")
+	}
+}
