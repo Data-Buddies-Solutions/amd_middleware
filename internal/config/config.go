@@ -1,12 +1,13 @@
 package config
 
 import (
-	"advancedmd-token-management/internal/eligibility"
 	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
 	"strings"
+
+	"advancedmd-token-management/internal/eligibility"
 )
 
 type Config struct {
