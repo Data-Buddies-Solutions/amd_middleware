@@ -40,7 +40,7 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 	if err := s.verifyRescheduleOriginal(ctx, policy); err != nil {
 		return RescheduleReceipt{}, err
 	}
-	replacement, err := s.Book(ctx, command)
+	replacement, err := s.book(ctx, booking)
 	if err != nil {
 		status := "failed"
 		if CategoryOf(err) == CategoryIndeterminateWrite {
