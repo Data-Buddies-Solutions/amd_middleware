@@ -10,8 +10,6 @@ import (
 
 const googleServiceAccountIssuer = "https://accounts.google.com"
 
-// MaintenanceAuthorizer owns authorization for the operational maintenance
-// route. It is deliberately separate from agent API authentication.
 type MaintenanceAuthorizer interface {
 	Authorize(*http.Request) bool
 }
@@ -48,8 +46,6 @@ type maintenanceAuthorizer struct {
 	validator      oidcValidator
 }
 
-// NewMaintenanceAuthorizer verifies Google-signed OIDC tokens for one audience
-// and one dedicated Cloud Scheduler service account.
 func NewMaintenanceAuthorizer(audience, serviceAccount string) MaintenanceAuthorizer {
 	return newMaintenanceAuthorizer(audience, serviceAccount, googleOIDCValidator{})
 }

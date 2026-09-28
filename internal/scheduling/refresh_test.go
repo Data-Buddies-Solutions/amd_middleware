@@ -29,7 +29,7 @@ func (r *gatedSetupRecords) GetSchedulerSetup(ctx context.Context) (domain.Sched
 
 func TestSetupWaiterCanCancelDuringRefresh(t *testing.T) {
 	records := &gatedSetupRecords{Adapter: recordsWithSetup(), started: make(chan struct{}), release: make(chan struct{})}
-	scheduler := scheduling.New(records, "secret", func() time.Time { return time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC) })
+	scheduler := scheduling.New(records, "secret", func() time.Time { return time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC) }, false)
 	first := make(chan struct{})
 	go func() { scheduler.Search(context.Background(), scheduling.SearchCommand{}); close(first) }()
 	<-records.started
@@ -52,7 +52,7 @@ func TestSetupWaiterCanCancelDuringRefresh(t *testing.T) {
 func TestSchedulerSetupStaleFallbackHasMaximumAge(t *testing.T) {
 	now := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
 	records := recordsWithSetup()
-	scheduler := scheduling.New(records, "secret", func() time.Time { return now })
+	scheduler := scheduling.New(records, "secret", func() time.Time { return now }, false)
 	command := scheduling.SearchCommand{RequestedDate: "2026-06-10"}
 	if _, err := scheduler.Search(context.Background(), command); err != nil {
 		t.Fatal(err)

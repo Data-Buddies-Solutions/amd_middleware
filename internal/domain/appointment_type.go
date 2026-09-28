@@ -17,8 +17,6 @@ const (
 	AppointmentAgePediatric = "pediatric"
 )
 
-// AppointmentIntent contains the model-facing booking intent. Numeric AMD
-// appointment type IDs are resolved server-side from these stable facts.
 type AppointmentIntent struct {
 	VisitCategory string
 	VisitKind     string
@@ -168,7 +166,6 @@ func appointmentTypeMissingFactsMessage(missing []string) string {
 	}
 }
 
-// NormalizeAppointmentVisitCategory is shared by appointment and insurance policy.
 func NormalizeAppointmentVisitCategory(category, visitKind string, routing RoutingRule) string {
 	kind := normalizeAppointmentVisitKind(visitKind)
 	if kind == AppointmentVisitRoutineVision {
@@ -246,8 +243,6 @@ func normalizeAppointmentToken(value string) string {
 	return value
 }
 
-// AppointmentVisitType classifies canonical provider types. Unknown types remain
-// unknown; display names are never scheduling authority.
 func AppointmentVisitType(typeID int) string {
 	switch typeID {
 	case 1004, 1005, 1006, 1007, 1008, 6167, 6168, 6169:

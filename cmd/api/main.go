@@ -26,21 +26,17 @@ import (
 const version = "1.0.0"
 
 func main() {
-	// Configure logger to write to stdout (Railway interprets stderr as error-level)
 	log.SetFlags(0)
 	log.SetOutput(safelog.NewWriter(os.Stdout))
 	log.Printf("Starting gateway v%s", version)
 
-	// Initialize office registry based on AMD_ENV
 	domain.InitRegistry(os.Getenv("AMD_ENV"))
 
-	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config category=%s", safeerrors.Classify(err))
 	}
 
-	// Initialize shared HTTP client for AdvancedMD calls
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
@@ -51,7 +47,6 @@ func main() {
 		},
 	}
 
-	// Initialize the single owner for AdvancedMD authentication and token state.
 	amdSession := session.NewSession(session.Credentials{
 		Username:  cfg.AdvancedMDUsername,
 		Password:  cfg.AdvancedMDPassword,
@@ -59,26 +54,21 @@ func main() {
 		AppName:   cfg.AdvancedMDAppName,
 	}, httpClient)
 
-	// Initialize AdvancedMD XMLRPC client
 	amdClient := clients.NewAdvancedMDClient(httpClient)
 
-	// Initialize AdvancedMD REST client
 	amdRestClient := clients.NewAdvancedMDRestClient(httpClient)
 
-	// Compose the patient workflow over the domain-oriented AdvancedMD seam.
 	patientRecords := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient)
 	appointmentTokens := scheduling.NewAppointmentTokens(cfg.BookingTokenSecret, time.Now)
-	patients := patient.NewWithAppointmentTokens(patientRecords, appointmentTokens)
-	scheduler := scheduling.NewWithConfig(
+	patients := patient.New(patientRecords, appointmentTokens)
+	scheduler := scheduling.New(
 		patientRecords,
 		cfg.BookingTokenSecret,
 		time.Now,
-		scheduling.Config{AllowRawBooking: cfg.AllowRawSlotBooking},
+		cfg.AllowRawSlotBooking,
 	)
 
-	// Initialize handlers
 	handlers := apphttp.NewHandlers(amdSession, patients, scheduler)
-	// Spring Hill medical providers are verified in code; other offices use configuration.
 	if key, providersJSON := os.Getenv("STEDI_API_KEY"), os.Getenv("STEDI_PROVIDERS"); key != "" || providersJSON != "" {
 		var providers map[string]eligibility.Provider
 		if providersJSON != "" && json.Unmarshal([]byte(providersJSON), &providers) != nil {
@@ -91,14 +81,12 @@ func main() {
 		handlers.SetEligibility(service)
 	}
 
-	// Create router
 	maintenanceAuthorizer := apphttp.NewMaintenanceAuthorizer(
 		cfg.MaintenanceOIDCAudience,
 		cfg.MaintenanceOIDCServiceAccount,
 	)
 	router := apphttp.NewRouter(handlers, cfg.APISecret, maintenanceAuthorizer)
 
-	// Create HTTP server
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      router,
@@ -107,7 +95,6 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Start server in goroutine
 	go func() {
 		log.Printf("Server listening on port %s", cfg.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -115,13 +102,11 @@ func main() {
 		}
 	}()
 
-	// Wait for shutdown signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutting down server...")
 
-	// Graceful shutdown with timeout
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 

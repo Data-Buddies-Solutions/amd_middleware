@@ -19,7 +19,6 @@ const (
 	slotTokenClockSkew = 2 * time.Minute
 )
 
-// SlotPolicy is the signed scheduling decision carried by every bookable slot.
 type SlotPolicy struct {
 	Version            int    `json:"v"`
 	OfficeID           string `json:"officeId"`
@@ -44,8 +43,6 @@ var (
 	ErrSlotTokenExpired       = errors.New("booking token expired")
 )
 
-// SignSlotToken signs a complete scheduling policy for later booking
-// revalidation.
 func SignSlotToken(secret string, policy SlotPolicy) (string, error) {
 	if secret == "" {
 		return "", ErrSlotTokenSecretMissing
@@ -62,7 +59,6 @@ func SignSlotToken(secret string, policy SlotPolicy) (string, error) {
 	return encodedBody + "." + signature, nil
 }
 
-// VerifySlotToken authenticates and validates a signed scheduling policy.
 func VerifySlotToken(secret, token string, now time.Time) (SlotPolicy, error) {
 	if secret == "" {
 		return SlotPolicy{}, ErrSlotTokenSecretMissing

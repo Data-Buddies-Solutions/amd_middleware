@@ -5,8 +5,6 @@ import (
 	"sync"
 )
 
-// ProviderDiagnostic contains only fixed operation/category labels, numeric
-// status/fault codes, and timing. Never put provider messages or payloads here.
 type ProviderDiagnostic struct {
 	Operation  string   `json:"operation"`
 	Category   Category `json:"category"`
@@ -19,8 +17,6 @@ const MaxProviderDiagnostics = 8
 
 type diagnosticKey struct{}
 
-// Diagnostics collects provider failures, including failures later reconciled
-// successfully. The domain outcome remains the authority for the final result.
 type Diagnostics struct {
 	mu       sync.Mutex
 	failures []ProviderDiagnostic

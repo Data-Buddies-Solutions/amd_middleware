@@ -53,7 +53,7 @@ func TestFirstNameDOBResolution(t *testing.T) {
 			amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Patients: tc.rows, Complete: !tc.incomplete}
 			amd.Demographics["1"] = domain.PatientDemographics{FullName: valid.FullName, DOB: valid.DOB}
 			amd.Demographics["2"] = tc.ignoredDemographics
-			result, err := patient.New(amd).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "1980-01-01", OfficeID: "spring_hill"})
+			result, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "1980-01-01", OfficeID: "spring_hill"})
 			if err != nil || result.Status != tc.want || result.Reason != tc.reason {
 				t.Fatalf("status=%s reason=%s err=%v", result.Status, result.Reason, err)
 			}
@@ -90,7 +90,7 @@ func TestFirstNameDOBMissingRecordsAndChangedIdentity(t *testing.T) {
 			amd.Demographics["0"] = domain.PatientDemographics{FullName: "EXAMPLE,JOHN", DOB: "01/01/1980"}
 		}
 		amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Patients: rows, Complete: true}
-		result, err := patient.New(amd).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "01/01/1980", OfficeID: "spring_hill"})
+		result, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "01/01/1980", OfficeID: "spring_hill"})
 		want := patient.StatusNotFound
 		if changed {
 			want = patient.StatusUnresolved

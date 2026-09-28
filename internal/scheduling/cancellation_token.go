@@ -42,9 +42,6 @@ type appointmentTokenPolicy struct {
 	start time.Time
 }
 
-// AppointmentTokens issues purpose-specific private appointment tokens. The
-// same scheduling secret is cryptographically separated by distinct HMAC
-// domains for cancellation and rescheduling.
 type AppointmentTokens struct {
 	secret string
 	now    func() time.Time

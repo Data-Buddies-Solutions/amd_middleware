@@ -27,7 +27,7 @@ import (
 
 func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
 	const patientID = "patient-identifier-must-not-appear"
-	patientmodule.New(advancedmdtest.NewAdapter()).UpdateInsurance(context.Background(), patientmodule.UpdateInsuranceCommand{
+	patientmodule.New(advancedmdtest.NewAdapter(), testAppointmentTokens).UpdateInsurance(context.Background(), patientmodule.UpdateInsuranceCommand{
 		PatientID: patientID,
 	})
 
@@ -51,7 +51,7 @@ func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
 
 func TestPatientResolveKeepsStableResponseWhenSessionUnavailable(t *testing.T) {
 	records := advancedmd.NewAdapter(unavailableSession{}, nil, nil)
-	handlers := NewHandlers(unavailableSession{}, patientmodule.New(records), nil)
+	handlers := NewHandlers(unavailableSession{}, patientmodule.New(records, testAppointmentTokens), nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"patientId":"123"}`))
 	w := httptest.NewRecorder()
 
@@ -82,7 +82,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 		CarrierName: "HUMANA MEDICARE",
 		CarrierID:   "car40906",
 	}
-	handlers := NewHandlers(nil, patientmodule.New(amd), nil)
+	handlers := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil)
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -259,7 +259,6 @@ func TestHandlePatientResolve_ValidationErrors(t *testing.T) {
 			handlers.HandlePatientResolve(w, req)
 
 			resp := w.Result()
-			// Errors return 200 OK so ElevenLabs passes the body to the LLM
 			if resp.StatusCode != http.StatusOK {
 				t.Errorf("Expected status 200, got %d", resp.StatusCode)
 			}
@@ -388,7 +387,6 @@ func TestPatientResolveLogsDoNotExposePatientIDOrProviderError(t *testing.T) {
 	w := httptest.NewRecorder()
 	handlers.HandlePatientResolve(w, req)
 
-	// Stop capture before reading; other provider reads can finish after the response.
 	log.SetOutput(previousWriter)
 	got := logs.String()
 	for _, forbidden := range []string{"17604634", "status 500", "appointment failure"} {
@@ -542,7 +540,7 @@ func assertRedacted(t *testing.T, response, logs string, forbidden ...string) {
 }
 
 func TestHandleAddPatient_RoutineVisionRequiresOpticalOffice(t *testing.T) {
-	handlers := &Handlers{patient: patientmodule.New(advancedmdtest.NewAdapter())}
+	handlers := &Handlers{patient: patientmodule.New(advancedmdtest.NewAdapter(), testAppointmentTokens)}
 	req := httptest.NewRequest("POST", "/api/add-patient", bytes.NewBufferString(`{
 		"firstName":"Jane",
 		"lastName":"Doe",
@@ -576,7 +574,7 @@ func TestHandleAddPatient_RoutineVisionRequiresOpticalOffice(t *testing.T) {
 }
 
 func TestHandleAddPatient_RoutineOnlyOfficeRejectsMedical(t *testing.T) {
-	handlers := &Handlers{patient: patientmodule.New(advancedmdtest.NewAdapter())}
+	handlers := &Handlers{patient: patientmodule.New(advancedmdtest.NewAdapter(), testAppointmentTokens)}
 	req := httptest.NewRequest("POST", "/api/add-patient", bytes.NewBufferString(`{
 		"firstName":"Jane",
 		"lastName":"Doe",
@@ -733,7 +731,7 @@ func TestRouter(t *testing.T) {
 }
 
 func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
-	handlers := &Handlers{patient: patientmodule.New(advancedmdtest.NewAdapter())}
+	handlers := &Handlers{patient: patientmodule.New(advancedmdtest.NewAdapter(), testAppointmentTokens)}
 
 	tests := []struct {
 		name        string
@@ -935,7 +933,7 @@ func newProviderFailureTestHandlers(t *testing.T, fail func(*http.Request, []byt
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
 	)
-	return NewHandlers(amdSession, patientmodule.New(records), nil)
+	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil)
 }
 
 func newUpdateInsuranceTestHandlers(t *testing.T, dob, insPlanID string) (*Handlers, *[]string) {
@@ -984,7 +982,7 @@ func newUpdateInsuranceTestHandlers(t *testing.T, dob, insPlanID string) (*Handl
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
 	)
-	return NewHandlers(amdSession, patientmodule.New(records), nil), &writes
+	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil), &writes
 }
 
 func newPatientResolveTestHandlers(
@@ -1129,7 +1127,7 @@ func newPatientResolveTestHandlers(
 	amdRestClient := clients.NewAdvancedMDRestClient(httpClient)
 	records := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient)
 
-	return NewHandlers(amdSession, patientmodule.New(records), nil)
+	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil)
 }
 
 func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListCommand) (domain.AvailabilityResponse, error) {
@@ -1141,7 +1139,7 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true, Patients: []domain.Patient{{ID: "1", FirstName: "Jane", LastName: "Meyer", DOB: "01/01/1980"}}}
 	amd.Demographics["1"] = domain.PatientDemographics{FullName: "MEYER,JANE", DOB: "01/01/1980"}
-	handler := NewHandlers(nil, patientmodule.New(amd), nil)
+	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil)
 	for _, tc := range []struct {
 		body  string
 		valid bool
@@ -1186,7 +1184,7 @@ func TestFirstNameDOBUnresolvedHTTPContract(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: false}
-	handler := NewHandlers(nil, patientmodule.New(amd), nil)
+	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil)
 	writer := httptest.NewRecorder()
 	handler.HandlePatientResolve(writer, httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"firstName":"Jane","dob":"01/01/1980","office":"spring_hill"}`)))
 	var body PatientResolveResponse
@@ -1204,3 +1202,5 @@ func TestFirstNameDOBUnresolvedHTTPContract(t *testing.T) {
 func (s schedulingStub) Reschedule(context.Context, schedulingmodule.BookCommand) (schedulingmodule.RescheduleReceipt, error) {
 	return s.rescheduleResult, nil
 }
+
+var testAppointmentTokens = schedulingmodule.NewAppointmentTokens("test-scheduling-secret", nil)

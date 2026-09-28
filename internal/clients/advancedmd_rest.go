@@ -13,8 +13,6 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
-// ParseDateTime parses an AMD datetime string trying multiple known formats.
-// Returns timezone-stripped wall-clock time for consistent comparison with slot times.
 func ParseDateTime(s string) (time.Time, error) {
 	if s == "" {
 		return time.Time{}, fmt.Errorf("empty datetime string")
@@ -34,17 +32,14 @@ func ParseDateTime(s string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("unable to parse datetime %q", s)
 }
 
-// AdvancedMDRestClient handles REST API calls to AdvancedMD.
 type AdvancedMDRestClient struct {
 	httpClient *http.Client
 }
 
-// NewAdvancedMDRestClient creates a new AdvancedMD REST client.
 func NewAdvancedMDRestClient(httpClient *http.Client) *AdvancedMDRestClient {
 	return &AdvancedMDRestClient{httpClient: httpClient}
 }
 
-// AMDAppointmentResponse represents a single appointment from the REST API.
 type AMDAppointmentResponse struct {
 	ID               int     `json:"id"`
 	StartDateTime    string  `json:"startdatetime"`
@@ -63,8 +58,6 @@ type AMDAppointmentResponse struct {
 	ConfirmMethod    *string `json:"confirmmethod"`
 }
 
-// GetAppointments fetches appointments for a column within a date range.
-// startDate should be in YYYY-MM-DD format.
 func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *domain.TokenData, columnID string, startDate string) (appointmentsResult []domain.Appointment, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "get_appointments")
 	defer func() { finish(resultErr) }()
@@ -76,7 +69,6 @@ func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *d
 		return nil, err
 	}
 
-	// Handle AMD single-vs-array response quirk
 	var amdAppts []AMDAppointmentResponse
 	if err := json.Unmarshal(body, &amdAppts); err != nil {
 		var single AMDAppointmentResponse
@@ -106,7 +98,6 @@ func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *d
 	return appointments, nil
 }
 
-// AMDBlockHoldResponse represents a block hold from the REST API.
 type AMDBlockHoldResponse struct {
 	ID            int    `json:"id"`
 	StartDateTime string `json:"startdatetime"`
@@ -119,8 +110,6 @@ type AMDBlockHoldResponse struct {
 	} `json:"recurrence"`
 }
 
-// GetBlockHolds fetches block holds for a column within a date range.
-// startDate should be in YYYY-MM-DD format.
 func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *domain.TokenData, columnID string, startDate string) (holdsResult []domain.BlockHold, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "get_block_holds")
 	defer func() { finish(resultErr) }()
@@ -132,7 +121,6 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 		return nil, err
 	}
 
-	// Handle AMD single-vs-array response quirk
 	var amdHolds []AMDBlockHoldResponse
 	if err := json.Unmarshal(body, &amdHolds); err != nil {
 		var single AMDBlockHoldResponse
@@ -153,8 +141,6 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 		if err != nil {
 			endTime = startTime.Add(time.Duration(h.Duration) * time.Minute)
 		}
-		// For recurring holds, AMD's enddatetime is the recurrence series end,
-		// not the end of this day's occurrence.
 		if h.Recurrence.RecurrenceType > 0 && h.Duration > 0 {
 			endTime = startTime.Add(time.Duration(h.Duration) * time.Minute)
 		}
@@ -171,9 +157,6 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 	return holds, nil
 }
 
-// GetAppointmentsByMonth fetches all appointments for the given columns for a full month.
-// columnIDs should be dash-separated (e.g., "1513-1550-1551").
-// startDate should be the first of the month in YYYY-MM-DD format.
 func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, tokenData *domain.TokenData, columnIDs string, startDate string) (appointmentsResult []AMDAppointmentResponse, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "get_appointments_by_month")
 	defer func() { finish(resultErr) }()
@@ -193,7 +176,6 @@ func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, token
 	return appts, nil
 }
 
-// BookAppointmentParams holds the parameters for booking an appointment.
 type BookAppointmentParams struct {
 	PatientID       int    `json:"patientid"`
 	ColumnID        int    `json:"columnid"`
@@ -210,13 +192,10 @@ type BookAppointmentParams struct {
 	Comments   string `json:"comments,omitempty"`
 }
 
-// BookAppointmentResponse represents the AMD response after booking.
 type BookAppointmentResponse struct {
 	ID int `json:"id"`
 }
 
-// BookAppointment creates an appointment via AMD's REST API.
-// Returns the appointment ID on success.
 func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *domain.TokenData, params BookAppointmentParams) (appointmentIDResult int, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "book_appointment")
 	defer func() { finish(resultErr) }()
@@ -278,7 +257,6 @@ func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *d
 	return result.ID, nil
 }
 
-// CancelAppointment cancels an appointment via AMD's REST API.
 func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData *domain.TokenData, appointmentID int) (resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "cancel_appointment")
 	defer func() { finish(resultErr) }()

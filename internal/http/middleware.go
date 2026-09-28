@@ -20,14 +20,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// contextKey is a type for context keys to avoid collisions.
 type contextKey string
 
 const (
-	// RequestIDKey is the context key for the request ID.
-	RequestIDKey contextKey = "requestID"
-	// LogRequestIDKey is the context key for the redacted request ID used in logs.
-	LogRequestIDKey contextKey = "logRequestID"
+	logRequestIDKey contextKey = "logRequestID"
 	requestLogKey   contextKey = "requestLog"
 )
 
@@ -88,14 +84,11 @@ type requestLogEntry struct {
 
 var requestLogMu sync.Mutex
 
-// AuthMiddleware validates the API secret in the Authorization header.
 func AuthMiddleware(apiSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			auth := []byte(r.Header.Get("Authorization"))
 
-			// Accept either "Bearer {secret}" or raw "{secret}". Compare in
-			// constant time so response timing cannot reveal the secret.
 			bearerMatch := subtle.ConstantTimeCompare(auth, []byte("Bearer "+apiSecret))
 			rawMatch := subtle.ConstantTimeCompare(auth, []byte(apiSecret))
 			if bearerMatch|rawMatch != 1 {
@@ -111,7 +104,6 @@ func AuthMiddleware(apiSecret string) func(http.Handler) http.Handler {
 	}
 }
 
-// RequestIDMiddleware adds a unique request ID to each request.
 func RequestIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID := r.Header.Get("X-Request-ID")
@@ -124,17 +116,12 @@ func RequestIDMiddleware(next http.Handler) http.Handler {
 			logRequestID = fmt.Sprintf("external-%x", digest[:8])
 		}
 
-		// Add to response header
 		w.Header().Set("X-Request-ID", requestID)
 
-		// Add to context
-		ctx := context.WithValue(r.Context(), RequestIDKey, requestID)
-		ctx = context.WithValue(ctx, LogRequestIDKey, logRequestID)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), logRequestIDKey, logRequestID)))
 	})
 }
 
-// LoggingMiddleware logs request details and duration.
 func LoggingMiddleware(amdSession session.Session) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -143,7 +130,6 @@ func LoggingMiddleware(amdSession session.Session) func(http.Handler) http.Handl
 			ctx := context.WithValue(r.Context(), requestLogKey, state)
 			ctx, diagnostics := safeerrors.WithDiagnostics(ctx)
 
-			// Capture status only. Request/response bodies may contain PHI.
 			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK, state: state, diagnostics: diagnostics}
 
 			next.ServeHTTP(wrapped, r.WithContext(ctx))
@@ -270,7 +256,6 @@ func writeRequestLog(entry requestLogEntry) {
 	_, _ = log.Writer().Write(encoded)
 }
 
-// responseWriter wraps http.ResponseWriter to capture the status code.
 type responseWriter struct {
 	http.ResponseWriter
 	statusCode  int
@@ -311,17 +296,8 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	return rw.ResponseWriter.Write(b)
 }
 
-// GetRequestID retrieves the request ID from the context.
-func GetRequestID(ctx context.Context) string {
-	if id, ok := ctx.Value(RequestIDKey).(string); ok {
-		return id
-	}
-	return ""
-}
-
-// GetLogRequestID retrieves the redacted request ID from the context.
 func GetLogRequestID(ctx context.Context) string {
-	if id, ok := ctx.Value(LogRequestIDKey).(string); ok {
+	if id, ok := ctx.Value(logRequestIDKey).(string); ok {
 		return id
 	}
 	return ""

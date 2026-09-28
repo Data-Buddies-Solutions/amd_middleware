@@ -2,8 +2,6 @@ package domain
 
 import "testing"
 
-// Python 9cc440a's match_plan with its original vision JSON accepts these
-// canonical labels (also when prefixed with "I have"). Both attach to Davis.
 func TestVisionAliasMigrationPreservesOriginalAcceptance(t *testing.T) {
 	office, _ := ResolveOffice("Spring Hill")
 	for _, name := range []string{"Superior", "Versant"} {

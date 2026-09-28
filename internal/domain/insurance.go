@@ -5,7 +5,6 @@ import (
 	"unicode"
 )
 
-// RoutingRule determines which providers a patient can see based on their insurance.
 type RoutingRule string
 
 const (
@@ -16,15 +15,12 @@ const (
 	RoutingOpticalOnly RoutingRule = "optical_only"
 )
 
-// InsuranceEntry maps an insurance name to its AMD carrier ID and routing rule.
 type InsuranceEntry struct {
 	CarrierID       string
 	Routing         RoutingRule
 	PreauthRequired bool
 }
 
-// VisionInsuranceNameMap maps accepted routine-vision insurance buckets to AMD carrier IDs.
-// It is used only when a request explicitly asks for routine-vision coverage.
 var VisionInsuranceNameMap = map[string]InsuranceEntry{
 	"vsp":                     {CarrierID: "car280695", Routing: RoutingOpticalOnly},
 	"eyemed":                  {CarrierID: "car280684", Routing: RoutingOpticalOnly},
@@ -43,8 +39,6 @@ var VisionInsuranceNameMap = map[string]InsuranceEntry{
 	"self pay":                {CarrierID: "car301672", Routing: RoutingOpticalOnly},
 }
 
-// VisionInsuranceAliases maps patient-facing routine-vision plan names to the
-// billing buckets above, based on the vision insurance workbook.
 var VisionInsuranceAliases = map[string]string{
 	"eye med":                        "eyemed",
 	"eye med vision":                 "eyemed",
@@ -67,31 +61,26 @@ var VisionInsuranceAliases = map[string]string{
 	"cash pay":                       "self pay",
 	"cash":                           "self pay",
 
-	// VSP
 	"metlife":           "vsp",
 	"liberty financial": "vsp",
 	"lincoln financial": "vsp",
 	"lincoln finacial":  "vsp",
 
-	// EyeMed
 	"humana": "eyemed",
 	"aetna":  "eyemed",
 	"unum":   "eyemed",
 	"cigna":  "eyemed",
 
-	// Davis
 	"superior":     "davis",
 	"florida blue": "davis",
 	"blueview":     "davis",
 	"blue view":    "davis",
 	"versant":      "davis",
 
-	// Spectera
 	"united healthcare":  "spectera",
 	"united health care": "spectera",
 	"united vision":      "spectera",
 
-	// iCare
 	"aetna better health":                            "icare",
 	"aetna better health medicaid mma vision":        "icare",
 	"aetna better health medicaid mma (vision)":      "icare",
@@ -139,7 +128,6 @@ var VisionInsuranceAliases = map[string]string{
 	"simply medicare (vision)":                            "icare",
 	"simply medicare vision":                              "icare",
 
-	// Envolve
 	"ambetter":                             "envolve",
 	"ambetter (vision)":                    "envolve",
 	"ambetter vision":                      "envolve",
@@ -155,7 +143,6 @@ var VisionInsuranceAliases = map[string]string{
 	"wellcare (medicaid) vision":           "envolve",
 	"wellcare medicaid vision":             "envolve",
 
-	// Premier
 	"amerihealth":                              "premier",
 	"devoted":                                  "premier",
 	"devoted medicare hmo (vision)":            "premier",
@@ -214,8 +201,6 @@ func isAetnaGovernmentVisionPlan(name string) bool {
 	return hasAetna && hasGovernmentProgram
 }
 
-// CanonicalInsuranceName resolves exact product names and identity aliases only.
-// Office participation and billing carrier IDs do not establish a payer route.
 func CanonicalInsuranceName(name string) (string, bool) {
 	normalized := NormalizeForLookup(name)
 	for _, plan := range medicalPlans {
@@ -241,7 +226,6 @@ func CanonicalInsuranceName(name string) (string, bool) {
 	if _, ok := VisionInsuranceNameMap[normalized]; ok {
 		return normalized, true
 	}
-	// Other vision aliases describe billing networks, not insurance products.
 	switch normalized {
 	case "eye med", "eye med vision", "eye med vision care", "national vision", "national vision administrators",
 		"davis vision", "spectera vision", "soltice", "solstice vision", "guardian vision", "alivi health", "sunhealth vision", "i care":
@@ -250,7 +234,6 @@ func CanonicalInsuranceName(name string) (string, bool) {
 	return "", false
 }
 
-// IsSelfPayInsurance reports whether a caller-facing insurance value means self-pay.
 func IsSelfPayInsurance(name string) bool {
 	normalized := NormalizeForLookup(name)
 	return normalized == "self pay" ||
@@ -258,23 +241,6 @@ func IsSelfPayInsurance(name string) bool {
 		VisionInsuranceAliases[normalized] == "self pay"
 }
 
-// InsuranceModeForCoverage converts an agent-supplied coverage type to a middleware insurance mode.
-func InsuranceModeForCoverage(coverageType string) InsuranceMode {
-	switch strings.ToLower(strings.TrimSpace(coverageType)) {
-	case "routine_vision", "optical_only":
-		return InsuranceModeVision
-	}
-
-	switch NormalizeForLookup(coverageType) {
-	case "routine vision", "vision", "optical", "optical only":
-		return InsuranceModeVision
-	default:
-		return InsuranceModeMedical
-	}
-}
-
-// ParseRoutingRule converts a string back to a typed RoutingRule.
-// Used by the availability handler to parse the routing param from the request.
 func ParseRoutingRule(s string) RoutingRule {
 	switch RoutingRule(s) {
 	case RoutingNotAccepted:

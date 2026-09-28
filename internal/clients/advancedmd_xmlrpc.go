@@ -15,12 +15,10 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
-// AMDLookupRequest is the XMLRPC request format for lookuppatient.
 type AMDLookupRequest struct {
 	PPMDMsg AMDLookupMsg `json:"ppmdmsg"`
 }
 
-// AMDLookupMsg contains the lookuppatient action parameters.
 type AMDLookupMsg struct {
 	Action string `json:"@action"`
 	Class  string `json:"@class"`
@@ -29,7 +27,6 @@ type AMDLookupMsg struct {
 	Page   int    `json:"@page,omitempty"`
 }
 
-// AMDLookupResponse represents the AdvancedMD lookuppatient response (array format).
 type AMDLookupResponse struct {
 	PPMDResults struct {
 		Results struct {
@@ -42,7 +39,6 @@ type AMDLookupResponse struct {
 	} `json:"PPMDResults"`
 }
 
-// AMDLookupResponseSingle handles single patient response.
 type AMDLookupResponseSingle struct {
 	PPMDResults struct {
 		Results struct {
@@ -55,7 +51,6 @@ type AMDLookupResponseSingle struct {
 	} `json:"PPMDResults"`
 }
 
-// AMDPatient represents a patient record from AdvancedMD.
 type AMDPatient struct {
 	ID          string         `json:"@id"`
 	Name        string         `json:"@name"`
@@ -75,13 +70,10 @@ type AMDContactInfo struct {
 	OtherPhone  string `json:"@otherphone"`
 }
 
-// AdvancedMDClient handles XMLRPC calls to AdvancedMD.
 type AdvancedMDClient struct {
 	httpClient *http.Client
 }
 
-// ProviderRejectionError means AdvancedMD explicitly rejected a request. It
-// intentionally carries no provider body or patient data.
 type ProviderRejectionError struct {
 	operation string
 	code      string
@@ -91,7 +83,6 @@ func (e *ProviderRejectionError) Error() string {
 	return e.operation + " rejected by provider"
 }
 
-// HTTPStatusError reports a provider status without retaining its body or URL.
 type HTTPStatusError struct {
 	StatusCode int
 }
@@ -100,12 +91,10 @@ func (e *HTTPStatusError) Error() string {
 	return fmt.Sprintf("unexpected XMLRPC status %d", e.StatusCode)
 }
 
-// NewAdvancedMDClient creates a new AdvancedMD XMLRPC client.
 func NewAdvancedMDClient(httpClient *http.Client) *AdvancedMDClient {
 	return &AdvancedMDClient{httpClient: httpClient}
 }
 
-// doXMLRPCRequest marshals payload to JSON, POSTs to the XMLRPC endpoint, and returns the raw response body.
 func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *domain.TokenData, payload interface{}) ([]byte, error) {
 	jsonBody, err := json.Marshal(payload)
 	if err != nil {
@@ -141,8 +130,6 @@ func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *domai
 	return body, nil
 }
 
-// LookupPatient searches for patients by name.
-// If firstName is provided, sends "LastName,FirstName" to AMD for narrower results.
 func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *domain.TokenData, lastName string, firstName string) ([]domain.Patient, error) {
 	name := lastName
 	if firstName != "" {
@@ -161,9 +148,6 @@ func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *domain.
 	return read.Patients, err
 }
 
-// LookupPatientCandidates returns only the provider's name-prefix candidates.
-// A candidate result is complete only after explicit pagination/count metadata
-// proves every page was read. The Patient module owns identity validation/repair.
 func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *domain.TokenData, firstName string) (read domain.PatientCandidateRead, resultErr error) {
 	read, err := c.doPatientLookup(ctx, tokenData, AMDLookupRequest{PPMDMsg: AMDLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName}})
 	if err != nil {
@@ -173,7 +157,6 @@ func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenDat
 		parts := strings.SplitN(patient.FullName, ",", 2)
 		if len(parts) == 2 {
 			patient.LastName = strings.TrimSpace(parts[0])
-			// AMD's comma suffix is first-and-middle, as in phone bootstrap.
 			if names := strings.Fields(parts[1]); len(names) > 0 {
 				patient.FirstName = names[0]
 			}
@@ -184,8 +167,6 @@ func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenDat
 	return read, nil
 }
 
-// LookupPatientByPhone searches for patients by phone number.
-// Phone should be digits only (e.g., "7863344429").
 func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *domain.TokenData, phone string) ([]domain.Patient, error) {
 	payload := AMDLookupRequest{PPMDMsg: AMDLookupMsg{
 		Action: "lookuppatient", Class: "api", Phone: phone,
@@ -195,7 +176,6 @@ func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *
 	return read.Patients, err
 }
 
-// doPatientLookup executes a lookuppatient request and parses the response.
 func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domain.TokenData, payload AMDLookupRequest) (read domain.PatientCandidateRead, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "lookuppatient")
 	defer func() { finish(resultErr) }()
@@ -236,7 +216,6 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domai
 			seen[patient.ID] = true
 			patients = append(patients, patient)
 		}
-		// Legacy single-page responses omit both pagination fields.
 		if page == 1 && meta.Page == "" && meta.Pages == "" {
 			if meta.Total != "" {
 				total, err := strconv.Atoi(meta.Total)
@@ -271,16 +250,12 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domai
 			if len(patients) < total {
 				return domain.PatientCandidateRead{}, fmt.Errorf("incomplete patient lookup results")
 			}
-			// AMD can underreport itemcount even after every page has been read.
-			// Keep all candidates, but an inconsistent count cannot prove completeness.
 			return domain.PatientCandidateRead{Patients: patients, Complete: len(patients) == total}, nil
 		}
 	}
 	return domain.PatientCandidateRead{}, fmt.Errorf("patient lookup exceeded page limit")
 }
 
-// parseLookupResponse decodes records and pagination together. The patient field
-// can contain one object or an array; existing lookup callers use only Patients.
 func parseLookupResponse(body []byte) (domain.PatientCandidateRead, error) {
 	var response struct {
 		PPMDResults *struct {
@@ -313,7 +288,6 @@ func parseLookupResponse(body []byte) (domain.PatientCandidateRead, error) {
 	count, countErr := strconv.Atoi(list.ItemCount)
 	pages, pageErr := strconv.Atoi(list.PageCount)
 	if list.ItemCount == "0" {
-		// Preserve legacy empty reads, but contradictory records cannot prove absence.
 		read.Patients = []domain.Patient{}
 		empty := len(raw) == 0 || bytes.Equal(raw, []byte("null")) || bytes.Equal(raw, []byte("[]"))
 		read.Complete = empty && list.Page == "1" && pageErr == nil && (pages == 0 || pages == 1)
@@ -342,7 +316,6 @@ func parseLookupResponse(body []byte) (domain.PatientCandidateRead, error) {
 	return read, nil
 }
 
-// AddPatientParams holds the parameters for creating a new patient.
 type AddPatientParams struct {
 	FirstName string
 	LastName  string
@@ -356,11 +329,9 @@ type AddPatientParams struct {
 	Zip       string
 	Sex       string
 	SSN       string
-	ProfileID string // Provider profile ID for the office (e.g., "620")
+	ProfileID string
 }
 
-// AddPatient creates a new patient in AdvancedMD.
-// Returns the raw patient ID (with "pat" prefix), responsible party ID, and patient name.
 func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.TokenData, params AddPatientParams) (patientIDResult string, partyIDResult string, nameResult string, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "addpatient")
 	defer func() { finish(resultErr) }()
@@ -415,7 +386,6 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.Tok
 		return "", "", "", providerRejection("addpatient", body)
 	}
 
-	// Try single patient response first (most likely for addpatient)
 	var singleResp AMDLookupResponseSingle
 	if err := json.Unmarshal(body, &singleResp); err == nil {
 		if singleResp.PPMDResults.Results.PatientList.Patient.ID != "" {
@@ -424,7 +394,6 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.Tok
 		}
 	}
 
-	// Try array response
 	var arrayResp AMDLookupResponse
 	if err := json.Unmarshal(body, &arrayResp); err == nil {
 		if len(arrayResp.PPMDResults.Results.PatientList.Patients) > 0 {
@@ -436,7 +405,6 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.Tok
 	return "", "", "", fmt.Errorf("addpatient returned unexpected response")
 }
 
-// AddInsurance attaches an insurance record to an existing patient in AdvancedMD.
 func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.TokenData, patientID, respPartyID, carrierID, subscriberNum string) (resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "addinsurance")
 	defer func() { finish(resultErr) }()
@@ -478,8 +446,6 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.T
 	return nil
 }
 
-// EndDateInsurance terminates an existing insurance plan by setting its end date to today.
-// Uses the addinsurance action with the existing insplan ID — only @id and @enddate are needed.
 func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *domain.TokenData, patientID, insPlanID string) (resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "enddateinsurance")
 	defer func() { finish(resultErr) }()
@@ -586,32 +552,17 @@ func providerErrorPresent(value interface{}) bool {
 	}
 }
 
-// checkXMLRPCError parses AMD XMLRPC response body for errors.
-// AMD returns errors as either a plain string or a nested Fault structure.
-func checkXMLRPCError(body []byte, operation string) error {
-	response, err := parseXMLRPCEnvelope(body, operation)
-	if err != nil {
-		return err
-	}
-	if !providerErrorPresent(response.PPMDResults.Error) {
-		return nil
-	}
-	return providerRejection(operation, body)
-}
-
-// DemographicResult holds parsed insurance info from getdemographic.
 type DemographicResult struct {
 	Name                string
-	CarrierName         string // "AETNA"
-	CarrierID           string // "car40887"
-	InsPlanID           string // "ins8719894" — active insplan ID for end-dating
-	RespPartyID         string // "resp21543970" — for new plan's @subscriber
+	CarrierName         string
+	CarrierID           string
+	InsPlanID           string
+	RespPartyID         string
 	SubscriberNum       string
-	DOB                 string // "01/15/1980"
+	DOB                 string
 	InsuranceStateKnown bool
 }
 
-// AMDDemographicResults represents the authoritative getdemographic result.
 type AMDDemographicResults struct {
 	PatientList struct {
 		Patient struct {
@@ -625,12 +576,10 @@ type AMDDemographicResults struct {
 	CarrierList json.RawMessage `json:"carrierlist"`
 }
 
-// AMDInsPlanList wraps insurance plans from the demographic response.
 type AMDInsPlanList struct {
 	InsPlan json.RawMessage `json:"insplan"`
 }
 
-// AMDInsPlan represents an insurance plan entry.
 type AMDInsPlan struct {
 	ID            string `json:"@id"`
 	Carrier       string `json:"@carrier"`
@@ -640,19 +589,15 @@ type AMDInsPlan struct {
 	Coverage      string `json:"@coverage"`
 }
 
-// AMDCarrierList wraps carriers from the demographic response.
 type AMDCarrierList struct {
 	Carrier json.RawMessage `json:"carrier"`
 }
 
-// AMDCarrier represents a carrier entry with its name.
 type AMDCarrier struct {
 	ID   string `json:"@id"`
 	Name string `json:"@name"`
 }
 
-// GetDemographic fetches patient demographic info including insurance.
-// Returns a DemographicResult with carrier info, active insplan ID, and resp party ID.
 func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *domain.TokenData, patientID string) (demographicResult *DemographicResult, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "getdemographic")
 	defer func() { finish(resultErr) }()
@@ -702,7 +647,6 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *domain
 		InsuranceStateKnown: true,
 	}
 
-	// Parse insplanlist to get insurance details
 	if patient.InsPlanList == nil {
 		return result, nil
 	}
@@ -716,8 +660,6 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *domain
 		return result, nil
 	}
 
-	// Find the active primary plan (enddate empty, coverage "1")
-	// Handle both single object and array responses from AMD
 	var activePlan *AMDInsPlan
 	var single AMDInsPlan
 	if err := json.Unmarshal(planList.InsPlan, &single); err == nil && single.Carrier != "" {
@@ -752,7 +694,6 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *domain
 		result.RespPartyID = activePlan.Subscriber
 	}
 
-	// Look up carrier name from carrierlist
 	if results.CarrierList == nil {
 		result.CarrierName = result.CarrierID
 		return result, nil
@@ -764,7 +705,6 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *domain
 		return result, nil
 	}
 
-	// Try single carrier
 	var singleCarrier AMDCarrier
 	if err := json.Unmarshal(carrierList.Carrier, &singleCarrier); err == nil {
 		if singleCarrier.ID == result.CarrierID {
@@ -773,7 +713,6 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *domain
 		}
 	}
 
-	// Try array of carriers
 	var carriers []AMDCarrier
 	if err := json.Unmarshal(carrierList.Carrier, &carriers); err == nil {
 		for _, c := range carriers {
@@ -792,7 +731,6 @@ func isActivePrimaryPlan(plan AMDInsPlan) bool {
 	return plan.EndDate == "" && (plan.Coverage == "" || plan.Coverage == "1")
 }
 
-// convertPatients converts AMD patient records to domain patients.
 func convertPatients(amdPatients []AMDPatient) []domain.Patient {
 	patients := make([]domain.Patient, len(amdPatients))
 	for i, p := range amdPatients {
@@ -823,7 +761,6 @@ func bestPatientPhone(contact AMDContactInfo) string {
 	return ""
 }
 
-// AMDSchedulerSetupResponse represents the getschedulersetup response structure.
 type AMDSchedulerSetupResponse struct {
 	PPMDResults struct {
 		Results struct {
@@ -835,22 +772,18 @@ type AMDSchedulerSetupResponse struct {
 	} `json:"PPMDResults"`
 }
 
-// AMDColumnList holds the list of scheduler columns.
 type AMDColumnList struct {
-	Columns interface{} `json:"column"` // Can be single object or array
+	Columns interface{} `json:"column"`
 }
 
-// AMDProfileList holds the list of provider profiles.
 type AMDProfileList struct {
-	Profiles interface{} `json:"profile"` // Can be single object or array
+	Profiles interface{} `json:"profile"`
 }
 
-// AMDFacilityList holds the list of facilities.
 type AMDFacilityList struct {
-	Facilities interface{} `json:"facility"` // Can be single object or array
+	Facilities interface{} `json:"facility"`
 }
 
-// GetSchedulerSetup retrieves the scheduler configuration from AdvancedMD.
 func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *domain.TokenData) (setupResult *domain.SchedulerSetup, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "getschedulersetup")
 	defer func() { finish(resultErr) }()
@@ -900,7 +833,6 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *dom
 	return setup, nil
 }
 
-// parseColumns converts the AMD column data to domain columns.
 func parseColumns(data interface{}) ([]domain.SchedulerColumn, error) {
 	switch v := data.(type) {
 	case nil:
@@ -922,7 +854,6 @@ func parseColumns(data interface{}) ([]domain.SchedulerColumn, error) {
 	}
 }
 
-// parseColumnFromMap extracts a SchedulerColumn from a map.
 func parseColumnFromMap(m map[string]interface{}) domain.SchedulerColumn {
 	col := domain.SchedulerColumn{
 		ID:         stripPrefix(getString(m, "@id"), "col"),
@@ -931,7 +862,6 @@ func parseColumnFromMap(m map[string]interface{}) domain.SchedulerColumn {
 		FacilityID: stripPrefix(getString(m, "@facility"), "fac"),
 	}
 
-	// Get settings from nested columnsetting object
 	if settings, ok := m["columnsetting"].(map[string]interface{}); ok {
 		col.StartTime = normalizeTime(getString(settings, "@start"))
 		col.EndTime = normalizeTime(getString(settings, "@end"))
@@ -943,7 +873,6 @@ func parseColumnFromMap(m map[string]interface{}) domain.SchedulerColumn {
 	return col
 }
 
-// stripPrefix removes a prefix from a string (e.g., "col1716" -> "1716").
 func stripPrefix(s, prefix string) string {
 	if len(s) > len(prefix) && s[:len(prefix)] == prefix {
 		return s[len(prefix):]
@@ -951,17 +880,12 @@ func stripPrefix(s, prefix string) string {
 	return s
 }
 
-// parseWorkweek converts AMD workweek string "1111100" to bitmask.
-// AMD format: 7 chars for Mon-Sun (1=works, 0=off)
-// Our format: bitmask with 1=Sun, 2=Mon, 4=Tue, etc.
 func parseWorkweek(ww string) int {
 	if len(ww) != 7 {
 		return 0
 	}
-	// AMD: index 0=Mon, 1=Tue, ..., 6=Sun
-	// Our: bit 0=Sun, 1=Mon, 2=Tue, ..., 6=Sat
 	bitmask := 0
-	amdToBit := []int{1, 2, 3, 4, 5, 6, 0} // Mon->1, Tue->2, ..., Sun->0
+	amdToBit := []int{1, 2, 3, 4, 5, 6, 0}
 	for i, ch := range ww {
 		if ch == '1' {
 			bitmask |= (1 << amdToBit[i])
@@ -970,7 +894,6 @@ func parseWorkweek(ww string) int {
 	return bitmask
 }
 
-// parseProfiles converts the AMD profile data to domain profiles.
 func parseProfiles(data interface{}) []domain.SchedulerProfile {
 	if data == nil {
 		return nil
@@ -1000,7 +923,6 @@ func parseProfiles(data interface{}) []domain.SchedulerProfile {
 	return profiles
 }
 
-// parseFacilities converts the AMD facility data to domain facilities.
 func parseFacilities(data interface{}) []domain.SchedulerFacility {
 	if data == nil {
 		return nil
@@ -1030,13 +952,11 @@ func parseFacilities(data interface{}) []domain.SchedulerFacility {
 	return facilities
 }
 
-// getString safely extracts a string from a map.
 func getString(m map[string]interface{}, key string) string {
 	s, _ := m[key].(string)
 	return s
 }
 
-// getInt safely extracts an int from a map (handles string or number).
 func getInt(m map[string]interface{}, key string) int {
 	if v, ok := m[key]; ok {
 		switch n := v.(type) {
@@ -1051,23 +971,19 @@ func getInt(m map[string]interface{}, key string) int {
 	return 0
 }
 
-// normalizeTime converts AMD time formats (e.g., "0800", "08:00", "8:00 AM") to "HH:MM".
 func normalizeTime(t string) string {
 	if t == "" {
 		return ""
 	}
 
-	// Already in HH:MM format
 	if len(t) == 5 && t[2] == ':' {
 		return t
 	}
 
-	// Handle "H:MM" format (e.g., "8:00") — must check before HHMM
 	if len(t) == 4 && t[1] == ':' {
 		return "0" + t
 	}
 
-	// Handle "HHMM" format (e.g., "0800")
 	if len(t) == 4 {
 		return t[:2] + ":" + t[2:]
 	}

@@ -22,7 +22,6 @@ import (
 
 var eastern = domain.EasternLocation()
 
-// Adapter is the production adapter for AdvancedMD domain records.
 type Adapter struct {
 	session    session.Session
 	xmlClient  *clients.AdvancedMDClient
@@ -53,10 +52,6 @@ func (a *Adapter) SearchPatients(ctx context.Context, search domain.PatientSearc
 	if err != nil {
 		return nil, err
 	}
-	if a.xmlClient == nil {
-		return nil, NewError(safeerrors.CategoryInternal)
-	}
-
 	var patients []domain.Patient
 	if search.Phone != "" {
 		patients, err = a.xmlClient.LookupPatientByPhone(ctx, token, search.Phone)
@@ -69,14 +64,10 @@ func (a *Adapter) SearchPatients(ctx context.Context, search domain.PatientSearc
 	return patients, nil
 }
 
-// ReadPatientCandidates retrieves first-name prefix candidates without identity policy or hydration.
 func (a *Adapter) ReadPatientCandidates(ctx context.Context, firstName string) (domain.PatientCandidateRead, error) {
 	token, err := a.token(ctx)
 	if err != nil {
 		return domain.PatientCandidateRead{}, err
-	}
-	if a.xmlClient == nil {
-		return domain.PatientCandidateRead{}, NewError(safeerrors.CategoryInternal)
 	}
 	read, err := a.xmlClient.LookupPatientCandidates(ctx, token, firstName)
 	if err != nil {
@@ -90,10 +81,6 @@ func (a *Adapter) GetPatientDemographics(ctx context.Context, patientID string) 
 	if err != nil {
 		return domain.PatientDemographics{}, err
 	}
-	if a.xmlClient == nil {
-		return domain.PatientDemographics{}, NewError(safeerrors.CategoryInternal)
-	}
-
 	result, err := a.xmlClient.GetDemographic(ctx, token, patientID)
 	if err != nil {
 		return domain.PatientDemographics{}, classify(err)
@@ -117,9 +104,6 @@ func (a *Adapter) CreatePatient(ctx context.Context, command domain.PatientCreat
 	token, err := a.token(ctx)
 	if err != nil {
 		return domain.CreatedPatient{}, err
-	}
-	if a.xmlClient == nil {
-		return domain.CreatedPatient{}, NewError(safeerrors.CategoryInternal)
 	}
 	office, ok := domain.LookupOfficeByID(command.OfficeID)
 	if !ok {
@@ -156,9 +140,6 @@ func (a *Adapter) AddPatientInsurance(ctx context.Context, command domain.Patien
 	if err != nil {
 		return err
 	}
-	if a.xmlClient == nil {
-		return NewError(safeerrors.CategoryInternal)
-	}
 	if err := a.xmlClient.AddInsurance(
 		ctx,
 		token,
@@ -176,9 +157,6 @@ func (a *Adapter) EndDatePatientInsurance(ctx context.Context, command domain.Pa
 	token, err := a.token(ctx)
 	if err != nil {
 		return err
-	}
-	if a.xmlClient == nil {
-		return NewError(safeerrors.CategoryInternal)
 	}
 	if err := a.xmlClient.EndDateInsurance(ctx, token, command.PatientID, command.InsPlanID); err != nil {
 		return classifyMutation(err)
@@ -198,7 +176,7 @@ func (a *Adapter) ReadPatientAppointmentsForMonth(
 	if err != nil {
 		return AppointmentRead{}, err
 	}
-	if a.restClient == nil || query.Month.IsZero() {
+	if query.Month.IsZero() {
 		return AppointmentRead{}, NewError(safeerrors.CategoryInternal)
 	}
 	patientID, err := strconv.Atoi(query.PatientID)
@@ -236,9 +214,6 @@ func (a *Adapter) readPatientAppointments(ctx context.Context, query domain.Pati
 	token, err := a.token(ctx)
 	if err != nil {
 		return AppointmentRead{}, err
-	}
-	if a.restClient == nil {
-		return AppointmentRead{}, NewError(safeerrors.CategoryInternal)
 	}
 	patientIDNumber, err := strconv.Atoi(query.PatientID)
 	if err != nil {
@@ -474,7 +449,7 @@ func (a *Adapter) ReadAppointmentState(
 	if err != nil {
 		return AppointmentState{}, err
 	}
-	if a.restClient == nil || query.AppointmentID <= 0 || query.Start.IsZero() {
+	if query.AppointmentID <= 0 || query.Start.IsZero() {
 		return AppointmentState{}, NewError(safeerrors.CategoryInternal)
 	}
 	office, ok := domain.LookupOfficeByID(query.OfficeID)
@@ -523,10 +498,6 @@ func (a *Adapter) GetSchedulerSetup(ctx context.Context) (domain.SchedulerSetup,
 	if err != nil {
 		return domain.SchedulerSetup{}, err
 	}
-	if a.xmlClient == nil {
-		return domain.SchedulerSetup{}, NewError(safeerrors.CategoryInternal)
-	}
-
 	setup, err := a.xmlClient.GetSchedulerSetup(ctx, token)
 	if err != nil {
 		return domain.SchedulerSetup{}, classify(err)
@@ -542,12 +513,6 @@ func (a *Adapter) ReadSchedule(ctx context.Context, query domain.ScheduleReadQue
 	if err != nil {
 		return domain.ScheduleReadResult{}, err
 	}
-	if a.restClient == nil {
-		return domain.ScheduleReadResult{}, NewError(safeerrors.CategoryInternal)
-	}
-
-	// Each request owns one result slot. Assemble the map after all reads finish,
-	// so completeness comes from explicit outcomes, never missing map keys.
 	columns := make([]domain.ColumnSchedule, len(query.ColumnIDs))
 	failures := make([]error, 2*len(query.ColumnIDs))
 	var reads sync.WaitGroup
@@ -599,9 +564,6 @@ func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, er
 	if err != nil {
 		return 0, err
 	}
-	if a.restClient == nil {
-		return 0, NewError(safeerrors.CategoryInternal)
-	}
 	office, ok := domain.LookupOfficeByID(booking.OfficeID)
 	if !ok {
 		return 0, NewError(safeerrors.CategoryInternal)
@@ -643,9 +605,6 @@ func (a *Adapter) CancelAppointment(ctx context.Context, cancellation Cancellati
 	token, err := a.token(ctx)
 	if err != nil {
 		return err
-	}
-	if a.restClient == nil {
-		return NewError(safeerrors.CategoryInternal)
 	}
 	if err := a.restClient.CancelAppointment(ctx, token, cancellation.AppointmentID); err != nil {
 		return classifyMutation(err)

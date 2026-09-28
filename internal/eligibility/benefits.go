@@ -5,15 +5,11 @@ import (
 	"slices"
 )
 
-// Filter benefit rows once at the middleware boundary. Keep complete matching
-// rows, including network, tier, plan descriptions and unknown payer qualifiers.
-// Assess the original response separately so filtering cannot hide failures.
 func retainVisitBenefits(raw json.RawMessage, coverage string) json.RawMessage {
 	var response map[string]json.RawMessage
 	if json.Unmarshal(raw, &response) != nil || response == nil {
 		return raw
 	}
-	// Raw X12 duplicates unfiltered benefits outside the selected JSON rows.
 	delete(response, "x12")
 	visit := "98"
 	if coverage == "routine_vision" {

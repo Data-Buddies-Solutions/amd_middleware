@@ -36,10 +36,7 @@ type responseAssessment struct {
 	ErrorCodes []string
 }
 
-// assessResponse interprets an already-decoded payer response. It neither plans
-// retries nor depends on replay inputs or transport details.
 func assessResponse(response Response, expected Person, dependent bool) responseAssessment {
-	// Empty/null entries are malformed evidence, even alongside valid benefits.
 	for _, benefit := range response.Benefits {
 		if strings.TrimSpace(benefit.Code) == "" {
 			return responseAssessment{Coverage: "unknown"}
@@ -77,8 +74,6 @@ func assessResponse(response Response, expected Person, dependent bool) response
 	return assessment
 }
 
-// generalCoverage is shared by saved replay and live checks. Contradictory,
-// non-production and service-specific benefits never establish plan activity.
 func generalCoverage(response Response) string {
 	if response.Meta.Mode != "production" || len(response.Errors) > 0 {
 		return "unknown"

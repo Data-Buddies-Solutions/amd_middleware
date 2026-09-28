@@ -1,4 +1,3 @@
-// Package safelog keeps application log output as one JSON object per line.
 package safelog
 
 import (
@@ -13,7 +12,6 @@ type writer struct {
 	mu          sync.Mutex
 }
 
-// NewWriter wraps plain log messages and preserves structured JSON entries.
 func NewWriter(destination io.Writer) io.Writer {
 	return &writer{destination: destination}
 }

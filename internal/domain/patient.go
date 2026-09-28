@@ -11,9 +11,6 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-// NormalizeForLookup normalizes input strings for fuzzy map lookups.
-// Strips punctuation (periods, commas), replaces slashes with spaces,
-// collapses multiple spaces, lowercases, and trims whitespace.
 func NormalizeForLookup(input string) string {
 	s := strings.ToLower(strings.TrimSpace(input))
 	s = strings.ReplaceAll(s, ".", "")
@@ -25,8 +22,6 @@ func NormalizeForLookup(input string) string {
 	return strings.TrimSpace(s)
 }
 
-// StripDiacritics removes accent marks and diacritical characters from a string.
-// e.g., "López Sánchez" → "Lopez Sanchez"
 func StripDiacritics(s string) string {
 	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 	result, _, err := transform.String(t, s)
@@ -36,32 +31,26 @@ func StripDiacritics(s string) string {
 	return result
 }
 
-// Patient represents a patient record.
 type Patient struct {
 	ID        string
 	FirstName string
 	LastName  string
-	FullName  string // "LASTNAME,FIRSTNAME" format from AMD
-	DOB       string // MM/DD/YYYY
+	FullName  string
+	DOB       string
 	Phone     string
 }
 
-// PatientSearch describes an Acuity patient lookup without exposing provider
-// request formats.
 type PatientSearch struct {
 	Phone     string
 	FirstName string
 	LastName  string
 }
 
-// PatientCandidateRead preserves pagination/count completeness, independently of identity fields.
 type PatientCandidateRead struct {
 	Patients []Patient
 	Complete bool
 }
 
-// PatientDemographics contains the patient fields returned by the authoritative
-// demographic read.
 type PatientDemographics struct {
 	FullName            string
 	CarrierName         string
@@ -73,7 +62,6 @@ type PatientDemographics struct {
 	InsuranceStateKnown bool
 }
 
-// PatientAppointment is an upcoming appointment ready for Acuity workflows.
 type PatientAppointment struct {
 	ID                int
 	Start             time.Time
@@ -85,15 +73,11 @@ type PatientAppointment struct {
 	Office            string
 }
 
-// PatientAppointmentsQuery selects a patient's upcoming appointments by stable
-// Acuity office IDs.
 type PatientAppointmentsQuery struct {
 	PatientID string
 	OfficeIDs []string
 }
 
-// ValidateOptionalDOB accepts an omitted DOB or a date understood by the
-// scheduling age policy.
 func ValidateOptionalDOB(dob string) error {
 	if dob == "" {
 		return nil
@@ -104,7 +88,6 @@ func ValidateOptionalDOB(dob string) error {
 	return nil
 }
 
-// PatientCreate contains normalized Acuity patient data for provider creation.
 type PatientCreate struct {
 	FirstName string
 	LastName  string
@@ -121,14 +104,12 @@ type PatientCreate struct {
 	OfficeID  string
 }
 
-// CreatedPatient is the provider-confirmed identity of a newly created patient.
 type CreatedPatient struct {
 	ID          string
 	RespPartyID string
 	Name        string
 }
 
-// PatientInsurance contains the domain values needed to attach insurance.
 type PatientInsurance struct {
 	PatientID     string
 	RespPartyID   string
@@ -136,21 +117,16 @@ type PatientInsurance struct {
 	SubscriberNum string
 }
 
-// PatientInsuranceEnd identifies the active insurance plan to end-date.
 type PatientInsuranceEnd struct {
 	PatientID string
 	InsPlanID string
 }
 
-// StripPatientPrefix removes the "pat" prefix from patient IDs.
-// AMD returns IDs like "pat45" but the booking API expects just "45".
 func StripPatientPrefix(id string) string {
 	return strings.TrimPrefix(id, "pat")
 }
 
-// NormalizeDOB converts various date formats to MM/DD/YYYY.
 func NormalizeDOB(dob string) string {
-	// Already in correct format
 	if len(dob) == 10 && dob[2] == '/' && dob[5] == '/' {
 		return dob
 	}
@@ -175,8 +151,6 @@ func NormalizeDOB(dob string) string {
 	return dob
 }
 
-// FormatPhone normalizes a US phone number to (XXX)XXX-XXXX format.
-// Strips all non-digit characters and drops a leading US country code.
 func FormatPhone(phone string) string {
 	var digits []byte
 	for _, c := range phone {
@@ -193,7 +167,6 @@ func FormatPhone(phone string) string {
 	return phone
 }
 
-// NormalizeSex converts various sex inputs to AMD's expected format (M/F/U).
 func NormalizeSex(sex string) string {
 	switch strings.ToUpper(strings.TrimSpace(sex)) {
 	case "M", "MALE":
@@ -205,7 +178,6 @@ func NormalizeSex(sex string) string {
 	}
 }
 
-// IsMinor returns true if the patient's DOB (MM/DD/YYYY) indicates they are under 18.
 func IsMinor(dob string) bool {
 	age, ok := AgeYears(dob)
 	if !ok {
@@ -214,12 +186,10 @@ func IsMinor(dob string) bool {
 	return age < 18
 }
 
-// AgeYears returns the patient's age in full years as of today.
 func AgeYears(dob string) (int, bool) {
 	return AgeYearsOn(dob, time.Now())
 }
 
-// AgeYearsOn returns the patient's age in full years on a specific date.
 func AgeYearsOn(dob string, asOf time.Time) (int, bool) {
 	t, err := time.Parse("01/02/2006", NormalizeDOB(dob))
 	if err != nil {
@@ -237,7 +207,6 @@ func AgeYearsOn(dob string, asOf time.Time) (int, bool) {
 	return age, true
 }
 
-// ParseFirstName extracts the first name from AMD's "LASTNAME,FIRSTNAME" format.
 func ParseFirstName(fullName string) string {
 	parts := strings.SplitN(fullName, ",", 2)
 	if len(parts) == 2 {

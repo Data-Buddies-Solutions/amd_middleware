@@ -19,8 +19,6 @@ import (
 
 const maxAppointmentCommentLength = 1000
 
-// BookCommand preserves the public booking request while Scheduling owns its
-// validation, provider write, reconciliation, and receipt.
 type BookCommand struct {
 	InsurancePlan     string `json:"insurancePlan,omitempty"`
 	PatientID         string `json:"patientId"`
@@ -45,7 +43,6 @@ type BookCommand struct {
 	ReferringDoctor   string `json:"referringDoctor,omitempty"`
 }
 
-// BookReceipt is the stable booking result returned to HTTP callers.
 type BookReceipt struct {
 	OfficeID            string   `json:"officeId,omitempty"`
 	Office              string   `json:"office,omitempty"`
@@ -172,6 +169,7 @@ func (s *service) prepareBooking(ctx context.Context, command BookCommand) (prep
 }
 
 func (s *service) resolveBookingContext(command BookCommand) (bookingContext, error) {
+	command.PatientID = domain.StripPatientPrefix(strings.TrimSpace(command.PatientID))
 	booking := bookingContext{
 		command: command,
 		signed:  command.BookingToken != "",
@@ -220,7 +218,7 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 	}
 	if command.RescheduleToken != "" {
 		policy, err := s.appointmentTokens.verifyReschedule(command.RescheduleToken, s.now().UTC())
-		if err != nil || domain.StripPatientPrefix(strings.TrimSpace(command.PatientID)) != policy.PatientID {
+		if err != nil || command.PatientID != policy.PatientID {
 			return bookingContext{}, invalidRescheduleTokenError()
 		}
 		command.AppointmentTypeID = policy.AppointmentTypeID
@@ -253,13 +251,6 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 }
 
 func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingContext) (int, error) {
-	if s.records == nil {
-		return 0, categorizedError(
-			CategoryWriteFailed,
-			"Appointment scheduling is temporarily unavailable. Please try again.",
-		)
-	}
-
 	demographics, err := s.records.GetPatientDemographics(ctx, booking.command.PatientID)
 	if err != nil {
 		return 0, categorizedError(

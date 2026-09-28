@@ -10,16 +10,12 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
-// Session is the only interface through which callers obtain or maintain an
-// AdvancedMD session. Returned token data is a copy and cannot mutate the
-// implementation's last-known-good state.
 type Session interface {
 	Get(context.Context) (*domain.TokenData, error)
 	Maintain(context.Context) error
 	Status() SessionStatus
 }
 
-// SessionState is the externally observable lifecycle state.
 type SessionState string
 
 const (
@@ -32,26 +28,14 @@ const (
 )
 
 const (
-	// DefaultSessionExpiresAfter matches AdvancedMD's documented 24-hour token
-	// lifetime.
 	DefaultSessionExpiresAfter = 24 * time.Hour
-	// DefaultSessionStaleAfter starts request-time recovery four hours before
-	// AdvancedMD's documented expiration boundary.
-	DefaultSessionStaleAfter = 20 * time.Hour
-	// DefaultSessionLoginTimeout bounds the complete two-step login flow while
-	// leaving time for the HTTP adapter to report an outcome before its deadline.
+	DefaultSessionStaleAfter   = 20 * time.Hour
 	DefaultSessionLoginTimeout = 50 * time.Second
-	// DefaultSessionRetryDelay prevents a degraded session from making every
-	// request wait on the same unavailable authentication dependency.
-	DefaultSessionRetryDelay = time.Minute
+	DefaultSessionRetryDelay   = time.Minute
 )
 
-// ErrSessionUnavailable is returned when authentication failed and no
-// last-known-good session remains inside the configured safe window.
 var ErrSessionUnavailable = errors.New("advancedmd session unavailable")
 
-// SessionStatus reports lifecycle state without exposing credentials, tokens,
-// or provider endpoints.
 type SessionStatus struct {
 	State     SessionState
 	TokenAge  time.Duration
@@ -100,7 +84,6 @@ func newSession(login loginAdapter, now func() time.Time, policy sessionPolicy) 
 	}
 }
 
-// NewSession creates the production AdvancedMD session owner.
 func NewSession(creds Credentials, client *http.Client) Session {
 	return newSession(newAdvancedMDLogin(creds, client), time.Now, sessionPolicy{
 		staleAfter:   DefaultSessionStaleAfter,
@@ -158,7 +141,6 @@ func (s *sessionImpl) refresh(ctx context.Context, force bool) error {
 		select {
 		case <-active.done:
 			if active.callerCanceled {
-				// A different request's cancellation must not fail this caller.
 				continue
 			}
 			return active.err
@@ -168,8 +150,6 @@ func (s *sessionImpl) refresh(ctx context.Context, force bool) error {
 	}
 }
 
-// authenticateLocked leads one login flight. It must be called with s.mu held
-// and returns with s.mu released.
 func (s *sessionImpl) authenticateLocked(ctx context.Context) error {
 	active := &refreshFlight{done: make(chan struct{})}
 	s.flight = active
@@ -189,7 +169,6 @@ func (s *sessionImpl) authenticateLocked(ctx context.Context) error {
 	if err != nil {
 		now := s.now()
 		s.retryAt = time.Time{}
-		// A caller leaving is not an authentication outage for other callers.
 		if ctx.Err() == nil {
 			s.retryAt = now.Add(s.policy.retryDelay)
 		}

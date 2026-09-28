@@ -68,8 +68,6 @@ func TestEligibilityReceiptsLogSafeProviderFailures(t *testing.T) {
 				log.SetOutput(previousWriter)
 				http.DefaultTransport = previousTransport
 			})
-			// Service uses the default transport. Intercept every outgoing request
-			// so this exercises the real handler without contacting Stedi.
 			http.DefaultTransport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
 				if tc.err != nil {
 					return nil, tc.err

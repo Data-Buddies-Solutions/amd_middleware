@@ -23,7 +23,6 @@ type Provider struct {
 	NPI              string `json:"npi"`
 }
 
-// CheckInput is collected during intake, before registration or booking.
 type CheckInput struct {
 	FirstName    string `json:"firstName"`
 	LastName     string `json:"lastName"`
@@ -33,9 +32,6 @@ type CheckInput struct {
 	CoverageType string `json:"coverageType,omitempty"`
 }
 
-// Result reports current STC 30 plan activity, not network participation, visit
-// coverage or copay. Review/unknown never establish that the patient is uninsured.
-// ProviderResponse retains visit-relevant benefits and identity/plan evidence.
 type Result struct {
 	InsuranceResolution *InsuranceResolution `json:"insuranceResolution,omitempty"`
 	Provider            *CheckedProvider     `json:"provider,omitempty"`
@@ -43,7 +39,7 @@ type Result struct {
 	MatchedPatient      *Person              `json:"matchedPatient,omitempty"`
 	ProviderResponse    json.RawMessage      `json:"providerResponse,omitempty"`
 	ProviderHTTPStatus  int                  `json:"providerHttpStatus,omitempty"`
-	Status              string               `json:"status"` // active, inactive, review, unknown
+	Status              string               `json:"status"`
 	OfficeID            string               `json:"officeId"`
 	PayerID             string               `json:"payerId,omitempty"`
 	ReviewReason        string               `json:"reviewReason,omitempty"`
@@ -79,7 +75,7 @@ func validNPI(n string) bool {
 	if len(n) != 10 {
 		return false
 	}
-	sum := 24 // Luhn prefix 80840
+	sum := 24
 	for i, c := range n {
 		if c < '0' || c > '9' {
 			return false
@@ -99,9 +95,6 @@ func validPerson(p Person) bool {
 	return name(p.FirstName) != "" && name(p.LastName) != "" && validDOB(p.DateOfBirth)
 }
 
-// Check performs one intake check per relevant provider. OfficeID comes from the authenticated
-// adapter's existing office resolution. There is no automatic retry or durable
-// job requirement; an unknown outcome must not be blindly resubmitted.
 func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Result, error) {
 	dob := strings.TrimSpace(in.DOB)
 	if !validDOB(dob) {
@@ -115,8 +108,6 @@ func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Re
 	}
 	now := s.now()
 	payer, reason := Route(in.Plan, now.In(domain.EasternLocation()).Format("20060102"))
-	// Oscar's directory route covers medical/dental; its optional Davis product
-	// must be identified separately for routine vision.
 	if in.CoverageType == "routine_vision" && payer == "OSCAR" {
 		reason = "vision_product_required"
 	}
@@ -170,9 +161,6 @@ func (s *Service) Check(ctx context.Context, officeID string, in CheckInput) (Re
 }
 
 func (s *Service) checkProvider(ctx context.Context, out Result, patient Person, provider Provider, coverage string) Result {
-	// Supply the patient's actual demographics as the initial lookup. Do not
-	// manufacture a policyholder or dependent relationship when it is unknown.
-	// Stedi recommends omitting the service date for a current-date check.
 	reqBody := Request{Payer: out.PayerID, Provider: provider, Subscriber: patient, Encounter: Encounter{ServiceTypeCodes: []string{"30"}}}
 	out.Status = "unknown"
 	out.ReviewReason = "request_outcome_unknown"
@@ -193,8 +181,6 @@ func (s *Service) checkProvider(ctx context.Context, out Result, patient Person,
 	if err != nil || len(raw) > 8*1024*1024 {
 		return out
 	}
-	// Retain relevant rows without decoding numbers through float64. Invalid
-	// JSON is retained as a JSON string, but can never establish coverage.
 	if json.Valid(raw) {
 		out.ProviderResponse = retainVisitBenefits(raw, coverage)
 	} else {
@@ -234,7 +220,6 @@ func (s *Service) checkProvider(ctx context.Context, out Result, patient Person,
 		}
 		return out
 	}
-	// Only expose an actionable name after production, payer, and identity checks.
 	matched := response.Subscriber
 	out.MatchedPatient = &matched
 	if assessment.Coverage == "unknown" {

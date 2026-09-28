@@ -12,7 +12,7 @@ import (
 func TestResolveIncompleteAppointmentsCannotProveAbsence(t *testing.T) {
 	records := advancedmdtest.NewAdapter()
 	records.AppointmentResults["123"] = advancedmdtest.AppointmentResult{Read: advancedmd.AppointmentRead{Complete: false}}
-	result, err := patient.New(records).Resolve(context.Background(), patient.ResolveCommand{PatientID: "123", OfficeID: "spring_hill"})
+	result, err := patient.New(records, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{PatientID: "123", OfficeID: "spring_hill"})
 	if err != nil {
 		t.Fatal(err)
 	}

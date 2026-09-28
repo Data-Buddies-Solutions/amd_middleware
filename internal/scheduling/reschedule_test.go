@@ -47,7 +47,6 @@ func TestRescheduleOutcomes(t *testing.T) {
 				expected = "failed"
 				cancellations = 0
 			case "ambiguous booking unknown":
-				// Use an adapter wrapper below to fail only the reconciliation read.
 				records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryTimeout)
 				expected = "uncertain"
 				cancellations = 0
@@ -61,13 +60,12 @@ func TestRescheduleOutcomes(t *testing.T) {
 				records.AppointmentStateResults[old.ID] = advancedmdtest.AppointmentStateResult{State: advancedmd.AppointmentState{Complete: false}}
 				records.CancelAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryTimeout)
 				expected = "partial"
-
 			}
 			var provider advancedmd.SchedulingRecords = records
 			if scenario == "ambiguous booking unknown" {
 				provider = &failReconciliation{Adapter: records}
 			}
-			result, err := scheduling.New(provider, "test-booking-secret", mutationTestNow).Reschedule(context.Background(), command)
+			result, err := scheduling.New(provider, "test-booking-secret", mutationTestNow, false).Reschedule(context.Background(), command)
 			if err != nil || result.Status != expected {
 				t.Fatalf("result=%+v err=%v", result, err)
 			}
@@ -121,7 +119,7 @@ func TestRescheduleCanRetryAfterConfirmedNoWriteFailure(t *testing.T) {
 			case "slot":
 				records.ScheduleReadErrors["2026-06-03"] = advancedmd.NewError(safeerrors.CategoryUnavailable)
 			}
-			service := scheduling.New(records, "test-booking-secret", mutationTestNow)
+			service := scheduling.New(records, "test-booking-secret", mutationTestNow, false)
 			result, err := service.Reschedule(context.Background(), command)
 			if err == nil && result.Status != "failed" {
 				t.Fatalf("initial=%+v %v", result, err)
@@ -156,7 +154,7 @@ func TestRescheduleInvalidAuthorityCannotWrite(t *testing.T) {
 			case "missing original":
 				records.AppointmentResults["12345"] = appointmentResult(nil, true)
 			}
-			_, err := scheduling.New(records, "test-booking-secret", mutationTestNow).Reschedule(context.Background(), command)
+			_, err := scheduling.New(records, "test-booking-secret", mutationTestNow, false).Reschedule(context.Background(), command)
 			if err == nil || len(records.Bookings) > 0 || len(records.Cancellations) > 0 {
 				t.Fatal("unsafe write")
 			}
@@ -175,7 +173,7 @@ func TestAppointmentClassificationAndBackendVisitPolicy(t *testing.T) {
 	}
 	for _, tc := range []struct{ office, visit, routing string }{{"Crystal River", "routine_vision", "optical_only"}, {"North Miami Beach Optical", "medical", "optical_only"}, {"Spring Hill", "medical", "optical_only"}} {
 		records := bookingRecords()
-		result, err := scheduling.New(records, "test-booking-secret", mutationTestNow).List(context.Background(), scheduling.ListCommand{Office: tc.office, VisitType: tc.visit, Routing: tc.routing, DOB: "01/15/1980", StartDate: "2026-06-03"})
+		result, err := scheduling.New(records, "test-booking-secret", mutationTestNow, false).List(context.Background(), scheduling.ListCommand{Office: tc.office, VisitType: tc.visit, Routing: tc.routing, DOB: "01/15/1980", StartDate: "2026-06-03"})
 		if err != nil || result.Outcome != domain.AvailabilityOutcomeNoEligibleProviders || len(result.Slots) != 0 {
 			t.Fatalf("%+v: %+v %v", tc, result, err)
 		}
@@ -188,8 +186,6 @@ func TestAppointmentClassificationAndBackendVisitPolicy(t *testing.T) {
 	}
 }
 
-// A changed original during the booking write cannot be cancelled using stale
-// authorization. The replacement remains an explicit partial result.
 type changedOriginal struct{ *advancedmdtest.Adapter }
 
 func (a *changedOriginal) BookAppointment(ctx context.Context, b advancedmd.Booking) (int, error) {
@@ -201,8 +197,17 @@ func (a *changedOriginal) BookAppointment(ctx context.Context, b advancedmd.Book
 }
 func TestRescheduleDoesNotCancelOriginalChangedDuringBooking(t *testing.T) {
 	records, command, _ := rescheduleFixture(t)
-	result, err := scheduling.New(&changedOriginal{records}, "test-booking-secret", mutationTestNow).Reschedule(context.Background(), command)
+	result, err := scheduling.New(&changedOriginal{records}, "test-booking-secret", mutationTestNow, false).Reschedule(context.Background(), command)
 	if err != nil || result.Status != "partial" || result.Booking == nil || len(records.Bookings) != 1 || len(records.Cancellations) != 0 {
 		t.Fatalf("result=%+v err=%v cancellations=%d", result, err, len(records.Cancellations))
+	}
+}
+
+func TestRescheduleAcceptsPrefixedPatientID(t *testing.T) {
+	records, command, _ := rescheduleFixture(t)
+	command.PatientID = " pat12345 "
+	result, err := scheduling.New(records, "test-booking-secret", mutationTestNow, false).Reschedule(context.Background(), command)
+	if err != nil || result.Status != "completed" {
+		t.Fatalf("result=%+v err=%v", result, err)
 	}
 }

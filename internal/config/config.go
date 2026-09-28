@@ -1,4 +1,3 @@
-// Package config handles loading and validating environment variables.
 package config
 
 import (
@@ -8,26 +7,21 @@ import (
 	"strings"
 )
 
-// Config holds all configuration values for the application.
 type Config struct {
-	// AdvancedMD credentials
 	AdvancedMDUsername  string
 	AdvancedMDPassword  string
 	AdvancedMDOfficeKey string
 	AdvancedMDAppName   string
 
-	// API authentication
 	APISecret                     string
 	BookingTokenSecret            string
 	MaintenanceOIDCAudience       string
 	MaintenanceOIDCServiceAccount string
 
-	// Server settings
 	Port                string
 	AllowRawSlotBooking bool
 }
 
-// Load reads configuration from environment variables and validates required fields.
 func Load() (*Config, error) {
 	cfg := &Config{
 		AdvancedMDUsername:            os.Getenv("ADVANCEDMD_USERNAME"),
@@ -42,12 +36,10 @@ func Load() (*Config, error) {
 		AllowRawSlotBooking:           parseBoolEnv(os.Getenv("ALLOW_RAW_SLOT_BOOKING")),
 	}
 
-	// Default port
 	if cfg.Port == "" {
 		cfg.Port = "8080"
 	}
 
-	// Validate required fields
 	if cfg.AdvancedMDUsername == "" {
 		return nil, fmt.Errorf("ADVANCEDMD_USERNAME is required")
 	}

@@ -8,8 +8,6 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
-// InsuranceResolution maps trusted general-plan descriptions, not payer IDs or
-// service-specific benefit labels. Missing evidence leaves intake policy intact.
 type InsuranceResolution struct {
 	Status   string                    `json:"status"`
 	Plans    []string                  `json:"plans"`

@@ -68,7 +68,6 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 		(chart.InsPlanID == "" && (chart.CarrierID != "" || chart.CarrierName != "" || chart.SubscriberNum != "")) {
 		return updateInsuranceFailure(MutationValidationFailed, "Current insurance references are incomplete. Contact the office; no update was attempted.")
 	}
-	// Legacy caller snapshots are accepted but never authorize provider writes.
 	command.InsPlanID = chart.InsPlanID
 	command.RespPartyID = chart.RespPartyID
 	command.OldInsurance = chart.CarrierName

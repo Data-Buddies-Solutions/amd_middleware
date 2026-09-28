@@ -130,9 +130,9 @@ func TestBookingAndCancellationRoutesRetainAuthenticationAndSuccessContracts(t *
 
 func TestSchedulingHandlersMapStableErrorCategories(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	_, bookingErr := schedulingmodule.New(nil, "test-secret", func() time.Time { return now }).
+	_, bookingErr := schedulingmodule.New(nil, "test-secret", func() time.Time { return now }, false).
 		Book(context.Background(), schedulingmodule.BookCommand{})
-	_, cancellationErr := schedulingmodule.New(nil, "test-secret", func() time.Time { return now }).
+	_, cancellationErr := schedulingmodule.New(nil, "test-secret", func() time.Time { return now }, false).
 		Cancel(context.Background(), schedulingmodule.CancelCommand{})
 	scheduler := &recordingScheduling{bookErr: bookingErr, cancelErr: cancellationErr}
 	handlers := &Handlers{scheduling: scheduler}
@@ -236,12 +236,10 @@ func (s *recordingScheduling) Reschedule(context.Context, schedulingmodule.BookC
 func TestListSlotsErrorsPreserveInventoryContract(t *testing.T) {
 	for _, tc := range []struct {
 		name, body, outcome string
-		noScheduler         bool
 		readFailure         bool
 	}{
 		{name: "invalid JSON", body: `{`, outcome: "invalid_input"},
 		{name: "invalid range", body: `{"office":"Spring Hill","rangeDays":2}`, outcome: "invalid_input"},
-		{name: "unavailable scheduling", body: `{}`, outcome: "availability_search_incomplete", noScheduler: true},
 		{name: "provider read", body: `{"office":"Spring Hill","startDate":"2026-06-03"}`, outcome: "availability_search_incomplete", readFailure: true},
 		{name: "coverage mismatch", body: `{"office":"Spring Hill","startDate":"2026-06-03","patientId":"123","dob":"01/15/1980","visitType":"medical","coverageType":"routine_vision"}`, outcome: "invalid_input"},
 	} {
@@ -251,10 +249,7 @@ func TestListSlotsErrorsPreserveInventoryContract(t *testing.T) {
 			if tc.readFailure {
 				records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryUnavailable)
 			}
-			var scheduler schedulingmodule.Scheduling = schedulingmodule.New(records, "secret", func() time.Time { return time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC) })
-			if tc.noScheduler {
-				scheduler = nil
-			}
+			scheduler := schedulingmodule.New(records, "secret", func() time.Time { return time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC) }, false)
 			handlers := NewHandlers(nil, nil, scheduler)
 			response := httptest.NewRecorder()
 			handlers.HandleListAppointmentSlots(response, httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(tc.body)))

@@ -8,8 +8,6 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
-// readInventory bounds day-level concurrency. Each adapter read already fetches
-// the day's eligible columns concurrently; never fan out the entire horizon.
 func (s *service) readInventory(ctx context.Context, columns []domain.SchedulerColumn, start, end time.Time) (map[string]domain.ScheduleReadResult, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

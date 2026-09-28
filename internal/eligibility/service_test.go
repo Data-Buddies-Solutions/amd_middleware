@@ -139,7 +139,6 @@ func TestHTTPFailuresNeverRetry(t *testing.T) {
 	}
 }
 
-// Financial fields and future payer fields must survive independently of assessment.
 func TestRelevantProviderEvidenceSurvivesAssessment(t *testing.T) {
 	for _, tc := range []struct {
 		name, extra string

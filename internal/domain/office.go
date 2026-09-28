@@ -8,37 +8,32 @@ import (
 	"time"
 )
 
-// OfficeConfig defines the configuration for a single office location.
 type OfficeConfig struct {
-	ID               string                   // "spring_hill"
-	DisplayName      string                   // "Spring Hill"
-	FacilityID       string                   // "1568"
-	DefaultProfileID string                   // "620" (for addpatient XMLRPC)
-	Columns          map[string]OfficeColumn  // column ID → config
-	RoutingTiers     map[RoutingRule][]string // routing rule → column IDs
-	PediatricRouting RoutingRule              // routing override for under-18
+	ID               string
+	DisplayName      string
+	FacilityID       string
+	DefaultProfileID string
+	Columns          map[string]OfficeColumn
+	RoutingTiers     map[RoutingRule][]string
+	PediatricRouting RoutingRule
 }
 
-// OfficeColumn defines a provider column within an office.
 type OfficeColumn struct {
-	ProfileID         string            // "620"
-	DisplayName       string            // "Dr. Austin Bach"
-	ShortName         string            // "Dr. Bach"
-	MatchKey          string            // "BACH" — uppercase fragment for matching AMD names
-	MinAgeYears       int               // Minimum patient age in years; 0 means newborn and up
-	SameStartCapacity int               // Maximum appointments at the same start time; 0 means single-booked
-	SameStartWindows  []SameStartWindow // Optional allowed start windows; empty means all start times
+	ProfileID         string
+	DisplayName       string
+	ShortName         string
+	MatchKey          string
+	MinAgeYears       int
+	SameStartCapacity int
+	SameStartWindows  []SameStartWindow
 }
 
-// SameStartWindow limits second-bookable starts to an inclusive minute range on one weekday.
 type SameStartWindow struct {
 	Weekday     time.Weekday
 	StartMinute int
 	EndMinute   int
 }
 
-// ResolveOffice returns the requested office or the backward-compatible
-// default when the caller omits it.
 func ResolveOffice(name string) (*OfficeConfig, error) {
 	if name == "" {
 		return DefaultOffice(), nil
@@ -50,7 +45,6 @@ func ResolveOffice(name string) (*OfficeConfig, error) {
 	return office, nil
 }
 
-// SameStartCapacityAt returns the column's configured same-start capacity at a slot start time.
 func (c OfficeColumn) SameStartCapacityAt(start time.Time) int {
 	if c.SameStartCapacity <= 0 {
 		return 0
@@ -76,21 +70,6 @@ func sameStartWindow(weekday time.Weekday, startHour, startMinute, endHour, endM
 	}
 }
 
-// InsuranceMode selects which insurance crosswalk should be used.
-type InsuranceMode string
-
-const (
-	InsuranceModeMedical InsuranceMode = "medical"
-	InsuranceModeVision  InsuranceMode = "vision"
-)
-
-// IsAllowedColumn checks if a column ID belongs to this office.
-func (o *OfficeConfig) IsAllowedColumn(columnID string) bool {
-	_, ok := o.Columns[columnID]
-	return ok
-}
-
-// AllowedColumnIDs returns all column IDs for this office.
 func (o *OfficeConfig) AllowedColumnIDs() []string {
 	ids := make([]string, 0, len(o.Columns))
 	for id := range o.Columns {
@@ -99,7 +78,6 @@ func (o *OfficeConfig) AllowedColumnIDs() []string {
 	return ids
 }
 
-// ColumnsForRouting returns the allowed column IDs for a routing rule at this office.
 func (o *OfficeConfig) ColumnsForRouting(rule RoutingRule) map[string]bool {
 	colIDs, ok := o.columnIDsForRouting(rule)
 	if !ok {
@@ -113,7 +91,6 @@ func (o *OfficeConfig) ColumnsForRouting(rule RoutingRule) map[string]bool {
 	return result
 }
 
-// ColumnsForRoutingAndDOB returns routing columns filtered by provider age rules when DOB is known.
 func (o *OfficeConfig) ColumnsForRoutingAndDOB(rule RoutingRule, dob string) map[string]bool {
 	cols := o.ColumnsForRouting(rule)
 	if cols == nil {
@@ -129,17 +106,6 @@ func (o *OfficeConfig) ColumnsForRoutingAndDOB(rule RoutingRule, dob string) map
 	return filtered
 }
 
-// ProvidersForRouting returns the display names for a routing rule at this office.
-func (o *OfficeConfig) ProvidersForRouting(rule RoutingRule) []string {
-	colIDs, ok := o.columnIDsForRouting(rule)
-	if !ok {
-		return nil
-	}
-
-	return o.providerNamesForColumnIDs(colIDs, nil)
-}
-
-// ProvidersForRoutingAndDOB returns allowed provider names after age filtering.
 func (o *OfficeConfig) ProvidersForRoutingAndDOB(rule RoutingRule, dob string) []string {
 	colIDs, ok := o.columnIDsForRouting(rule)
 	if !ok {
@@ -149,7 +115,6 @@ func (o *OfficeConfig) ProvidersForRoutingAndDOB(rule RoutingRule, dob string) [
 	return o.providerNamesForColumnIDs(colIDs, colMap)
 }
 
-// ValidProviderNames returns all provider short names for this office.
 func (o *OfficeConfig) ValidProviderNames() []string {
 	names := make([]string, 0, len(o.Columns))
 	seen := make(map[string]bool)
@@ -163,7 +128,6 @@ func (o *OfficeConfig) ValidProviderNames() []string {
 	return names
 }
 
-// ColumnAllowsDOB reports whether a provider column can see a patient with the supplied DOB.
 func (o *OfficeConfig) ColumnAllowsDOB(columnID, dob string) bool {
 	col, ok := o.Columns[columnID]
 	if !ok {
@@ -211,7 +175,6 @@ func (o *OfficeConfig) providerNamesForColumnIDs(colIDs []string, allowed map[st
 	return names
 }
 
-// ProviderDisplayName returns the display name for a profile ID.
 func (o *OfficeConfig) ProviderDisplayName(profileID string) string {
 	for _, col := range o.Columns {
 		if col.ProfileID == profileID {
@@ -221,7 +184,6 @@ func (o *OfficeConfig) ProviderDisplayName(profileID string) string {
 	return ""
 }
 
-// FriendlyProviderName maps an AMD provider name to a friendly display name.
 func (o *OfficeConfig) FriendlyProviderName(amdName string) string {
 	upper := strings.ToUpper(amdName)
 	match := ""
@@ -238,20 +200,16 @@ func (o *OfficeConfig) FriendlyProviderName(amdName string) string {
 	return amdName
 }
 
-// AppointmentColor returns the booking color for an appointment type ID.
 func (o *OfficeConfig) AppointmentColor(typeID int) (string, bool) {
 	color, ok := DefaultAppointmentTypeColors[typeID]
 	return color, ok
 }
 
-// AppointmentTypeName returns the friendly name for an appointment type ID.
 func (o *OfficeConfig) AppointmentTypeName(typeID int) (string, bool) {
 	name, ok := DefaultAppointmentTypeNames[typeID]
 	return name, ok
 }
 
-// LookupOfficeByID resolves an office config from the active registry by stable
-// office ID.
 func LookupOfficeByID(officeID string) (*OfficeConfig, bool) {
 	for _, office := range OfficeRegistry {
 		if office.ID == officeID {
@@ -261,8 +219,6 @@ func LookupOfficeByID(officeID string) (*OfficeConfig, bool) {
 	return nil, false
 }
 
-// AppointmentLookupOfficeIDs returns the nearby-office IDs used when loading a
-// resolved patient's upcoming appointments.
 func AppointmentLookupOfficeIDs(office *OfficeConfig) []string {
 	if office == nil {
 		return nil
@@ -295,27 +251,23 @@ func AppointmentLookupOfficeIDs(office *OfficeConfig) []string {
 	return lookupIDs
 }
 
-// PreservedAppointmentTypeFallbackColor is used when a signed existing type has
-// no configured booking color.
 const PreservedAppointmentTypeFallbackColor = "TEAL"
 
-// DefaultAppointmentTypeColors maps AMD appointment type IDs to booking colors.
 var DefaultAppointmentTypeColors = map[int]string{
-	1006: "RED",    // New Adult Medical
-	1004: "GREEN",  // New Pediatric Medical
-	1007: "ORANGE", // Established Adult Medical (Follow Up)
-	1005: "PINK",   // Established Pediatric Medical (Follow Up)
-	1008: "BLUE",   // Post Op
-	1010: "TEAL",   // New Adult Vision
-	3364: "ROSE",   // Established Adult Vision
-	4244: "BROWN",  // New Pediatric Vision
-	4245: "GRAY",   // Established Pediatric Vision
-	6167: "ORANGE", // Crystal River New Patient
-	6168: "TEAL",   // Crystal River Post Op
-	6169: "RED",    // Crystal River Established Patient
+	1006: "RED",
+	1004: "GREEN",
+	1007: "ORANGE",
+	1005: "PINK",
+	1008: "BLUE",
+	1010: "TEAL",
+	3364: "ROSE",
+	4244: "BROWN",
+	4245: "GRAY",
+	6167: "ORANGE",
+	6168: "TEAL",
+	6169: "RED",
 }
 
-// DefaultAppointmentTypeNames maps AMD appointment type IDs to friendly names.
 var DefaultAppointmentTypeNames = map[int]string{
 	1006: "New Adult Medical",
 	1004: "New Pediatric Medical",
@@ -344,23 +296,16 @@ var crystalRiverAppointmentTypes = map[int]bool{
 	6169: true,
 }
 
-// devAppointmentTypes maps prod type IDs to dev type IDs.
-// Only used when AMD_ENV=dev; in prod the IDs pass through unchanged.
 var devAppointmentTypes = map[int]int{
-	1006: 12,   // New Adult Medical
-	1004: 20,   // New Pediatric Medical
-	1007: 18,   // Established Adult Medical (Follow Up)
-	1005: 8,    // Established Pediatric Medical (Follow Up)
-	1008: 1627, // Post Op
-	// Vision and Crystal River have no configured sandbox mappings. Do not
-	// substitute production IDs: resolution must fail until verified mappings exist.
+	1006: 12,
+	1004: 20,
+	1007: 18,
+	1005: 8,
+	1008: 1627,
 }
 
-// isDevEnv tracks whether we're running in dev mode. Set by InitRegistry.
 var isDevEnv bool
 
-// ResolveAppointmentTypeID translates a prod type ID to the env-specific ID.
-// In prod, returns the ID unchanged. In dev, maps to the dev ID.
 func ResolveAppointmentTypeID(typeID int) (int, bool) {
 	if _, ok := DefaultAppointmentTypeColors[typeID]; !ok {
 		return 0, false
@@ -372,8 +317,6 @@ func ResolveAppointmentTypeID(typeID int) (int, bool) {
 	return typeID, true
 }
 
-// CanonicalAppointmentTypeID translates an env-specific AMD appointment type ID
-// back to the canonical/prod ID accepted by booking requests.
 func CanonicalAppointmentTypeID(typeID int) (int, bool) {
 	if !isDevEnv {
 		if _, ok := DefaultAppointmentTypeColors[typeID]; !ok {
@@ -390,7 +333,6 @@ func CanonicalAppointmentTypeID(typeID int) (int, bool) {
 	return 0, false
 }
 
-// AllowsAppointmentType reports whether an appointment type can be booked for this office/routing lane.
 func (o *OfficeConfig) AllowsAppointmentType(typeID int, routing RoutingRule) bool {
 	if _, ok := DefaultAppointmentTypeColors[typeID]; !ok {
 		return false
@@ -586,12 +528,9 @@ var devSpringHillOffice = &OfficeConfig{
 	PediatricRouting: RoutingBachOnly,
 }
 
-// prodOffices contains office configs keyed by SIP trunk phone number (E.164).
 var prodOffices = map[string]*OfficeConfig{
 	"+17275919997": springHillOffice,
 	"+13523202007": crystalRiverOffice,
-	// TODO: clean up — placeholder number for Crystal River, duplicates config above
-	"+16182265883": crystalRiverOffice,
 	"+19542872010": hollywoodOffice,
 	"+17864657475": sweetwaterOffice,
 	"+17864654845": sweetwaterOffice,
@@ -602,21 +541,14 @@ var prodOffices = map[string]*OfficeConfig{
 	"+13055095333": northMiamiBeachOpticalOffice,
 }
 
-// devOffices contains office configs keyed by SIP trunk phone number (E.164).
 var devOffices = map[string]*OfficeConfig{
 	"+14843989071": devSpringHillOffice,
 }
 
-// OfficeRegistry maps SIP trunk phone numbers (E.164) to office configurations.
-// Defaults to prod; call InitRegistry to switch environments.
 var OfficeRegistry = prodOffices
 
-// DefaultPhone is the fallback phone key when no office is specified in a request.
-// Updated by InitRegistry to match the active environment.
 var DefaultPhone = "+17275919997"
 
-// InitRegistry sets the active office registry based on the AMD_ENV value.
-// "dev" loads dev AMD IDs; anything else (including empty) loads prod.
 func InitRegistry(env string) {
 	switch env {
 	case "dev":
@@ -632,7 +564,6 @@ func InitRegistry(env string) {
 	}
 }
 
-// StripToDigits removes all non-digit characters from a string.
 func StripToDigits(s string) string {
 	var b strings.Builder
 	for _, c := range s {
@@ -643,9 +574,6 @@ func StripToDigits(s string) string {
 	return b.String()
 }
 
-// NormalizePhoneDigits strips a phone number to digits and removes the
-// leading US country code ("1") if the result is 11 digits. AMD stores
-// 10-digit numbers and won't match on 11.
 func NormalizePhoneDigits(s string) string {
 	digits := StripToDigits(s)
 	if len(digits) == 11 && digits[0] == '1' {
@@ -654,8 +582,6 @@ func NormalizePhoneDigits(s string) string {
 	return digits
 }
 
-// LookupOffice resolves a SIP trunk phone number or office name to its office config.
-// Phone lookup accepts E.164, 11-digit US, 10-digit US, and formatted US numbers.
 func LookupOffice(phone string) (*OfficeConfig, bool) {
 	phone = strings.TrimSpace(phone)
 	for _, key := range officePhoneLookupKeys(phone) {
@@ -698,12 +624,10 @@ func officePhoneLookupKeys(phone string) []string {
 	return keys
 }
 
-// DefaultOffice returns the fallback office config (Spring Hill).
 func DefaultOffice() *OfficeConfig {
 	return OfficeRegistry[DefaultPhone]
 }
 
-// ValidOfficeNames returns the list of recognized office display names.
 func ValidOfficeNames() []string {
 	seen := make(map[string]bool)
 	names := make([]string, 0, len(OfficeRegistry))

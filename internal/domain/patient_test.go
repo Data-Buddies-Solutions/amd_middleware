@@ -109,27 +109,6 @@ func TestLookupInsuranceForCoverage_RoutineVision(t *testing.T) {
 	}
 }
 
-func TestInsuranceModeForCoverage(t *testing.T) {
-	tests := []struct {
-		input string
-		want  InsuranceMode
-	}{
-		{"routine_vision", InsuranceModeVision},
-		{"routine vision", InsuranceModeVision},
-		{"optical_only", InsuranceModeVision},
-		{"", InsuranceModeMedical},
-		{"medical", InsuranceModeMedical},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			if got := InsuranceModeForCoverage(tt.input); got != tt.want {
-				t.Errorf("InsuranceModeForCoverage(%q) = %q, want %q", tt.input, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestIsMinor(t *testing.T) {
 	now := time.Now()
 
@@ -190,8 +169,8 @@ func TestParseFirstName(t *testing.T) {
 	}{
 		{"SMITH,JOHN", "JOHN"},
 		{"DOE,JANE MARIE", "JANE MARIE"},
-		{"SMITH, JOHN", "JOHN"}, // With space after comma
-		{"SMITH", ""},           // No comma
+		{"SMITH, JOHN", "JOHN"},
+		{"SMITH", ""},
 		{"", ""},
 	}
 

@@ -1,4 +1,3 @@
-// Package safeerrors converts runtime errors into fixed, non-sensitive categories.
 package safeerrors
 
 import (
@@ -8,7 +7,6 @@ import (
 	"strings"
 )
 
-// Category is a stable label safe to include in logs.
 type Category string
 
 const (
@@ -26,7 +24,6 @@ const (
 	CategoryUpstreamError   Category = "upstream_error"
 )
 
-// Classify converts an error into a safe category.
 func Classify(err error) Category {
 	if err == nil {
 		return CategoryNone

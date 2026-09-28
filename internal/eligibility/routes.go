@@ -7,39 +7,32 @@ type payerRoute struct {
 	review string
 }
 
-// Explicit product routes for the Florida office catalogs. Never derive these
-// from AMD carrier IDs or office acceptance/network rules. Directory support was
-// verified on 2026-09-16 against Stedi's public export (subset in testdata):
-// https://payers.us.stedi.com/2024-04-01/public/payers/csv
 var insurancePayers = map[string]payerRoute{
-	// Vision identities reverified 2026-09-23; billing aliases do not select payers.
-	"superior":                       {"13305", "payer_eligibility_not_supported"},
-	"superior vision":                {"13305", "payer_eligibility_not_supported"},
-	"versant":                        {"", "payer_product_required"},
-	"versant health":                 {"", "payer_product_required"},
-	"vsp vision service plan":        {"94163", "payer_eligibility_not_supported"},
-	"eyefinity":                      {"94163", "payer_eligibility_not_supported"},
-	"national vision administrators": {"NVADM", "payer_eligibility_not_supported"},
-	"icare health options tpa":       {"26054", "payer_eligibility_not_supported"},
-	"premier eye care":               {"65054", "payer_eligibility_not_supported"},
-	"optum health vision":            {"00773", ""},
-	"unitedhealthcare vision":        {"00773", ""},
-	"united healthcare vision":       {"00773", ""},
-	// Newly cataloged products remain blocked until their eligibility route is verified.
-	"avmed entrust":                   {"", "plan_route_review"},
-	"avmed jackson first network hmo": {"", "plan_route_review"},
-	"cigna florida connect epo":       {"", "plan_route_review"},
-	"cigna sure fit":                  {"", "plan_route_review"},
-	"clear spring health":             {"", "plan_route_review"},
-	"humana":                          {"", "payer_product_required"},
-	"humana care plus":                {"", "payer_product_required"},
-	"leon health plan":                {"", "plan_route_review"},
-	"molina":                          {"", "payer_product_required"},
-	"seminole tribe":                  {"", "plan_route_review"},
-	"southbay medical center":         {"", "plan_route_review"},
-	"tricare":                         {"", "payer_product_required"},
-	"united healthcare medicare":      {"", "plan_route_review"},
-	// Exact spelling variants of products already verified below.
+	"superior":                              {"13305", "payer_eligibility_not_supported"},
+	"superior vision":                       {"13305", "payer_eligibility_not_supported"},
+	"versant":                               {"", "payer_product_required"},
+	"versant health":                        {"", "payer_product_required"},
+	"vsp vision service plan":               {"94163", "payer_eligibility_not_supported"},
+	"eyefinity":                             {"94163", "payer_eligibility_not_supported"},
+	"national vision administrators":        {"NVADM", "payer_eligibility_not_supported"},
+	"icare health options tpa":              {"26054", "payer_eligibility_not_supported"},
+	"premier eye care":                      {"65054", "payer_eligibility_not_supported"},
+	"optum health vision":                   {"00773", ""},
+	"unitedhealthcare vision":               {"00773", ""},
+	"united healthcare vision":              {"00773", ""},
+	"avmed entrust":                         {"", "plan_route_review"},
+	"avmed jackson first network hmo":       {"", "plan_route_review"},
+	"cigna florida connect epo":             {"", "plan_route_review"},
+	"cigna sure fit":                        {"", "plan_route_review"},
+	"clear spring health":                   {"", "plan_route_review"},
+	"humana":                                {"", "payer_product_required"},
+	"humana care plus":                      {"", "payer_product_required"},
+	"leon health plan":                      {"", "plan_route_review"},
+	"molina":                                {"", "payer_product_required"},
+	"seminole tribe":                        {"", "plan_route_review"},
+	"southbay medical center":               {"", "plan_route_review"},
+	"tricare":                               {"", "payer_product_required"},
+	"united healthcare medicare":            {"", "plan_route_review"},
 	"children's medical services":           {"68069", ""},
 	"miami children's health plan":          {"82832", "payer_eligibility_not_supported"},
 	"florida blue select":                   {"BCBSF", ""},
@@ -186,14 +179,11 @@ var insurancePayers = map[string]payerRoute{
 	"wellcare medicare lppo":                {"14163", ""},
 }
 
-// Route returns the Stedi payer identifier even when eligibility is unsupported,
-// plus the reason that prevents dispatch. Aliases are exact, never fuzzy matches.
 func Route(plan, serviceDate string) (payer, review string) {
 	if !validDOB(serviceDate) {
 		return "", "invalid_service_date"
 	}
 	key := domain.NormalizeForLookup(plan)
-	// Scheduling aliases can collapse products that require different payer routes.
 	switch key {
 	case "blue cross", "bcbs", "bcbs medicare hmo", "preferred care", "tricare", "united health one", "staywell",
 		"preferred care network preferred care partners",
@@ -213,10 +203,6 @@ func Route(plan, serviceDate string) (payer, review string) {
 	if !ok {
 		return "", "plan_route_review"
 	}
-	// AHCA moves both CMS Plan populations from Sunshine to Molina on 2026-10-01.
-	// https://ahca.myflorida.com/medicaid/statewide-medicaid-managed-care/2025-2030-smmc-plans/cms-plan-transition.html
-	// Select on the requested service day, never the execution date. Historical
-	// pre-Sunshine records need the actual plan/card rather than a guessed route.
 	if key == "childrens medical services" || key == "children's medical services" {
 		if serviceDate < "20211001" {
 			return "", "current_plan_card_required"

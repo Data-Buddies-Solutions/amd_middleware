@@ -1,5 +1,3 @@
-// Package advancedmdtest provides a deterministic adapter for the true
-// external AdvancedMD seam.
 package advancedmdtest
 
 import (
@@ -25,7 +23,6 @@ type PatientSearchStep struct {
 	Err      error
 }
 
-// Adapter returns caller-controlled domain results without provider I/O.
 type Adapter struct {
 	scheduleMu               sync.Mutex
 	CandidateReads           map[string]domain.PatientCandidateRead

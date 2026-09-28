@@ -324,8 +324,6 @@ func TestAdapterUpcomingAppointmentsUsesControlledRESTServer(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		if r.URL.Query().Get("startDate") == "2026-07-01" && strings.Contains(columns, "1513") {
-			// Force a later month to complete first so ordering cannot depend on
-			// goroutine completion order.
 			<-augustResponded
 			w.Write([]byte(`[
 				{

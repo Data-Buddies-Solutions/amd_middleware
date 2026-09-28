@@ -226,22 +226,18 @@ func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate 
 	}
 
 	for _, appointment := range appointmentsRead.read.Appointments {
-		cancellationToken := ""
+		cancellationToken, tokenErr := p.appointmentTokens.IssueCancellationToken(candidate.ID, appointment)
 		rescheduleToken := ""
-		if p.appointmentTokens != nil {
-			var tokenErr error
-			cancellationToken, tokenErr = p.appointmentTokens.IssueCancellationToken(candidate.ID, appointment)
-			if tokenErr == nil {
-				rescheduleToken, tokenErr = p.appointmentTokens.IssueRescheduleToken(candidate.ID, appointment)
-			}
-			if tokenErr != nil {
-				result.Appointments = []Appointment{}
-				result.AppointmentsStatus = AppointmentsError
-				result.AppointmentsMessage = "Failed to prepare appointments for cancellation. Please try again."
-				result.Message = "Patient verified, appointment lookup unavailable"
-				result.Observation.AppointmentOutcome = "error"
-				return result, nil
-			}
+		if tokenErr == nil {
+			rescheduleToken, tokenErr = p.appointmentTokens.IssueRescheduleToken(candidate.ID, appointment)
+		}
+		if tokenErr != nil {
+			result.Appointments = []Appointment{}
+			result.AppointmentsStatus = AppointmentsError
+			result.AppointmentsMessage = "Failed to prepare appointments for cancellation. Please try again."
+			result.Message = "Patient verified, appointment lookup unavailable"
+			result.Observation.AppointmentOutcome = "error"
+			return result, nil
 		}
 		result.Appointments = append(result.Appointments, Appointment{
 			ID:                appointment.ID,

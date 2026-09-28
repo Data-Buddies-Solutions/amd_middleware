@@ -53,8 +53,6 @@ func availableSlots(
 	nowEastern time.Time,
 ) []domain.AvailableSlot {
 	slots := make([]domain.AvailableSlot, 0)
-	// Booking requires a positive interval, so any other value cannot produce a
-	// bookable slot; a negative one would also never advance past workEnd.
 	if column.Interval <= 0 {
 		return slots
 	}

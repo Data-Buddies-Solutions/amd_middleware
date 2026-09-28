@@ -678,8 +678,6 @@ func TestCancelledColdSessionLoginDoesNotBlockNextCaller(t *testing.T) {
 		t.Fatalf("cancelled caller error = %v, want session unavailable", err)
 	}
 
-	// The provider did not fail: a different caller can authenticate immediately.
-	// Keep the clock fixed so a retry cooldown cannot conceal the regression.
 	token, err := s.Get(context.Background())
 	if err != nil {
 		t.Fatalf("healthy caller blocked after caller cancellation: %v (login attempts=%d)", err, calls)
@@ -694,9 +692,6 @@ func TestSessionWaiterRecoversWhenLeadingCallerCancels(t *testing.T) {
 	started := make(chan struct{})
 	waiterJoined := make(chan struct{})
 	var loginStarted, waiterSeen atomic.Bool
-	// After the first login starts, the leader is blocked in Authenticate, so the
-	// next clock read is the waiter checking state under the lock just before it
-	// waits on the active flight.
 	now := func() time.Time {
 		if loginStarted.Load() && waiterSeen.CompareAndSwap(false, true) {
 			close(waiterJoined)
