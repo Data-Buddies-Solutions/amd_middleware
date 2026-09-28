@@ -81,23 +81,11 @@ func (a *Adapter) GetPatientDemographics(ctx context.Context, patientID string) 
 	if err != nil {
 		return domain.PatientDemographics{}, err
 	}
-	result, err := a.xmlClient.GetDemographic(ctx, token, patientID)
+	demographics, err := a.xmlClient.GetDemographic(ctx, token, patientID)
 	if err != nil {
 		return domain.PatientDemographics{}, classify(err)
 	}
-	if result == nil {
-		return domain.PatientDemographics{}, nil
-	}
-	return domain.PatientDemographics{
-		FullName:            result.Name,
-		CarrierName:         result.CarrierName,
-		CarrierID:           result.CarrierID,
-		InsPlanID:           result.InsPlanID,
-		RespPartyID:         result.RespPartyID,
-		SubscriberNum:       result.SubscriberNum,
-		DOB:                 result.DOB,
-		InsuranceStateKnown: result.InsuranceStateKnown,
-	}, nil
+	return demographics, nil
 }
 
 func (a *Adapter) CreatePatient(ctx context.Context, command domain.PatientCreate) (domain.CreatedPatient, error) {
@@ -110,29 +98,11 @@ func (a *Adapter) CreatePatient(ctx context.Context, command domain.PatientCreat
 		return domain.CreatedPatient{}, NewError(safeerrors.CategoryInternal)
 	}
 
-	rawPatientID, respPartyID, name, err := a.xmlClient.AddPatient(ctx, token, clients.AddPatientParams{
-		FirstName: command.FirstName,
-		LastName:  command.LastName,
-		DOB:       command.DOB,
-		Phone:     command.Phone,
-		Email:     command.Email,
-		Street:    command.Street,
-		AptSuite:  command.AptSuite,
-		City:      command.City,
-		State:     command.State,
-		Zip:       command.Zip,
-		Sex:       command.Sex,
-		SSN:       command.SSN,
-		ProfileID: office.DefaultProfileID,
-	})
+	created, err := a.xmlClient.AddPatient(ctx, token, command, office.DefaultProfileID)
 	if err != nil {
 		return domain.CreatedPatient{}, classifyMutation(err)
 	}
-	return domain.CreatedPatient{
-		ID:          domain.StripPatientPrefix(rawPatientID),
-		RespPartyID: respPartyID,
-		Name:        name,
-	}, nil
+	return created, nil
 }
 
 func (a *Adapter) AddPatientInsurance(ctx context.Context, command domain.PatientInsurance) error {
@@ -162,10 +132,6 @@ func (a *Adapter) EndDatePatientInsurance(ctx context.Context, command domain.Pa
 		return classifyMutation(err)
 	}
 	return nil
-}
-
-func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.PatientAppointmentsQuery) (AppointmentRead, error) {
-	return a.readPatientAppointments(ctx, query)
 }
 
 func (a *Adapter) ReadPatientAppointmentsForMonth(
@@ -210,7 +176,7 @@ func (a *Adapter) ReadPatientAppointmentsForMonth(
 	return read, nil
 }
 
-func (a *Adapter) readPatientAppointments(ctx context.Context, query domain.PatientAppointmentsQuery) (AppointmentRead, error) {
+func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.PatientAppointmentsQuery) (AppointmentRead, error) {
 	token, err := a.token(ctx)
 	if err != nil {
 		return AppointmentRead{}, err
@@ -634,29 +600,20 @@ func classify(err error) error {
 }
 
 func classifyMutation(err error) error {
-	switch clients.MutationDispositionOf(err) {
-	case clients.MutationDispositionAuthentication:
-		return NewError(safeerrors.CategoryAuthentication)
-	case clients.MutationDispositionConflict:
-		return NewError(safeerrors.CategoryConflict)
-	case clients.MutationDispositionRejected:
-		return NewError(safeerrors.CategoryRejected)
-	case clients.MutationDispositionAmbiguous:
-		return NewAmbiguousWriteError(safeerrors.Classify(err))
-	}
-	if err == nil {
-		return nil
-	}
 	var rejection *clients.ProviderRejectionError
 	if errors.As(err, &rejection) {
 		return NewError(safeerrors.CategoryRejected)
 	}
 	var status *clients.HTTPStatusError
-	if errors.As(err, &status) &&
-		status.StatusCode >= 400 &&
-		status.StatusCode < 500 &&
-		status.StatusCode != http.StatusRequestTimeout {
-		return NewError(safeerrors.CategoryRejected)
+	if errors.As(err, &status) {
+		switch code := status.StatusCode; {
+		case code == http.StatusUnauthorized || code == http.StatusForbidden:
+			return NewError(safeerrors.CategoryAuthentication)
+		case code == http.StatusConflict:
+			return NewError(safeerrors.CategoryConflict)
+		case code >= 400 && code < 500 && code != http.StatusRequestTimeout:
+			return NewError(safeerrors.CategoryRejected)
+		}
 	}
 	category := safeerrors.Classify(err)
 	if category == safeerrors.CategoryInternal {

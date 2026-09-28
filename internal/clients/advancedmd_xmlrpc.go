@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -25,30 +24,6 @@ type AMDLookupMsg struct {
 	Name   string `json:"@name,omitempty"`
 	Phone  string `json:"@phone,omitempty"`
 	Page   int    `json:"@page,omitempty"`
-}
-
-type AMDLookupResponse struct {
-	PPMDResults struct {
-		Results struct {
-			PatientList struct {
-				ItemCount string       `json:"@itemcount"`
-				Patients  []AMDPatient `json:"patient"`
-			} `json:"patientlist"`
-		} `json:"Results"`
-		Error interface{} `json:"Error"`
-	} `json:"PPMDResults"`
-}
-
-type AMDLookupResponseSingle struct {
-	PPMDResults struct {
-		Results struct {
-			PatientList struct {
-				ItemCount string     `json:"@itemcount"`
-				Patient   AMDPatient `json:"patient"`
-			} `json:"patientlist"`
-		} `json:"Results"`
-		Error interface{} `json:"Error"`
-	} `json:"PPMDResults"`
 }
 
 type AMDPatient struct {
@@ -88,7 +63,7 @@ type HTTPStatusError struct {
 }
 
 func (e *HTTPStatusError) Error() string {
-	return fmt.Sprintf("unexpected XMLRPC status %d", e.StatusCode)
+	return fmt.Sprintf("unexpected status %d", e.StatusCode)
 }
 
 func NewAdvancedMDClient(httpClient *http.Client) *AdvancedMDClient {
@@ -189,26 +164,11 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domai
 		if err != nil {
 			return domain.PatientCandidateRead{}, err
 		}
-		pageRead, err := parseLookupResponse(body)
+		pageRead, meta, err := parseLookupResponse(body)
 		if err != nil {
 			return domain.PatientCandidateRead{}, err
 		}
 		batch := pageRead.Patients
-		var envelope struct {
-			Results struct {
-				Data struct {
-					List struct {
-						Page  string `json:"@page"`
-						Pages string `json:"@pagecount"`
-						Total string `json:"@itemcount"`
-					} `json:"patientlist"`
-				} `json:"Results"`
-			} `json:"PPMDResults"`
-		}
-		if err := json.Unmarshal(body, &envelope); err != nil {
-			return domain.PatientCandidateRead{}, fmt.Errorf("invalid patient lookup pagination")
-		}
-		meta := envelope.Results.Data.List
 		for _, patient := range batch {
 			if patient.ID == "" || seen[patient.ID] {
 				return domain.PatientCandidateRead{}, fmt.Errorf("patient lookup returned missing or repeated patient ID")
@@ -216,9 +176,9 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domai
 			seen[patient.ID] = true
 			patients = append(patients, patient)
 		}
-		if page == 1 && meta.Page == "" && meta.Pages == "" {
-			if meta.Total != "" {
-				total, err := strconv.Atoi(meta.Total)
+		if page == 1 && meta.Page == "" && meta.PageCount == "" {
+			if meta.ItemCount != "" {
+				total, err := strconv.Atoi(meta.ItemCount)
 				if err != nil || total != len(patients) {
 					return domain.PatientCandidateRead{}, fmt.Errorf("incomplete legacy patient lookup results")
 				}
@@ -226,8 +186,8 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domai
 			return domain.PatientCandidateRead{Patients: patients, Complete: false}, nil
 		}
 		currentPage, pageErr := strconv.Atoi(meta.Page)
-		pageCount, countErr := strconv.Atoi(meta.Pages)
-		total, totalErr := strconv.Atoi(meta.Total)
+		pageCount, countErr := strconv.Atoi(meta.PageCount)
+		total, totalErr := strconv.Atoi(meta.ItemCount)
 		if pageErr != nil || countErr != nil || totalErr != nil || currentPage != page || pageCount < 0 || pageCount > maxLookupPages || total < 0 {
 			return domain.PatientCandidateRead{}, fmt.Errorf("invalid or excessive patient lookup pagination")
 		}
@@ -256,121 +216,75 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domai
 	return domain.PatientCandidateRead{}, fmt.Errorf("patient lookup exceeded page limit")
 }
 
-func parseLookupResponse(body []byte) (domain.PatientCandidateRead, error) {
-	var response struct {
-		PPMDResults *struct {
-			Results struct {
-				PatientList *struct {
-					ItemCount string          `json:"@itemcount"`
-					Page      string          `json:"@page"`
-					PageCount string          `json:"@pagecount"`
-					Patients  json.RawMessage `json:"patient"`
-				} `json:"patientlist"`
-			} `json:"Results"`
-			Error interface{} `json:"Error"`
-		} `json:"PPMDResults"`
+type patientList struct {
+	ItemCount string          `json:"@itemcount"`
+	Page      string          `json:"@page"`
+	PageCount string          `json:"@pagecount"`
+	Patients  json.RawMessage `json:"patient"`
+}
+
+func parseLookupResponse(body []byte) (domain.PatientCandidateRead, patientList, error) {
+	results, err := decodeXMLRPC(body, "lookuppatient")
+	if err != nil {
+		return domain.PatientCandidateRead{}, patientList{}, err
 	}
-	var read domain.PatientCandidateRead
-	if err := json.Unmarshal(body, &response); err != nil {
-		return read, fmt.Errorf("failed to parse lookup response: %w", err)
+	var parsed struct {
+		PatientList *patientList `json:"patientlist"`
 	}
-	if response.PPMDResults == nil {
-		return read, fmt.Errorf("lookuppatient returned unexpected response")
+	if json.Unmarshal(results, &parsed) != nil || parsed.PatientList == nil {
+		return domain.PatientCandidateRead{}, patientList{}, fmt.Errorf("lookuppatient returned malformed patientlist")
 	}
-	if providerErrorPresent(response.PPMDResults.Error) {
-		return read, providerRejection("lookuppatient", body)
-	}
-	list := response.PPMDResults.Results.PatientList
-	if list == nil {
-		return read, fmt.Errorf("lookuppatient returned malformed patientlist")
-	}
-	raw := bytes.TrimSpace(list.Patients)
-	count, countErr := strconv.Atoi(list.ItemCount)
+	list := *parsed.PatientList
+	patients, patientsErr := oneOrMany[AMDPatient](list.Patients)
 	pages, pageErr := strconv.Atoi(list.PageCount)
 	if list.ItemCount == "0" {
-		read.Patients = []domain.Patient{}
-		empty := len(raw) == 0 || bytes.Equal(raw, []byte("null")) || bytes.Equal(raw, []byte("[]"))
-		read.Complete = empty && list.Page == "1" && pageErr == nil && (pages == 0 || pages == 1)
-		return read, nil
+		empty := patientsErr == nil && len(patients) == 0
+		return domain.PatientCandidateRead{
+			Patients: []domain.Patient{},
+			Complete: empty && list.Page == "1" && pageErr == nil && (pages == 0 || pages == 1),
+		}, list, nil
 	}
-	var patients []AMDPatient
-	switch {
-	case len(raw) > 0 && raw[0] == '[':
-		if err := json.Unmarshal(raw, &patients); err != nil {
-			return read, fmt.Errorf("lookuppatient returned malformed patient array: %w", err)
-		}
-	case len(raw) > 0 && raw[0] == '{':
-		var patient AMDPatient
-		if err := json.Unmarshal(raw, &patient); err != nil {
-			return read, fmt.Errorf("lookuppatient returned malformed patient: %w", err)
-		}
-		if patient.ID == "" {
-			return read, fmt.Errorf("lookuppatient returned a patient without an ID")
-		}
-		patients = []AMDPatient{patient}
-	default:
-		return read, fmt.Errorf("lookuppatient returned malformed patientlist")
+	if patientsErr != nil || len(patients) == 0 {
+		return domain.PatientCandidateRead{}, patientList{}, fmt.Errorf("lookuppatient returned malformed patientlist")
 	}
-	read.Patients = convertPatients(patients)
-	read.Complete = countErr == nil && pageErr == nil && list.Page == "1" && pages == 1 && count == len(patients)
-	return read, nil
+	count, countErr := strconv.Atoi(list.ItemCount)
+	return domain.PatientCandidateRead{
+		Patients: convertPatients(patients),
+		Complete: countErr == nil && pageErr == nil && list.Page == "1" && pages == 1 && count == len(patients),
+	}, list, nil
 }
 
-type AddPatientParams struct {
-	FirstName string
-	LastName  string
-	DOB       string
-	Phone     string
-	Email     string
-	Street    string
-	AptSuite  string
-	City      string
-	State     string
-	Zip       string
-	Sex       string
-	SSN       string
-	ProfileID string
-}
-
-func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.TokenData, params AddPatientParams) (patientIDResult string, partyIDResult string, nameResult string, resultErr error) {
+func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.TokenData, patient domain.PatientCreate, profileID string) (created domain.CreatedPatient, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "addpatient")
 	defer func() { finish(resultErr) }()
-	name := params.LastName + "," + params.FirstName
-	msgTime := time.Now().Format("01/02/2006 03:04:05 PM")
-
-	profileID := params.ProfileID
-	if profileID == "" {
-		log.Printf("WARNING: addpatient called without ProfileID, defaulting to 620")
-		profileID = "620"
-	}
 
 	payload := map[string]interface{}{
 		"ppmdmsg": map[string]interface{}{
 			"@action":   "addpatient",
 			"@class":    "api",
-			"@msgtime":  msgTime,
+			"@msgtime":  msgTime(),
 			"@nocookie": "0",
 			"patientlist": map[string]interface{}{
 				"patient": map[string]interface{}{
 					"@respparty":         "SELF",
-					"@name":              name,
-					"@sex":               params.Sex,
+					"@name":              patient.LastName + "," + patient.FirstName,
+					"@sex":               patient.Sex,
 					"@relationship":      "1",
 					"@hipaarelationship": "18",
-					"@dob":               params.DOB,
-					"@ssn":               strings.TrimSpace(params.SSN),
+					"@dob":               patient.DOB,
+					"@ssn":               strings.TrimSpace(patient.SSN),
 					"@chart":             "AUTO",
 					"@profile":           profileID,
 					"address": map[string]interface{}{
-						"@address1": params.AptSuite,
-						"@address2": params.Street,
-						"@city":     params.City,
-						"@state":    params.State,
-						"@zip":      params.Zip,
+						"@address1": patient.AptSuite,
+						"@address2": patient.Street,
+						"@city":     patient.City,
+						"@state":    patient.State,
+						"@zip":      patient.Zip,
 					},
 					"contactinfo": map[string]interface{}{
-						"@homephone": params.Phone,
-						"@email":     params.Email,
+						"@homephone": patient.Phone,
+						"@email":     patient.Email,
 					},
 				},
 			},
@@ -379,42 +293,38 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.Tok
 
 	body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
 	if err != nil {
-		return "", "", "", fmt.Errorf("addpatient request failed: %w", err)
+		return domain.CreatedPatient{}, fmt.Errorf("addpatient request failed: %w", err)
 	}
-
-	if rejectedByProvider(body) {
-		return "", "", "", providerRejection("addpatient", body)
+	results, err := decodeXMLRPC(body, "addpatient")
+	if err != nil {
+		return domain.CreatedPatient{}, err
 	}
-
-	var singleResp AMDLookupResponseSingle
-	if err := json.Unmarshal(body, &singleResp); err == nil {
-		if singleResp.PPMDResults.Results.PatientList.Patient.ID != "" {
-			p := singleResp.PPMDResults.Results.PatientList.Patient
-			return p.ID, p.RespParty, p.Name, nil
+	var parsed struct {
+		PatientList struct {
+			Patient json.RawMessage `json:"patient"`
+		} `json:"patientlist"`
+	}
+	if json.Unmarshal(results, &parsed) == nil {
+		patients, err := oneOrMany[AMDPatient](parsed.PatientList.Patient)
+		if err == nil && len(patients) > 0 && patients[0].ID != "" {
+			return domain.CreatedPatient{
+				ID:          domain.StripPatientPrefix(patients[0].ID),
+				RespPartyID: patients[0].RespParty,
+				Name:        patients[0].Name,
+			}, nil
 		}
 	}
-
-	var arrayResp AMDLookupResponse
-	if err := json.Unmarshal(body, &arrayResp); err == nil {
-		if len(arrayResp.PPMDResults.Results.PatientList.Patients) > 0 {
-			p := arrayResp.PPMDResults.Results.PatientList.Patients[0]
-			return p.ID, p.RespParty, p.Name, nil
-		}
-	}
-
-	return "", "", "", fmt.Errorf("addpatient returned unexpected response")
+	return domain.CreatedPatient{}, fmt.Errorf("addpatient returned unexpected response")
 }
 
 func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.TokenData, patientID, respPartyID, carrierID, subscriberNum string) (resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "addinsurance")
 	defer func() { finish(resultErr) }()
-	msgTime := time.Now().Format("01/02/2006 03:04:05 PM")
-
 	payload := map[string]interface{}{
 		"ppmdmsg": map[string]interface{}{
 			"@action":  "addinsurance",
 			"@class":   "api",
-			"@msgtime": msgTime,
+			"@msgtime": msgTime(),
 			"patient": map[string]interface{}{
 				"@id":      patientID,
 				"@changed": "1",
@@ -439,7 +349,7 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.T
 		return fmt.Errorf("addinsurance request failed: %w", err)
 	}
 
-	if err := checkXMLRPCMutationResponse(body, "addinsurance"); err != nil {
+	if err := checkXMLRPCMutation(body, "addinsurance"); err != nil {
 		return err
 	}
 
@@ -449,14 +359,13 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.T
 func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *domain.TokenData, patientID, insPlanID string) (resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "enddateinsurance")
 	defer func() { finish(resultErr) }()
-	msgTime := time.Now().Format("01/02/2006 03:04:05 PM")
 	today := time.Now().Format("01/02/2006")
 
 	payload := map[string]interface{}{
 		"ppmdmsg": map[string]interface{}{
 			"@action":  "addinsurance",
 			"@class":   "api",
-			"@msgtime": msgTime,
+			"@msgtime": msgTime(),
 			"patient": map[string]interface{}{
 				"@id":      patientID,
 				"@changed": "1",
@@ -475,52 +384,68 @@ func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *doma
 		return fmt.Errorf("enddate insurance request failed: %w", err)
 	}
 
-	if err := checkXMLRPCMutationResponse(body, "enddate insurance"); err != nil {
+	if err := checkXMLRPCMutation(body, "enddate insurance"); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-type xmlRPCEnvelope struct {
-	PPMDResults *struct {
-		Results json.RawMessage `json:"Results"`
-		Error   interface{}     `json:"Error"`
-	} `json:"PPMDResults"`
+func msgTime() string {
+	return time.Now().Format("01/02/2006 03:04:05 PM")
 }
 
-func parseXMLRPCEnvelope(body []byte, operation string) (*xmlRPCEnvelope, error) {
-	var response xmlRPCEnvelope
-	if err := json.Unmarshal(body, &response); err != nil {
+func decodeXMLRPC(body []byte, operation string) (json.RawMessage, error) {
+	var envelope struct {
+		PPMDResults *struct {
+			Results json.RawMessage `json:"Results"`
+			Error   interface{}     `json:"Error"`
+		} `json:"PPMDResults"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
 		return nil, fmt.Errorf("%s returned malformed response: %w", operation, err)
 	}
-	if response.PPMDResults == nil {
+	if envelope.PPMDResults == nil {
 		return nil, fmt.Errorf("%s returned unexpected response", operation)
 	}
-	return &response, nil
+	if providerErrorPresent(envelope.PPMDResults.Error) {
+		return nil, providerRejection(operation, body)
+	}
+	return envelope.PPMDResults.Results, nil
 }
 
-func checkXMLRPCMutationResponse(body []byte, operation string) error {
-	response, err := parseXMLRPCEnvelope(body, operation)
+func oneOrMany[T any](raw json.RawMessage) ([]T, error) {
+	raw = bytes.TrimSpace(raw)
+	switch {
+	case len(raw) == 0 || string(raw) == "null":
+		return nil, nil
+	case raw[0] == '[':
+		var items []T
+		if err := json.Unmarshal(raw, &items); err != nil {
+			return nil, err
+		}
+		return items, nil
+	case raw[0] == '{':
+		var item T
+		if err := json.Unmarshal(raw, &item); err != nil {
+			return nil, err
+		}
+		return []T{item}, nil
+	default:
+		return nil, fmt.Errorf("expected an object or array")
+	}
+}
+
+func checkXMLRPCMutation(body []byte, operation string) error {
+	results, err := decodeXMLRPC(body, operation)
 	if err != nil {
 		return err
 	}
-	if providerErrorPresent(response.PPMDResults.Error) {
-		return providerRejection(operation, body)
-	}
-	if len(response.PPMDResults.Results) == 0 || string(response.PPMDResults.Results) == "null" {
-		return fmt.Errorf("%s returned unexpected response", operation)
-	}
-	var results map[string]interface{}
-	if err := json.Unmarshal(response.PPMDResults.Results, &results); err != nil || results == nil {
+	var fields map[string]interface{}
+	if json.Unmarshal(results, &fields) != nil || fields == nil {
 		return fmt.Errorf("%s returned unexpected response", operation)
 	}
 	return nil
-}
-
-func rejectedByProvider(body []byte) bool {
-	response, err := parseXMLRPCEnvelope(body, "mutation")
-	return err == nil && providerErrorPresent(response.PPMDResults.Error)
 }
 
 func providerErrorPresent(value interface{}) bool {
@@ -552,17 +477,6 @@ func providerErrorPresent(value interface{}) bool {
 	}
 }
 
-type DemographicResult struct {
-	Name                string
-	CarrierName         string
-	CarrierID           string
-	InsPlanID           string
-	RespPartyID         string
-	SubscriberNum       string
-	DOB                 string
-	InsuranceStateKnown bool
-}
-
 type AMDDemographicResults struct {
 	PatientList struct {
 		Patient struct {
@@ -576,10 +490,6 @@ type AMDDemographicResults struct {
 	CarrierList json.RawMessage `json:"carrierlist"`
 }
 
-type AMDInsPlanList struct {
-	InsPlan json.RawMessage `json:"insplan"`
-}
-
 type AMDInsPlan struct {
 	ID            string `json:"@id"`
 	Carrier       string `json:"@carrier"`
@@ -589,142 +499,106 @@ type AMDInsPlan struct {
 	Coverage      string `json:"@coverage"`
 }
 
-type AMDCarrierList struct {
-	Carrier json.RawMessage `json:"carrier"`
-}
-
 type AMDCarrier struct {
 	ID   string `json:"@id"`
 	Name string `json:"@name"`
 }
 
-func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *domain.TokenData, patientID string) (demographicResult *DemographicResult, resultErr error) {
+func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *domain.TokenData, patientID string) (demographics domain.PatientDemographics, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "getdemographic")
 	defer func() { finish(resultErr) }()
-	msgTime := time.Now().Format("01/02/2006 03:04:05 PM")
 
 	payload := map[string]interface{}{
 		"ppmdmsg": map[string]interface{}{
 			"@action":    "getdemographic",
 			"@class":     "demographics",
-			"@msgtime":   msgTime,
+			"@msgtime":   msgTime(),
 			"@patientid": patientID,
 		},
 	}
 
 	body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
 	if err != nil {
-		return nil, fmt.Errorf("getdemographic request failed: %w", err)
+		return domain.PatientDemographics{}, fmt.Errorf("getdemographic request failed: %w", err)
 	}
-
-	envelope, err := parseXMLRPCEnvelope(body, "getdemographic")
+	results, err := decodeXMLRPC(body, "getdemographic")
 	if err != nil {
-		return nil, err
+		return domain.PatientDemographics{}, err
 	}
-	if providerErrorPresent(envelope.PPMDResults.Error) {
-		return nil, providerRejection("getdemographic", body)
+	var parsed AMDDemographicResults
+	if err := json.Unmarshal(results, &parsed); err != nil {
+		return domain.PatientDemographics{}, fmt.Errorf("failed to parse demographic response: %w", err)
 	}
-	if len(envelope.PPMDResults.Results) == 0 || string(envelope.PPMDResults.Results) == "null" {
-		return nil, fmt.Errorf("getdemographic returned unexpected response")
-	}
-
-	var results AMDDemographicResults
-	if err := json.Unmarshal(envelope.PPMDResults.Results, &results); err != nil {
-		return nil, fmt.Errorf("failed to parse demographic response: %w", err)
-	}
-	patient := results.PatientList.Patient
+	patient := parsed.PatientList.Patient
 	if patient.ID == "" {
-		return nil, fmt.Errorf("getdemographic returned unexpected response")
+		return domain.PatientDemographics{}, fmt.Errorf("getdemographic returned unexpected response")
 	}
 	if domain.StripPatientPrefix(patient.ID) != domain.StripPatientPrefix(patientID) {
-		return nil, fmt.Errorf("getdemographic returned mismatched patient")
+		return domain.PatientDemographics{}, fmt.Errorf("getdemographic returned mismatched patient")
 	}
 
-	result := &DemographicResult{
-		Name:                patient.Name,
+	demographics = domain.PatientDemographics{
+		FullName:            patient.Name,
 		RespPartyID:         patient.RespParty,
 		DOB:                 patient.DOB,
 		InsuranceStateKnown: true,
 	}
-
-	if patient.InsPlanList == nil {
-		return result, nil
+	activePlan, known := activePrimaryPlan(patient.InsPlanList)
+	if !known {
+		demographics.InsuranceStateKnown = false
+		return demographics, nil
 	}
-
-	var planList AMDInsPlanList
-	if err := json.Unmarshal(patient.InsPlanList, &planList); err != nil {
-		result.InsuranceStateKnown = false
-		return result, nil
-	}
-	if planList.InsPlan == nil {
-		return result, nil
-	}
-
-	var activePlan *AMDInsPlan
-	var single AMDInsPlan
-	if err := json.Unmarshal(planList.InsPlan, &single); err == nil && single.Carrier != "" {
-		if isActivePrimaryPlan(single) {
-			activePlan = &single
-		}
-	} else {
-		var plans []AMDInsPlan
-		if err := json.Unmarshal(planList.InsPlan, &plans); err != nil {
-			result.InsuranceStateKnown = false
-			return result, nil
-		}
-		for i := range plans {
-			if isActivePrimaryPlan(plans[i]) {
-				if activePlan != nil {
-					result.InsuranceStateKnown = false
-					return result, nil
-				}
-				activePlan = &plans[i]
-			}
-		}
-	}
-
 	if activePlan == nil {
-		return result, nil
+		return demographics, nil
 	}
-
-	result.CarrierID = activePlan.Carrier
-	result.InsPlanID = activePlan.ID
-	result.SubscriberNum = activePlan.SubscriberNum
+	demographics.CarrierID = activePlan.Carrier
+	demographics.CarrierName = carrierName(parsed.CarrierList, activePlan.Carrier)
+	demographics.InsPlanID = activePlan.ID
+	demographics.SubscriberNum = activePlan.SubscriberNum
 	if activePlan.Subscriber != "" {
-		result.RespPartyID = activePlan.Subscriber
+		demographics.RespPartyID = activePlan.Subscriber
 	}
+	return demographics, nil
+}
 
-	if results.CarrierList == nil {
-		result.CarrierName = result.CarrierID
-		return result, nil
+func activePrimaryPlan(insPlanList json.RawMessage) (*AMDInsPlan, bool) {
+	var list struct {
+		InsPlan json.RawMessage `json:"insplan"`
 	}
-
-	var carrierList AMDCarrierList
-	if err := json.Unmarshal(results.CarrierList, &carrierList); err != nil {
-		result.CarrierName = result.CarrierID
-		return result, nil
+	if insPlanList != nil && json.Unmarshal(insPlanList, &list) != nil {
+		return nil, false
 	}
+	plans, err := oneOrMany[AMDInsPlan](list.InsPlan)
+	if err != nil {
+		return nil, false
+	}
+	var active *AMDInsPlan
+	for i := range plans {
+		if !isActivePrimaryPlan(plans[i]) {
+			continue
+		}
+		if active != nil || plans[i].Carrier == "" {
+			return nil, false
+		}
+		active = &plans[i]
+	}
+	return active, true
+}
 
-	var singleCarrier AMDCarrier
-	if err := json.Unmarshal(carrierList.Carrier, &singleCarrier); err == nil {
-		if singleCarrier.ID == result.CarrierID {
-			result.CarrierName = singleCarrier.Name
-			return result, nil
+func carrierName(carrierList json.RawMessage, carrierID string) string {
+	var list struct {
+		Carrier json.RawMessage `json:"carrier"`
+	}
+	if carrierList == nil || json.Unmarshal(carrierList, &list) != nil {
+		return carrierID
+	}
+	carriers, _ := oneOrMany[AMDCarrier](list.Carrier)
+	for _, carrier := range carriers {
+		if carrier.ID == carrierID {
+			return carrier.Name
 		}
 	}
-
-	var carriers []AMDCarrier
-	if err := json.Unmarshal(carrierList.Carrier, &carriers); err == nil {
-		for _, c := range carriers {
-			if c.ID == result.CarrierID {
-				result.CarrierName = c.Name
-				return result, nil
-			}
-		}
-	}
-
-	result.CarrierName = result.CarrierID
-	return result, nil
+	return carrierID
 }
 
 func isActivePrimaryPlan(plan AMDInsPlan) bool {
@@ -761,39 +635,58 @@ func bestPatientPhone(contact AMDContactInfo) string {
 	return ""
 }
 
-type AMDSchedulerSetupResponse struct {
-	PPMDResults struct {
-		Results struct {
-			ColumnList   *AMDColumnList  `json:"columnlist"`
-			ProfileList  AMDProfileList  `json:"profilelist"`
-			FacilityList AMDFacilityList `json:"facilitylist"`
-		} `json:"Results"`
-		Error interface{} `json:"Error"`
-	} `json:"PPMDResults"`
+type amdAttribute string
+
+func (a *amdAttribute) UnmarshalJSON(data []byte) error {
+	var text string
+	if json.Unmarshal(data, &text) == nil {
+		*a = amdAttribute(text)
+		return nil
+	}
+	var number json.Number
+	if json.Unmarshal(data, &number) == nil {
+		*a = amdAttribute(number)
+	}
+	return nil
 }
 
-type AMDColumnList struct {
-	Columns interface{} `json:"column"`
+func (a amdAttribute) int() int {
+	var n int
+	fmt.Sscanf(string(a), "%d", &n)
+	return n
 }
 
-type AMDProfileList struct {
-	Profiles interface{} `json:"profile"`
+type amdColumn struct {
+	ID       amdAttribute    `json:"@id"`
+	Name     amdAttribute    `json:"@name"`
+	Profile  amdAttribute    `json:"@profile"`
+	Facility amdAttribute    `json:"@facility"`
+	Setting  json.RawMessage `json:"columnsetting"`
 }
 
-type AMDFacilityList struct {
-	Facilities interface{} `json:"facility"`
+type amdColumnSetting struct {
+	Start           amdAttribute `json:"@start"`
+	End             amdAttribute `json:"@end"`
+	Interval        amdAttribute `json:"@interval"`
+	MaxApptsPerSlot amdAttribute `json:"@maxapptsperslot"`
+	Workweek        amdAttribute `json:"@workweek"`
+}
+
+type amdSetupItem struct {
+	ID   amdAttribute `json:"@id"`
+	Code amdAttribute `json:"@code"`
+	Name amdAttribute `json:"@name"`
 }
 
 func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *domain.TokenData) (setupResult *domain.SchedulerSetup, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "getschedulersetup")
 	defer func() { finish(resultErr) }()
-	msgTime := time.Now().Format("01/02/2006 03:04:05 PM")
 
 	payload := map[string]interface{}{
 		"ppmdmsg": map[string]interface{}{
 			"@action":   "getschedulersetup",
 			"@class":    "masterfiles",
-			"@msgtime":  msgTime,
+			"@msgtime":  msgTime(),
 			"@nocookie": "0",
 		},
 	}
@@ -802,82 +695,67 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *dom
 	if err != nil {
 		return nil, fmt.Errorf("getschedulersetup request failed: %w", err)
 	}
-
-	response, err := parseXMLRPCEnvelope(body, "getschedulersetup")
+	results, err := decodeXMLRPC(body, "getschedulersetup")
 	if err != nil {
 		return nil, err
 	}
-	if providerErrorPresent(response.PPMDResults.Error) {
-		return nil, providerRejection("getschedulersetup", body)
+	var parsed struct {
+		ColumnList *struct {
+			Columns json.RawMessage `json:"column"`
+		} `json:"columnlist"`
+		ProfileList struct {
+			Profiles json.RawMessage `json:"profile"`
+		} `json:"profilelist"`
+		FacilityList struct {
+			Facilities json.RawMessage `json:"facility"`
+		} `json:"facilitylist"`
 	}
-
-	var resp AMDSchedulerSetupResponse
-	if err := json.Unmarshal(body, &resp); err != nil {
+	if err := json.Unmarshal(results, &parsed); err != nil {
 		return nil, fmt.Errorf("failed to parse scheduler setup response: %w", err)
 	}
-
-	if resp.PPMDResults.Results.ColumnList == nil {
+	if parsed.ColumnList == nil {
 		return nil, fmt.Errorf("scheduler setup returned unexpected response: missing columnlist")
 	}
-	columns, err := parseColumns(resp.PPMDResults.Results.ColumnList.Columns)
+	columns, err := oneOrMany[amdColumn](parsed.ColumnList.Columns)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("scheduler setup returned invalid column collection")
 	}
+	profiles, _ := oneOrMany[amdSetupItem](parsed.ProfileList.Profiles)
+	facilities, _ := oneOrMany[amdSetupItem](parsed.FacilityList.Facilities)
 
-	setup := &domain.SchedulerSetup{
-		Columns:    columns,
-		Profiles:   parseProfiles(resp.PPMDResults.Results.ProfileList.Profiles),
-		Facilities: parseFacilities(resp.PPMDResults.Results.FacilityList.Facilities),
+	setup := &domain.SchedulerSetup{}
+	for _, column := range columns {
+		setup.Columns = append(setup.Columns, schedulerColumn(column))
 	}
-
+	for _, profile := range profiles {
+		setup.Profiles = append(setup.Profiles, domain.SchedulerProfile{
+			ID: strings.TrimPrefix(string(profile.ID), "prof"), Code: string(profile.Code), Name: string(profile.Name),
+		})
+	}
+	for _, facility := range facilities {
+		setup.Facilities = append(setup.Facilities, domain.SchedulerFacility{
+			ID: strings.TrimPrefix(string(facility.ID), "fac"), Code: string(facility.Code), Name: string(facility.Name),
+		})
+	}
 	return setup, nil
 }
 
-func parseColumns(data interface{}) ([]domain.SchedulerColumn, error) {
-	switch v := data.(type) {
-	case nil:
-		return nil, nil
-	case map[string]interface{}:
-		return []domain.SchedulerColumn{parseColumnFromMap(v)}, nil
-	case []interface{}:
-		columns := make([]domain.SchedulerColumn, 0, len(v))
-		for _, item := range v {
-			column, ok := item.(map[string]interface{})
-			if !ok {
-				return nil, fmt.Errorf("scheduler setup returned invalid column row")
-			}
-			columns = append(columns, parseColumnFromMap(column))
-		}
-		return columns, nil
-	default:
-		return nil, fmt.Errorf("scheduler setup returned invalid column collection")
+func schedulerColumn(column amdColumn) domain.SchedulerColumn {
+	result := domain.SchedulerColumn{
+		ID:         strings.TrimPrefix(string(column.ID), "col"),
+		Name:       string(column.Name),
+		ProfileID:  strings.TrimPrefix(string(column.Profile), "prof"),
+		FacilityID: strings.TrimPrefix(string(column.Facility), "fac"),
 	}
-}
-
-func parseColumnFromMap(m map[string]interface{}) domain.SchedulerColumn {
-	col := domain.SchedulerColumn{
-		ID:         stripPrefix(getString(m, "@id"), "col"),
-		Name:       getString(m, "@name"),
-		ProfileID:  stripPrefix(getString(m, "@profile"), "prof"),
-		FacilityID: stripPrefix(getString(m, "@facility"), "fac"),
+	var setting amdColumnSetting
+	if json.Unmarshal(column.Setting, &setting) == nil {
+		result.StartTime = normalizeTime(string(setting.Start))
+		result.EndTime = normalizeTime(string(setting.End))
+		result.Interval = setting.Interval.int()
+		result.MaxApptsPerSlot = setting.MaxApptsPerSlot.int()
+		result.Workweek = parseWorkweek(string(setting.Workweek))
 	}
-
-	if settings, ok := m["columnsetting"].(map[string]interface{}); ok {
-		col.StartTime = normalizeTime(getString(settings, "@start"))
-		col.EndTime = normalizeTime(getString(settings, "@end"))
-		col.Interval = getInt(settings, "@interval")
-		col.MaxApptsPerSlot = getInt(settings, "@maxapptsperslot")
-		col.Workweek = parseWorkweek(getString(settings, "@workweek"))
-	}
-
-	return col
-}
-
-func stripPrefix(s, prefix string) string {
-	if len(s) > len(prefix) && s[:len(prefix)] == prefix {
-		return s[len(prefix):]
-	}
-	return s
+	return result
 }
 
 func parseWorkweek(ww string) int {
@@ -892,83 +770,6 @@ func parseWorkweek(ww string) int {
 		}
 	}
 	return bitmask
-}
-
-func parseProfiles(data interface{}) []domain.SchedulerProfile {
-	if data == nil {
-		return nil
-	}
-
-	var profiles []domain.SchedulerProfile
-
-	switch v := data.(type) {
-	case map[string]interface{}:
-		profiles = append(profiles, domain.SchedulerProfile{
-			ID:   stripPrefix(getString(v, "@id"), "prof"),
-			Code: getString(v, "@code"),
-			Name: getString(v, "@name"),
-		})
-	case []interface{}:
-		for _, item := range v {
-			if m, ok := item.(map[string]interface{}); ok {
-				profiles = append(profiles, domain.SchedulerProfile{
-					ID:   stripPrefix(getString(m, "@id"), "prof"),
-					Code: getString(m, "@code"),
-					Name: getString(m, "@name"),
-				})
-			}
-		}
-	}
-
-	return profiles
-}
-
-func parseFacilities(data interface{}) []domain.SchedulerFacility {
-	if data == nil {
-		return nil
-	}
-
-	var facilities []domain.SchedulerFacility
-
-	switch v := data.(type) {
-	case map[string]interface{}:
-		facilities = append(facilities, domain.SchedulerFacility{
-			ID:   stripPrefix(getString(v, "@id"), "fac"),
-			Code: getString(v, "@code"),
-			Name: getString(v, "@name"),
-		})
-	case []interface{}:
-		for _, item := range v {
-			if m, ok := item.(map[string]interface{}); ok {
-				facilities = append(facilities, domain.SchedulerFacility{
-					ID:   stripPrefix(getString(m, "@id"), "fac"),
-					Code: getString(m, "@code"),
-					Name: getString(m, "@name"),
-				})
-			}
-		}
-	}
-
-	return facilities
-}
-
-func getString(m map[string]interface{}, key string) string {
-	s, _ := m[key].(string)
-	return s
-}
-
-func getInt(m map[string]interface{}, key string) int {
-	if v, ok := m[key]; ok {
-		switch n := v.(type) {
-		case float64:
-			return int(n)
-		case string:
-			var i int
-			fmt.Sscanf(n, "%d", &i)
-			return i
-		}
-	}
-	return 0
 }
 
 func normalizeTime(t string) string {
