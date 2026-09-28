@@ -122,11 +122,10 @@ func decideInsurance(plan, coverage string, office *domain.OfficeConfig, dob str
 	case "crystal_river":
 		source = "CRYSTAL_RIVER"
 	}
-	policy := domain.NewSchedulingPolicy(office)
 	if coverage == "routine_vision" {
 		source = "SPRING_HILL_ROUTINE_VISION"
 	}
-	if (coverage == "medical" && !policy.SupportsMedical()) || (coverage == "routine_vision" && !policy.SupportsRouting(domain.RoutingOpticalOnly)) {
+	if (coverage == "medical" && !office.SupportsMedical()) || (coverage == "routine_vision" && !office.SupportsRouting(domain.RoutingOpticalOnly)) {
 		d.Outcome = "not_accepted"
 		d.Participation = "not_accepted"
 		d.Answer = "blocked: This office does not accept coverage for that visit type."
@@ -207,8 +206,8 @@ func decideInsurance(plan, coverage string, office *domain.OfficeConfig, dob str
 	d.Participation = "accepted"
 	d.Outcome = "accepted"
 	if ok {
-		d.Routing = policy.SchedulingRouting(d.Routing, dob)
-		d.AllowedProviders = append([]string{}, policy.ProviderNames(d.Routing, dob)...)
+		d.Routing = office.SchedulingRouting(d.Routing, dob)
+		d.AllowedProviders = append([]string{}, office.ProvidersForRoutingAndDOB(d.Routing, dob)...)
 	}
 	if len(d.CredentialedProviders) > 0 {
 		allowed := []string{}

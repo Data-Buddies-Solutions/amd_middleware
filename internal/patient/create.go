@@ -132,14 +132,14 @@ func (p *patient) createPatient(ctx context.Context, command CreateCommand, offi
 		FirstName: domain.StripDiacritics(command.FirstName),
 		LastName:  domain.StripDiacritics(command.LastName),
 		DOB:       domain.NormalizeDOB(command.DOB),
-		Phone:     domain.FormatPhone(command.Phone),
+		Phone:     formatPhone(command.Phone),
 		Email:     strings.TrimSpace(command.Email),
 		Street:    command.Street,
 		AptSuite:  command.AptSuite,
 		City:      command.City,
 		State:     strings.ToUpper(command.State),
 		Zip:       command.Zip,
-		Sex:       domain.NormalizeSex(command.Sex),
+		Sex:       normalizeSex(command.Sex),
 		SSN:       strings.TrimSpace(command.SSN),
 		OfficeID:  office.ID,
 	})
@@ -264,4 +264,23 @@ func creationMatch(candidate domain.Patient, command CreateCommand) bool {
 		strings.EqualFold(domain.StripDiacritics(lastName), domain.StripDiacritics(command.LastName)) &&
 		domain.NormalizeDOB(candidate.DOB) == domain.NormalizeDOB(command.DOB) &&
 		(candidate.Phone == "" || domain.NormalizePhoneDigits(candidate.Phone) == domain.NormalizePhoneDigits(command.Phone))
+}
+
+func formatPhone(phone string) string {
+	digits := domain.NormalizePhoneDigits(phone)
+	if len(digits) != 10 {
+		return phone
+	}
+	return fmt.Sprintf("(%s)%s-%s", digits[:3], digits[3:6], digits[6:])
+}
+
+func normalizeSex(sex string) string {
+	switch strings.ToUpper(strings.TrimSpace(sex)) {
+	case "M", "MALE":
+		return "M"
+	case "F", "FEMALE":
+		return "F"
+	default:
+		return "U"
+	}
 }

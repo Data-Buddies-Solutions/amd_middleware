@@ -481,7 +481,7 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 		json.NewEncoder(w).Encode(ErrorResponse{Status: "error", Message: err.Error()})
 		return
 	}
-	if response.Status == domain.AvailabilityStatusError {
+	if response.Status == schedulingmodule.AvailabilityStatusError {
 		recordRequestOutcome(r.Context(), outcomeProviderFailure, safeerrors.CategoryInvalidResponse)
 	}
 	json.NewEncoder(w).Encode(response)
@@ -495,32 +495,32 @@ func (h *Handlers) HandleListAppointmentSlots(w http.ResponseWriter, r *http.Req
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
 		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(inventoryError(domain.AvailabilityOutcomeInvalidInput, "Invalid JSON body"))
+		json.NewEncoder(w).Encode(inventoryError(schedulingmodule.AvailabilityOutcomeInvalidInput, "Invalid JSON body"))
 		return
 	}
 
 	response, err := h.scheduling.List(r.Context(), req)
 	if err != nil {
 		recordSchedulingError(r.Context(), err)
-		outcome := domain.AvailabilityOutcomeInvalidInput
+		outcome := schedulingmodule.AvailabilityOutcomeInvalidInput
 		if schedulingmodule.ProviderFailureOf(err) != safeerrors.CategoryNone {
-			outcome = domain.AvailabilityOutcomeSearchIncomplete
+			outcome = schedulingmodule.AvailabilityOutcomeSearchIncomplete
 		}
 		json.NewEncoder(w).Encode(inventoryError(outcome, err.Error()))
 		return
 	}
-	if response.Status == domain.AvailabilityStatusError {
+	if response.Status == schedulingmodule.AvailabilityStatusError {
 		response.NextAction = ""
 		recordRequestOutcome(r.Context(), outcomeProviderFailure, safeerrors.CategoryInvalidResponse)
 	}
 	json.NewEncoder(w).Encode(response)
 }
 
-func inventoryError(outcome, message string) domain.AvailabilityResponse {
-	return domain.AvailabilityResponse{
-		Status: domain.AvailabilityStatusError, Outcome: outcome,
-		ShouldRetrySameSearch: outcome == domain.AvailabilityOutcomeSearchIncomplete,
-		Message:               message, Slots: []domain.AvailabilitySlotOption{},
+func inventoryError(outcome, message string) schedulingmodule.AvailabilityResponse {
+	return schedulingmodule.AvailabilityResponse{
+		Status: schedulingmodule.AvailabilityStatusError, Outcome: outcome,
+		ShouldRetrySameSearch: outcome == schedulingmodule.AvailabilityOutcomeSearchIncomplete,
+		Message:               message, Slots: []schedulingmodule.AvailabilitySlotOption{},
 	}
 }
 

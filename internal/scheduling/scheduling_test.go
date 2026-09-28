@@ -56,7 +56,7 @@ func TestSearchReturnsFoundSlotWithSignedSameStartCapacityPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Search error = %v", err)
 	}
-	if result.Outcome != domain.AvailabilityOutcomeFound || len(result.Slots) != 1 {
+	if result.Outcome != scheduling.AvailabilityOutcomeFound || len(result.Slots) != 1 {
 		t.Fatalf("result = %#v, want one found slot", result)
 	}
 
@@ -129,11 +129,11 @@ func TestSearchReturnsNoneOnlyAfterACompleteWindow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Search error = %v", err)
 	}
-	if result.Outcome != domain.AvailabilityOutcomeNoAvailability ||
-		result.Status != domain.AvailabilityStatusSuccess ||
+	if result.Outcome != scheduling.AvailabilityOutcomeNoAvailability ||
+		result.Status != scheduling.AvailabilityStatusSuccess ||
 		result.AvailabilityFound ||
 		result.ShouldRetrySameSearch ||
-		result.NextAction != domain.AvailabilityNextActionAskDifferentPreferences ||
+		result.NextAction != scheduling.AvailabilityNextActionAskDifferentPreferences ||
 		result.SearchedThrough != "2026-06-17" ||
 		len(result.Slots) != 0 {
 		t.Fatalf("result = %#v, want explicit no-availability outcome", result)
@@ -150,7 +150,7 @@ func TestSearchOffersNoSlotsForNonPositiveColumnInterval(t *testing.T) {
 		}
 
 		type searchResult struct {
-			response domain.AvailabilityResponse
+			response scheduling.AvailabilityResponse
 			err      error
 		}
 		done := make(chan searchResult, 1)
@@ -169,7 +169,7 @@ func TestSearchOffersNoSlotsForNonPositiveColumnInterval(t *testing.T) {
 			if result.err != nil {
 				t.Fatalf("interval %d: Search error = %v", interval, result.err)
 			}
-			if result.response.Outcome != domain.AvailabilityOutcomeNoAvailability || len(result.response.Slots) != 0 {
+			if result.response.Outcome != scheduling.AvailabilityOutcomeNoAvailability || len(result.response.Slots) != 0 {
 				t.Fatalf("interval %d: result = %#v, want no bookable slots", interval, result.response)
 			}
 		case <-time.After(5 * time.Second):
@@ -315,11 +315,11 @@ func TestSearchReturnsIncompleteWhenProviderReadsCannotProveNone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Search error = %v", err)
 	}
-	if result.Outcome != domain.AvailabilityOutcomeSearchIncomplete ||
-		result.Status != domain.AvailabilityStatusError ||
+	if result.Outcome != scheduling.AvailabilityOutcomeSearchIncomplete ||
+		result.Status != scheduling.AvailabilityStatusError ||
 		result.AvailabilityFound ||
 		!result.ShouldRetrySameSearch ||
-		result.NextAction != domain.AvailabilityNextActionRetryOnceThenAskPreferences ||
+		result.NextAction != scheduling.AvailabilityNextActionRetryOnceThenAskPreferences ||
 		len(result.Slots) != 0 {
 		t.Fatalf("result = %#v, want explicit incomplete outcome", result)
 	}
@@ -362,7 +362,7 @@ func TestSearchReturnsIncompleteAfterPartialProviderFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Search error = %v", err)
 	}
-	if result.Outcome != domain.AvailabilityOutcomeSearchIncomplete || !result.ShouldRetrySameSearch {
+	if result.Outcome != scheduling.AvailabilityOutcomeSearchIncomplete || !result.ShouldRetrySameSearch {
 		t.Fatalf("result = %#v, want partial-read incomplete outcome", result)
 	}
 }
@@ -381,7 +381,7 @@ func TestSearchExcludesRestrictedProviders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Search error = %v", err)
 	}
-	if result.Outcome != domain.AvailabilityOutcomeNoEligibleProviders || result.AvailabilityFound {
+	if result.Outcome != scheduling.AvailabilityOutcomeNoEligibleProviders || result.AvailabilityFound {
 		t.Fatalf("result = %#v, want age-restricted provider excluded", result)
 	}
 }
@@ -524,7 +524,7 @@ func TestSearchUsesFreshSchedulerSetupCacheAndStaleFallback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fresh-cache Search error = %v", err)
 	}
-	if result.Outcome != domain.AvailabilityOutcomeFound {
+	if result.Outcome != scheduling.AvailabilityOutcomeFound {
 		t.Fatalf("fresh-cache result = %#v", result)
 	}
 	if records.SchedulerSetupCalls != 1 {
@@ -538,7 +538,7 @@ func TestSearchUsesFreshSchedulerSetupCacheAndStaleFallback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stale-fallback Search error = %v", err)
 	}
-	if result.Outcome != domain.AvailabilityOutcomeFound {
+	if result.Outcome != scheduling.AvailabilityOutcomeFound {
 		t.Fatalf("stale-fallback result = %#v", result)
 	}
 	if records.SchedulerSetupCalls != 2 {
@@ -650,7 +650,7 @@ func TestSearchTreatsMissingBlockHoldsAsIncomplete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Search error = %v", err)
 	}
-	if result.Outcome != domain.AvailabilityOutcomeSearchIncomplete {
+	if result.Outcome != scheduling.AvailabilityOutcomeSearchIncomplete {
 		t.Fatalf("result = %#v, want incomplete block-hold read", result)
 	}
 }

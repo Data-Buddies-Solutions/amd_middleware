@@ -21,7 +21,7 @@ func TestExistingPatientListsAndBooksWithoutInsuranceClarification(t *testing.T)
 			}
 			svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false)
 			result, err := svc.List(context.Background(), scheduling.ListCommand{PatientID: "12345", Office: "Crystal River", StartDate: "2026-06-03", DOB: "01/15/1980", CoverageType: "medical", VisitType: "medical"})
-			if err != nil || result.Outcome != domain.AvailabilityOutcomeFound || len(result.Slots) == 0 {
+			if err != nil || result.Outcome != scheduling.AvailabilityOutcomeFound || len(result.Slots) == 0 {
 				t.Fatalf("existing patient inventory blocked: err=%v result=%+v", err, result)
 			}
 			if records.DemographicCalls != 0 {

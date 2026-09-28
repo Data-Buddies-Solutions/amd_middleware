@@ -45,8 +45,8 @@ type AvailabilityTimePreference struct {
 }
 
 type Scheduling interface {
-	Search(ctx context.Context, command SearchCommand) (domain.AvailabilityResponse, error)
-	List(ctx context.Context, command ListCommand) (domain.AvailabilityResponse, error)
+	Search(ctx context.Context, command SearchCommand) (AvailabilityResponse, error)
+	List(ctx context.Context, command ListCommand) (AvailabilityResponse, error)
 	Book(ctx context.Context, command BookCommand) (BookReceipt, error)
 	Cancel(ctx context.Context, command CancelCommand) (CancelReceipt, error)
 	Reschedule(ctx context.Context, command BookCommand) (RescheduleReceipt, error)

@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"sort"
 	"time"
-
-	"advancedmd-token-management/internal/domain"
 )
 
 type rankedAvailabilitySlot struct {
-	slot            domain.AvailabilitySlotOption
+	slot            AvailabilitySlotOption
 	mismatchCount   int
 	distanceMinutes int
 }
@@ -54,7 +52,7 @@ func hasTwoExactAvailabilityMatches(
 }
 
 func rankedSlot(
-	slot domain.AvailabilitySlotOption,
+	slot AvailabilitySlotOption,
 	requestedDate string,
 	preferredTime *AvailabilityTimePreference,
 ) (rankedAvailabilitySlot, error) {
@@ -105,14 +103,14 @@ func evaluateTimePreference(start time.Time, preference AvailabilityTimePreferen
 	return false, 24 * 60
 }
 
-func selectPreferredAvailabilitySlots(candidates []rankedAvailabilitySlot) []domain.AvailabilitySlotOption {
+func selectPreferredAvailabilitySlots(candidates []rankedAvailabilitySlot) []AvailabilitySlotOption {
 	sort.SliceStable(candidates, func(i, j int) bool {
 		return rankedAvailabilitySlotLess(candidates[i], candidates[j])
 	})
 	if len(candidates) == 0 {
 		return nil
 	}
-	slots := make([]domain.AvailabilitySlotOption, 0, min(2, len(candidates)))
+	slots := make([]AvailabilitySlotOption, 0, min(2, len(candidates)))
 	selectedSlotKeys := make(map[string]bool, 2)
 	for _, candidate := range candidates {
 		key := availabilitySlotKey(candidate.slot)
@@ -128,18 +126,18 @@ func selectPreferredAvailabilitySlots(candidates []rankedAvailabilitySlot) []dom
 	return slots
 }
 
-func availabilitySlotKey(slot domain.AvailabilitySlotOption) string {
+func availabilitySlotKey(slot AvailabilitySlotOption) string {
 	return slot.Provider + "|" + slot.DateTime
 }
 
-func selectBroadAvailabilitySlots(slots []domain.AvailabilitySlotOption) []domain.AvailabilitySlotOption {
+func selectBroadAvailabilitySlots(slots []AvailabilitySlotOption) []AvailabilitySlotOption {
 	if len(slots) <= 2 {
 		return slots
 	}
 	firstIsMorning := slotMinuteOfDay(slots[0]) < 12*60
 	for _, slot := range slots[1:] {
 		if slotMinuteOfDay(slot) < 12*60 != firstIsMorning {
-			return []domain.AvailabilitySlotOption{slots[0], slot}
+			return []AvailabilitySlotOption{slots[0], slot}
 		}
 	}
 	return slots[:2]
@@ -155,13 +153,13 @@ func rankedAvailabilitySlotLess(left, right rankedAvailabilitySlot) bool {
 	return availabilitySlotLess(left.slot, right.slot)
 }
 
-func sortAvailabilitySlots(slots []domain.AvailabilitySlotOption) {
+func sortAvailabilitySlots(slots []AvailabilitySlotOption) {
 	sort.SliceStable(slots, func(i, j int) bool {
 		return availabilitySlotLess(slots[i], slots[j])
 	})
 }
 
-func availabilitySlotLess(left, right domain.AvailabilitySlotOption) bool {
+func availabilitySlotLess(left, right AvailabilitySlotOption) bool {
 	if left.DateTime != right.DateTime {
 		return left.DateTime < right.DateTime
 	}
@@ -174,7 +172,7 @@ func availabilitySlotLess(left, right domain.AvailabilitySlotOption) bool {
 	return left.ProfileID < right.ProfileID
 }
 
-func slotMinuteOfDay(slot domain.AvailabilitySlotOption) int {
+func slotMinuteOfDay(slot AvailabilitySlotOption) int {
 	start, _ := time.Parse("2006-01-02T15:04", slot.DateTime)
 	return start.Hour()*60 + start.Minute()
 }

@@ -143,16 +143,16 @@ func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
 
 func TestAvailabilityRouteRetainsAuthenticationAndResponseContract(t *testing.T) {
 	handlers := &Handlers{scheduling: schedulingStub{
-		result: domain.AvailabilityResponse{
-			Status:                domain.AvailabilityStatusSuccess,
-			Outcome:               domain.AvailabilityOutcomeNoAvailability,
+		result: schedulingmodule.AvailabilityResponse{
+			Status:                schedulingmodule.AvailabilityStatusSuccess,
+			Outcome:               schedulingmodule.AvailabilityOutcomeNoAvailability,
 			AvailabilityFound:     false,
 			RequestedDate:         "2026-06-03",
 			SearchedFrom:          "2026-06-03",
 			SearchedThrough:       "2026-06-17",
 			ShouldRetrySameSearch: false,
-			NextAction:            domain.AvailabilityNextActionAskDifferentPreferences,
-			Slots:                 []domain.AvailabilitySlotOption{},
+			NextAction:            schedulingmodule.AvailabilityNextActionAskDifferentPreferences,
+			Slots:                 []schedulingmodule.AvailabilitySlotOption{},
 		},
 	}}
 	router := NewRouter(handlers, "agent-secret", nil)
@@ -169,12 +169,12 @@ func TestAvailabilityRouteRetainsAuthenticationAndResponseContract(t *testing.T)
 	authenticated.Header.Set("Authorization", "Bearer agent-secret")
 	authenticatedResponse := httptest.NewRecorder()
 	router.ServeHTTP(authenticatedResponse, authenticated)
-	var response domain.AvailabilityResponse
+	var response schedulingmodule.AvailabilityResponse
 	if err := json.NewDecoder(authenticatedResponse.Body).Decode(&response); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
 	if authenticatedResponse.Code != http.StatusOK ||
-		response.Outcome != domain.AvailabilityOutcomeNoAvailability ||
+		response.Outcome != schedulingmodule.AvailabilityOutcomeNoAvailability ||
 		response.ShouldRetrySameSearch ||
 		response.Slots == nil {
 		t.Fatalf("authenticated response = %d %#v", authenticatedResponse.Code, response)
@@ -182,7 +182,7 @@ func TestAvailabilityRouteRetainsAuthenticationAndResponseContract(t *testing.T)
 }
 
 type schedulingStub struct {
-	result           domain.AvailabilityResponse
+	result           schedulingmodule.AvailabilityResponse
 	err              error
 	bookResult       schedulingmodule.BookReceipt
 	bookErr          error
@@ -191,7 +191,7 @@ type schedulingStub struct {
 	rescheduleResult schedulingmodule.RescheduleReceipt
 }
 
-func (s schedulingStub) Search(context.Context, schedulingmodule.SearchCommand) (domain.AvailabilityResponse, error) {
+func (s schedulingStub) Search(context.Context, schedulingmodule.SearchCommand) (schedulingmodule.AvailabilityResponse, error) {
 	return s.result, s.err
 }
 
@@ -1130,7 +1130,7 @@ func newPatientResolveTestHandlers(
 	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil)
 }
 
-func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListCommand) (domain.AvailabilityResponse, error) {
+func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListCommand) (schedulingmodule.AvailabilityResponse, error) {
 	return s.Search(ctx, schedulingmodule.SearchCommand{Office: command.Office})
 }
 

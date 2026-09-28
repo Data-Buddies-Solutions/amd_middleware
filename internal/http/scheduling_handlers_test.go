@@ -18,10 +18,10 @@ import (
 
 func TestAvailabilityHandlerPreservesRequestedDateAndPreferredTime(t *testing.T) {
 	scheduler := &recordingScheduling{
-		searchResponse: domain.AvailabilityResponse{
-			Status:  domain.AvailabilityStatusSuccess,
-			Outcome: domain.AvailabilityOutcomeNoAvailability,
-			Slots:   []domain.AvailabilitySlotOption{},
+		searchResponse: schedulingmodule.AvailabilityResponse{
+			Status:  schedulingmodule.AvailabilityStatusSuccess,
+			Outcome: schedulingmodule.AvailabilityOutcomeNoAvailability,
+			Slots:   []schedulingmodule.AvailabilitySlotOption{},
 		},
 	}
 	handlers := &Handlers{scheduling: scheduler}
@@ -34,7 +34,7 @@ func TestAvailabilityHandlerPreservesRequestedDateAndPreferredTime(t *testing.T)
 
 	handlers.HandleGetAvailability(response, request)
 
-	var body domain.AvailabilityResponse
+	var body schedulingmodule.AvailabilityResponse
 	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
 		t.Fatalf("decode availability response: %v", err)
 	}
@@ -164,7 +164,7 @@ type recordingScheduling struct {
 	listCommand    schedulingmodule.ListCommand
 	listCalls      int
 	searchCommand  schedulingmodule.SearchCommand
-	searchResponse domain.AvailabilityResponse
+	searchResponse schedulingmodule.AvailabilityResponse
 	searchCalls    int
 	bookCommand    schedulingmodule.BookCommand
 	bookReceipt    schedulingmodule.BookReceipt
@@ -174,7 +174,7 @@ type recordingScheduling struct {
 	cancelErr      error
 }
 
-func (s *recordingScheduling) Search(_ context.Context, command schedulingmodule.SearchCommand) (domain.AvailabilityResponse, error) {
+func (s *recordingScheduling) Search(_ context.Context, command schedulingmodule.SearchCommand) (schedulingmodule.AvailabilityResponse, error) {
 	s.searchCalls++
 	s.searchCommand = command
 	return s.searchResponse, nil
@@ -190,14 +190,14 @@ func (s *recordingScheduling) Cancel(_ context.Context, command schedulingmodule
 	return s.cancelReceipt, s.cancelErr
 }
 
-func (s *recordingScheduling) List(ctx context.Context, command schedulingmodule.ListCommand) (domain.AvailabilityResponse, error) {
+func (s *recordingScheduling) List(ctx context.Context, command schedulingmodule.ListCommand) (schedulingmodule.AvailabilityResponse, error) {
 	s.listCommand = command
 	s.listCalls++
 	return s.searchResponse, nil
 }
 
 func TestListSlotsRouteRequiresAuthenticationAndPreservesWindow(t *testing.T) {
-	scheduler := &recordingScheduling{searchResponse: domain.AvailabilityResponse{Status: "success", Outcome: "no_availability", Slots: []domain.AvailabilitySlotOption{}}}
+	scheduler := &recordingScheduling{searchResponse: schedulingmodule.AvailabilityResponse{Status: "success", Outcome: "no_availability", Slots: []schedulingmodule.AvailabilitySlotOption{}}}
 	router := NewRouter(&Handlers{scheduling: scheduler}, "test-api-secret", nil)
 	for _, authenticated := range []bool{false, true} {
 		request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"startDate":"2026-11-02","rangeDays":14,"office":"Spring Hill","routing":"bach_only","dob":"01/15/1980","preauthRequired":true}`))
@@ -253,7 +253,7 @@ func TestListSlotsErrorsPreserveInventoryContract(t *testing.T) {
 			handlers := NewHandlers(nil, nil, scheduler)
 			response := httptest.NewRecorder()
 			handlers.HandleListAppointmentSlots(response, httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(tc.body)))
-			var got domain.AvailabilityResponse
+			var got schedulingmodule.AvailabilityResponse
 			if err := json.Unmarshal(response.Body.Bytes(), &got); err != nil {
 				t.Fatal(err)
 			}
