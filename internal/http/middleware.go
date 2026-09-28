@@ -166,6 +166,7 @@ func recoveryMiddleware(next http.Handler) http.Handler {
 				return
 			}
 			recordRequestOutcome(r.Context(), outcomeInternalFailure, safeerrors.CategoryNone)
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 		}()
 		next.ServeHTTP(w, r)
