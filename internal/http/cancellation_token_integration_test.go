@@ -584,7 +584,7 @@ type cancellationTokenRecords struct {
 
 func newCancellationTokenRecords() *cancellationTokenRecords {
 	records := &cancellationTokenRecords{Adapter: advancedmdtest.NewAdapter()}
-	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980"}
+	records.Demographics["12345"] = domain.PatientDemographics{InsuranceStateKnown: true, FullName: "DOE,JANE", DOB: "01/15/1980"}
 	return records
 }
 

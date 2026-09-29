@@ -43,6 +43,19 @@ func TestSchedulerSetupAllowsExplicitEmptyLists(t *testing.T) {
 	}
 }
 
+func TestSchedulerSetupRejectsMissingColumns(t *testing.T) {
+	for _, columnList := range []string{`{}`, `{"column":null}`} {
+		client, token, close := newTestXMLRPCClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte(`{"PPMDResults":{"Results":{"columnlist":` + columnList + `,"profilelist":{"profile":[]},"facilitylist":{"facility":[]}}}}`))
+		}))
+		_, err := client.GetSchedulerSetup(context.Background(), token)
+		close()
+		if err == nil {
+			t.Fatalf("columnlist %s: GetSchedulerSetup() error = nil, want missing columns error", columnList)
+		}
+	}
+}
+
 func TestSchedulerSetupPreservesProviderFieldVariants(t *testing.T) {
 	client, token, close := newTestXMLRPCClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"PPMDResults":{"Results":{"ColumnList":{"column":{"@id":"col1","@profile":"prof1"}}}}}`))

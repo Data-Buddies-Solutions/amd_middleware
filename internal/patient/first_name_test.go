@@ -43,8 +43,8 @@ func TestFirstNameDOBResolution(t *testing.T) {
 		{name: "unique", rows: []domain.Patient{valid}, want: patient.StatusVerified, reads: 1},
 		{name: "missing DOB on nonmatching prefix", rows: []domain.Patient{valid, otherName}, want: patient.StatusVerified, reads: 1},
 		{name: "missing name with different DOB", rows: []domain.Patient{valid, otherDOB}, want: patient.StatusVerified, reads: 1},
-		{name: "missing DOB neighbor is discarded", rows: []domain.Patient{valid, missing}, ignoredDemographics: domain.PatientDemographics{FullName: "OTHER,JANE", DOB: "01/01/1990"}, want: patient.StatusVerified, reads: 1},
-		{name: "discarded neighbor is not read", rows: []domain.Patient{valid, missing}, ignoredDemographics: domain.PatientDemographics{FullName: "OTHER,JANE", DOB: "01/01/1980"}, want: patient.StatusVerified, reads: 1},
+		{name: "missing DOB neighbor is discarded", rows: []domain.Patient{valid, missing}, ignoredDemographics: domain.PatientDemographics{InsuranceStateKnown: true, FullName: "OTHER,JANE", DOB: "01/01/1990"}, want: patient.StatusVerified, reads: 1},
+		{name: "discarded neighbor is not read", rows: []domain.Patient{valid, missing}, ignoredDemographics: domain.PatientDemographics{InsuranceStateKnown: true, FullName: "OTHER,JANE", DOB: "01/01/1980"}, want: patient.StatusVerified, reads: 1},
 		{name: "missing DOB does not block exact match", rows: []domain.Patient{valid, missing}, want: patient.StatusVerified, reads: 1},
 		{name: "only missing DOB records means no match", rows: []domain.Patient{missing}, want: patient.StatusNotFound},
 		{name: "empty complete", want: patient.StatusNotFound},
@@ -55,7 +55,7 @@ func TestFirstNameDOBResolution(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			amd := advancedmdtest.NewAdapter()
 			amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Patients: tc.rows, Complete: !tc.incomplete}
-			amd.Demographics["1"] = domain.PatientDemographics{FullName: valid.FullName, DOB: valid.DOB}
+			amd.Demographics["1"] = domain.PatientDemographics{InsuranceStateKnown: true, FullName: valid.FullName, DOB: valid.DOB}
 			amd.Demographics["2"] = tc.ignoredDemographics
 			result, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "1980-01-01", OfficeID: "spring_hill"})
 			if err != nil || result.Status != tc.want || result.Reason != tc.reason {
@@ -94,7 +94,7 @@ func TestFirstNameDOBMissingRecordsAndChangedIdentity(t *testing.T) {
 		}
 		if changed {
 			rows = []domain.Patient{{ID: "0", FirstName: "Jane", FullName: "EXAMPLE,JANE", DOB: "01/01/1980"}}
-			amd.Demographics["0"] = domain.PatientDemographics{FullName: "EXAMPLE,JOHN", DOB: "01/01/1980"}
+			amd.Demographics["0"] = domain.PatientDemographics{InsuranceStateKnown: true, FullName: "EXAMPLE,JOHN", DOB: "01/01/1980"}
 		}
 		amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Patients: rows, Complete: true}
 		result, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "01/01/1980", OfficeID: "spring_hill"})

@@ -140,11 +140,18 @@ func TestSearchReturnsNoneOnlyAfterACompleteWindow(t *testing.T) {
 	}
 }
 
-func TestSearchOffersNoSlotsForNonPositiveColumnInterval(t *testing.T) {
+func TestSearchReportsIncompleteForUnusableColumnSchedule(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	searchDate := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC)
-	for _, interval := range []int{0, -15} {
-		records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "10:00", interval))
+	noWorkweek := testColumn("1513", "620", "1568", "09:00", "10:00", 15)
+	noWorkweek.Workweek = 0
+	columns := map[string]domain.SchedulerColumn{
+		"zero interval":     testColumn("1513", "620", "1568", "09:00", "10:00", 0),
+		"negative interval": testColumn("1513", "620", "1568", "09:00", "10:00", -15),
+		"no workweek":       noWorkweek,
+	}
+	for name, column := range columns {
+		records := recordsWithSetup(column)
 		for day := 0; day <= 14; day++ {
 			records.ScheduleReads[searchDate.AddDate(0, 0, day).Format("2006-01-02")] = completeRead("1513", nil, nil)
 		}
@@ -167,13 +174,13 @@ func TestSearchOffersNoSlotsForNonPositiveColumnInterval(t *testing.T) {
 		select {
 		case result := <-done:
 			if result.err != nil {
-				t.Fatalf("interval %d: Search error = %v", interval, result.err)
+				t.Fatalf("%s: Search error = %v", name, result.err)
 			}
-			if result.response.Outcome != scheduling.AvailabilityOutcomeNoAvailability || len(result.response.Slots) != 0 {
-				t.Fatalf("interval %d: result = %#v, want no bookable slots", interval, result.response)
+			if result.response.Outcome != scheduling.AvailabilityOutcomeSearchIncomplete || len(result.response.Slots) != 0 {
+				t.Fatalf("%s: result = %#v, want incomplete search", name, result.response)
 			}
 		case <-time.After(5 * time.Second):
-			t.Fatalf("interval %d: Search did not finish", interval)
+			t.Fatalf("%s: Search did not finish", name)
 		}
 	}
 }

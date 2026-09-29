@@ -715,7 +715,7 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *ses
 	if err := json.Unmarshal(results, &parsed); err != nil {
 		return nil, fmt.Errorf("failed to parse scheduler setup response: %w", err)
 	}
-	if parsed.ColumnList == nil {
+	if parsed.ColumnList == nil || len(bytes.TrimSpace(parsed.ColumnList.Columns)) == 0 || string(bytes.TrimSpace(parsed.ColumnList.Columns)) == "null" {
 		return nil, fmt.Errorf("scheduler setup returned unexpected response: missing columnlist")
 	}
 	columns, err := oneOrMany[amdColumn](parsed.ColumnList.Columns)
