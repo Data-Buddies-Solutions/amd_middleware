@@ -160,6 +160,18 @@ func providerError(err error, fallback string) error {
 	}
 }
 
+func providerWriteError(err error, conflictCategory Category, conflictMessage, rejectedMessage, failedMessage string) error {
+	failure := providerCategory(err)
+	switch failure {
+	case safeerrors.CategoryConflict:
+		return categorizedProviderError(conflictCategory, failure, conflictMessage)
+	case safeerrors.CategoryRejected:
+		return categorizedProviderError(CategoryProviderRejected, failure, rejectedMessage)
+	default:
+		return categorizedProviderError(CategoryWriteFailed, failure, providerFailureMessage(err, failedMessage))
+	}
+}
+
 func providerFailureMessage(err error, fallback string) string {
 	switch providerCategory(err) {
 	case safeerrors.CategoryAuthentication, safeerrors.CategoryUnavailable:

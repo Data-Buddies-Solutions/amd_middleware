@@ -186,10 +186,10 @@ func decideInsurance(plan, coverage string, office *domain.OfficeConfig, dob str
 	if d.CanonicalPlan == "" {
 		d.CanonicalPlan = r.Display
 	}
-	var entry InsuranceEntry
+	var entry insuranceEntry
 	var ok bool
 	if coverage == "medical" {
-		entry = InsuranceEntry{CarrierID: r.CarrierID, Routing: r.Routing}
+		entry = insuranceEntry{CarrierID: r.CarrierID, Routing: r.Routing}
 		ok = r.Routing != ""
 		d.CarrierCode = r.CarrierCode
 		d.Requirements = append([]InsuranceRequirement{}, r.Requirements...)

@@ -13,7 +13,7 @@ type ProviderDiagnostic struct {
 	DurationMS int64    `json:"durationMs"`
 }
 
-const MaxProviderDiagnostics = 8
+const maxProviderDiagnostics = 8
 
 type diagnosticKey struct{}
 
@@ -36,7 +36,7 @@ func Observe(ctx context.Context, failure ProviderDiagnostic) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.count++
-	if len(d.failures) < MaxProviderDiagnostics {
+	if len(d.failures) < maxProviderDiagnostics {
 		d.failures = append(d.failures, failure)
 	}
 }

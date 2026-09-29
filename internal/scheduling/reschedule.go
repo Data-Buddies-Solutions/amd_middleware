@@ -2,7 +2,6 @@ package scheduling
 
 import (
 	"context"
-	"strings"
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
@@ -21,7 +20,7 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 	if command.BookingToken == "" {
 		return RescheduleReceipt{}, categorizedError(CategoryBookingTokenRequired, "A current bookingToken is required to reschedule.")
 	}
-	command.PatientID = domain.StripPatientPrefix(strings.TrimSpace(command.PatientID))
+	command.PatientID = domain.StripPatientPrefix(command.PatientID)
 	policy, err := s.appointmentTokens.verifyReschedule(command.RescheduleToken, s.now().UTC())
 	if err != nil || command.PatientID != policy.PatientID || policy.AppointmentTypeID == 0 {
 		return RescheduleReceipt{}, invalidRescheduleTokenError()
@@ -40,7 +39,7 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 	if err := s.verifyRescheduleOriginal(ctx, policy); err != nil {
 		return RescheduleReceipt{}, err
 	}
-	replacement, err := s.Book(ctx, command)
+	replacement, err := s.book(ctx, booking)
 	if err != nil {
 		status := "failed"
 		if CategoryOf(err) == CategoryIndeterminateWrite {

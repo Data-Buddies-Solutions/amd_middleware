@@ -61,8 +61,8 @@ func TestRequestLogPreservesRescheduleReceiptFailure(t *testing.T) {
 
 func TestRequestIDMiddlewareHashesCallerValueForLogs(t *testing.T) {
 	var logRequestID string
-	handler := RequestIDMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logRequestID = GetLogRequestID(r.Context())
+	handler := requestIDMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logRequestID = requestIDForLog(r.Context())
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
@@ -176,8 +176,8 @@ func TestRequestLogRecoversPanicWithoutLoggingRawError(t *testing.T) {
 	t.Cleanup(func() { log.SetOutput(previousWriter) })
 
 	router := chi.NewRouter()
-	router.Use(RequestIDMiddleware)
-	router.Use(LoggingMiddleware(nil))
+	router.Use(requestIDMiddleware)
+	router.Use(loggingMiddleware(nil))
 	router.Use(recoveryMiddleware)
 	router.Get("/panic", func(http.ResponseWriter, *http.Request) {
 		panic("patientId=17604634 https://provider.example/private")

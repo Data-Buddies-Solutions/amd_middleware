@@ -84,7 +84,7 @@ type requestLogEntry struct {
 
 var requestLogMu sync.Mutex
 
-func AuthMiddleware(apiSecret string) func(http.Handler) http.Handler {
+func authMiddleware(apiSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			auth := []byte(r.Header.Get("Authorization"))
@@ -104,7 +104,7 @@ func AuthMiddleware(apiSecret string) func(http.Handler) http.Handler {
 	}
 }
 
-func RequestIDMiddleware(next http.Handler) http.Handler {
+func requestIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID := r.Header.Get("X-Request-ID")
 		logRequestID := requestID
@@ -122,7 +122,7 @@ func RequestIDMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func LoggingMiddleware(amdSession session.Session) func(http.Handler) http.Handler {
+func loggingMiddleware(amdSession session.Session) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -143,7 +143,7 @@ func LoggingMiddleware(amdSession session.Session) func(http.Handler) http.Handl
 			}
 			providerErrors, providerErrorCount := diagnostics.Snapshot()
 			writeRequestLog(requestLogEntry{
-				RequestID:          GetLogRequestID(r.Context()),
+				RequestID:          requestIDForLog(r.Context()),
 				RouteTemplate:      routeTemplate,
 				Outcome:            state.outcome,
 				LatencyMS:          time.Since(start).Milliseconds(),
@@ -292,7 +292,7 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	return rw.ResponseWriter.Write(b)
 }
 
-func GetLogRequestID(ctx context.Context) string {
+func requestIDForLog(ctx context.Context) string {
 	if id, ok := ctx.Value(logRequestIDKey).(string); ok {
 		return id
 	}

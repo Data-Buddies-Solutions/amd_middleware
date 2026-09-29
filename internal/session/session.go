@@ -26,10 +26,10 @@ const (
 )
 
 const (
-	DefaultSessionExpiresAfter = 24 * time.Hour
-	DefaultSessionStaleAfter   = 20 * time.Hour
+	defaultSessionExpiresAfter = 24 * time.Hour
+	defaultSessionStaleAfter   = 20 * time.Hour
 	DefaultSessionLoginTimeout = 50 * time.Second
-	DefaultSessionRetryDelay   = time.Minute
+	defaultSessionRetryDelay   = time.Minute
 )
 
 var ErrSessionUnavailable = errors.New("advancedmd session unavailable")
@@ -72,7 +72,7 @@ type refreshFlight struct {
 
 func newSession(login loginAdapter, now func() time.Time, policy sessionPolicy) *sessionImpl {
 	if policy.retryDelay <= 0 {
-		policy.retryDelay = DefaultSessionRetryDelay
+		policy.retryDelay = defaultSessionRetryDelay
 	}
 	return &sessionImpl{
 		login:  login,
@@ -84,10 +84,10 @@ func newSession(login loginAdapter, now func() time.Time, policy sessionPolicy) 
 
 func NewSession(creds Credentials, client *http.Client) Session {
 	return newSession(newAdvancedMDLogin(creds, client), time.Now, sessionPolicy{
-		staleAfter:   DefaultSessionStaleAfter,
-		expiresAfter: DefaultSessionExpiresAfter,
+		staleAfter:   defaultSessionStaleAfter,
+		expiresAfter: defaultSessionExpiresAfter,
 		loginTimeout: DefaultSessionLoginTimeout,
-		retryDelay:   DefaultSessionRetryDelay,
+		retryDelay:   defaultSessionRetryDelay,
 	})
 }
 
@@ -180,7 +180,7 @@ func (s *sessionImpl) authenticateLocked(ctx context.Context) error {
 		return err
 	}
 	s.createdAt = loginStartedAt
-	s.tokenData = BuildTokenData(token, webserverURL)
+	s.tokenData = buildTokenData(token, webserverURL)
 	s.retryAt = time.Time{}
 	s.state = SessionFresh
 	return nil

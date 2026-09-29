@@ -85,7 +85,15 @@ type bookingContext struct {
 }
 
 func (s *service) Book(ctx context.Context, command BookCommand) (BookReceipt, error) {
-	prepared, err := s.prepareBooking(ctx, command)
+	booking, err := s.resolveBookingContext(command)
+	if err != nil {
+		return BookReceipt{}, err
+	}
+	return s.book(ctx, booking)
+}
+
+func (s *service) book(ctx context.Context, booking bookingContext) (BookReceipt, error) {
+	prepared, err := s.prepareBooking(ctx, booking)
 	if err != nil {
 		return BookReceipt{}, err
 	}
@@ -110,40 +118,14 @@ func (s *service) Book(ctx context.Context, command BookCommand) (BookReceipt, e
 		return s.reconcileBooking(ctx, prepared)
 	}
 
-	providerFailure := providerCategory(err)
-	switch providerFailure {
-	case safeerrors.CategoryConflict:
-		return BookReceipt{}, categorizedProviderError(
-			CategorySlotUnavailable,
-			providerFailure,
-			"This time slot is no longer available. Please check availability again and choose a different slot.",
-		)
-	case safeerrors.CategoryRejected:
-		return BookReceipt{}, categorizedProviderError(
-			CategoryProviderRejected,
-			providerFailure,
-			"AdvancedMD rejected the booking. Please check availability again or contact the office.",
-		)
-	case safeerrors.CategoryAuthentication, safeerrors.CategoryUnavailable:
-		return BookReceipt{}, categorizedProviderError(
-			CategoryWriteFailed,
-			providerFailure,
-			"Service authentication is temporarily unavailable. Please try again.",
-		)
-	default:
-		return BookReceipt{}, categorizedProviderError(
-			CategoryWriteFailed,
-			providerFailure,
-			"Failed to book appointment in AdvancedMD. Please try again or contact the office.",
-		)
-	}
+	return BookReceipt{}, providerWriteError(err, CategorySlotUnavailable,
+		"This time slot is no longer available. Please check availability again and choose a different slot.",
+		"AdvancedMD rejected the booking. Please check availability again or contact the office.",
+		"Failed to book appointment in AdvancedMD. Please try again or contact the office.",
+	)
 }
 
-func (s *service) prepareBooking(ctx context.Context, command BookCommand) (preparedBooking, error) {
-	booking, err := s.resolveBookingContext(command)
-	if err != nil {
-		return preparedBooking{}, err
-	}
+func (s *service) prepareBooking(ctx context.Context, booking bookingContext) (preparedBooking, error) {
 	patientID, err := s.verifyBookingPatient(ctx, &booking)
 	if err != nil {
 		return preparedBooking{}, err
@@ -169,7 +151,7 @@ func (s *service) prepareBooking(ctx context.Context, command BookCommand) (prep
 }
 
 func (s *service) resolveBookingContext(command BookCommand) (bookingContext, error) {
-	command.PatientID = domain.StripPatientPrefix(strings.TrimSpace(command.PatientID))
+	command.PatientID = domain.StripPatientPrefix(command.PatientID)
 	booking := bookingContext{
 		command: command,
 		signed:  command.BookingToken != "",
@@ -366,7 +348,7 @@ func (s *service) revalidateBookingSlot(
 		)
 	}
 
-	start, err := time.Parse("2006-01-02T15:04", command.StartDatetime)
+	start, err := time.Parse(domain.SlotDateTimeLayout, command.StartDatetime)
 	if err != nil {
 		if booking.signed {
 			return time.Time{}, false, invalidBookingTokenError()

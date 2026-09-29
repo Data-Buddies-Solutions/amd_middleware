@@ -4,12 +4,10 @@ import (
 	"context"
 	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
-	"advancedmd-token-management/internal/safeerrors"
 )
 
 type CancelCommand struct {
@@ -84,7 +82,7 @@ func (s *service) Cancel(ctx context.Context, command CancelCommand) (receipt Ca
 	if command.AppointmentID == 0 {
 		return CancelReceipt{}, schedulingError("appointmentId is required")
 	}
-	command.PatientID = domain.StripPatientPrefix(strings.TrimSpace(command.PatientID))
+	command.PatientID = domain.StripPatientPrefix(command.PatientID)
 	if command.PatientID == "" {
 		return CancelReceipt{}, schedulingError("patientId is required")
 	}
@@ -139,12 +137,12 @@ func (s *service) cancelWithToken(
 	command CancelCommand,
 	telemetry *cancellationTelemetry,
 ) (CancelReceipt, error) {
-	policy, err := s.appointmentTokens.verify(*command.CancellationToken, s.now().UTC())
+	policy, err := s.appointmentTokens.verifyCancellation(*command.CancellationToken, s.now().UTC())
 	if err != nil {
 		return CancelReceipt{}, invalidCancellationTokenError()
 	}
 	if command.PatientID != "" {
-		patientID := domain.StripPatientPrefix(strings.TrimSpace(command.PatientID))
+		patientID := domain.StripPatientPrefix(command.PatientID)
 		if patientID != policy.PatientID {
 			return CancelReceipt{}, invalidCancellationTokenError()
 		}
@@ -204,33 +202,11 @@ func (s *service) cancelVerifiedAppointment(
 }
 
 func cancellationProviderError(err error) error {
-	providerFailure := providerCategory(err)
-	switch providerFailure {
-	case safeerrors.CategoryConflict:
-		return categorizedProviderError(
-			CategoryProviderConflict,
-			providerFailure,
-			"AdvancedMD could not cancel the appointment because its state changed. Please load appointments again.",
-		)
-	case safeerrors.CategoryRejected:
-		return categorizedProviderError(
-			CategoryProviderRejected,
-			providerFailure,
-			"AdvancedMD rejected the cancellation. Please load appointments again or contact the office.",
-		)
-	case safeerrors.CategoryAuthentication, safeerrors.CategoryUnavailable:
-		return categorizedProviderError(
-			CategoryWriteFailed,
-			providerFailure,
-			"Service authentication is temporarily unavailable. Please try again.",
-		)
-	default:
-		return categorizedProviderError(
-			CategoryWriteFailed,
-			providerFailure,
-			"Failed to cancel appointment in AdvancedMD. Please try again or contact the office.",
-		)
-	}
+	return providerWriteError(err, CategoryProviderConflict,
+		"AdvancedMD could not cancel the appointment because its state changed. Please load appointments again.",
+		"AdvancedMD rejected the cancellation. Please load appointments again or contact the office.",
+		"Failed to cancel appointment in AdvancedMD. Please try again or contact the office.",
+	)
 }
 
 func invalidCancellationTokenError() error {

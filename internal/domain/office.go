@@ -40,7 +40,7 @@ func ResolveOffice(name string) (*OfficeConfig, error) {
 	}
 	office, ok := LookupOffice(name)
 	if !ok {
-		return nil, fmt.Errorf("unknown office: %q. Valid options: %s", name, strings.Join(ValidOfficeNames(), ", "))
+		return nil, fmt.Errorf("unknown office: %q. Valid options: %s", name, strings.Join(validOfficeNames(), ", "))
 	}
 	return office, nil
 }
@@ -211,7 +211,7 @@ func (o *OfficeConfig) AppointmentTypeName(typeID int) (string, bool) {
 }
 
 func LookupOfficeByID(officeID string) (*OfficeConfig, bool) {
-	for _, office := range OfficeRegistry {
+	for _, office := range officeRegistry {
 		if office.ID == officeID {
 			return office, true
 		}
@@ -545,26 +545,26 @@ var devOffices = map[string]*OfficeConfig{
 	"+14843989071": devSpringHillOffice,
 }
 
-var OfficeRegistry = prodOffices
+var officeRegistry = prodOffices
 
 var DefaultPhone = "+17275919997"
 
 func InitRegistry(env string) {
 	switch env {
 	case "dev":
-		OfficeRegistry = devOffices
+		officeRegistry = devOffices
 		DefaultPhone = "+14843989071"
 		isDevEnv = true
 		log.Printf("Office registry: dev")
 	default:
-		OfficeRegistry = prodOffices
+		officeRegistry = prodOffices
 		DefaultPhone = "+17275919997"
 		isDevEnv = false
 		log.Printf("Office registry: prod")
 	}
 }
 
-func StripToDigits(s string) string {
+func stripToDigits(s string) string {
 	var b strings.Builder
 	for _, c := range s {
 		if c >= '0' && c <= '9' {
@@ -575,7 +575,7 @@ func StripToDigits(s string) string {
 }
 
 func NormalizePhoneDigits(s string) string {
-	digits := StripToDigits(s)
+	digits := stripToDigits(s)
 	if len(digits) == 11 && digits[0] == '1' {
 		return digits[1:]
 	}
@@ -585,14 +585,14 @@ func NormalizePhoneDigits(s string) string {
 func LookupOffice(phone string) (*OfficeConfig, bool) {
 	phone = strings.TrimSpace(phone)
 	for _, key := range officePhoneLookupKeys(phone) {
-		if office, ok := OfficeRegistry[key]; ok {
+		if office, ok := officeRegistry[key]; ok {
 			return office, true
 		}
 	}
 
 	lookup := normalizeOfficeLookup(phone)
 	compactLookup := strings.ReplaceAll(lookup, " ", "")
-	for _, office := range OfficeRegistry {
+	for _, office := range officeRegistry {
 		for _, candidate := range []string{office.ID, office.DisplayName} {
 			normalized := normalizeOfficeLookup(candidate)
 			if lookup == normalized || compactLookup == strings.ReplaceAll(normalized, " ", "") {
@@ -613,7 +613,7 @@ func officePhoneLookupKeys(phone string) []string {
 		keys = append(keys, "+"+phone)
 	}
 
-	digits := StripToDigits(phone)
+	digits := stripToDigits(phone)
 	switch {
 	case len(digits) == 10:
 		keys = append(keys, "+1"+digits)
@@ -625,13 +625,13 @@ func officePhoneLookupKeys(phone string) []string {
 }
 
 func DefaultOffice() *OfficeConfig {
-	return OfficeRegistry[DefaultPhone]
+	return officeRegistry[DefaultPhone]
 }
 
-func ValidOfficeNames() []string {
+func validOfficeNames() []string {
 	seen := make(map[string]bool)
-	names := make([]string, 0, len(OfficeRegistry))
-	for _, office := range OfficeRegistry {
+	names := make([]string, 0, len(officeRegistry))
+	for _, office := range officeRegistry {
 		if !seen[office.DisplayName] {
 			seen[office.DisplayName] = true
 			names = append(names, office.DisplayName)
