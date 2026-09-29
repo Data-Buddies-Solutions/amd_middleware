@@ -7,15 +7,15 @@ import (
 )
 
 func (s *service) signSlots(
-	slots []domain.AvailabilitySlotOption,
+	slots []AvailabilitySlotOption,
 	office *domain.OfficeConfig,
 	routing domain.RoutingRule,
 	dob string,
 	now time.Time,
-) ([]domain.AvailabilitySlotOption, time.Time, error) {
+) ([]AvailabilitySlotOption, time.Time, error) {
 	issuedAt := now.Unix()
 	expiresAt := now.Add(slotTokenTTL).Unix()
-	appointmentTypeIDs := domain.NewSchedulingPolicy(office).AllowedAppointmentTypeIDs(routing, dob)
+	appointmentTypeIDs := newSchedulingPolicy(office).AllowedAppointmentTypeIDs(routing, dob)
 	for i := range slots {
 		token, err := SignSlotToken(s.bookingTokenSecret, SlotPolicy{
 			OfficeID:           office.ID,
@@ -45,14 +45,14 @@ func (s *service) signSlots(
 }
 
 func availableSlots(
-	policy domain.SchedulingPolicy,
+	policy schedulingPolicy,
 	column domain.SchedulerColumn,
 	appointments []domain.Appointment,
 	blockHolds []domain.BlockHold,
 	date time.Time,
 	nowEastern time.Time,
-) []domain.AvailableSlot {
-	slots := make([]domain.AvailableSlot, 0)
+) []availableSlot {
+	slots := make([]availableSlot, 0)
 	if column.Interval <= 0 {
 		return slots
 	}
@@ -67,7 +67,7 @@ func availableSlots(
 			slotTime.Before(nowEastern.Add(30*time.Minute)) {
 			continue
 		}
-		if domain.IsBlockedByHold(slotTime, interval, blockHolds) ||
+		if isBlockedByHold(slotTime, interval, blockHolds) ||
 			hasDifferentStartOverlap(slotTime, interval, appointments) {
 			continue
 		}
@@ -77,8 +77,8 @@ func availableSlots(
 		if !sameStart.Bookable {
 			continue
 		}
-		slot := domain.AvailableSlot{
-			Time:              domain.FormatSlotTime(slotTime),
+		slot := availableSlot{
+			Time:              formatSlotTime(slotTime),
 			DateTime:          domain.FormatSlotDateTime(slotTime),
 			SameStartBooked:   sameStartCount,
 			SameStartCapacity: sameStart.Capacity,

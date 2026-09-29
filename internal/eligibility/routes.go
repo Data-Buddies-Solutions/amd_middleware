@@ -1,6 +1,9 @@
 package eligibility
 
-import "advancedmd-token-management/internal/domain"
+import (
+	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
+)
 
 type payerRoute struct {
 	payer  string
@@ -193,7 +196,7 @@ func Route(plan, serviceDate string) (payer, review string) {
 	}
 	route, ok := insurancePayers[key]
 	if !ok {
-		canonical, recognized := domain.CanonicalInsuranceName(plan)
+		canonical, recognized := insurance.CanonicalInsuranceName(plan)
 		if !recognized {
 			return "", "unrecognized_plan"
 		}

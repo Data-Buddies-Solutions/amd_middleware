@@ -647,3 +647,18 @@ func normalizeOfficeLookup(s string) string {
 	s = strings.ReplaceAll(s, "-", " ")
 	return strings.Join(strings.Fields(s), " ")
 }
+
+func (o *OfficeConfig) SchedulingRouting(routing RoutingRule, dob string) RoutingRule {
+	if routing == RoutingNotAccepted || routing == RoutingOpticalOnly || !IsMinor(dob) {
+		return routing
+	}
+	return o.PediatricRouting
+}
+
+func (o *OfficeConfig) SupportsRouting(routing RoutingRule) bool {
+	return len(o.ColumnsForRouting(routing)) > 0
+}
+
+func (o *OfficeConfig) SupportsMedical() bool {
+	return o.SupportsRouting(RoutingAll) || o.SupportsRouting(RoutingBachOnly) || o.SupportsRouting(RoutingBachLicht)
+}

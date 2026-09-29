@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/session"
 )
 
 type AMDLookupRequest struct {
@@ -71,7 +72,7 @@ func NewAdvancedMDClient(httpClient *http.Client) *AdvancedMDClient {
 	return &AdvancedMDClient{httpClient: httpClient}
 }
 
-func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *domain.TokenData, payload interface{}) ([]byte, error) {
+func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *session.TokenData, payload interface{}) ([]byte, error) {
 	jsonBody, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -106,7 +107,7 @@ func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *domai
 	return body, nil
 }
 
-func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *domain.TokenData, lastName string, firstName string) ([]domain.Patient, error) {
+func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *session.TokenData, lastName string, firstName string) ([]domain.Patient, error) {
 	name := lastName
 	if firstName != "" {
 		name = lastName + "," + firstName
@@ -124,7 +125,7 @@ func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *domain.
 	return read.Patients, err
 }
 
-func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *domain.TokenData, firstName, dob string) (read domain.PatientCandidateRead, resultErr error) {
+func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *session.TokenData, firstName, dob string) (read domain.PatientCandidateRead, resultErr error) {
 	read, err := c.doPatientLookup(ctx, tokenData, AMDLookupRequest{PPMDMsg: AMDLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName, DOB: dob}})
 	if err != nil {
 		return read, err
@@ -143,7 +144,7 @@ func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenDat
 	return read, nil
 }
 
-func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *domain.TokenData, phone string) ([]domain.Patient, error) {
+func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *session.TokenData, phone string) ([]domain.Patient, error) {
 	payload := AMDLookupRequest{PPMDMsg: AMDLookupMsg{
 		Action: "lookuppatient", Class: "api", Phone: phone,
 	}}
@@ -152,7 +153,7 @@ func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *
 	return read.Patients, err
 }
 
-func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *domain.TokenData, payload AMDLookupRequest) (read domain.PatientCandidateRead, resultErr error) {
+func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *session.TokenData, payload AMDLookupRequest) (read domain.PatientCandidateRead, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "lookuppatient")
 	defer func() { finish(resultErr) }()
 	const maxLookupPages = 100
@@ -255,7 +256,7 @@ func parseLookupResponse(body []byte) (domain.PatientCandidateRead, patientList,
 	}, list, nil
 }
 
-func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.TokenData, patient domain.PatientCreate, profileID string) (created domain.CreatedPatient, resultErr error) {
+func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *session.TokenData, patient domain.PatientCreate, profileID string) (created domain.CreatedPatient, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "addpatient")
 	defer func() { finish(resultErr) }()
 
@@ -318,7 +319,7 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *domain.Tok
 	return domain.CreatedPatient{}, fmt.Errorf("addpatient returned unexpected response")
 }
 
-func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.TokenData, patientID, respPartyID, carrierID, subscriberNum string) (resultErr error) {
+func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *session.TokenData, patientID, respPartyID, carrierID, subscriberNum string) (resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "addinsurance")
 	defer func() { finish(resultErr) }()
 	payload := map[string]interface{}{
@@ -357,7 +358,7 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *domain.T
 	return nil
 }
 
-func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *domain.TokenData, patientID, insPlanID string) (resultErr error) {
+func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *session.TokenData, patientID, insPlanID string) (resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "enddateinsurance")
 	defer func() { finish(resultErr) }()
 	today := time.Now().Format("01/02/2006")
@@ -505,7 +506,7 @@ type AMDCarrier struct {
 	Name string `json:"@name"`
 }
 
-func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *domain.TokenData, patientID string) (demographics domain.PatientDemographics, resultErr error) {
+func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *session.TokenData, patientID string) (demographics domain.PatientDemographics, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "getdemographic")
 	defer func() { finish(resultErr) }()
 
@@ -679,7 +680,7 @@ type amdSetupItem struct {
 	Name amdAttribute `json:"@name"`
 }
 
-func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *domain.TokenData) (setupResult *domain.SchedulerSetup, resultErr error) {
+func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *session.TokenData) (setupResult *domain.SchedulerSetup, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "getschedulersetup")
 	defer func() { finish(resultErr) }()
 

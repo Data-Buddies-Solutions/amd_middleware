@@ -90,7 +90,8 @@ gives callers leverage and keeps change local.
 | HTTP | Authenticated JSON routes and stable response shapes | Authentication, request IDs, transport validation, and mapping |
 | Patient | `Resolve`, `Create`, `UpdateInsurance` | Identity resolution, demographics, insurance policy, patient mutations, and reconciliation |
 | Scheduling | `Search`, `List`, `Book`, `Cancel`, `Reschedule` | Availability, purpose-separated signed slots and cancellations, appointment intent, live revalidation, ownership checks, and reconciliation |
-| Domain | Policy and domain values | Offices, routing, eligibility, appointment types, capacity, and time rules |
+| Insurance | `DecideInsurance`, `DecideChartInsurance`, `DecideEligibilityInsurance` | Plan catalog, office participation, and scheduling requirements |
+| Domain | Shared domain values | Offices, routing, appointment types, capacity, and time rules |
 | Session | `Get`, `Maintain`, `Status` | Credentials, token lifecycle, single-flight login, and last-known-good state |
 | AdvancedMD | `PatientRecords`, `SchedulingRecords` | The external-records seam, production adapter, stable errors, transport, parsing, and normalization |
 
@@ -320,7 +321,8 @@ cmd/api/main.go                  composition root
 internal/http/                   HTTP interface and transport mapping
 internal/patient/                patient workflow
 internal/scheduling/             availability, booking, cancellation, and rescheduling
-internal/domain/                 pure policy and domain values
+internal/insurance/              insurance catalog and participation decisions
+internal/domain/                 shared office, patient, and scheduler values
 internal/session/                authentication and token lifecycle
 internal/advancedmd/             records interfaces and production adapter
 internal/advancedmd/advancedmdtest/   deterministic records adapter
@@ -385,7 +387,7 @@ their owners:
 
 - [AdvancedMD adapter](internal/advancedmd/adapter.go) — provider records and completeness
 - [Office policy](internal/domain/office.go) — offices, scheduler columns, and routing lanes
-- [Insurance decisions](internal/domain/insurance_decision.go) — participation and scheduling requirements
+- [Insurance decisions](internal/insurance/decision.go) — participation and scheduling requirements
 - [Patient resolution](internal/patient/resolve.go) — identity and appointment loading
 - [Deployment](scripts/deploy-cloud-run.sh) — production configuration and maintenance identity
 - [Contributing](CONTRIBUTING.md) — pull request, merge, and release conventions

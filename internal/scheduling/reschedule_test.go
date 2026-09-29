@@ -174,13 +174,13 @@ func TestAppointmentClassificationAndBackendVisitPolicy(t *testing.T) {
 	for _, tc := range []struct{ office, visit, routing string }{{"Crystal River", "routine_vision", "optical_only"}, {"North Miami Beach Optical", "medical", "optical_only"}, {"Spring Hill", "medical", "optical_only"}} {
 		records := bookingRecords()
 		result, err := scheduling.New(records, "test-booking-secret", mutationTestNow, false).List(context.Background(), scheduling.ListCommand{Office: tc.office, VisitType: tc.visit, Routing: tc.routing, DOB: "01/15/1980", StartDate: "2026-06-03"})
-		if err != nil || result.Outcome != domain.AvailabilityOutcomeNoEligibleProviders || len(result.Slots) != 0 {
+		if err != nil || result.Outcome != scheduling.AvailabilityOutcomeNoEligibleProviders || len(result.Slots) != 0 {
 			t.Fatalf("%+v: %+v %v", tc, result, err)
 		}
 		if records.SchedulerSetupCalls != 0 {
 			t.Fatal("unsupported visit should not read provider schedule")
 		}
-		if result.RequestedDate != "2026-06-03" || result.NextAction != domain.AvailabilityNextActionAskDifferentPreferences {
+		if result.RequestedDate != "2026-06-03" || result.NextAction != scheduling.AvailabilityNextActionAskDifferentPreferences {
 			t.Fatalf("unsupported visit lost conversational guidance: %+v", result)
 		}
 	}

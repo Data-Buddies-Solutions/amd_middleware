@@ -5,6 +5,7 @@ import (
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 	"advancedmd-token-management/internal/safeerrors"
 )
 
@@ -86,7 +87,7 @@ type Candidate struct {
 }
 
 type ResolveResult struct {
-	InsuranceDecision   *domain.InsuranceDecision
+	InsuranceDecision   *insurance.InsuranceDecision
 	Reason              string
 	Status              Status
 	ProviderFailure     safeerrors.Category
@@ -146,7 +147,7 @@ type CreateCommand struct {
 }
 
 type CreateResult struct {
-	InsuranceDecision *domain.InsuranceDecision
+	InsuranceDecision *insurance.InsuranceDecision
 	Status            CreateStatus
 	Outcome           MutationOutcome
 	PatientID         string
@@ -173,7 +174,7 @@ type UpdateInsuranceCommand struct {
 
 type UpdateInsuranceResult struct {
 	Effect            string
-	InsuranceDecision *domain.InsuranceDecision
+	InsuranceDecision *insurance.InsuranceDecision
 	Status            UpdateInsuranceStatus
 	Outcome           MutationOutcome
 	PatientID         string

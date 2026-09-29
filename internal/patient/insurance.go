@@ -6,6 +6,7 @@ import (
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 )
 
 func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCommand) (result UpdateInsuranceResult) {
@@ -25,7 +26,7 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 		recordMutation("update_insurance", updateInsuranceOutcome(result))
 	}()
 
-	if domain.IsSelfPayInsurance(command.Insurance) && strings.TrimSpace(command.SubscriberNum) == "" {
+	if insurance.IsSelfPayInsurance(command.Insurance) && strings.TrimSpace(command.SubscriberNum) == "" {
 		command.SubscriberNum = "self pay"
 	}
 	if command.PatientID == "" || command.DOB == "" || command.Insurance == "" || command.SubscriberNum == "" {
@@ -50,7 +51,7 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 	if coverage == "" {
 		coverage = "medical"
 	}
-	decision := domain.DecideInsurance(command.Insurance, coverage, office, command.DOB)
+	decision := insurance.DecideInsurance(command.Insurance, coverage, office, command.DOB)
 	if decision.Participation != "accepted" {
 		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}

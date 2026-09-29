@@ -10,10 +10,11 @@ import (
 	"testing"
 
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 )
 
 func TestEveryOfficeInsuranceHasExplicitPayerDisposition(t *testing.T) {
-	raw, err := os.ReadFile("../domain/insurance_data/MEDICAL.json")
+	raw, err := os.ReadFile("../insurance/data/MEDICAL.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +30,7 @@ func TestEveryOfficeInsuranceHasExplicitPayerDisposition(t *testing.T) {
 	for _, plan := range catalog.Plans {
 		seen[domain.NormalizeForLookup(plan.Name)] = true
 	}
-	for plan := range domain.VisionInsuranceNameMap {
+	for plan := range insurance.VisionInsuranceNameMap {
 		seen[plan] = true
 	}
 	if len(catalog.Plans) == 0 {

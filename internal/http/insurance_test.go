@@ -1,19 +1,20 @@
 package http
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"advancedmd-token-management/internal/insurance"
 )
 
 func TestInsuranceDecisionHTTPContract(t *testing.T) {
 	handlers := &Handlers{}
 	w := httptest.NewRecorder()
 	handlers.HandleInsuranceDecision(w, httptest.NewRequest(http.MethodPost, "/api/insurance/decision", strings.NewReader(`{"plan":"United Individual Exchange","coverageType":"medical","office":"Hollywood"}`)))
-	var d domain.InsuranceDecision
+	var d insurance.InsuranceDecision
 	if err := json.Unmarshal(w.Body.Bytes(), &d); err != nil {
 		t.Fatal(err)
 	}

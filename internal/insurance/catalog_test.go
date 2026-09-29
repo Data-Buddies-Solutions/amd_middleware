@@ -1,12 +1,14 @@
-package domain
+package insurance
 
 import (
 	"strings"
 	"testing"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 func TestSharedMedicalAliasesUseThePlanIdentity(t *testing.T) {
-	office, _ := ResolveOffice("Hollywood")
+	office, _ := domain.ResolveOffice("Hollywood")
 	for _, tc := range []struct{ input, code string }{
 		{"Florida Blue PPO", "FLO01"}, {"BCBS PPO", "FLO01"},
 		{"Meritain Health - Aetna", "MERI1"}, {"Sunshine Health", "AMBE1"},
@@ -35,7 +37,7 @@ func TestMedicalAliasesHaveOneOwner(t *testing.T) {
 }
 
 func TestAMDDirectoryRoundTripUsesConfirmedProductWithoutRelaxingRestrictions(t *testing.T) {
-	office, _ := ResolveOffice("Hollywood")
+	office, _ := domain.ResolveOffice("Hollywood")
 	for _, tc := range []struct{ plan, id, name string }{
 		{"Aetna Commercial", "car40887", "AETNA"},
 		{"United Healthcare NHP HMO Access", "car40923", "UNITED HEALTHCARE"},
@@ -46,7 +48,7 @@ func TestAMDDirectoryRoundTripUsesConfirmedProductWithoutRelaxingRestrictions(t 
 			if initial.Participation != "accepted" || !initial.CanSchedule {
 				t.Fatalf("initial product blocked: %+v", initial)
 			}
-			chart := PatientDemographics{CarrierID: tc.id, CarrierName: tc.name}
+			chart := domain.PatientDemographics{CarrierID: tc.id, CarrierName: tc.name}
 			got := DecideChartInsurance(chart, initial.CanonicalPlan, "medical", office, "")
 			if !got.CanSchedule || got.CanonicalPlan != initial.CanonicalPlan {
 				t.Fatalf("AMD round trip lost confirmed product: %+v", got)
@@ -62,7 +64,7 @@ func TestAMDDirectoryRoundTripUsesConfirmedProductWithoutRelaxingRestrictions(t 
 			}
 		})
 	}
-	chart := PatientDemographics{CarrierID: "car40923", CarrierName: "UNITED HEALTHCARE"}
+	chart := domain.PatientDemographics{CarrierID: "car40923", CarrierName: "UNITED HEALTHCARE"}
 	for _, plan := range []string{"United Healthcare Individual Exchange"} {
 		if d := DecideChartInsurance(chart, plan, "medical", office, ""); d.CanSchedule {
 			t.Fatalf("clarification or referral bypassed: %+v", d)
@@ -75,7 +77,7 @@ func TestAMDDirectoryRoundTripUsesConfirmedProductWithoutRelaxingRestrictions(t 
 }
 
 func TestRegistrationPermissionIsExplicitWhenSchedulingIsHeld(t *testing.T) {
-	office, _ := ResolveOffice("Hollywood")
+	office, _ := domain.ResolveOffice("Hollywood")
 	d := DecideInsurance("Humana Medicaid HMO", "medical", office, "")
 	if d.Participation != "accepted" || d.CanSchedule || !strings.Contains(d.Answer, "prior authorization before scheduling") {
 		t.Fatalf("unclear next action: %+v", d)
@@ -83,12 +85,12 @@ func TestRegistrationPermissionIsExplicitWhenSchedulingIsHeld(t *testing.T) {
 }
 
 func TestPremierEyeCareChartRoundTrip(t *testing.T) {
-	office, _ := ResolveOffice("North Miami Beach Optical")
+	office, _ := domain.ResolveOffice("North Miami Beach Optical")
 	initial := DecideInsurance("Devoted", "routine_vision", office, "01/02/1980")
 	if !initial.CanSchedule || initial.CanonicalPlan != "Premier" {
 		t.Fatalf("Devoted acceptance: %+v", initial)
 	}
-	chart := PatientDemographics{CarrierID: initial.CarrierID, CarrierName: "PREMIER EYE CARE"}
+	chart := domain.PatientDemographics{CarrierID: initial.CarrierID, CarrierName: "PREMIER EYE CARE"}
 	for _, plan := range []string{"", "Premier", "Devoted"} {
 		got := DecideChartInsurance(chart, plan, "routine_vision", office, "01/02/1980")
 		if !got.CanSchedule || got.CanonicalPlan != "Premier" {
@@ -107,11 +109,11 @@ func TestPremierEyeCareChartRoundTrip(t *testing.T) {
 }
 
 func TestVisionChartIdentityDoesNotDependOnDirectoryLabel(t *testing.T) {
-	office, _ := ResolveOffice("North Miami Beach Optical")
+	office, _ := domain.ResolveOffice("North Miami Beach Optical")
 	for _, plan := range []string{"Devoted", "VSP", "EyeMed", "SunHealth"} {
 		initial := DecideInsurance(plan, "routine_vision", office, "01/02/1980")
 		for _, label := range []string{"", "Renamed provider directory label", "PREMIER EYE CARE"} {
-			chart := PatientDemographics{CarrierID: initial.CarrierID, CarrierName: label}
+			chart := domain.PatientDemographics{CarrierID: initial.CarrierID, CarrierName: label}
 			got := DecideChartInsurance(chart, initial.CanonicalPlan, "routine_vision", office, "01/02/1980")
 			if !got.CanSchedule || got.CarrierID != initial.CarrierID {
 				t.Errorf("%s / %q: %+v", plan, label, got)
@@ -119,7 +121,7 @@ func TestVisionChartIdentityDoesNotDependOnDirectoryLabel(t *testing.T) {
 		}
 	}
 	for _, id := range []string{"", "car-unknown", "car40916"} {
-		got := DecideChartInsurance(PatientDemographics{CarrierID: id, CarrierName: "Premier"}, "Premier", "routine_vision", office, "01/02/1980")
+		got := DecideChartInsurance(domain.PatientDemographics{CarrierID: id, CarrierName: "Premier"}, "Premier", "routine_vision", office, "01/02/1980")
 		if got.CanSchedule {
 			t.Errorf("unmapped carrier accepted: %s", id)
 		}
@@ -127,14 +129,14 @@ func TestVisionChartIdentityDoesNotDependOnDirectoryLabel(t *testing.T) {
 }
 
 func TestVisionChartRoundTripPreservesEveryAcceptedAlias(t *testing.T) {
-	office, _ := ResolveOffice("North Miami Beach Optical")
+	office, _ := domain.ResolveOffice("North Miami Beach Optical")
 	for _, rule := range participationSources["SPRING_HILL_ROUTINE_VISION"] {
 		for _, plan := range append([]string{rule.Display}, rule.Aliases...) {
 			accepted := DecideInsurance(plan, "routine_vision", office, "01/02/1980")
 			if !accepted.CanSchedule {
 				continue
 			}
-			chart := PatientDemographics{CarrierID: accepted.CarrierID, CarrierName: "Provider directory label"}
+			chart := domain.PatientDemographics{CarrierID: accepted.CarrierID, CarrierName: "Provider directory label"}
 			got := DecideChartInsurance(chart, accepted.CanonicalPlan, "routine_vision", office, "01/02/1980")
 			if !got.CanSchedule || got.CarrierID != accepted.CarrierID {
 				t.Errorf("accepted %q (%s) lost in chart round trip: %+v", plan, accepted.CanonicalPlan, got)

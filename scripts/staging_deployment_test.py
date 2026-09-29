@@ -63,7 +63,7 @@ class StagingDeploymentTest(unittest.TestCase):
     @patch.object(staging, "request")
     def test_smoke_proves_auth_without_provider_requests(self, request, cloud):
         request.side_effect = [(200, b""), (200, b""), (401, b""), (200, json.dumps({
-            "status": "error", "message": "Invalid JSON body", "appointments": None,
+            "status": "error", "message": "Invalid JSON body", "appointments": None, "matches": None,
         }).encode())]
         result = staging.smoke(service())
         self.assertEqual(result["authenticated_request_validation"], "passed_without_provider_call")

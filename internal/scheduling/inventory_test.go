@@ -27,7 +27,7 @@ func TestListLoadsEveryEligibleSlotAcrossCalendarWindow(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if result.Outcome != domain.AvailabilityOutcomeFound || len(result.Slots) != count*4 {
+			if result.Outcome != scheduling.AvailabilityOutcomeFound || len(result.Slots) != count*4 {
 				t.Fatalf("outcome=%s slots=%d want=%d", result.Outcome, len(result.Slots), count*4)
 			}
 			if result.SearchedFrom != "2026-10-26" || result.SearchedThrough != first.AddDate(0, 0, count-1).Format("2006-01-02") {
@@ -57,7 +57,7 @@ func TestListIncompleteCalendarCannotClaimCompleteInventory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Outcome != domain.AvailabilityOutcomeSearchIncomplete || len(result.Slots) != 0 {
+	if result.Outcome != scheduling.AvailabilityOutcomeSearchIncomplete || len(result.Slots) != 0 {
 		t.Fatalf("outcome=%s slots=%d", result.Outcome, len(result.Slots))
 	}
 }
@@ -89,7 +89,7 @@ func TestListStartsAtRequestedDateWithoutReadingInterveningDates(t *testing.T) {
 		result, err := scheduler.List(context.Background(), scheduling.ListCommand{
 			Office: "Spring Hill", Routing: "bach_only", StartDate: start.Format("2006-01-02"),
 		})
-		if err != nil || result.Outcome != domain.AvailabilityOutcomeFound || len(result.Slots) != 40 {
+		if err != nil || result.Outcome != scheduling.AvailabilityOutcomeFound || len(result.Slots) != 40 {
 			t.Fatalf("result=%#v error=%v; want all 40 slots in this window", result, err)
 		}
 		if result.SearchedFrom != start.Format("2006-01-02") || result.SearchedThrough != end.Format("2006-01-02") {

@@ -285,27 +285,27 @@ func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingCont
 }
 
 func applyBookingPolicy(booking *bookingContext) (
-	domain.SchedulingPolicy,
-	domain.BookingPolicyDecision,
+	schedulingPolicy,
+	bookingPolicyDecision,
 	string,
 	error,
 ) {
 	command := booking.command
 	comments := buildAppointmentComment(command.AppointmentReason, command.ReferringDoctor)
 	if len([]rune(comments)) > maxAppointmentCommentLength {
-		return domain.SchedulingPolicy{}, domain.BookingPolicyDecision{}, "", schedulingError(
+		return schedulingPolicy{}, bookingPolicyDecision{}, "", schedulingError(
 			fmt.Sprintf("appointment comments must be %d characters or fewer", maxAppointmentCommentLength),
 		)
 	}
 
-	policy := domain.NewSchedulingPolicy(booking.office)
-	decision, policyErr := policy.PrepareBooking(domain.BookingPolicyRequest{
+	policy := newSchedulingPolicy(booking.office)
+	decision, policyErr := policy.PrepareBooking(bookingPolicyRequest{
 		ColumnID:          command.ColumnID,
 		ProfileID:         command.ProfileID,
 		AppointmentTypeID: command.AppointmentTypeID,
 		Routing:           domain.ParseRoutingRule(command.Routing),
 		DOB:               command.DOB,
-		Intent: domain.AppointmentIntent{
+		Intent: appointmentIntent{
 			VisitCategory: command.VisitCategory,
 			VisitKind:     command.VisitKind,
 			PatientStatus: command.PatientStatus,
@@ -321,7 +321,7 @@ func applyBookingPolicy(booking *bookingContext) (
 		if policyErr.Outcome == string(CategoryAppointmentTypeMissing) {
 			category = CategoryAppointmentTypeMissing
 		}
-		return domain.SchedulingPolicy{}, domain.BookingPolicyDecision{}, "", &Error{
+		return schedulingPolicy{}, bookingPolicyDecision{}, "", &Error{
 			category: category,
 			message:  policyErr.Message,
 			missing:  append([]string(nil), policyErr.Missing...),
@@ -330,7 +330,7 @@ func applyBookingPolicy(booking *bookingContext) (
 	if booking.signed &&
 		booking.preservedAppointmentType == 0 &&
 		!slices.Contains(booking.token.AppointmentTypeIDs, decision.AppointmentTypeID) {
-		return domain.SchedulingPolicy{}, domain.BookingPolicyDecision{}, "", invalidBookingTokenError()
+		return schedulingPolicy{}, bookingPolicyDecision{}, "", invalidBookingTokenError()
 	}
 	command.Routing = string(decision.Routing)
 	command.AppointmentTypeID = decision.AppointmentTypeID
@@ -348,7 +348,7 @@ func invalidRescheduleTokenError() error {
 func (s *service) revalidateBookingSlot(
 	ctx context.Context,
 	booking bookingContext,
-	policy domain.SchedulingPolicy,
+	policy schedulingPolicy,
 ) (time.Time, bool, error) {
 	command := booking.command
 	setup, err := s.records.GetSchedulerSetup(ctx)
@@ -395,7 +395,7 @@ func (s *service) revalidateBookingSlot(
 			"Unable to verify the selected time because appointment data is incomplete. Please try once more or contact the office.",
 		)
 	}
-	if domain.IsBlockedByHold(start, duration, schedule.BlockHolds) ||
+	if isBlockedByHold(start, duration, schedule.BlockHolds) ||
 		hasDifferentStartOverlap(start, duration, schedule.Appointments) {
 		return time.Time{}, false, slotUnavailableError()
 	}
@@ -483,7 +483,7 @@ func currentBookingColumn(
 	for _, profile := range setup.Profiles {
 		profiles[profile.ID] = profile
 	}
-	eligible := domain.NewSchedulingPolicy(office).EligibleColumns(
+	eligible := newSchedulingPolicy(office).EligibleColumns(
 		setup.Columns,
 		profiles,
 		domain.ParseRoutingRule(command.Routing),

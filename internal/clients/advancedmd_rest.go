@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/session"
 )
 
 func ParseDateTime(s string) (time.Time, error) {
@@ -58,7 +59,7 @@ type AMDAppointmentResponse struct {
 	ConfirmMethod    *string `json:"confirmmethod"`
 }
 
-func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *domain.TokenData, columnID string, startDate string) (appointmentsResult []domain.Appointment, resultErr error) {
+func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *session.TokenData, columnID string, startDate string) (appointmentsResult []domain.Appointment, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "get_appointments")
 	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/appointments?columnId=%s&forView=day&isLegacy=true&startDate=%s",
@@ -106,7 +107,7 @@ type AMDBlockHoldResponse struct {
 	} `json:"recurrence"`
 }
 
-func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *domain.TokenData, columnID string, startDate string) (holdsResult []domain.BlockHold, resultErr error) {
+func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *session.TokenData, columnID string, startDate string) (holdsResult []domain.BlockHold, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "get_block_holds")
 	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/blockholds?columnId=%s&forView=day&startDate=%s",
@@ -149,7 +150,7 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 	return holds, nil
 }
 
-func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, tokenData *domain.TokenData, columnIDs string, startDate string) (appointmentsResult []AMDAppointmentResponse, resultErr error) {
+func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, tokenData *session.TokenData, columnIDs string, startDate string) (appointmentsResult []AMDAppointmentResponse, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "get_appointments_by_month")
 	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/appointments?columnId=%s&forView=month&isLegacy=true&startDate=%s",
@@ -187,7 +188,7 @@ type BookAppointmentResponse struct {
 	ID int `json:"id"`
 }
 
-func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *domain.TokenData, params BookAppointmentParams) (appointmentIDResult int, resultErr error) {
+func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *session.TokenData, params BookAppointmentParams) (appointmentIDResult int, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "book_appointment")
 	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/Appointments", tokenData.RestApiBase)
@@ -233,7 +234,7 @@ func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *d
 	return result.ID, nil
 }
 
-func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData *domain.TokenData, appointmentID int) (resultErr error) {
+func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData *session.TokenData, appointmentID int) (resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "cancel_appointment")
 	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/appointments/%d/cancel",
@@ -270,7 +271,7 @@ func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData 
 	return nil
 }
 
-func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *domain.TokenData, url, operation string) ([]byte, error) {
+func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *session.TokenData, url, operation string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
