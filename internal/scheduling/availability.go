@@ -155,6 +155,12 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 	searchDate := startDate
 	searchedThrough := searchStartDate
 	var candidates []rankedAvailabilitySlot
+	for _, column := range allowedColumns {
+		if !column.HasUsableSchedule() {
+			searchIncomplete = true
+			unavailableDataChecks++
+		}
+	}
 
 	for !searchDate.After(maxDate) {
 		date := searchDate.Format("2006-01-02")

@@ -34,6 +34,8 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 
 	created, createReconciled, outcome := p.createPatient(ctx, command, office)
 	switch outcome {
+	case MutationValidationFailed:
+		return CreateResult{Status: CreateStatusError, Outcome: outcome, Message: "An existing patient chart matches this first name and date of birth for this phone number. Do not create a new chart; look up the existing patient instead."}
 	case MutationRejected:
 		return CreateResult{Status: CreateStatusError, Outcome: outcome, Message: "AdvancedMD rejected patient creation. Please contact the office."}
 	case MutationReconciledFailure:
@@ -117,6 +119,9 @@ func createMissingFields(command CreateCommand) []string {
 
 func (p *patient) createPatient(ctx context.Context, command CreateCommand, office *domain.OfficeConfig) (domain.CreatedPatient, bool, MutationOutcome) {
 	baseline, err := p.creationBaseline(ctx, command)
+	if errors.Is(err, errExistingPatient) {
+		return domain.CreatedPatient{}, false, MutationValidationFailed
+	}
 	if err != nil {
 		return domain.CreatedPatient{}, false, failureOutcome(err)
 	}
@@ -150,6 +155,8 @@ func (p *patient) createPatient(ctx context.Context, command CreateCommand, offi
 	}
 }
 
+var errExistingPatient = errors.New("existing patient matches first name and DOB")
+
 func (p *patient) creationBaseline(ctx context.Context, command CreateCommand) (map[string]struct{}, error) {
 	search := domain.PatientSearch{Phone: domain.NormalizePhoneDigits(command.Phone)}
 	candidates, err := retryRead(ctx, func() ([]domain.Patient, error) {
@@ -164,6 +171,10 @@ func (p *patient) creationBaseline(ctx context.Context, command CreateCommand) (
 		id := domain.StripPatientPrefix(candidate.ID)
 		if id == "" {
 			return nil, errors.New("patient reconciliation baseline contains a record without an ID")
+		}
+		if exactFirstName(candidateName(candidate)) == exactFirstName(command.FirstName) &&
+			domain.NormalizeDOB(candidate.DOB) == domain.NormalizeDOB(command.DOB) {
+			return nil, errExistingPatient
 		}
 		baseline[id] = struct{}{}
 	}

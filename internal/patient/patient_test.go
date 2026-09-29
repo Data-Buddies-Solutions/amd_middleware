@@ -36,7 +36,7 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 		DOB:       "01/15/1980",
 		Phone:     "850-373-3869",
 	}}
-	amd.Demographics["123"] = domain.PatientDemographics{
+	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true,
 		CarrierName: "HUMANA MEDICARE",
 		CarrierID:   "car40906",
 		InsPlanID:   "ins789",
@@ -155,7 +155,7 @@ func TestCreateReconcilesAmbiguousWriteAfterTransientReadFailure(t *testing.T) {
 			Phone:     "(954)287-2010",
 		}}},
 	}
-	amd.Demographics["123"] = domain.PatientDemographics{RespPartyID: "resp456"}
+	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true, RespPartyID: "resp456"}
 
 	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
 
@@ -210,7 +210,7 @@ func TestCreatePollsUntilNewPatientBecomesVisible(t *testing.T) {
 			Phone:     "(954)287-2010",
 		}}},
 	}
-	amd.Demographics["123"] = domain.PatientDemographics{RespPartyID: "resp456"}
+	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true, RespPartyID: "resp456"}
 
 	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
 
@@ -248,7 +248,7 @@ func TestCreateKeepsUnidentifiablePostWriteMatchIndeterminate(t *testing.T) {
 			},
 		}},
 	}
-	amd.Demographics["123"] = domain.PatientDemographics{RespPartyID: "resp456"}
+	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true, RespPartyID: "resp456"}
 
 	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
 
@@ -263,31 +263,46 @@ func TestCreateKeepsUnidentifiablePostWriteMatchIndeterminate(t *testing.T) {
 	}
 }
 
-func TestCreateDoesNotAdoptPreexistingPatientAfterAmbiguousWrite(t *testing.T) {
+func TestCreateRefusesExistingPatientOnCallerPhone(t *testing.T) {
 	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
-	existing := domain.Patient{
-		ID:        "123",
-		FirstName: "JANE",
-		FullName:  "DOE,JANE",
-		DOB:       "01/15/1980",
-		Phone:     "(954)287-2010",
-	}
 	amd := advancedmdtest.NewAdapter()
-	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
-	amd.PatientSearches[search] = []domain.Patient{existing}
-	amd.Demographics["123"] = domain.PatientDemographics{RespPartyID: "resp456"}
+	amd.PatientSearches[search] = []domain.Patient{{
+		ID:       "123",
+		FullName: "DOE-SMITH,JANE A",
+		DOB:      "1/15/1980",
+		Phone:    "(954)287-2010",
+	}}
 
 	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
 
-	if got.Status != patient.CreateStatusError || got.Outcome != patient.MutationIndeterminateWrite {
-		t.Fatalf("Create() = %+v, want pre-existing match to remain indeterminate", got)
+	if got.Status != patient.CreateStatusError || got.Outcome != patient.MutationValidationFailed {
+		t.Fatalf("Create() = %+v, want existing-patient validation failure", got)
 	}
-	if amd.CreatePatientCalls != 1 || amd.AddInsuranceCalls != 0 {
-		t.Fatalf("mutation calls = create:%d insurance:%d, want 1/0", amd.CreatePatientCalls, amd.AddInsuranceCalls)
+	if !strings.Contains(got.Message, "look up the existing patient") {
+		t.Fatalf("Message = %q, want existing-patient guidance", got.Message)
 	}
-	if amd.SearchPatientCalls != 4 {
-		t.Fatalf("SearchPatients calls = %d, want baseline plus three bounded polls", amd.SearchPatientCalls)
+	if amd.CreatePatientCalls != 0 || amd.SearchPatientCalls != 1 {
+		t.Fatalf("calls = create:%d search:%d, want 0/1", amd.CreatePatientCalls, amd.SearchPatientCalls)
+	}
+}
+
+func TestCreateAllowsHouseholdMemberOnCallerPhone(t *testing.T) {
+	domain.InitRegistry("")
+	search := domain.PatientSearch{Phone: "9542872010"}
+	amd := advancedmdtest.NewAdapter()
+	amd.PatientSearches[search] = []domain.Patient{{
+		ID:        "123",
+		FirstName: "JOHN",
+		FullName:  "DOE,JOHN",
+		DOB:       "01/15/1980",
+		Phone:     "(954)287-2010",
+	}}
+
+	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+
+	if got.Status != patient.CreateStatusCreated || amd.CreatePatientCalls != 1 {
+		t.Fatalf("Create() = %+v with %d writes, want one created patient", got, amd.CreatePatientCalls)
 	}
 }
 
@@ -310,7 +325,7 @@ func TestCreateDoesNotAdoptPreexistingPatientWhoseLookupDetailsChanged(t *testin
 		}},
 	}}
 	amd.PatientSearches[search] = []domain.Patient{existing}
-	amd.Demographics["123"] = domain.PatientDemographics{RespPartyID: "resp456"}
+	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true, RespPartyID: "resp456"}
 
 	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
 
@@ -629,6 +644,8 @@ func TestResolveSelectsPatientByVerifiedDemographics(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			amd := advancedmdtest.NewAdapter()
 			amd.PatientSearches[test.search] = candidates
+			amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true}
+			amd.Demographics["456"] = domain.PatientDemographics{InsuranceStateKnown: true}
 
 			got, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), test.command)
 			if err != nil {
@@ -668,7 +685,7 @@ func TestResolveRefreshesKnownPatientByID(t *testing.T) {
 	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Spring Hill")
 	amd := advancedmdtest.NewAdapter()
-	amd.Demographics["123"] = domain.PatientDemographics{
+	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true,
 		FullName:    "DOE,JANE",
 		CarrierName: "HUMANA MEDICARE",
 		CarrierID:   "car40906",
@@ -723,6 +740,7 @@ func TestResolveStartsDemographicsAndAppointmentsConcurrently(t *testing.T) {
 	demographicsRelease := make(chan struct{})
 	appointmentsRelease := make(chan struct{})
 	amd := advancedmdtest.NewAdapter()
+	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true}
 	amd.PatientSearches[domain.PatientSearch{Phone: "9542872010"}] = []domain.Patient{{
 		ID:        "123",
 		FirstName: "JANE",
@@ -775,6 +793,7 @@ func TestResolveKeepsVerifiedPatientWhenAppointmentsFail(t *testing.T) {
 	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Spring Hill")
 	amd := advancedmdtest.NewAdapter()
+	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true}
 	amd.PatientSearches[domain.PatientSearch{Phone: "9542872010"}] = []domain.Patient{{
 		ID: "123", FullName: "DOE,JANE", DOB: "01/15/1980",
 	}}
@@ -843,27 +862,44 @@ func TestResolveKnownPatientReturnsUnavailableWhenAdvancedMDCannotAuthenticate(t
 	}
 }
 
-func TestResolveKeepsVerifiedPatientWhenDemographicsProviderReadFails(t *testing.T) {
+func TestResolveDoesNotVerifyPatientWithoutIdentity(t *testing.T) {
 	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Spring Hill")
-	amd := advancedmdtest.NewAdapter()
-	amd.DemographicErrors["123"] = advancedmd.NewError(safeerrors.CategoryAuthentication)
+	tests := []struct {
+		name         string
+		demographics domain.PatientDemographics
+		err          error
+		wantReason   string
+		wantFailure  safeerrors.Category
+	}{
+		{"rejected demographics", domain.PatientDemographics{}, advancedmd.NewError(safeerrors.CategoryRejected), "demographics_failed", safeerrors.CategoryRejected},
+		{"authentication failure", domain.PatientDemographics{}, advancedmd.NewError(safeerrors.CategoryAuthentication), "demographics_failed", safeerrors.CategoryAuthentication},
+		{"missing name", domain.PatientDemographics{InsuranceStateKnown: true, DOB: "01/15/1980"}, nil, "incomplete_identity", safeerrors.CategoryInvalidResponse},
+		{"missing DOB", domain.PatientDemographics{InsuranceStateKnown: true, FullName: "DOE,JANE"}, nil, "incomplete_identity", safeerrors.CategoryInvalidResponse},
+		{"unknown insurance state", domain.PatientDemographics{FullName: "DOE,JANE", DOB: "01/15/1980"}, nil, "insurance_unknown", safeerrors.CategoryInvalidResponse},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			amd := advancedmdtest.NewAdapter()
+			amd.Demographics["123"] = test.demographics
+			if test.err != nil {
+				amd.DemographicErrors["123"] = test.err
+			}
 
-	got, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{
-		PatientID: "123",
-		OfficeID:  office.ID,
-	})
-	if err != nil {
-		t.Fatalf("Resolve() error = %v", err)
-	}
-	if got.Status != patient.StatusVerified || got.PatientID != "123" {
-		t.Fatalf("Resolve() = %+v, want verified patient 123", got)
-	}
-	if got.AppointmentsStatus != patient.AppointmentsNone {
-		t.Fatalf("AppointmentsStatus = %q, want none", got.AppointmentsStatus)
-	}
-	if got.ProviderFailure != safeerrors.CategoryAuthentication {
-		t.Fatalf("ProviderFailure = %q, want authentication", got.ProviderFailure)
+			got, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{
+				PatientID: "123",
+				OfficeID:  office.ID,
+			})
+			if err != nil {
+				t.Fatalf("Resolve() error = %v", err)
+			}
+			if got.Status != patient.StatusUnresolved || got.Reason != test.wantReason || got.ProviderFailure != test.wantFailure {
+				t.Fatalf("Resolve() = %+v, want unresolved %s", got, test.wantReason)
+			}
+			if got.PatientID != "" || got.AppointmentsStatus != "" || len(got.Appointments) != 0 {
+				t.Fatalf("Resolve() = %+v, want no patient or appointment claims", got)
+			}
+		})
 	}
 }
 
@@ -884,7 +920,7 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 		{
 			name:       "Spring Hill accepted carrier",
 			officeName: "Spring Hill",
-			demographics: domain.PatientDemographics{
+			demographics: domain.PatientDemographics{InsuranceStateKnown: true,
 				CarrierName: "CIGNA HMO",
 				CarrierID:   "car301345",
 			},
@@ -896,14 +932,14 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 		},
 		{
 			name: "Hollywood prior authorization", officeName: "Hollywood",
-			demographics: domain.PatientDemographics{CarrierName: "CIGNA HMO", CarrierID: "car301345"},
+			demographics: domain.PatientDemographics{InsuranceStateKnown: true, CarrierName: "CIGNA HMO", CarrierID: "car301345"},
 			patientDOB:   "01/01/1980", wantRouting: domain.RoutingBachOnly,
 			wantPreauth: true, wantProviderList: true,
 		},
 		{
 			name:       "minor uses pediatric routing",
 			officeName: "Spring Hill",
-			demographics: domain.PatientDemographics{
+			demographics: domain.PatientDemographics{InsuranceStateKnown: true,
 				CarrierName: "AETNA COMMERCIAL",
 				CarrierID:   "car40887",
 			},
@@ -987,7 +1023,7 @@ var testAppointmentTokens = scheduling.NewAppointmentTokens("test-scheduling-sec
 func TestResolveReportsAppointmentsErrorWhenTokensCannotBeIssued(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
-	amd.Demographics["123"] = domain.PatientDemographics{DOB: "01/15/1980"}
+	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true, FullName: "DOE,JANE", DOB: "01/15/1980"}
 	amd.AppointmentResults["123"] = advancedmdtest.AppointmentResult{
 		Read: advancedmd.AppointmentRead{
 			Appointments: []domain.PatientAppointment{{

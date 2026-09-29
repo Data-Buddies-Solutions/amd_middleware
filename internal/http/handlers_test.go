@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -78,7 +80,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 	amd.PatientSearches[domain.PatientSearch{Phone: "9542872010"}] = []domain.Patient{{
 		ID: "123", FullName: "DOE,JANE", DOB: "01/15/1980", Phone: "850-373-3869",
 	}}
-	amd.Demographics["123"] = domain.PatientDemographics{
+	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true,
 		CarrierName: "HUMANA MEDICARE",
 		CarrierID:   "car40906",
 	}
@@ -1106,6 +1108,9 @@ func newPatientResolveTestHandlers(
 						}
 					}
 				}`
+				if id := requestedPatientID(body); id != "" {
+					response = strings.Replace(response, `"pat123"`, strconv.Quote(id), 1)
+				}
 			}
 
 			return &http.Response{
@@ -1138,7 +1143,7 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true, Patients: []domain.Patient{{ID: "1", FirstName: "Jane", LastName: "Meyer", DOB: "01/01/1980"}}}
-	amd.Demographics["1"] = domain.PatientDemographics{FullName: "MEYER,JANE", DOB: "01/01/1980"}
+	amd.Demographics["1"] = domain.PatientDemographics{InsuranceStateKnown: true, FullName: "MEYER,JANE", DOB: "01/01/1980"}
 	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil, nil)
 	for _, tc := range []struct {
 		body  string
@@ -1204,3 +1209,11 @@ func (s schedulingStub) Reschedule(context.Context, schedulingmodule.BookCommand
 }
 
 var testAppointmentTokens = schedulingmodule.NewAppointmentTokens("test-scheduling-secret", nil)
+
+func requestedPatientID(body []byte) string {
+	match := regexp.MustCompile(`"@patientid":"([^"]+)"`).FindSubmatch(body)
+	if match == nil {
+		return ""
+	}
+	return string(match[1])
+}

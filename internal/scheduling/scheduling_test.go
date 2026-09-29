@@ -140,7 +140,7 @@ func TestSearchReturnsNoneOnlyAfterACompleteWindow(t *testing.T) {
 	}
 }
 
-func TestSearchOffersNoSlotsForNonPositiveColumnInterval(t *testing.T) {
+func TestSearchReportsIncompleteForNonPositiveColumnInterval(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	searchDate := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC)
 	for _, interval := range []int{0, -15} {
@@ -169,8 +169,8 @@ func TestSearchOffersNoSlotsForNonPositiveColumnInterval(t *testing.T) {
 			if result.err != nil {
 				t.Fatalf("interval %d: Search error = %v", interval, result.err)
 			}
-			if result.response.Outcome != scheduling.AvailabilityOutcomeNoAvailability || len(result.response.Slots) != 0 {
-				t.Fatalf("interval %d: result = %#v, want no bookable slots", interval, result.response)
+			if result.response.Outcome != scheduling.AvailabilityOutcomeSearchIncomplete || len(result.response.Slots) != 0 {
+				t.Fatalf("interval %d: result = %#v, want incomplete search", interval, result.response)
 			}
 		case <-time.After(5 * time.Second):
 			t.Fatalf("interval %d: Search did not finish", interval)

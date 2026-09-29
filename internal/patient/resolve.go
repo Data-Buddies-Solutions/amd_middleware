@@ -194,20 +194,26 @@ func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate 
 	)
 	if demographicsRead.err != nil {
 		category := advancedmd.CategoryOf(demographicsRead.err)
-		result.ProviderFailure = category
 		log.Printf("patient-resolve: failed to get demographics category=%s", category)
 		if category == safeerrors.CategoryUnavailable {
+			result.ProviderFailure = category
 			return result, demographicsRead.err
 		}
-	} else {
-		if result.DOB == "" {
-			result.DOB = demographicsRead.demographics.DOB
-		}
-		if result.Name == "" {
-			result.Name = demographicsRead.demographics.FullName
-		}
-		applyDemographics(&result, demographicsRead.demographics, office, result.DOB)
+		return unverifiedPatient(result.Observation, "demographics_failed", category), nil
 	}
+	if result.DOB == "" {
+		result.DOB = demographicsRead.demographics.DOB
+	}
+	if result.Name == "" {
+		result.Name = demographicsRead.demographics.FullName
+	}
+	if result.Name == "" || result.DOB == "" {
+		return unverifiedPatient(result.Observation, "incomplete_identity", safeerrors.CategoryInvalidResponse), nil
+	}
+	if !demographicsRead.demographics.InsuranceStateKnown {
+		return unverifiedPatient(result.Observation, "insurance_unknown", safeerrors.CategoryInvalidResponse), nil
+	}
+	applyDemographics(&result, demographicsRead.demographics, office, result.DOB)
 
 	if appointmentsRead.err != nil {
 		result.ProviderFailure = advancedmd.CategoryOf(appointmentsRead.err)
@@ -265,6 +271,17 @@ func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate 
 	result.AppointmentsStatus = AppointmentsFound
 	result.Message = fmt.Sprintf("Patient verified with %d appointment(s)", len(result.Appointments))
 	return result, nil
+}
+
+func unverifiedPatient(observation ResolutionObservation, reason string, failure safeerrors.Category) ResolveResult {
+	return ResolveResult{
+		Status:          StatusUnresolved,
+		Reason:          reason,
+		ProviderFailure: failure,
+		Message:         "Patient identity could not be verified. Ask office staff for help.",
+		Appointments:    []Appointment{},
+		Observation:     observation,
+	}
 }
 
 func candidateCountBucket(count int) string {
