@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.2.4](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.3...v5.2.4) (2026-09-29)
+
+
+### Dependencies
+
+* update to Go 1.27.1 and latest modules ([#223](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/223)) ([78fa4f4](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/78fa4f4716d0044d6e09487bf728d13057aa98e9))
+
 ## [5.2.3](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.2...v5.2.3) (2026-09-29)
 
 
