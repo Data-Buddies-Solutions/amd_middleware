@@ -44,12 +44,15 @@ func TestSchedulerSetupAllowsExplicitEmptyLists(t *testing.T) {
 }
 
 func TestSchedulerSetupRejectsMissingColumns(t *testing.T) {
-	client, token, close := newTestXMLRPCClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"PPMDResults":{"Results":{"columnlist":{},"profilelist":{"profile":[]},"facilitylist":{"facility":[]}}}}`))
-	}))
-	defer close()
-	if _, err := client.GetSchedulerSetup(context.Background(), token); err == nil {
-		t.Fatal("GetSchedulerSetup() error = nil, want missing columns error")
+	for _, columnList := range []string{`{}`, `{"column":null}`} {
+		client, token, close := newTestXMLRPCClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte(`{"PPMDResults":{"Results":{"columnlist":` + columnList + `,"profilelist":{"profile":[]},"facilitylist":{"facility":[]}}}}`))
+		}))
+		_, err := client.GetSchedulerSetup(context.Background(), token)
+		close()
+		if err == nil {
+			t.Fatalf("columnlist %s: GetSchedulerSetup() error = nil, want missing columns error", columnList)
+		}
 	}
 }
 

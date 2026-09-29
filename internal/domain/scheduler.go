@@ -93,7 +93,7 @@ func (c *SchedulerColumn) WorksOnDay(weekday time.Weekday) bool {
 
 func (c *SchedulerColumn) HasUsableSchedule() bool {
 	_, _, err := c.ParseWorkHours(time.Now())
-	return c.Interval > 0 && err == nil
+	return c.Interval > 0 && c.Workweek != 0 && err == nil
 }
 
 func (c *SchedulerColumn) ParseWorkHours(date time.Time) (start, end time.Time, err error) {

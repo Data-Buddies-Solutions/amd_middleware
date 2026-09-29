@@ -268,10 +268,11 @@ func TestCreateRefusesExistingPatientOnCallerPhone(t *testing.T) {
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
 	amd.PatientSearches[search] = []domain.Patient{{
-		ID:       "123",
-		FullName: "DOE-SMITH,JANE A",
-		DOB:      "1/15/1980",
-		Phone:    "(954)287-2010",
+		ID:        "123",
+		FirstName: "JANE A",
+		FullName:  "DOE-SMITH,JANE A",
+		DOB:       "1/15/1980",
+		Phone:     "(954)287-2010",
 	}}
 
 	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())

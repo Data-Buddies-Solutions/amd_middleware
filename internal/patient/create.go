@@ -157,6 +157,13 @@ func (p *patient) createPatient(ctx context.Context, command CreateCommand, offi
 
 var errExistingPatient = errors.New("existing patient matches first name and DOB")
 
+func givenName(candidate domain.Patient) string {
+	if names := strings.Fields(candidateName(candidate)); len(names) > 0 {
+		return names[0]
+	}
+	return ""
+}
+
 func (p *patient) creationBaseline(ctx context.Context, command CreateCommand) (map[string]struct{}, error) {
 	search := domain.PatientSearch{Phone: domain.NormalizePhoneDigits(command.Phone)}
 	candidates, err := retryRead(ctx, func() ([]domain.Patient, error) {
@@ -172,7 +179,7 @@ func (p *patient) creationBaseline(ctx context.Context, command CreateCommand) (
 		if id == "" {
 			return nil, errors.New("patient reconciliation baseline contains a record without an ID")
 		}
-		if exactFirstName(candidateName(candidate)) == exactFirstName(command.FirstName) &&
+		if exactFirstName(givenName(candidate)) == exactFirstName(command.FirstName) &&
 			domain.NormalizeDOB(candidate.DOB) == domain.NormalizeDOB(command.DOB) {
 			return nil, errExistingPatient
 		}
