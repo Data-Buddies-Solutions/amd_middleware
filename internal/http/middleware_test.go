@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"uuid"
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/advancedmd/advancedmdtest"
@@ -491,4 +492,33 @@ func decodeLastLogEntry(t *testing.T, output string) map[string]any {
 		t.Fatalf("last log line is not JSON: %q: %v", lines[len(lines)-1], err)
 	}
 	return entry
+}
+
+func TestRequestIDMiddlewareLogsOnlyCanonicalUUIDv4AsIs(t *testing.T) {
+	v4 := uuid.NewV4().String()
+	for requestID, wantAsIs := range map[string]bool{
+		v4:                    true,
+		strings.ToUpper(v4):   false,
+		uuid.NewV7().String(): false,
+		"not-a-uuid":          false,
+	} {
+		var logged string
+		handler := requestIDMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logged = requestIDForLog(r.Context())
+		}))
+		req := httptest.NewRequest(http.MethodGet, "/health", nil)
+		req.Header.Set("X-Request-ID", requestID)
+		handler.ServeHTTP(httptest.NewRecorder(), req)
+		if (logged == requestID) != wantAsIs || (!wantAsIs && !strings.HasPrefix(logged, "external-")) {
+			t.Errorf("request ID %q logged as %q", requestID, logged)
+		}
+	}
+	var generated string
+	handler := requestIDMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		generated = requestIDForLog(r.Context())
+	}))
+	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/health", nil))
+	if parsed, err := uuid.Parse(generated); err != nil || parsed[6]>>4 != 4 {
+		t.Errorf("generated request ID %q is not a UUIDv4", generated)
+	}
 }
