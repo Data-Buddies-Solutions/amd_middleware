@@ -3,6 +3,7 @@ package clients
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -114,13 +115,14 @@ func TestProviderDiagnosticsPreserveStatusAndNumericFaultWithoutPayload(t *testi
 	}
 }
 
-func TestRestMutationDiagnosticsDoNotChangeAmbiguousWriteDisposition(t *testing.T) {
+func TestRestMutationDiagnosticsPreserveStatusError(t *testing.T) {
 	provider := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(503) }))
 	defer provider.Close()
 	ctx, diagnostics := safeerrors.WithDiagnostics(context.Background())
 	_, err := NewAdvancedMDRestClient(provider.Client()).BookAppointment(ctx, &domain.TokenData{RestApiBase: strings.TrimPrefix(provider.URL, "https://")}, BookAppointmentParams{})
-	if MutationDispositionOf(err) != MutationDispositionAmbiguous {
-		t.Fatalf("mutation disposition changed: %v", err)
+	var status *HTTPStatusError
+	if !errors.As(err, &status) || status.StatusCode != 503 {
+		t.Fatalf("booking error = %v, want status 503", err)
 	}
 	failures, count := diagnostics.Snapshot()
 	if count != 1 || failures[0].HTTPStatus != 503 || failures[0].Operation != "book_appointment" {

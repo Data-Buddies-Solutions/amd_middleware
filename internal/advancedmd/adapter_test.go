@@ -981,7 +981,10 @@ func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
 	}{
 		{name: "conflict", status: http.StatusConflict, category: safeerrors.CategoryConflict},
 		{name: "authentication", status: http.StatusUnauthorized, category: safeerrors.CategoryAuthentication},
+		{name: "forbidden", status: http.StatusForbidden, category: safeerrors.CategoryAuthentication},
 		{name: "rejection", status: http.StatusUnprocessableEntity, category: safeerrors.CategoryRejected},
+		{name: "bad request", status: http.StatusBadRequest, category: safeerrors.CategoryRejected},
+		{name: "timeout", status: http.StatusRequestTimeout, category: safeerrors.CategoryUpstreamStatus, ambiguous: true},
 		{name: "ambiguous server failure", status: http.StatusInternalServerError, category: safeerrors.CategoryUpstreamStatus, ambiguous: true},
 	}
 
@@ -1012,7 +1015,20 @@ func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
 				AppointmentColor:          "ORANGE",
 			})
 			if CategoryOf(err) != tt.category || IsAmbiguousWrite(err) != tt.ambiguous {
-				t.Fatalf("error = %v, category = %q, ambiguous = %t", err, CategoryOf(err), IsAmbiguousWrite(err))
+				t.Fatalf("booking error = %v, category = %q, ambiguous = %t", err, CategoryOf(err), IsAmbiguousWrite(err))
+			}
+
+			xmlAdapter := NewAdapter(
+				staticSession{token: &domain.TokenData{
+					CookieToken: "token=test-cookie",
+					XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
+				}},
+				clients.NewAdvancedMDClient(server.Client()),
+				nil,
+			)
+			_, err = xmlAdapter.CreatePatient(context.Background(), domain.PatientCreate{FirstName: "JANE", LastName: "DOE", OfficeID: "spring_hill"})
+			if CategoryOf(err) != tt.category || IsAmbiguousWrite(err) != tt.ambiguous {
+				t.Fatalf("create error = %v, category = %q, ambiguous = %t", err, CategoryOf(err), IsAmbiguousWrite(err))
 			}
 		})
 	}
