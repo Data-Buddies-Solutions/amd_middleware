@@ -296,7 +296,7 @@ provider operation/status/code, and recovered failures without exposing payloads
 
 ## Run locally
 
-Requirements: Go 1.26+ and valid development credentials.
+Requirements: Go 1.27+ and valid development credentials.
 
 ```bash
 cp .env.example .env
