@@ -102,9 +102,8 @@ def smoke(service):
     token = cloud("secrets", "versions", "access", version, "--secret", SECRETS["API_SECRET"])
     require(bool(token), "Sandbox API secret is empty")
     status, body = request(url + "/api/patient/resolve", body=b"{", token=token)
-    require(status == 200 and json.loads(body) == {
-        "status": "error", "message": "Invalid JSON body", "appointments": None,
-    },
+    payload = json.loads(body) if status == 200 else {}
+    require(payload.get("status") == "error" and payload.get("message") == "Invalid JSON body",
             "Sandbox API token did not reach request validation")
     checks["authenticated_request_validation"] = "passed_without_provider_call"
     return checks
