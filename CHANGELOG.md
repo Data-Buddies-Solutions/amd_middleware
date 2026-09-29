@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.2.6](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.5...v5.2.6) (2026-09-29)
+
+
+### Bug Fixes
+
+* fail closed on unverified patient and scheduler reads ([#229](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/229)) ([6e4af4a](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/6e4af4a507e8f4b1a3fbdb6cd9dd14abf00f6649))
+
 ## [5.2.5](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.4...v5.2.5) (2026-09-29)
 
 
