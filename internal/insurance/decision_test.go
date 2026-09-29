@@ -1,14 +1,16 @@
-package domain
+package insurance
 
 import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 func TestCorrectedInsuranceIdentities(t *testing.T) {
-	InitRegistry("")
-	office, _ := ResolveOffice("Hollywood")
+	domain.InitRegistry("")
+	office, _ := domain.ResolveOffice("Hollywood")
 	for _, tc := range []struct{ plan, code, kind, channel string }{
 		{"United Individual Exchange", "UNI20", "pcp_referral", "uhc_portal"},
 		{"United AARP Medicare Complete/Medicare Advantage (HMO/LPPO)", "AARPM", "", ""},
@@ -47,7 +49,7 @@ func TestCorrectedInsuranceIdentities(t *testing.T) {
 }
 
 func TestAmbiguousFamiliesNeverChooseProduct(t *testing.T) {
-	office, _ := ResolveOffice("Hollywood")
+	office, _ := domain.ResolveOffice("Hollywood")
 	for _, plan := range []string{"United Golden Rule or United Oxford", "HUM03", "Clear Spring Health"} {
 		d := DecideInsurance(plan, "medical", office, "")
 		if (d.Participation == "accepted") || d.CanSchedule || d.CarrierID != "" {
@@ -71,13 +73,13 @@ func TestInsuranceOfficeScopeAndSimilarProducts(t *testing.T) {
 		{"Hollywood", "Preferred Care Partners", "routine_vision", "not_accepted"},
 		{"Crystal River", "United Golden Rule", "medical", "accepted"},
 	} {
-		office, _ := ResolveOffice(tc.office)
+		office, _ := domain.ResolveOffice(tc.office)
 		d := DecideInsurance(tc.plan, tc.coverage, office, "")
 		if d.Outcome != tc.outcome {
 			t.Errorf("%+v => %+v", tc, d)
 		}
 	}
-	office, _ := ResolveOffice("Hollywood")
+	office, _ := domain.ResolveOffice("Hollywood")
 	nhp := DecideInsurance("United Healthcare NHP HMO Only", "medical", office, "")
 	access := DecideInsurance("United Healthcare NHP HMO Access", "medical", office, "")
 	if len(nhp.Requirements) != 0 || !nhp.CanSchedule || len(access.Requirements) != 0 {
@@ -87,16 +89,16 @@ func TestInsuranceOfficeScopeAndSimilarProducts(t *testing.T) {
 
 func TestPRE04CredentialingAndChartBinding(t *testing.T) {
 	for _, name := range []string{"Hollywood", "Sweetwater"} {
-		office, _ := ResolveOffice(name)
-		d := DecideChartInsurance(PatientDemographics{CarrierID: "car40916", CarrierName: "PREFERRED CARE PARTNERS"}, "", "medical", office, "01/02/1980")
+		office, _ := domain.ResolveOffice(name)
+		d := DecideChartInsurance(domain.PatientDemographics{CarrierID: "car40916", CarrierName: "PREFERRED CARE PARTNERS"}, "", "medical", office, "01/02/1980")
 		if d.CarrierCode != "PRE04" || len(d.CredentialedProviders) != 3 || !d.CanSchedule || len(d.AllowedProviders) != 1 || d.AllowedProviders[0] != "Dr. Bach" {
 			t.Fatalf("%s=%+v", name, d)
 		}
-		d = DecideChartInsurance(PatientDemographics{CarrierID: "car40916", CarrierName: "Preferred Care Partners"}, "Aetna", "medical", office, "01/02/1980")
+		d = DecideChartInsurance(domain.PatientDemographics{CarrierID: "car40916", CarrierName: "Preferred Care Partners"}, "Aetna", "medical", office, "01/02/1980")
 		if d.CanSchedule {
 			t.Fatal("Caller correction silently scheduled against old PRE04 plan")
 		}
-		d = DecideChartInsurance(PatientDemographics{CarrierID: "car40923", CarrierName: "United Healthcare"}, "Preferred Care Partners", "medical", office, "01/02/1980")
+		d = DecideChartInsurance(domain.PatientDemographics{CarrierID: "car40923", CarrierName: "United Healthcare"}, "Preferred Care Partners", "medical", office, "01/02/1980")
 		if d.CanSchedule {
 			t.Fatal("mismatched chart scheduled")
 		}

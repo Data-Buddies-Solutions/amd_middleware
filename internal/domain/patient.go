@@ -123,7 +123,7 @@ type PatientInsuranceEnd struct {
 }
 
 func StripPatientPrefix(id string) string {
-	return strings.TrimPrefix(id, "pat")
+	return strings.TrimPrefix(strings.TrimSpace(id), "pat")
 }
 
 func NormalizeDOB(dob string) string {
@@ -149,33 +149,6 @@ func NormalizeDOB(dob string) string {
 	}
 
 	return dob
-}
-
-func FormatPhone(phone string) string {
-	var digits []byte
-	for _, c := range phone {
-		if c >= '0' && c <= '9' {
-			digits = append(digits, byte(c))
-		}
-	}
-	if len(digits) == 11 && digits[0] == '1' {
-		digits = digits[1:]
-	}
-	if len(digits) == 10 {
-		return fmt.Sprintf("(%s)%s-%s", string(digits[0:3]), string(digits[3:6]), string(digits[6:10]))
-	}
-	return phone
-}
-
-func NormalizeSex(sex string) string {
-	switch strings.ToUpper(strings.TrimSpace(sex)) {
-	case "M", "MALE":
-		return "M"
-	case "F", "FEMALE":
-		return "F"
-	default:
-		return "U"
-	}
 }
 
 func IsMinor(dob string) bool {

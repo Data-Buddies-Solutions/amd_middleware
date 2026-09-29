@@ -3,156 +3,134 @@
 **Safe patient and scheduling workflows between Acuity's voice agent and the
 clinical system of record.**
 
-The caller asks for outcomes—find this patient, offer a valid appointment,
-book this slot, cancel this visit. The middleware owns everything required to
-make those outcomes safe: authentication, office and insurance policy,
-eligibility, concurrency checks, provider translation, and recovery when a
-write may or may not have succeeded.
+The caller asks for outcomes: find this patient, offer a valid appointment, book this
+slot, cancel this visit. The middleware owns everything that makes those outcomes safe:
+authentication, office and insurance policy, eligibility, concurrency checks, provider
+translation, and recovery when a write may or may not have succeeded. It is one Go
+deployable, organized as a modular monolith.
 
-It is one Go deployable, organized as a modular monolith. Provider mechanics
-stay at the edge; Acuity behavior stays at the center.
+**Agent-friendly means a correct edit to one file preserves the whole service's
+invariants.** The design below exists so that an edit in the right folder cannot break a
+rule somewhere else.
 
-## Architecture in one minute
+## Six nouns organize the service
 
-Read this diagram from left to right. The caller speaks in patient and
-scheduling intent. Deep modules turn that intent into verified outcomes.
-Provider-specific endpoints, payloads, and errors live behind the records seam.
+Each noun has one place in the tree and one job at runtime.
+
+| Noun | Place | Job |
+| --- | --- | --- |
+| **Handler** | `internal/http/` | Decode one request, call one feature, respond. Records the PHI-safe request outcome. Never decides policy. |
+| **Feature** | `internal/patient/`, `internal/scheduling/`, `internal/eligibility/`, `internal/insurance/` | The one owner of a workflow's rules, receipts, and reconciliation. Commands and results carry their own JSON tags. |
+| **Value** | `internal/domain/`, `internal/safeerrors/`, `internal/safelog/` | Shared offices, routing, patient and scheduler types, and PHI-safe errors and logs. No I/O. |
+| **Records** | `internal/advancedmd/` | The `PatientRecords` and `SchedulingRecords` seam, the production adapter, the deterministic test adapter, and the one classifier of failed writes. |
+| **Transport** | `internal/clients/`, `internal/session/` | AdvancedMD XMLRPC and REST calls, the one response decoder, and the one owner of the login token. |
+| **Composition** | `cmd/api/`, `internal/config/` | Reads the environment once and wires one of everything. |
+
+## Layers are visible in the tree
+
+A package's folder tells you where it sits and which imports are legal.
 
 ```mermaid
 flowchart LR
-    caller["Voice agent<br/>care intent"]
-    scheduler["Cloud Scheduler<br/>session maintenance"]
-
-    subgraph app["One Go deployable"]
-        http["HTTP module<br/>authenticate · decode · map"]
-        patient["Patient module<br/>Resolve · Create · UpdateInsurance"]
-        scheduling["Scheduling module<br/>Search · List · Book · Cancel · Reschedule"]
-        policy["Domain policy<br/>office · routing · eligibility"]
-        session["Session module<br/>Get · Maintain · Status"]
-        records["Records interfaces<br/>PatientRecords · SchedulingRecords"]
-        adapter["Production records adapter"]
-
-        http --> patient
-        http --> scheduling
-        policy --> patient
-        policy --> scheduling
-        patient --> records
-        scheduling --> records
-        records --> adapter
-        session --> adapter
-    end
-
-    caller --> http
-    scheduler --> http
-    adapter --> provider["External system of record<br/>provider transport"]
-    records -.-> testadapter["Deterministic test adapter"]
+  agent(["Voice agent"]) --> http
+  composition["cmd/api · config<br/>composition"] --> http
+  subgraph handler["Handler"]
+    http["http<br/>decode · call · respond"]
+  end
+  subgraph features["Features"]
+    workflows["patient · scheduling · eligibility"]
+    insurance["insurance<br/>policy, no I/O"]
+  end
+  subgraph seam["Records seam"]
+    records["advancedmd<br/>PatientRecords · SchedulingRecords"]
+  end
+  subgraph transport["Transport"]
+    clients["clients<br/>decodeXMLRPC · oneOrMany"]
+    session["session<br/>one login token"]
+  end
+  http --> workflows
+  workflows --> insurance
+  workflows --> records
+  records --> clients
+  clients --> session
+  clients --> amd[("AdvancedMD")]
+  workflows --> stedi[("Stedi")]
 ```
 
-The architectural rule is:
+Every layer may use the values (`domain`, `safeerrors`, `safelog`), which import nothing
+internal.
 
-```text
-caller intent → owned policy → verified effect
-```
-
-The external provider is an implementation detail, not the model the rest of
-the codebase is built around.
-
-## Design from first principles
-
-The middleware exists because the two sides of the system should not need to
-understand each other:
-
-- The voice agent should not know credentials, provider endpoints, transport
-  formats, office IDs, scheduler columns, or write-recovery rules.
-- The clinical system should not need to understand conversational state,
-  patient intent, routing language, or how a caller should recover.
-- The middleware translates between them while preserving Acuity's rules.
-
-Four principles shape the implementation:
-
-1. **Intent enters; provider mechanics do not leak back.** Commands and results
-   use Acuity language. Raw payloads stay in the production adapter.
-2. **Every rule has one owner.** Patient behavior belongs to Patient,
-   scheduling behavior belongs to Scheduling, and deterministic policy belongs
-   to Domain.
-3. **A write is not successful until its effect is known.** Ambiguous writes
-   are reconciled through authoritative reads, never blindly repeated.
-4. **Interfaces are the test surface.** Production and deterministic adapters
-   cross the same seam used by the workflow modules.
-
-## The modules
-
-Each module exposes a small interface and hides a deeper implementation. That
-gives callers leverage and keeps change local.
-
-| Module | Interface callers learn | What the implementation owns |
+| Layer | Packages | May import |
 | --- | --- | --- |
-| HTTP | Authenticated JSON routes and stable response shapes | Authentication, request IDs, transport validation, and mapping |
-| Patient | `Resolve`, `Create`, `UpdateInsurance` | Identity resolution, demographics, insurance policy, patient mutations, and reconciliation |
-| Scheduling | `Search`, `List`, `Book`, `Cancel`, `Reschedule` | Availability, purpose-separated signed slots and cancellations, appointment intent, live revalidation, ownership checks, and reconciliation |
-| Domain | Policy and domain values | Offices, routing, eligibility, appointment types, capacity, and time rules |
-| Session | `Get`, `Maintain`, `Status` | Credentials, token lifecycle, single-flight login, and last-known-good state |
-| AdvancedMD | `PatientRecords`, `SchedulingRecords` | The external-records seam, production adapter, stable errors, transport, parsing, and normalization |
+| Value | `domain`, `safeerrors`, `safelog` | nothing internal |
+| Session | `session` | values |
+| Transport | `clients` | values, session |
+| Records | `advancedmd`, `advancedmdtest` | values, session, transport |
+| Policy | `insurance` | values |
+| Feature | `patient`, `scheduling`, `eligibility` | values, records, policy. Never another feature. |
+| Handler | `http` | values, session, records, policy, features. Never transport. |
+| Composition | `cmd/api`, `config` | anything |
 
-`cmd/api/main.go` is the composition root. It creates one Session, one
-production records adapter, one Patient module, one Scheduling module, and one
-HTTP router. No workflow module creates its own production dependency.
+[layers_test.go](layers_test.go) assigns every package a layer and fails on an import that
+points the wrong way. A new package fails the test until it is given a layer.
 
-## A request through the system
+## Feature blueprint
+
+A feature is a vertical slice. The request shape, the rules, the provider seam, and the
+wire format each live in their named owner.
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    participant C as Caller
-    participant H as HTTP module
-    participant W as Patient or Scheduling
-    participant D as Domain policy
-    participant R as Records adapter
-    participant S as Session
-    participant E as External system
-
-    C->>H: Authenticated JSON intent
-    H->>W: Validated command
-    W->>D: Ask for deterministic policy
-    D-->>W: Provider-independent decision
-    W->>R: Domain read or mutation
-    R->>S: Get a usable session
-    S-->>R: Session data copy
-    R->>E: Provider-specific request
-    E-->>R: Raw response
-    R-->>W: Normalized record or safe error
-    W-->>H: Stable result
-    H-->>C: JSON outcome + request ID
+flowchart LR
+  handler["<b>Handler</b><br/>http/handlers.go<br/>decode · call · respond"]
+  feature["<b>Feature</b><br/>scheduling/<br/>rules · signed tokens · receipts"]
+  records["<b>Records</b><br/>advancedmd/<br/>SchedulingRecords · adapter<br/>write classification"]
+  transport["<b>Transport</b><br/>clients/ · session/<br/>request · decode · token"]
+  handler <--> feature <--> records <--> transport
 ```
 
-The HTTP module remains thin: it authenticates, validates transport shape, and
-maps commands and results. It does not decide patient or scheduling policy.
+**The handler never handles provider calls, retries, reconciliation, or token state.**
 
-## The invariants
+To add a capability:
 
-These rules are more important than any individual endpoint:
+1. Put the rule in the feature that owns it. Give its command and result JSON tags so the
+   handler can decode and encode them directly.
+2. If it needs AdvancedMD data, add a method to `PatientRecords` or `SchedulingRecords`
+   and implement it in [adapter.go](internal/advancedmd/adapter.go) and
+   [advancedmdtest](internal/advancedmd/advancedmdtest/adapter.go).
+3. Parse the provider response in `clients` with `decodeXMLRPC` and `oneOrMany`, and
+   return domain types.
+4. Add a handler that decodes (`decodeStrict` for new endpoints), calls the feature, and
+   calls `respond`. Register the route in [router.go](internal/http/router.go).
+5. Read any new environment variable in [config](internal/config/config.go) and wire the
+   dependency in [main.go](cmd/api/main.go).
 
-- **One token owner.** Session is the only module that authenticates or mutates
-  process-local session state.
-- **One patient owner.** Patient owns complete resolution and patient mutation
-  outcomes, including partial success.
-- **One scheduling owner.** Scheduling owns availability, booking, and
-  cancellation, and rescheduling as one coherent workflow.
-- **One policy owner.** Domain owns office, routing, DOB, provider,
-  appointment-type, and capacity decisions without performing I/O.
-- **Complete reads prove absence.** A missing record from a partial read is
-  unknown, not absent. Malformed occupancy fails its column read, and incomplete
-  patient appointment reads return an appointment error rather than "none found".
-- **Refresh is bounded.** Scheduler setup waits honor cancellation. Failed refreshes
-  can reuse cached setup for at most 24 hours after its last successful load.
-  Authentication failures respect the retry cooldown even without a usable token.
-- **Ambiguous writes happen once.** The implementation reconciles through a
-  read or returns `indeterminate_write`; callers must not retry automatically.
-- **A slot is a signed promise.** Availability signs the selected policy facts,
-  and booking revalidates them against current patient and schedule state.
-- **Observability is PHI-safe.** Logs contain route, status, safe category,
-  latency, and a redacted request ID—not bodies, patient IDs, tokens, or raw
-  provider errors.
+## Decisions
+
+- **One writer per state.** `session` owns the login token, `patient` owns patient
+  mutations, `scheduling` owns appointment writes and signed tokens, and
+  `advancedmd.classifyMutation` alone decides whether a failed write is definite or
+  ambiguous.
+- **Writes are sent once.** An ambiguous write is reconciled through an authoritative
+  read or returned as `indeterminate_write`, never retried automatically. See
+  [Write safety](#write-safety).
+- **Complete reads prove absence.** A record missing from a partial read is unknown, not
+  absent. Malformed occupancy fails its column; an incomplete appointment read is an error,
+  not "none found".
+- **A slot is a signed promise.** Slot, cancellation, and reschedule tokens share one
+  HMAC signer in [tokens.go](internal/scheduling/tokens.go). Booking revalidates the signed
+  facts against live state. `TestTokenFormatIsStable` pins the token bytes so in-flight
+  tokens survive a deploy.
+- **Refresh is bounded.** Scheduler setup waits honor cancellation, and a failed refresh
+  can reuse cached setup for at most 24 hours. Authentication failures respect the retry
+  cooldown.
+- **Config owns the environment.** Only [config](internal/config/config.go) reads
+  environment variables.
+- **Response shapes are a contract with the voice agent.** A change to a request or
+  response shape ships together with the agent that reads it.
+- **Observability is PHI-safe.** Logs carry route, status, safe category, latency, and a
+  redacted request ID, never bodies, patient IDs, tokens, or raw provider errors.
+- **No code comments.** Intent lives in names and types.
+  [comments_test.go](comments_test.go) allows only `//go:` directives.
 
 ## Write safety
 
@@ -223,7 +201,7 @@ itself.
 sequenceDiagram
     participant C as Caller
     participant S as Scheduling
-    participant D as Domain policy
+    participant D as Scheduling policy
     participant R as SchedulingRecords
 
     C->>S: Search(date, office, routing, DOB)
@@ -274,15 +252,18 @@ token makes the session unavailable.
 
 All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 
-| Route | Intent |
-| --- | --- |
-| `POST /api/patient/resolve` | Resolve identity, demographics, routing, and upcoming appointments |
-| `POST /api/add-patient` | Create a patient and attach primary insurance |
-| `POST /api/patient/update-insurance` | Replace primary insurance |
-| `POST /api/scheduler/availability` | Find policy-valid slots and sign them |
-| `POST /api/appointment/book` | Revalidate and book a signed slot |
-| `POST /api/appointment/cancel` | Verify ownership and cancel an appointment |
-| `POST /api/appointment/reschedule` | Book a replacement, then cancel the confirmed original |
+| Route | Intent | Owner |
+| --- | --- | --- |
+| `POST /api/patient/resolve` | Resolve identity, demographics, routing, and upcoming appointments | `patient.Resolve` |
+| `POST /api/add-patient` | Create a patient and attach primary insurance | `patient.Create` |
+| `POST /api/patient/update-insurance` | Replace primary insurance | `patient.UpdateInsurance` |
+| `POST /api/insurance/decision` | Decide plan participation for an office | `insurance.DecideInsurance` |
+| `POST /api/eligibility/check` | Check payer eligibility through Stedi | `eligibility.Service.Check` |
+| `POST /api/scheduler/availability` | Find policy-valid slots and sign them | `scheduling.Search` |
+| `POST /api/scheduler/slots` | List openings as an inventory envelope | `scheduling.List` |
+| `POST /api/appointment/book` | Revalidate and book a signed slot | `scheduling.Book` |
+| `POST /api/appointment/cancel` | Verify ownership and cancel an appointment | `scheduling.Cancel` |
+| `POST /api/appointment/reschedule` | Book a replacement, then cancel the confirmed original | `scheduling.Reschedule` |
 
 Each appointment returned by patient resolution may include a private,
 short-lived `cancellationToken`. A cancellation request may send that token
@@ -313,22 +294,6 @@ HTTP 401, and maintenance failures use a redacted HTTP 503.
 [Provider error diagnostics](internal/clients/diagnostics.go) preserve request correlation,
 provider operation/status/code, and recovered failures without exposing payloads.
 
-## Source map
-
-```text
-cmd/api/main.go                  composition root
-internal/http/                   HTTP interface and transport mapping
-internal/patient/                patient workflow
-internal/scheduling/             availability, booking, cancellation, and rescheduling
-internal/domain/                 pure policy and domain values
-internal/session/                authentication and token lifecycle
-internal/advancedmd/             records interfaces and production adapter
-internal/advancedmd/advancedmdtest/   deterministic records adapter
-internal/clients/                provider transport implementations
-internal/safeerrors/             PHI-safe error classification
-internal/config/                 runtime configuration
-```
-
 ## Run locally
 
 Requirements: Go 1.26+ and valid development credentials.
@@ -349,12 +314,13 @@ curl http://localhost:8080/live
 curl http://localhost:8080/ready
 ```
 
-Build and verify:
+Build and verify. `go test ./...` also runs the layer and no-comments checks.
 
 ```bash
 go build ./...
 go test ./...
 go vet ./...
+test -z "$(gofmt -l cmd internal .)"
 ```
 
 The container uses the same interface:
@@ -383,12 +349,14 @@ Deployment configuration and verification live in the
 The README explains the system. Detailed provider and policy data stay close to
 their owners:
 
-- [AdvancedMD adapter](internal/advancedmd/adapter.go) — provider records and completeness
-- [Office policy](internal/domain/office.go) — offices, scheduler columns, and routing lanes
-- [Insurance decisions](internal/domain/insurance_decision.go) — participation and scheduling requirements
-- [Patient resolution](internal/patient/resolve.go) — identity and appointment loading
-- [Deployment](scripts/deploy-cloud-run.sh) — production configuration and maintenance identity
-- [Contributing](CONTRIBUTING.md) — pull request, merge, and release conventions
+- [Records seam](internal/advancedmd/advancedmd.go) and [adapter](internal/advancedmd/adapter.go): provider records, completeness, and write classification
+- [AdvancedMD transport](internal/clients/advancedmd_xmlrpc.go): the response decoder and `oneOrMany`
+- [Office policy](internal/domain/office.go): offices, scheduler columns, and routing lanes
+- [Insurance decisions](internal/insurance/decision.go): participation and scheduling requirements
+- [Scheduling policy](internal/scheduling/policy.go) and [tokens](internal/scheduling/tokens.go): booking rules and signed promises
+- [Patient resolution](internal/patient/resolve.go): identity and appointment loading
+- [Deployment](scripts/deploy-cloud-run.sh): production configuration and maintenance identity
+- [Contributing](CONTRIBUTING.md): pull request, merge, and release conventions
 
 The executable source of truth is the owning module and its interface-level tests.
 

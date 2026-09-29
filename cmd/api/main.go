@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -23,19 +22,16 @@ import (
 	"advancedmd-token-management/internal/session"
 )
 
-const version = "1.0.0"
-
 func main() {
 	log.SetFlags(0)
 	log.SetOutput(safelog.NewWriter(os.Stdout))
-	log.Printf("Starting gateway v%s", version)
-
-	domain.InitRegistry(os.Getenv("AMD_ENV"))
+	log.Printf("Starting gateway")
 
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config category=%s", safeerrors.Classify(err))
 	}
+	domain.InitRegistry(cfg.AMDEnv)
 
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
@@ -68,18 +64,14 @@ func main() {
 		cfg.AllowRawSlotBooking,
 	)
 
-	handlers := apphttp.NewHandlers(amdSession, patients, scheduler)
-	if key, providersJSON := os.Getenv("STEDI_API_KEY"), os.Getenv("STEDI_PROVIDERS"); key != "" || providersJSON != "" {
-		var providers map[string]eligibility.Provider
-		if providersJSON != "" && json.Unmarshal([]byte(providersJSON), &providers) != nil {
-			log.Fatal("invalid eligibility provider configuration")
-		}
-		service, err := eligibility.New(key, providers)
+	var eligibilityService *eligibility.Service
+	if cfg.StediAPIKey != "" || cfg.StediProviders != nil {
+		eligibilityService, err = eligibility.New(cfg.StediAPIKey, cfg.StediProviders)
 		if err != nil {
 			log.Fatal("invalid eligibility configuration")
 		}
-		handlers.SetEligibility(service)
 	}
+	handlers := apphttp.NewHandlers(amdSession, patients, scheduler, eligibilityService)
 
 	maintenanceAuthorizer := apphttp.NewMaintenanceAuthorizer(
 		cfg.MaintenanceOIDCAudience,

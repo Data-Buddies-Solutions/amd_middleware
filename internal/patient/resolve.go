@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 	"advancedmd-token-management/internal/safeerrors"
 )
 
@@ -310,7 +312,7 @@ func applyDemographics(result *ResolveResult, demographics domain.PatientDemogra
 	if demographics.CarrierID == "" {
 		return
 	}
-	decision := domain.DecideChartInsurance(demographics, "", "medical", office, patientDOB)
+	decision := insurance.DecideChartInsurance(demographics, "", "medical", office, patientDOB)
 	result.InsuranceDecision = &decision
 	result.Routing = decision.Routing
 	result.AllowedProviders = decision.AllowedProviders
@@ -345,4 +347,30 @@ func multipleMatchesMessage(command ResolveCommand, count int) string {
 		return fmt.Sprintf("Found %d patients for this phone number. Ask the caller to confirm their name.", count)
 	}
 	return fmt.Sprintf("Found %d patients with that last name and DOB. Please provide first name.", count)
+}
+
+func (c ResolveCommand) Validate() string {
+	hasLookupFields := c.Phone != "" || c.FirstName != "" || c.LastName != "" || c.DOB != ""
+	if c.PatientID != "" {
+		if _, err := strconv.Atoi(c.PatientID); err != nil {
+			return "patientId must be numeric"
+		}
+		if hasLookupFields {
+			return "Provide either patientId or lookup fields, not both"
+		}
+		return ""
+	}
+	if c.Phone != "" {
+		if domain.NormalizePhoneDigits(c.Phone) == "" {
+			return "phone must contain at least one digit"
+		}
+		return ""
+	}
+	if (c.FirstName != "" || c.LastName != "") && c.DOB != "" {
+		if err := domain.ValidateOptionalDOB(c.DOB); err != nil {
+			return err.Error()
+		}
+		return ""
+	}
+	return "Provide patientId, phone, phone + firstName, phone + dob, firstName + dob, or lastName + dob"
 }

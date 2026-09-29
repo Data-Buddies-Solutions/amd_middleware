@@ -35,7 +35,7 @@ func TestAdapterSearchPatientsByNameUsesControlledXMLRPCServer(t *testing.T) {
 	defer server.Close()
 
 	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
+		staticSession{token: &session.TokenData{
 			CookieToken: "token=test-cookie",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 		}},
@@ -96,7 +96,7 @@ func TestAdapterDemographicsUsesControlledXMLRPCServer(t *testing.T) {
 	defer server.Close()
 
 	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
+		staticSession{token: &session.TokenData{
 			CookieToken: "token=test-cookie",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 		}},
@@ -146,7 +146,7 @@ func TestAdapterReturnsStableRedactedErrors(t *testing.T) {
 		defer server.Close()
 
 		adapter := NewAdapter(
-			staticSession{token: &domain.TokenData{
+			staticSession{token: &session.TokenData{
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 			}},
@@ -187,7 +187,7 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 		defer server.Close()
 
 		adapter := NewAdapter(
-			staticSession{token: &domain.TokenData{
+			staticSession{token: &session.TokenData{
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 			}},
@@ -212,7 +212,7 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 		defer server.Close()
 
 		adapter := NewAdapter(
-			staticSession{token: &domain.TokenData{
+			staticSession{token: &session.TokenData{
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 			}},
@@ -237,7 +237,7 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 		defer server.Close()
 
 		adapter := NewAdapter(
-			staticSession{token: &domain.TokenData{
+			staticSession{token: &session.TokenData{
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 			}},
@@ -268,7 +268,7 @@ func TestAdapterInsuranceMutationUsesControlledXMLRPCServer(t *testing.T) {
 	defer server.Close()
 
 	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
+		staticSession{token: &session.TokenData{
 			CookieToken: "token=test-cookie",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 		}},
@@ -384,7 +384,7 @@ func TestAdapterUpcomingAppointmentsUsesControlledRESTServer(t *testing.T) {
 	defer server.Close()
 
 	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
+		staticSession{token: &session.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
 		}},
@@ -474,7 +474,7 @@ func TestAdapterCanonicalizesDevelopmentAppointmentTypeIDs(t *testing.T) {
 	defer server.Close()
 
 	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
+		staticSession{token: &session.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
 		}},
@@ -535,7 +535,7 @@ func TestAdapterPreservesUnrecognizedProductionAppointmentType(t *testing.T) {
 	defer server.Close()
 
 	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
+		staticSession{token: &session.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
 		}},
@@ -597,7 +597,7 @@ func TestAdapterSingleOfficeUsesSixReadsAndMarksUnreconciledRowsIncomplete(t *te
 	defer server.Close()
 
 	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
+		staticSession{token: &session.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
 		}},
@@ -640,7 +640,7 @@ func TestAdapterReadsIntendedAppointmentMonth(t *testing.T) {
 	defer server.Close()
 
 	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
+		staticSession{token: &session.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
 		}},
@@ -680,7 +680,7 @@ func TestAdapterIntendedMonthReadPreservesPerOfficeReconciliation(t *testing.T) 
 	defer server.Close()
 
 	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
+		staticSession{token: &session.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
 		}},
@@ -726,7 +726,7 @@ func TestAdapterMarksMissingPatientIDIncomplete(t *testing.T) {
 	defer server.Close()
 
 	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
+		staticSession{token: &session.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
 		}},
@@ -762,7 +762,7 @@ func TestAdapterReadsCurrentAppointmentStateAfterStartTime(t *testing.T) {
 	defer server.Close()
 
 	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
+		staticSession{token: &session.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
 		}},
@@ -840,7 +840,7 @@ func TestAdapterReadsCompleteScheduleThroughDomainSeam(t *testing.T) {
 	defer server.Close()
 
 	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
+		staticSession{token: &session.TokenData{
 			CookieToken: "token=test-cookie",
 			Token:       "Bearer test-token",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://") + "/xmlrpc",
@@ -882,7 +882,7 @@ func TestAdapterPreservesPartialScheduleReads(t *testing.T) {
 	defer server.Close()
 
 	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
+		staticSession{token: &session.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
 		}},
@@ -929,7 +929,7 @@ func TestAdapterBooksAndCancelsThroughControlledRESTServer(t *testing.T) {
 	defer server.Close()
 
 	adapter := NewAdapter(
-		staticSession{token: &domain.TokenData{
+		staticSession{token: &session.TokenData{
 			Token:       "Bearer test-token",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
 		}},
@@ -981,7 +981,10 @@ func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
 	}{
 		{name: "conflict", status: http.StatusConflict, category: safeerrors.CategoryConflict},
 		{name: "authentication", status: http.StatusUnauthorized, category: safeerrors.CategoryAuthentication},
+		{name: "forbidden", status: http.StatusForbidden, category: safeerrors.CategoryAuthentication},
 		{name: "rejection", status: http.StatusUnprocessableEntity, category: safeerrors.CategoryRejected},
+		{name: "bad request", status: http.StatusBadRequest, category: safeerrors.CategoryRejected},
+		{name: "timeout", status: http.StatusRequestTimeout, category: safeerrors.CategoryUpstreamStatus, ambiguous: true},
 		{name: "ambiguous server failure", status: http.StatusInternalServerError, category: safeerrors.CategoryUpstreamStatus, ambiguous: true},
 	}
 
@@ -993,7 +996,7 @@ func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
 			defer server.Close()
 
 			adapter := NewAdapter(
-				staticSession{token: &domain.TokenData{
+				staticSession{token: &session.TokenData{
 					Token:       "Bearer test-token",
 					RestApiBase: strings.TrimPrefix(server.URL, "https://"),
 				}},
@@ -1012,18 +1015,31 @@ func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
 				AppointmentColor:          "ORANGE",
 			})
 			if CategoryOf(err) != tt.category || IsAmbiguousWrite(err) != tt.ambiguous {
-				t.Fatalf("error = %v, category = %q, ambiguous = %t", err, CategoryOf(err), IsAmbiguousWrite(err))
+				t.Fatalf("booking error = %v, category = %q, ambiguous = %t", err, CategoryOf(err), IsAmbiguousWrite(err))
+			}
+
+			xmlAdapter := NewAdapter(
+				staticSession{token: &session.TokenData{
+					CookieToken: "token=test-cookie",
+					XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
+				}},
+				clients.NewAdvancedMDClient(server.Client()),
+				nil,
+			)
+			_, err = xmlAdapter.CreatePatient(context.Background(), domain.PatientCreate{FirstName: "JANE", LastName: "DOE", OfficeID: "spring_hill"})
+			if CategoryOf(err) != tt.category || IsAmbiguousWrite(err) != tt.ambiguous {
+				t.Fatalf("create error = %v, category = %q, ambiguous = %t", err, CategoryOf(err), IsAmbiguousWrite(err))
 			}
 		})
 	}
 }
 
 type staticSession struct {
-	token *domain.TokenData
+	token *session.TokenData
 	err   error
 }
 
-func (s staticSession) Get(context.Context) (*domain.TokenData, error) {
+func (s staticSession) Get(context.Context) (*session.TokenData, error) {
 	return s.token, s.err
 }
 
@@ -1048,7 +1064,7 @@ func TestScheduleReadsAreConcurrentAndCannotUseMalformedOccupancy(t *testing.T) 
 		w.Write([]byte(`[]`))
 	}))
 	defer server.Close()
-	adapter := NewAdapter(staticSession{token: &domain.TokenData{RestApiBase: strings.TrimPrefix(server.URL, "https://")}}, nil, clients.NewAdvancedMDRestClient(server.Client()))
+	adapter := NewAdapter(staticSession{token: &session.TokenData{RestApiBase: strings.TrimPrefix(server.URL, "https://")}}, nil, clients.NewAdvancedMDRestClient(server.Client()))
 	done := make(chan error, 1)
 	go func() {
 		read, err := adapter.ReadSchedule(context.Background(), domain.ScheduleReadQuery{ColumnIDs: []string{"1513", "1598"}, Date: "2026-09-15"})
@@ -1102,7 +1118,7 @@ func TestAdapterPatientCandidatesForwardsDOB(t *testing.T) {
 				w.Write([]byte(`{"PPMDResults":{"Results":{"patientlist":{"@page":"1","@pagecount":"1","@itemcount":"0"}}}}`))
 			}))
 			defer server.Close()
-			adapter := NewAdapter(staticSession{token: &domain.TokenData{CookieToken: "token=test", XmlrpcURL: strings.TrimPrefix(server.URL, "https://")}}, clients.NewAdvancedMDClient(server.Client()), nil)
+			adapter := NewAdapter(staticSession{token: &session.TokenData{CookieToken: "token=test", XmlrpcURL: strings.TrimPrefix(server.URL, "https://")}}, clients.NewAdvancedMDClient(server.Client()), nil)
 			got, err := adapter.ReadPatientCandidates(context.Background(), "Jane", dob)
 			if err != nil || !got.Complete || len(got.Patients) != 0 {
 				t.Fatalf("read=%+v err=%v", got, err)

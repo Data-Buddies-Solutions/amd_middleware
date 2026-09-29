@@ -1,6 +1,6 @@
 # Vision eligibility payer mapping
 
-Verified 2026-09-23 against the [Stedi public payer directory CSV](https://payers.us.stedi.com/2024-04-01/public/payers/csv), comparing `DisplayName`, `Names`, `PrimaryPayerId`, `EligibilityInquiry`, `EligibilityInquiryEnrollmentRequired`, and `CoverageTypes` with `internal/eligibility/routes.go` and `internal/domain/insurance_data/INSURANCE_SPRING_HILL_ROUTINE_VISION.json`.
+Verified 2026-09-23 against the [Stedi public payer directory CSV](https://payers.us.stedi.com/2024-04-01/public/payers/csv), comparing `DisplayName`, `Names`, `PrimaryPayerId`, `EligibilityInquiry`, `EligibilityInquiryEnrollmentRequired`, and `CoverageTypes` with `internal/eligibility/routes.go` and `internal/insurance/data/INSURANCE_SPRING_HILL_ROUTINE_VISION.json`.
 
 Stedi distinguishes transaction support from coverage types. A payer ID or a vision label alone does not make eligibility supported. [Stedi supported-payer documentation](https://www.stedi.com/docs/healthcare/supported-payers).
 

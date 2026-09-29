@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/session"
 )
 
-func newTestRestClient(t *testing.T, handler http.Handler) (*AdvancedMDRestClient, *domain.TokenData, func()) {
+func newTestRestClient(t *testing.T, handler http.Handler) (*AdvancedMDRestClient, *session.TokenData, func()) {
 	t.Helper()
 	server := httptest.NewTLSServer(handler)
 
@@ -29,7 +29,7 @@ func newTestRestClient(t *testing.T, handler http.Handler) (*AdvancedMDRestClien
 
 	restBase := server.URL[8:]
 
-	tokenData := &domain.TokenData{
+	tokenData := &session.TokenData{
 		Token:       "Bearer test-token",
 		RestApiBase: restBase,
 	}
@@ -106,17 +106,17 @@ func TestScheduleReadLogsUpstreamStatus(t *testing.T) {
 	for _, tc := range []struct {
 		operation string
 		status    int
-		read      func(*AdvancedMDRestClient, *domain.TokenData) error
+		read      func(*AdvancedMDRestClient, *session.TokenData) error
 	}{
-		{"appointments", http.StatusTooManyRequests, func(c *AdvancedMDRestClient, token *domain.TokenData) error {
+		{"appointments", http.StatusTooManyRequests, func(c *AdvancedMDRestClient, token *session.TokenData) error {
 			_, err := c.GetAppointments(context.Background(), token, "1513", "2026-03-03")
 			return err
 		}},
-		{"block holds", http.StatusServiceUnavailable, func(c *AdvancedMDRestClient, token *domain.TokenData) error {
+		{"block holds", http.StatusServiceUnavailable, func(c *AdvancedMDRestClient, token *session.TokenData) error {
 			_, err := c.GetBlockHolds(context.Background(), token, "1513", "2026-03-03")
 			return err
 		}},
-		{"monthly appointments", http.StatusForbidden, func(c *AdvancedMDRestClient, token *domain.TokenData) error {
+		{"monthly appointments", http.StatusForbidden, func(c *AdvancedMDRestClient, token *session.TokenData) error {
 			_, err := c.GetAppointmentsByMonth(context.Background(), token, "1513", "2026-03-01")
 			return err
 		}},
@@ -313,30 +313,31 @@ func TestCancelAppointment_Success(t *testing.T) {
 	}
 }
 
-func TestMutationDispositionForStatus(t *testing.T) {
-	for status, want := range map[int]MutationDisposition{
-		http.StatusBadRequest:          MutationDispositionRejected,
-		http.StatusUnauthorized:        MutationDispositionAuthentication,
-		http.StatusForbidden:           MutationDispositionAuthentication,
-		http.StatusRequestTimeout:      MutationDispositionAmbiguous,
-		http.StatusConflict:            MutationDispositionConflict,
-		http.StatusInternalServerError: MutationDispositionAmbiguous,
-	} {
-		t.Run(http.StatusText(status), func(t *testing.T) {
-			handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(status)
-			})
-			client, tokenData, cleanup := newTestRestClient(t, handler)
-			defer cleanup()
+func TestScheduleReadsRejectEmptyResponseBodies(t *testing.T) {
+	client, token, cleanup := newTestRestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer cleanup()
 
-			_, bookingErr := client.BookAppointment(context.Background(), tokenData, BookAppointmentParams{})
-			if got := MutationDispositionOf(bookingErr); got != want {
-				t.Fatalf("booking disposition = %v, want %v", got, want)
-			}
-			cancellationErr := client.CancelAppointment(context.Background(), tokenData, 9570263)
-			if got := MutationDispositionOf(cancellationErr); got != want {
-				t.Fatalf("cancellation disposition = %v, want %v", got, want)
-			}
-		})
+	if _, err := client.GetAppointments(context.Background(), token, "1513", "2026-03-01"); err == nil {
+		t.Fatal("empty appointments body must not read as an empty schedule")
+	}
+	if _, err := client.GetBlockHolds(context.Background(), token, "1513", "2026-03-01"); err == nil {
+		t.Fatal("empty block holds body must not read as no holds")
+	}
+	if _, err := client.GetAppointmentsByMonth(context.Background(), token, "1513", "2026-03-01"); err == nil {
+		t.Fatal("empty monthly body must not read as no appointments")
+	}
+}
+
+func TestGetAppointmentsByMonthAcceptsSingleObject(t *testing.T) {
+	client, token, cleanup := newTestRestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte(`{"id": 42, "startdatetime": "2026-03-18T12:00:00", "patientid": 123}`))
+	}))
+	defer cleanup()
+
+	appointments, err := client.GetAppointmentsByMonth(context.Background(), token, "1513", "2026-03-01")
+	if err != nil || len(appointments) != 1 || appointments[0].ID != 42 {
+		t.Fatalf("GetAppointmentsByMonth() = %+v, err = %v", appointments, err)
 	}
 }

@@ -11,7 +11,7 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
-func (s *service) Search(ctx context.Context, command SearchCommand) (domain.AvailabilityResponse, error) {
+func (s *service) Search(ctx context.Context, command SearchCommand) (AvailabilityResponse, error) {
 	return s.search(ctx, command, 0)
 }
 
@@ -28,7 +28,7 @@ type ListCommand struct {
 	PreauthRequired bool   `json:"preauthRequired"`
 }
 
-func (s *service) List(ctx context.Context, command ListCommand) (domain.AvailabilityResponse, error) {
+func (s *service) List(ctx context.Context, command ListCommand) (AvailabilityResponse, error) {
 	if command.Routing == "" && command.VisitType == domain.AppointmentVisitRoutineVision {
 		command.Routing = string(domain.RoutingOpticalOnly)
 	}
@@ -37,15 +37,15 @@ func (s *service) List(ctx context.Context, command ListCommand) (domain.Availab
 		days = 14
 	}
 	if days != 14 {
-		return domain.AvailabilityResponse{}, schedulingError("rangeDays must be 14; use startDate to search a different window")
+		return AvailabilityResponse{}, schedulingError("rangeDays must be 14; use startDate to search a different window")
 	}
 	return s.search(ctx, SearchCommand{VisitType: command.VisitType, Office: command.Office, DOB: command.DOB,
 		PatientID: command.PatientID, InsurancePlan: command.InsurancePlan, CoverageType: command.CoverageType,
 		RequestedDate: command.StartDate, Routing: command.Routing, PreauthRequired: command.PreauthRequired}, days)
 }
 
-func (s *service) search(ctx context.Context, command SearchCommand, inventoryDays int) (domain.AvailabilityResponse, error) {
-	empty := domain.AvailabilityResponse{}
+func (s *service) search(ctx context.Context, command SearchCommand, inventoryDays int) (AvailabilityResponse, error) {
+	empty := AvailabilityResponse{}
 	now := s.now()
 	nowEastern := now.In(eastern)
 	requestedDate := command.RequestedDate
@@ -83,26 +83,26 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 	if err != nil {
 		return empty, schedulingError(err.Error())
 	}
-	policy := domain.NewSchedulingPolicy(office)
+	policy := newSchedulingPolicy(office)
 	if command.VisitType != "" && command.VisitType != domain.AppointmentVisitMedical && command.VisitType != domain.AppointmentVisitRoutineVision {
 		return empty, schedulingError("visitType must be medical or routine_vision")
 	}
-	unsupportedVisit := func() domain.AvailabilityResponse {
-		return domain.AvailabilityResponse{
-			Status: domain.AvailabilityStatusSuccess, Outcome: domain.AvailabilityOutcomeNoEligibleProviders,
-			RequestedDate: originalRequestedDate, NextAction: domain.AvailabilityNextActionAskDifferentPreferences,
-			Slots: []domain.AvailabilitySlotOption{}, Message: "This office or routing does not support the requested visit type.",
+	unsupportedVisit := func() AvailabilityResponse {
+		return AvailabilityResponse{
+			Status: AvailabilityStatusSuccess, Outcome: AvailabilityOutcomeNoEligibleProviders,
+			RequestedDate: originalRequestedDate, NextAction: AvailabilityNextActionAskDifferentPreferences,
+			Slots: []AvailabilitySlotOption{}, Message: "This office or routing does not support the requested visit type.",
 		}
 	}
-	if (command.VisitType == domain.AppointmentVisitMedical && !policy.SupportsMedical()) ||
-		(command.VisitType == domain.AppointmentVisitRoutineVision && !policy.SupportsRouting(domain.RoutingOpticalOnly)) {
+	if (command.VisitType == domain.AppointmentVisitMedical && !office.SupportsMedical()) ||
+		(command.VisitType == domain.AppointmentVisitRoutineVision && !office.SupportsRouting(domain.RoutingOpticalOnly)) {
 		return unsupportedVisit(), nil
 	}
 	if command.PatientID != "" && command.VisitType != "" && command.CoverageType != "" && command.CoverageType != command.VisitType {
 		return empty, schedulingError("coverageType must match visitType")
 	}
 
-	routing := policy.SchedulingRouting(domain.ParseRoutingRule(command.Routing), command.DOB)
+	routing := office.SchedulingRouting(domain.ParseRoutingRule(command.Routing), command.DOB)
 	if (command.VisitType == domain.AppointmentVisitMedical && routing == domain.RoutingOpticalOnly) ||
 		(command.VisitType == domain.AppointmentVisitRoutineVision && routing != domain.RoutingOpticalOnly) {
 		return unsupportedVisit(), nil
@@ -130,15 +130,15 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 				strings.Join(office.ValidProviderNames(), ", "),
 			))
 		}
-		return domain.AvailabilityResponse{
-			Status:                domain.AvailabilityStatusSuccess,
-			Outcome:               domain.AvailabilityOutcomeNoEligibleProviders,
+		return AvailabilityResponse{
+			Status:                AvailabilityStatusSuccess,
+			Outcome:               AvailabilityOutcomeNoEligibleProviders,
 			AvailabilityFound:     false,
 			RequestedDate:         originalRequestedDate,
 			ShouldRetrySameSearch: false,
-			NextAction:            domain.AvailabilityNextActionAskDifferentPreferences,
+			NextAction:            AvailabilityNextActionAskDifferentPreferences,
 			Message:               "No eligible providers found for this office, routing, provider, and DOB.",
-			Slots:                 []domain.AvailabilitySlotOption{},
+			Slots:                 []AvailabilitySlotOption{},
 		}, nil
 	}
 
@@ -149,7 +149,7 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 			return empty, providerError(err, "Appointment scheduling is temporarily unavailable. Please try again.")
 		}
 	}
-	var slots []domain.AvailabilitySlotOption
+	var slots []AvailabilitySlotOption
 	searchIncomplete := false
 	unavailableDataChecks := 0
 	searchDate := startDate
@@ -185,7 +185,7 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 			)
 		}
 
-		var daySlots []domain.AvailabilitySlotOption
+		var daySlots []AvailabilitySlotOption
 		for _, column := range allowedColumns {
 			if !workingColumnSet[column.ID] {
 				continue
@@ -216,7 +216,7 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 			columnID, _ := strconv.Atoi(column.ID)
 			profileID, _ := strconv.Atoi(column.ProfileID)
 			for _, slot := range allSlots {
-				daySlots = append(daySlots, domain.AvailabilitySlotOption{
+				daySlots = append(daySlots, AvailabilitySlotOption{
 					Provider:          displayName,
 					Time:              slot.Time,
 					DateTime:          slot.DateTime,
@@ -281,13 +281,13 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 	if err != nil {
 		return empty, schedulingError("Failed to create booking tokens: " + err.Error())
 	}
-	return domain.AvailabilityResponse{
-		Status:                domain.AvailabilityStatusSuccess,
-		Outcome:               domain.AvailabilityOutcomeFound,
+	return AvailabilityResponse{
+		Status:                AvailabilityStatusSuccess,
+		Outcome:               AvailabilityOutcomeFound,
 		AvailabilityFound:     true,
 		RequestedDate:         originalRequestedDate,
 		ShouldRetrySameSearch: false,
-		NextAction:            domain.AvailabilityNextActionOfferSlots,
+		NextAction:            AvailabilityNextActionOfferSlots,
 		ActualDate:            actualDate,
 		DateShifted:           availabilityDateShifted(originalRequestedDate, searchStartDate, actualDate),
 		SearchedFrom:          searchStartDate,
@@ -312,14 +312,14 @@ func availabilityDateShifted(requestedDate, searchStartDate, actualDate string) 
 	return searchStartDate != requestedDate
 }
 
-func noneResponse(requestedDate, searchStartDate, searchEndDate string) domain.AvailabilityResponse {
-	return domain.AvailabilityResponse{
-		Status:                domain.AvailabilityStatusSuccess,
-		Outcome:               domain.AvailabilityOutcomeNoAvailability,
+func noneResponse(requestedDate, searchStartDate, searchEndDate string) AvailabilityResponse {
+	return AvailabilityResponse{
+		Status:                AvailabilityStatusSuccess,
+		Outcome:               AvailabilityOutcomeNoAvailability,
 		AvailabilityFound:     false,
 		RequestedDate:         requestedDate,
 		ShouldRetrySameSearch: false,
-		NextAction:            domain.AvailabilityNextActionAskDifferentPreferences,
+		NextAction:            AvailabilityNextActionAskDifferentPreferences,
 		SearchedFrom:          searchStartDate,
 		SearchedThrough:       searchEndDate,
 		Message: fmt.Sprintf(
@@ -327,7 +327,7 @@ func noneResponse(requestedDate, searchStartDate, searchEndDate string) domain.A
 			searchStartDate,
 			searchEndDate,
 		),
-		Slots: []domain.AvailabilitySlotOption{},
+		Slots: []AvailabilitySlotOption{},
 	}
 }
 
@@ -336,14 +336,14 @@ func incompleteResponse(
 	searchStartDate,
 	searchEndDate string,
 	unavailableDataChecks int,
-) domain.AvailabilityResponse {
-	return domain.AvailabilityResponse{
-		Status:                domain.AvailabilityStatusError,
-		Outcome:               domain.AvailabilityOutcomeSearchIncomplete,
+) AvailabilityResponse {
+	return AvailabilityResponse{
+		Status:                AvailabilityStatusError,
+		Outcome:               AvailabilityOutcomeSearchIncomplete,
 		AvailabilityFound:     false,
 		RequestedDate:         requestedDate,
 		ShouldRetrySameSearch: true,
-		NextAction:            domain.AvailabilityNextActionRetryOnceThenAskPreferences,
+		NextAction:            AvailabilityNextActionRetryOnceThenAskPreferences,
 		SearchedFrom:          searchStartDate,
 		SearchedThrough:       searchEndDate,
 		Message: fmt.Sprintf(
@@ -352,7 +352,7 @@ func incompleteResponse(
 			searchEndDate,
 			unavailableDataChecks,
 		),
-		Slots: []domain.AvailabilitySlotOption{},
+		Slots: []AvailabilitySlotOption{},
 	}
 }
 

@@ -9,8 +9,8 @@ import (
 func NewRouter(handlers *Handlers, apiSecret string, maintenanceAuthorizer MaintenanceAuthorizer) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(RequestIDMiddleware)
-	r.Use(LoggingMiddleware(handlers.session))
+	r.Use(requestIDMiddleware)
+	r.Use(loggingMiddleware(handlers.session))
 	r.Use(recoveryMiddleware)
 
 	r.Get("/health", handlers.HandleLive)
@@ -18,11 +18,11 @@ func NewRouter(handlers *Handlers, apiSecret string, maintenanceAuthorizer Maint
 	r.Get("/ready", handlers.HandleReady)
 	r.Get("/metrics", handlers.HandleMetrics)
 
-	r.With(MaintenanceAuthMiddleware(maintenanceAuthorizer)).
+	r.With(maintenanceAuthMiddleware(maintenanceAuthorizer)).
 		Post("/ops/session/maintenance", handlers.HandleSessionMaintenance)
 
 	r.Route("/api", func(r chi.Router) {
-		r.Use(AuthMiddleware(apiSecret))
+		r.Use(authMiddleware(apiSecret))
 
 		r.Post("/eligibility/check", handlers.HandleEligibility)
 		r.Post("/insurance/decision", handlers.HandleInsuranceDecision)

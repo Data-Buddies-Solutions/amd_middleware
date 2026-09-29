@@ -1,11 +1,13 @@
 package scheduling_test
 
 import (
-	"advancedmd-token-management/internal/domain"
-	"advancedmd-token-management/internal/scheduling"
 	"context"
 	"testing"
 	"time"
+
+	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
+	"advancedmd-token-management/internal/scheduling"
 )
 
 func TestExistingPatientListsAndBooksWithoutInsuranceClarification(t *testing.T) {
@@ -20,7 +22,7 @@ func TestExistingPatientListsAndBooksWithoutInsuranceClarification(t *testing.T)
 			}
 			svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false)
 			result, err := svc.List(context.Background(), scheduling.ListCommand{PatientID: "12345", Office: "Crystal River", StartDate: "2026-06-03", DOB: "01/15/1980", CoverageType: "medical", VisitType: "medical"})
-			if err != nil || result.Outcome != domain.AvailabilityOutcomeFound || len(result.Slots) == 0 {
+			if err != nil || result.Outcome != scheduling.AvailabilityOutcomeFound || len(result.Slots) == 0 {
 				t.Fatalf("existing patient inventory blocked: err=%v result=%+v", err, result)
 			}
 			if records.DemographicCalls != 0 {
@@ -36,7 +38,7 @@ func TestExistingPatientListsAndBooksWithoutInsuranceClarification(t *testing.T)
 
 func TestVisionCarrierIdentitySurvivesAvailabilityAndBooking(t *testing.T) {
 	office, _ := domain.ResolveOffice("North Miami Beach Optical")
-	accepted := domain.DecideInsurance("Devoted", "routine_vision", office, "01/15/1980")
+	accepted := insurance.DecideInsurance("Devoted", "routine_vision", office, "01/15/1980")
 	records := recordsWithSetup(testColumn("1601", "621", "1582", "09:00", "09:15", 15))
 	records.SchedulerSetup.Profiles = append(records.SchedulerSetup.Profiles, domain.SchedulerProfile{ID: "621", Name: "BACH, MIRIAM"})
 	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierID: accepted.CarrierID, CarrierName: "PREMIER EYE CARE"}

@@ -1,13 +1,15 @@
-package domain
+package insurance
 
 import (
 	"embed"
 	"encoding/json"
 	"regexp"
 	"strings"
+
+	"advancedmd-token-management/internal/domain"
 )
 
-//go:embed insurance_data/*.json
+//go:embed data/*.json
 var insuranceSources embed.FS
 
 type InsuranceRequirement struct {
@@ -23,7 +25,7 @@ type InsuranceDecision struct {
 	CarrierCode           string                 `json:"carrierCode,omitempty"`
 	CoverageType          string                 `json:"coverageType"`
 	OfficeID              string                 `json:"officeId"`
-	Routing               RoutingRule            `json:"routing,omitempty"`
+	Routing               domain.RoutingRule     `json:"routing,omitempty"`
 	AllowedProviders      []string               `json:"allowedProviders"`
 	CredentialedProviders []string               `json:"credentialedProviders,omitempty"`
 	Requirements          []InsuranceRequirement `json:"requirements"`
@@ -45,7 +47,7 @@ type participationRule struct {
 	Preauth         bool     `json:"preauthRequired"`
 	CarrierID       string
 	CarrierCode     string
-	Routing         RoutingRule
+	Routing         domain.RoutingRule
 	Requirements    []InsuranceRequirement
 	Providers       []string
 }
@@ -59,7 +61,7 @@ func insuranceContains(s, term string) bool { return strings.Contains(" "+s+" ",
 
 var participationSources = func() map[string][]participationRule {
 	result := medicalRules()
-	b, err := insuranceSources.ReadFile("insurance_data/INSURANCE_SPRING_HILL_ROUTINE_VISION.json")
+	b, err := insuranceSources.ReadFile("data/INSURANCE_SPRING_HILL_ROUTINE_VISION.json")
 	if err != nil {
 		panic(err)
 	}
@@ -100,15 +102,15 @@ func medicalIdentityCode(name string) string {
 	return ""
 }
 
-func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) InsuranceDecision {
+func DecideInsurance(plan, coverage string, office *domain.OfficeConfig, dob string) InsuranceDecision {
 	return decideInsurance(plan, coverage, office, dob, false)
 }
 
-func DecideEligibilityInsurance(plan, coverage string, office *OfficeConfig, dob string) InsuranceDecision {
+func DecideEligibilityInsurance(plan, coverage string, office *domain.OfficeConfig, dob string) InsuranceDecision {
 	return decideInsurance(plan, coverage, office, dob, true)
 }
 
-func decideInsurance(plan, coverage string, office *OfficeConfig, dob string, exact bool) InsuranceDecision {
+func decideInsurance(plan, coverage string, office *domain.OfficeConfig, dob string, exact bool) InsuranceDecision {
 	d := InsuranceDecision{Outcome: "needs_clarification", Participation: "unknown", CoverageType: coverage, OfficeID: office.ID, AllowedProviders: []string{}, Requirements: []InsuranceRequirement{}, Eligibility: "not_checked", Answer: "needs_input: What insurance plan is listed on your card?"}
 	if coverage != "medical" && coverage != "routine_vision" {
 		d.Answer = "needs_input: Specify medical or routine vision coverage."
@@ -121,11 +123,10 @@ func decideInsurance(plan, coverage string, office *OfficeConfig, dob string, ex
 	case "crystal_river":
 		source = "CRYSTAL_RIVER"
 	}
-	policy := NewSchedulingPolicy(office)
 	if coverage == "routine_vision" {
 		source = "SPRING_HILL_ROUTINE_VISION"
 	}
-	if (coverage == "medical" && !policy.SupportsMedical()) || (coverage == "routine_vision" && !policy.SupportsRouting(RoutingOpticalOnly)) {
+	if (coverage == "medical" && !office.SupportsMedical()) || (coverage == "routine_vision" && !office.SupportsRouting(domain.RoutingOpticalOnly)) {
 		d.Outcome = "not_accepted"
 		d.Participation = "not_accepted"
 		d.Answer = "blocked: This office does not accept coverage for that visit type."
@@ -185,10 +186,10 @@ func decideInsurance(plan, coverage string, office *OfficeConfig, dob string, ex
 	if d.CanonicalPlan == "" {
 		d.CanonicalPlan = r.Display
 	}
-	var entry InsuranceEntry
+	var entry insuranceEntry
 	var ok bool
 	if coverage == "medical" {
-		entry = InsuranceEntry{CarrierID: r.CarrierID, Routing: r.Routing}
+		entry = insuranceEntry{CarrierID: r.CarrierID, Routing: r.Routing}
 		ok = r.Routing != ""
 		d.CarrierCode = r.CarrierCode
 		d.Requirements = append([]InsuranceRequirement{}, r.Requirements...)
@@ -206,8 +207,8 @@ func decideInsurance(plan, coverage string, office *OfficeConfig, dob string, ex
 	d.Participation = "accepted"
 	d.Outcome = "accepted"
 	if ok {
-		d.Routing = policy.SchedulingRouting(d.Routing, dob)
-		d.AllowedProviders = append([]string{}, policy.ProviderNames(d.Routing, dob)...)
+		d.Routing = office.SchedulingRouting(d.Routing, dob)
+		d.AllowedProviders = append([]string{}, office.ProvidersForRoutingAndDOB(d.Routing, dob)...)
 	}
 	if len(d.CredentialedProviders) > 0 {
 		allowed := []string{}
@@ -236,7 +237,7 @@ func decideInsurance(plan, coverage string, office *OfficeConfig, dob string, ex
 	return d
 }
 
-func DecideChartInsurance(chart PatientDemographics, plan, coverage string, office *OfficeConfig, dob string) InsuranceDecision {
+func DecideChartInsurance(chart domain.PatientDemographics, plan, coverage string, office *domain.OfficeConfig, dob string) InsuranceDecision {
 	recordedPlan := chart.CarrierName
 	if coverage == "routine_vision" {
 		recordedPlan = ""

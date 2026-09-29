@@ -20,27 +20,27 @@ type Credentials struct {
 	AppName   string
 }
 
-type PPMDResults struct {
-	XMLName xml.Name `xml:"PPMDResults"`
-	Results Results  `xml:"Results"`
-	Error   Error    `xml:"Error"`
+type loginResponse struct {
+	XMLName xml.Name     `xml:"PPMDResults"`
+	Results loginResults `xml:"Results"`
+	Error   loginError   `xml:"Error"`
 }
 
-type Results struct {
-	Success     string      `xml:"success,attr"`
-	UserContext UserContext `xml:"usercontext"`
+type loginResults struct {
+	Success     string           `xml:"success,attr"`
+	UserContext loginUserContext `xml:"usercontext"`
 }
 
-type UserContext struct {
+type loginUserContext struct {
 	Webserver string `xml:"webserver,attr"`
 	Token     string `xml:",chardata"`
 }
 
-type Error struct {
-	Fault Fault `xml:"Fault"`
+type loginError struct {
+	Fault loginFault `xml:"Fault"`
 }
 
-type Fault struct {
+type loginFault struct {
 	Code        string `xml:"detail>code"`
 	Description string `xml:"detail>description"`
 }
@@ -75,8 +75,8 @@ func escapeXMLAttr(value string) string {
 	return escaped.String()
 }
 
-func parseXMLResponse(body []byte) (*PPMDResults, error) {
-	var result PPMDResults
+func parseXMLResponse(body []byte) (*loginResponse, error) {
+	var result loginResponse
 	decoder := xml.NewDecoder(bytes.NewReader(body))
 	decoder.CharsetReader = charset.NewReaderLabel
 	if err := decoder.Decode(&result); err != nil {
@@ -85,7 +85,7 @@ func parseXMLResponse(body []byte) (*PPMDResults, error) {
 	return &result, nil
 }
 
-func (a *advancedMDLogin) postLogin(ctx context.Context, url string) (*PPMDResults, error) {
+func (a *advancedMDLogin) postLogin(ctx context.Context, url string) (*loginResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(a.buildLoginXML()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)

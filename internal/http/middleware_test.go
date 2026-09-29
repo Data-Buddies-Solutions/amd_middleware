@@ -61,8 +61,8 @@ func TestRequestLogPreservesRescheduleReceiptFailure(t *testing.T) {
 
 func TestRequestIDMiddlewareHashesCallerValueForLogs(t *testing.T) {
 	var logRequestID string
-	handler := RequestIDMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logRequestID = GetLogRequestID(r.Context())
+	handler := requestIDMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logRequestID = requestIDForLog(r.Context())
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
@@ -91,7 +91,7 @@ func TestRequestLogIsStructuredAndPHISafe(t *testing.T) {
 	t.Cleanup(func() { log.SetOutput(previousWriter) })
 
 	router := NewRouter(
-		NewHandlers(unavailableSession{}, patientmodule.New(advancedmd.NewAdapter(unavailableSession{}, nil, nil), testAppointmentTokens), nil),
+		NewHandlers(unavailableSession{}, patientmodule.New(advancedmd.NewAdapter(unavailableSession{}, nil, nil), testAppointmentTokens), nil, nil),
 		"test-secret",
 		nil,
 	)
@@ -148,7 +148,7 @@ func TestRequestLogUsesSafeFallbackForUnmatchedRoute(t *testing.T) {
 	log.SetOutput(&logs)
 	t.Cleanup(func() { log.SetOutput(previousWriter) })
 
-	router := NewRouter(NewHandlers(nil, nil, nil), "test-secret", nil)
+	router := NewRouter(NewHandlers(nil, nil, nil, nil), "test-secret", nil)
 	req := httptest.NewRequest(http.MethodGet, "/patients/17604634", nil)
 	w := httptest.NewRecorder()
 
@@ -176,8 +176,8 @@ func TestRequestLogRecoversPanicWithoutLoggingRawError(t *testing.T) {
 	t.Cleanup(func() { log.SetOutput(previousWriter) })
 
 	router := chi.NewRouter()
-	router.Use(RequestIDMiddleware)
-	router.Use(LoggingMiddleware(nil))
+	router.Use(requestIDMiddleware)
+	router.Use(loggingMiddleware(nil))
 	router.Use(recoveryMiddleware)
 	router.Get("/panic", func(http.ResponseWriter, *http.Request) {
 		panic("patientId=17604634 https://provider.example/private")
@@ -187,8 +187,8 @@ func TestRequestLogRecoversPanicWithoutLoggingRawError(t *testing.T) {
 
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("status = %d, want 500", w.Code)
+	if w.Code != http.StatusInternalServerError || w.Header().Get("Content-Type") != "application/json" {
+		t.Fatalf("status = %d, content type = %q", w.Code, w.Header().Get("Content-Type"))
 	}
 	entry := decodeLastLogEntry(t, logs.String())
 	if entry["outcome_category"] != "internal_failure" {
@@ -218,7 +218,7 @@ func TestRequestLogRecordsInvalidJSONWithoutInspectingBodies(t *testing.T) {
 			log.SetOutput(&logs)
 			t.Cleanup(func() { log.SetOutput(previousWriter) })
 
-			router := NewRouter(NewHandlers(nil, nil, nil), "test-secret", nil)
+			router := NewRouter(NewHandlers(nil, nil, nil, nil), "test-secret", nil)
 			req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{"patientId":"17604634"`))
 			req.Header.Set("Authorization", "Bearer test-secret")
 			w := httptest.NewRecorder()

@@ -1,6 +1,10 @@
-package domain
+package insurance
 
-import "testing"
+import (
+	"testing"
+
+	"advancedmd-token-management/internal/domain"
+)
 
 func TestMedicalMigrationPreservesOfficeAcceptance(t *testing.T) {
 	for _, tc := range []struct{ office, plan, carrier string }{
@@ -20,12 +24,12 @@ func TestMedicalMigrationPreservesOfficeAcceptance(t *testing.T) {
 		{"Spring Hill", "Childrens Medical Services", "car281245"},
 	} {
 		t.Run(tc.office+"/"+tc.plan, func(t *testing.T) {
-			office, _ := ResolveOffice(tc.office)
+			office, _ := domain.ResolveOffice(tc.office)
 			d := DecideInsurance(tc.plan, "medical", office, "01/02/1980")
 			if d.Outcome != "accepted" || d.Participation != "accepted" || !d.CanSchedule || d.CarrierID != tc.carrier {
 				t.Fatalf("legacy office acceptance lost: %+v", d)
 			}
-			chart := PatientDemographics{CarrierID: tc.carrier, CarrierName: d.CanonicalPlan}
+			chart := domain.PatientDemographics{CarrierID: tc.carrier, CarrierName: d.CanonicalPlan}
 			if chartDecision := DecideChartInsurance(chart, d.CanonicalPlan, "medical", office, "01/02/1980"); !chartDecision.CanSchedule {
 				t.Fatalf("restored plan cannot survive chart read: %+v", chartDecision)
 			}
@@ -49,7 +53,7 @@ func TestMedicalMigrationPreservesAliases(t *testing.T) {
 	} {
 		for _, name := range []string{"Spring Hill", "Crystal River", "Hollywood", "Sweetwater"} {
 			t.Run(name+"/"+tc.alias, func(t *testing.T) {
-				office, _ := ResolveOffice(name)
+				office, _ := domain.ResolveOffice(name)
 				want := DecideInsurance(tc.plan, "medical", office, "01/02/1980")
 				got := DecideInsurance(tc.alias, "medical", office, "01/02/1980")
 				if got.Outcome != want.Outcome || got.Participation != want.Participation || got.CanonicalPlan != want.CanonicalPlan || got.CarrierID != want.CarrierID || got.CanSchedule != want.CanSchedule {

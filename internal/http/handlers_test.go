@@ -31,7 +31,7 @@ func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
 		PatientID: patientID,
 	})
 
-	router := NewRouter(NewHandlers(nil, nil, nil), "test-secret", nil)
+	router := NewRouter(NewHandlers(nil, nil, nil, nil), "test-secret", nil)
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	w := httptest.NewRecorder()
 
@@ -51,7 +51,7 @@ func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
 
 func TestPatientResolveKeepsStableResponseWhenSessionUnavailable(t *testing.T) {
 	records := advancedmd.NewAdapter(unavailableSession{}, nil, nil)
-	handlers := NewHandlers(unavailableSession{}, patientmodule.New(records, testAppointmentTokens), nil)
+	handlers := NewHandlers(unavailableSession{}, patientmodule.New(records, testAppointmentTokens), nil, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"patientId":"123"}`))
 	w := httptest.NewRecorder()
 
@@ -60,7 +60,7 @@ func TestPatientResolveKeepsStableResponseWhenSessionUnavailable(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("status code = %d, want 200", w.Code)
 	}
-	var body ErrorResponse
+	var body errorResponse
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 		CarrierName: "HUMANA MEDICARE",
 		CarrierID:   "car40906",
 	}
-	handlers := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil)
+	handlers := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil, nil)
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -92,14 +92,14 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 	w := httptest.NewRecorder()
 	handlers.HandlePatientResolve(w, req)
 
-	var body PatientResolveResponse
+	var body patientmodule.ResolveResult
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
 	if body.Status != "verified" || body.PatientID != "123" || body.Phone != "850-373-3869" {
 		t.Fatalf("response = %+v", body)
 	}
-	if body.Routing != string(domain.RoutingBachOnly) || len(body.AllowedProviders) != 1 || body.RoutingAmbiguous || body.InsuranceDecision == nil || !body.InsuranceDecision.CanSchedule {
+	if body.Routing != domain.RoutingBachOnly || len(body.AllowedProviders) != 1 || body.RoutingAmbiguous || body.InsuranceDecision == nil || !body.InsuranceDecision.CanSchedule {
 		t.Fatalf("routing response = %+v", body)
 	}
 	if body.AppointmentsStatus != "none" || body.Appointments == nil {
@@ -109,7 +109,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 
 type unavailableSession struct{}
 
-func (unavailableSession) Get(context.Context) (*domain.TokenData, error) {
+func (unavailableSession) Get(context.Context) (*session.TokenData, error) {
 	return nil, session.ErrSessionUnavailable
 }
 
@@ -131,7 +131,7 @@ func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
 
 	handlers.HandleGetAvailability(w, req)
 
-	var resp ErrorResponse
+	var resp errorResponse
 	json.NewDecoder(w.Result().Body).Decode(&resp)
 	if resp.Status != "error" {
 		t.Fatalf("expected status error, got %q", resp.Status)
@@ -143,16 +143,16 @@ func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
 
 func TestAvailabilityRouteRetainsAuthenticationAndResponseContract(t *testing.T) {
 	handlers := &Handlers{scheduling: schedulingStub{
-		result: domain.AvailabilityResponse{
-			Status:                domain.AvailabilityStatusSuccess,
-			Outcome:               domain.AvailabilityOutcomeNoAvailability,
+		result: schedulingmodule.AvailabilityResponse{
+			Status:                schedulingmodule.AvailabilityStatusSuccess,
+			Outcome:               schedulingmodule.AvailabilityOutcomeNoAvailability,
 			AvailabilityFound:     false,
 			RequestedDate:         "2026-06-03",
 			SearchedFrom:          "2026-06-03",
 			SearchedThrough:       "2026-06-17",
 			ShouldRetrySameSearch: false,
-			NextAction:            domain.AvailabilityNextActionAskDifferentPreferences,
-			Slots:                 []domain.AvailabilitySlotOption{},
+			NextAction:            schedulingmodule.AvailabilityNextActionAskDifferentPreferences,
+			Slots:                 []schedulingmodule.AvailabilitySlotOption{},
 		},
 	}}
 	router := NewRouter(handlers, "agent-secret", nil)
@@ -169,12 +169,12 @@ func TestAvailabilityRouteRetainsAuthenticationAndResponseContract(t *testing.T)
 	authenticated.Header.Set("Authorization", "Bearer agent-secret")
 	authenticatedResponse := httptest.NewRecorder()
 	router.ServeHTTP(authenticatedResponse, authenticated)
-	var response domain.AvailabilityResponse
+	var response schedulingmodule.AvailabilityResponse
 	if err := json.NewDecoder(authenticatedResponse.Body).Decode(&response); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
 	if authenticatedResponse.Code != http.StatusOK ||
-		response.Outcome != domain.AvailabilityOutcomeNoAvailability ||
+		response.Outcome != schedulingmodule.AvailabilityOutcomeNoAvailability ||
 		response.ShouldRetrySameSearch ||
 		response.Slots == nil {
 		t.Fatalf("authenticated response = %d %#v", authenticatedResponse.Code, response)
@@ -182,7 +182,7 @@ func TestAvailabilityRouteRetainsAuthenticationAndResponseContract(t *testing.T)
 }
 
 type schedulingStub struct {
-	result           domain.AvailabilityResponse
+	result           schedulingmodule.AvailabilityResponse
 	err              error
 	bookResult       schedulingmodule.BookReceipt
 	bookErr          error
@@ -191,7 +191,7 @@ type schedulingStub struct {
 	rescheduleResult schedulingmodule.RescheduleReceipt
 }
 
-func (s schedulingStub) Search(context.Context, schedulingmodule.SearchCommand) (domain.AvailabilityResponse, error) {
+func (s schedulingStub) Search(context.Context, schedulingmodule.SearchCommand) (schedulingmodule.AvailabilityResponse, error) {
 	return s.result, s.err
 }
 
@@ -263,7 +263,7 @@ func TestHandlePatientResolve_ValidationErrors(t *testing.T) {
 				t.Errorf("Expected status 200, got %d", resp.StatusCode)
 			}
 
-			var body PatientResolveResponse
+			var body patientmodule.ResolveResult
 			json.NewDecoder(resp.Body).Decode(&body)
 			if body.Status != "error" {
 				t.Errorf("Expected status 'error', got '%s'", body.Status)
@@ -350,7 +350,7 @@ func TestHandlePatientResolve_PairedOfficeUsesEightProviderReads(t *testing.T) {
 	w := httptest.NewRecorder()
 	handlers.HandlePatientResolve(w, req)
 
-	var body PatientResolveResponse
+	var body patientmodule.ResolveResult
 	if err := json.NewDecoder(w.Result().Body).Decode(&body); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
@@ -562,7 +562,7 @@ func TestHandleAddPatient_RoutineVisionRequiresOpticalOffice(t *testing.T) {
 
 	handlers.HandleAddPatient(w, req)
 
-	var body AddPatientResponse
+	var body patientmodule.CreateResult
 	json.NewDecoder(w.Result().Body).Decode(&body)
 	if body.Status != "error" {
 		t.Fatalf("expected status error, got %q", body.Status)
@@ -595,7 +595,7 @@ func TestHandleAddPatient_RoutineOnlyOfficeRejectsMedical(t *testing.T) {
 
 	handlers.HandleAddPatient(w, req)
 
-	var body AddPatientResponse
+	var body patientmodule.CreateResult
 	json.NewDecoder(w.Result().Body).Decode(&body)
 	if body.Status != "error" {
 		t.Fatalf("expected status error, got %q", body.Status)
@@ -608,7 +608,7 @@ func TestHandleAddPatient_RoutineOnlyOfficeRejectsMedical(t *testing.T) {
 
 func TestAuthMiddleware(t *testing.T) {
 	apiSecret := "test-secret-123"
-	middleware := AuthMiddleware(apiSecret)
+	middleware := authMiddleware(apiSecret)
 
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -660,7 +660,7 @@ func TestAuthMiddleware(t *testing.T) {
 }
 
 func TestRouter(t *testing.T) {
-	handlers := NewHandlers(nil, nil, nil)
+	handlers := NewHandlers(nil, nil, nil, nil)
 
 	router := NewRouter(handlers, "test-secret", nil)
 
@@ -798,7 +798,7 @@ func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 
 			handlers.HandleUpdateInsurance(w, req)
 
-			var body UpdateInsuranceResponse
+			var body patientmodule.UpdateInsuranceResult
 			json.NewDecoder(w.Result().Body).Decode(&body)
 			if body.Status != "error" {
 				t.Errorf("Expected status 'error', got %q", body.Status)
@@ -850,7 +850,7 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var input UpdateInsuranceRequest
+			var input patientmodule.UpdateInsuranceCommand
 			if err := json.Unmarshal([]byte(tt.body), &input); err != nil {
 				t.Fatal(err)
 			}
@@ -861,12 +861,12 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 
 			handlers.HandleUpdateInsurance(w, req)
 
-			var resp UpdateInsuranceResponse
+			var resp patientmodule.UpdateInsuranceResult
 			json.NewDecoder(w.Result().Body).Decode(&resp)
 			if resp.Status != "updated" {
 				t.Fatalf("expected updated response, got %#v", resp)
 			}
-			if resp.Routing != tt.wantRouting {
+			if string(resp.Routing) != tt.wantRouting {
 				t.Fatalf("routing = %q, want %q", resp.Routing, tt.wantRouting)
 			}
 			if len(resp.AllowedProviders) != len(tt.wantProviders) {
@@ -933,7 +933,7 @@ func newProviderFailureTestHandlers(t *testing.T, fail func(*http.Request, []byt
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
 	)
-	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil)
+	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil, nil)
 }
 
 func newUpdateInsuranceTestHandlers(t *testing.T, dob, insPlanID string) (*Handlers, *[]string) {
@@ -982,7 +982,7 @@ func newUpdateInsuranceTestHandlers(t *testing.T, dob, insPlanID string) (*Handl
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
 	)
-	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil), &writes
+	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil, nil), &writes
 }
 
 func newPatientResolveTestHandlers(
@@ -1127,10 +1127,10 @@ func newPatientResolveTestHandlers(
 	amdRestClient := clients.NewAdvancedMDRestClient(httpClient)
 	records := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient)
 
-	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil)
+	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil, nil)
 }
 
-func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListCommand) (domain.AvailabilityResponse, error) {
+func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListCommand) (schedulingmodule.AvailabilityResponse, error) {
 	return s.Search(ctx, schedulingmodule.SearchCommand{Office: command.Office})
 }
 
@@ -1139,7 +1139,7 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true, Patients: []domain.Patient{{ID: "1", FirstName: "Jane", LastName: "Meyer", DOB: "01/01/1980"}}}
 	amd.Demographics["1"] = domain.PatientDemographics{FullName: "MEYER,JANE", DOB: "01/01/1980"}
-	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil)
+	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil, nil)
 	for _, tc := range []struct {
 		body  string
 		valid bool
@@ -1184,10 +1184,10 @@ func TestFirstNameDOBUnresolvedHTTPContract(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: false}
-	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil)
+	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil, nil)
 	writer := httptest.NewRecorder()
 	handler.HandlePatientResolve(writer, httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"firstName":"Jane","dob":"01/01/1980","office":"spring_hill"}`)))
-	var body PatientResolveResponse
+	var body patientmodule.ResolveResult
 	if err := json.Unmarshal(writer.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}

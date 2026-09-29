@@ -1,22 +1,20 @@
 package http
 
 import (
-	"advancedmd-token-management/internal/domain"
-	"encoding/json"
 	"net/http"
+
+	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 )
 
 func (h *Handlers) HandleInsuranceDecision(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	var req struct {
 		Plan         string `json:"plan"`
 		CoverageType string `json:"coverageType"`
 		Office       string `json:"office"`
 		DOB          string `json:"dob"`
 	}
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if decoder.Decode(&req) != nil {
+	if decodeStrict(r, &req) != nil {
 		http.Error(w, "Invalid insurance request", http.StatusBadRequest)
 		return
 	}
@@ -25,5 +23,5 @@ func (h *Handlers) HandleInsuranceDecision(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Unknown office", http.StatusBadRequest)
 		return
 	}
-	json.NewEncoder(w).Encode(domain.DecideInsurance(req.Plan, req.CoverageType, office, req.DOB))
+	respond(w, insurance.DecideInsurance(req.Plan, req.CoverageType, office, req.DOB))
 }

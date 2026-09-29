@@ -1,9 +1,13 @@
-package domain
+package insurance
 
-import "testing"
+import (
+	"testing"
+
+	"advancedmd-token-management/internal/domain"
+)
 
 func TestVisionAliasMigrationPreservesOriginalAcceptance(t *testing.T) {
-	office, _ := ResolveOffice("Spring Hill")
+	office, _ := domain.ResolveOffice("Spring Hill")
 	for _, name := range []string{"Superior", "Versant"} {
 		for _, query := range []string{name, "I have " + name} {
 			t.Run(query, func(t *testing.T) {
@@ -12,7 +16,7 @@ func TestVisionAliasMigrationPreservesOriginalAcceptance(t *testing.T) {
 					t.Fatalf("original Python accepted %q as %q; got %+v", query, name, rule)
 				}
 				decision := DecideInsurance(query, "routine_vision", office, "01/02/1980")
-				if decision.Participation != "accepted" || !decision.CanSchedule || decision.CarrierID != "car280612" || decision.Routing != RoutingOpticalOnly {
+				if decision.Participation != "accepted" || !decision.CanSchedule || decision.CarrierID != "car280612" || decision.Routing != domain.RoutingOpticalOnly {
 					t.Fatalf("vision alias no longer preserves Davis acceptance: %+v", decision)
 				}
 			})

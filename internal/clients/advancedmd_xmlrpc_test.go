@@ -11,9 +11,10 @@ import (
 
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/safeerrors"
+	"advancedmd-token-management/internal/session"
 )
 
-func newTestXMLRPCClient(t *testing.T, handler http.Handler) (*AdvancedMDClient, *domain.TokenData, func()) {
+func newTestXMLRPCClient(t *testing.T, handler http.Handler) (*AdvancedMDClient, *session.TokenData, func()) {
 	t.Helper()
 	server := httptest.NewTLSServer(handler)
 
@@ -25,7 +26,7 @@ func newTestXMLRPCClient(t *testing.T, handler http.Handler) (*AdvancedMDClient,
 
 	xmlrpcURL := server.URL[8:]
 
-	tokenData := &domain.TokenData{
+	tokenData := &session.TokenData{
 		Token:       "Bearer test-token",
 		CookieToken: "token=test-token",
 		XmlrpcURL:   xmlrpcURL,
@@ -125,7 +126,7 @@ func TestAdvancedMDClient_AddPatient(t *testing.T) {
 	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
 	defer cleanup()
 
-	patientID, respPartyID, name, err := client.AddPatient(context.Background(), tokenData, AddPatientParams{
+	created, err := client.AddPatient(context.Background(), tokenData, domain.PatientCreate{
 		FirstName: "Jane",
 		LastName:  "Doe",
 		DOB:       "03/20/1990",
@@ -137,19 +138,13 @@ func TestAdvancedMDClient_AddPatient(t *testing.T) {
 		Zip:       "33333",
 		Sex:       "F",
 		SSN:       " 1234 ",
-	})
+	}, "620")
 	if err != nil {
 		t.Fatalf("AddPatient failed: %v", err)
 	}
 
-	if patientID != "pat789" {
-		t.Errorf("Expected patientID 'pat789', got %q", patientID)
-	}
-	if respPartyID != "resp123" {
-		t.Errorf("Expected respPartyID 'resp123', got %q", respPartyID)
-	}
-	if name != "DOE,JANE" {
-		t.Errorf("Expected name 'DOE,JANE', got %q", name)
+	if created != (domain.CreatedPatient{ID: "789", RespPartyID: "resp123", Name: "DOE,JANE"}) {
+		t.Errorf("AddPatient() = %+v", created)
 	}
 }
 
@@ -166,7 +161,7 @@ func TestAdvancedMDClient_AddPatient_AMDError(t *testing.T) {
 	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
 	defer cleanup()
 
-	_, _, _, err := client.AddPatient(context.Background(), tokenData, AddPatientParams{
+	_, err := client.AddPatient(context.Background(), tokenData, domain.PatientCreate{
 		FirstName: "Jane",
 		LastName:  "Doe",
 		DOB:       "03/20/1990",
@@ -177,7 +172,7 @@ func TestAdvancedMDClient_AddPatient_AMDError(t *testing.T) {
 		State:     "FL",
 		Zip:       "33333",
 		Sex:       "F",
-	})
+	}, "620")
 
 	if err == nil {
 		t.Fatal("Expected error for AMD error response, got nil")
@@ -193,11 +188,10 @@ func TestAdvancedMDClient_AddPatientUnexpectedResponseOmitsProviderBody(t *testi
 	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
 	defer cleanup()
 
-	_, _, _, err := client.AddPatient(context.Background(), tokenData, AddPatientParams{
+	_, err := client.AddPatient(context.Background(), tokenData, domain.PatientCreate{
 		FirstName: "Jane",
 		LastName:  "Doe",
-		ProfileID: "620",
-	})
+	}, "620")
 	if err == nil {
 		t.Fatal("Expected error for unexpected response, got nil")
 	}
@@ -255,8 +249,8 @@ func TestAdvancedMDClient_GetDemographic(t *testing.T) {
 	if result.CarrierName != "HUMANA MEDICARE" {
 		t.Errorf("Expected carrier name 'HUMANA MEDICARE', got %q", result.CarrierName)
 	}
-	if result.Name != "DOE,JANE" {
-		t.Errorf("Expected patient name 'DOE,JANE', got %q", result.Name)
+	if result.FullName != "DOE,JANE" {
+		t.Errorf("Expected patient name 'DOE,JANE', got %q", result.FullName)
 	}
 	if result.CarrierID != "car40906" {
 		t.Errorf("Expected carrier ID 'car40906', got %q", result.CarrierID)
@@ -658,5 +652,56 @@ func TestLookupPatientCandidatesCompleteness(t *testing.T) {
 				t.Errorf("requests=%d", calls)
 			}
 		})
+	}
+}
+
+func TestAdvancedMDClient_GetDemographic_ActivePlanWithoutCarrierIsIncomplete(t *testing.T) {
+	for name, plans := range map[string]string{
+		"single": `{"@id": "ins1", "@coverage": "1"}`,
+		"array":  `[{"@id": "ins1", "@coverage": "1"}, {"@id": "ins2", "@carrier": "car1", "@enddate": "01/01/2020"}]`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Write([]byte(`{"PPMDResults": {"Results": {"patientlist": {"patient": {"@id": "pat123", "insplanlist": {"insplan": ` + plans + `}}}}}}`))
+			})
+			client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
+			defer cleanup()
+
+			result, err := client.GetDemographic(context.Background(), tokenData, "pat123")
+			if err != nil || result.InsuranceStateKnown || result.CarrierID != "" {
+				t.Fatalf("GetDemographic() = %+v, err = %v", result, err)
+			}
+		})
+	}
+}
+
+func TestAdvancedMDClient_AddPatientAcceptsPatientArray(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte(`{"PPMDResults": {"Results": {"patientlist": {"patient": [{"@id": "pat789", "@name": "DOE,JANE", "@respparty": "resp123"}]}}}}`))
+	})
+	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
+	defer cleanup()
+
+	created, err := client.AddPatient(context.Background(), tokenData, domain.PatientCreate{FirstName: "Jane", LastName: "Doe"}, "620")
+	if err != nil || created != (domain.CreatedPatient{ID: "789", RespPartyID: "resp123", Name: "DOE,JANE"}) {
+		t.Fatalf("AddPatient() = %+v, err = %v", created, err)
+	}
+}
+
+func TestAdvancedMDClient_GetSchedulerSetupAcceptsNumericAttributes(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte(`{"PPMDResults": {"Results": {"columnlist": {"column": {"@id": 1513, "@name": "BACH", "@profile": "prof620", "@facility": 1568,
+			"columnsetting": {"@start": "08:00", "@end": "17:00", "@interval": 15, "@maxapptsperslot": "2", "@workweek": "1111100"}}}}}}`))
+	})
+	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
+	defer cleanup()
+
+	setup, err := client.GetSchedulerSetup(context.Background(), tokenData)
+	if err != nil || len(setup.Columns) != 1 {
+		t.Fatalf("GetSchedulerSetup() = %+v, err = %v", setup, err)
+	}
+	column := setup.Columns[0]
+	if column.ID != "1513" || column.ProfileID != "620" || column.FacilityID != "1568" || column.Interval != 15 || column.MaxApptsPerSlot != 2 || column.StartTime != "08:00" || column.Workweek != 62 {
+		t.Fatalf("column = %+v", column)
 	}
 }

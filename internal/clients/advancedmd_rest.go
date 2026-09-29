@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/session"
 )
 
 func ParseDateTime(s string) (time.Time, error) {
@@ -58,7 +59,7 @@ type AMDAppointmentResponse struct {
 	ConfirmMethod    *string `json:"confirmmethod"`
 }
 
-func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *domain.TokenData, columnID string, startDate string) (appointmentsResult []domain.Appointment, resultErr error) {
+func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *session.TokenData, columnID string, startDate string) (appointmentsResult []domain.Appointment, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "get_appointments")
 	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/appointments?columnId=%s&forView=day&isLegacy=true&startDate=%s",
@@ -69,13 +70,9 @@ func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *d
 		return nil, err
 	}
 
-	var amdAppts []AMDAppointmentResponse
-	if err := json.Unmarshal(body, &amdAppts); err != nil {
-		var single AMDAppointmentResponse
-		if err2 := json.Unmarshal(body, &single); err2 != nil {
-			return nil, fmt.Errorf("failed to parse appointments (array: %v, single: %v)", err, err2)
-		}
-		amdAppts = []AMDAppointmentResponse{single}
+	amdAppts, err := oneOrMany[AMDAppointmentResponse](body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse appointments: %w", err)
 	}
 
 	var appointments []domain.Appointment
@@ -110,7 +107,7 @@ type AMDBlockHoldResponse struct {
 	} `json:"recurrence"`
 }
 
-func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *domain.TokenData, columnID string, startDate string) (holdsResult []domain.BlockHold, resultErr error) {
+func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *session.TokenData, columnID string, startDate string) (holdsResult []domain.BlockHold, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "get_block_holds")
 	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/blockholds?columnId=%s&forView=day&startDate=%s",
@@ -121,13 +118,9 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 		return nil, err
 	}
 
-	var amdHolds []AMDBlockHoldResponse
-	if err := json.Unmarshal(body, &amdHolds); err != nil {
-		var single AMDBlockHoldResponse
-		if err2 := json.Unmarshal(body, &single); err2 != nil {
-			return nil, fmt.Errorf("failed to parse block holds (array: %v, single: %v)", err, err2)
-		}
-		amdHolds = []AMDBlockHoldResponse{single}
+	amdHolds, err := oneOrMany[AMDBlockHoldResponse](body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse block holds: %w", err)
 	}
 
 	var holds []domain.BlockHold
@@ -157,7 +150,7 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *dom
 	return holds, nil
 }
 
-func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, tokenData *domain.TokenData, columnIDs string, startDate string) (appointmentsResult []AMDAppointmentResponse, resultErr error) {
+func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, tokenData *session.TokenData, columnIDs string, startDate string) (appointmentsResult []AMDAppointmentResponse, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "get_appointments_by_month")
 	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/appointments?columnId=%s&forView=month&isLegacy=true&startDate=%s",
@@ -168,11 +161,10 @@ func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, token
 		return nil, err
 	}
 
-	var appts []AMDAppointmentResponse
-	if err := json.Unmarshal(body, &appts); err != nil {
+	appts, err := oneOrMany[AMDAppointmentResponse](body)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse appointments: %w", err)
 	}
-
 	return appts, nil
 }
 
@@ -196,7 +188,7 @@ type BookAppointmentResponse struct {
 	ID int `json:"id"`
 }
 
-func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *domain.TokenData, params BookAppointmentParams) (appointmentIDResult int, resultErr error) {
+func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *session.TokenData, params BookAppointmentParams) (appointmentIDResult int, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "book_appointment")
 	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/Appointments", tokenData.RestApiBase)
@@ -217,47 +209,32 @@ func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *d
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return 0, newMutationError(
-			MutationDispositionAmbiguous,
-			fmt.Errorf("request failed: %w", err),
-		)
+		return 0, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 	observeProviderStatus(ctx, resp.StatusCode)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return 0, newMutationError(
-			mutationDispositionForStatus(resp.StatusCode),
-			&HTTPStatusError{StatusCode: resp.StatusCode},
-		)
+		return 0, &HTTPStatusError{StatusCode: resp.StatusCode}
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return 0, newMutationError(
-			MutationDispositionAmbiguous,
-			fmt.Errorf("failed to read response: %w", err),
-		)
+		return 0, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var result BookAppointmentResponse
 	if err := json.Unmarshal(body, &result); err != nil {
-		return 0, newMutationError(
-			MutationDispositionAmbiguous,
-			fmt.Errorf("failed to parse response: %w", err),
-		)
+		return 0, fmt.Errorf("failed to parse response: %w", err)
 	}
 	if result.ID <= 0 {
-		return 0, newMutationError(
-			MutationDispositionAmbiguous,
-			fmt.Errorf("invalid booking response"),
-		)
+		return 0, fmt.Errorf("invalid booking response")
 	}
 
 	return result.ID, nil
 }
 
-func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData *domain.TokenData, appointmentID int) (resultErr error) {
+func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData *session.TokenData, appointmentID int) (resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "cancel_appointment")
 	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/appointments/%d/cancel",
@@ -282,25 +259,19 @@ func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData 
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return newMutationError(
-			MutationDispositionAmbiguous,
-			fmt.Errorf("request failed: %w", err),
-		)
+		return fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 	observeProviderStatus(ctx, resp.StatusCode)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return newMutationError(
-			mutationDispositionForStatus(resp.StatusCode),
-			&HTTPStatusError{StatusCode: resp.StatusCode},
-		)
+		return &HTTPStatusError{StatusCode: resp.StatusCode}
 	}
 
 	return nil
 }
 
-func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *domain.TokenData, url, operation string) ([]byte, error) {
+func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *session.TokenData, url, operation string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -327,6 +298,9 @@ func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *d
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+	if len(bytes.TrimSpace(body)) == 0 {
+		return nil, fmt.Errorf("failed to parse empty %s response", operation)
 	}
 	return body, nil
 }

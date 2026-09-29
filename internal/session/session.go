@@ -6,12 +6,10 @@ import (
 	"net/http"
 	"sync"
 	"time"
-
-	"advancedmd-token-management/internal/domain"
 )
 
 type Session interface {
-	Get(context.Context) (*domain.TokenData, error)
+	Get(context.Context) (*TokenData, error)
 	Maintain(context.Context) error
 	Status() SessionStatus
 }
@@ -28,10 +26,10 @@ const (
 )
 
 const (
-	DefaultSessionExpiresAfter = 24 * time.Hour
-	DefaultSessionStaleAfter   = 20 * time.Hour
+	defaultSessionExpiresAfter = 24 * time.Hour
+	defaultSessionStaleAfter   = 20 * time.Hour
 	DefaultSessionLoginTimeout = 50 * time.Second
-	DefaultSessionRetryDelay   = time.Minute
+	defaultSessionRetryDelay   = time.Minute
 )
 
 var ErrSessionUnavailable = errors.New("advancedmd session unavailable")
@@ -59,7 +57,7 @@ type sessionImpl struct {
 	policy sessionPolicy
 
 	mu        sync.Mutex
-	tokenData *domain.TokenData
+	tokenData *TokenData
 	createdAt time.Time
 	retryAt   time.Time
 	state     SessionState
@@ -74,7 +72,7 @@ type refreshFlight struct {
 
 func newSession(login loginAdapter, now func() time.Time, policy sessionPolicy) *sessionImpl {
 	if policy.retryDelay <= 0 {
-		policy.retryDelay = DefaultSessionRetryDelay
+		policy.retryDelay = defaultSessionRetryDelay
 	}
 	return &sessionImpl{
 		login:  login,
@@ -86,14 +84,14 @@ func newSession(login loginAdapter, now func() time.Time, policy sessionPolicy) 
 
 func NewSession(creds Credentials, client *http.Client) Session {
 	return newSession(newAdvancedMDLogin(creds, client), time.Now, sessionPolicy{
-		staleAfter:   DefaultSessionStaleAfter,
-		expiresAfter: DefaultSessionExpiresAfter,
+		staleAfter:   defaultSessionStaleAfter,
+		expiresAfter: defaultSessionExpiresAfter,
 		loginTimeout: DefaultSessionLoginTimeout,
-		retryDelay:   DefaultSessionRetryDelay,
+		retryDelay:   defaultSessionRetryDelay,
 	})
 }
 
-func (s *sessionImpl) Get(ctx context.Context) (*domain.TokenData, error) {
+func (s *sessionImpl) Get(ctx context.Context) (*TokenData, error) {
 	if err := s.refresh(ctx, false); err != nil {
 		s.mu.Lock()
 		defer s.mu.Unlock()
@@ -182,7 +180,7 @@ func (s *sessionImpl) authenticateLocked(ctx context.Context) error {
 		return err
 	}
 	s.createdAt = loginStartedAt
-	s.tokenData = domain.BuildTokenDataAt(token, webserverURL, s.createdAt)
+	s.tokenData = buildTokenData(token, webserverURL)
 	s.retryAt = time.Time{}
 	s.state = SessionFresh
 	return nil
@@ -232,7 +230,7 @@ func (s *sessionImpl) statusLocked(now time.Time) SessionStatus {
 	return status
 }
 
-func cloneTokenData(data *domain.TokenData) *domain.TokenData {
+func cloneTokenData(data *TokenData) *TokenData {
 	if data == nil {
 		return nil
 	}

@@ -5,10 +5,13 @@ import (
 	"errors"
 	"log"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
 	"advancedmd-token-management/internal/advancedmd"
+	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 	"advancedmd-token-management/internal/safeerrors"
 )
 
@@ -82,24 +85,29 @@ func failureOutcome(err error) MutationOutcome {
 	}
 }
 
-func createOutcome(result CreateResult) string {
-	if result.Outcome != "" {
-		return string(result.Outcome)
-	}
-	if result.Status == CreateStatusCreated {
+func mutationLabel(outcome MutationOutcome, succeeded bool) string {
+	switch {
+	case outcome != "":
+		return string(outcome)
+	case succeeded:
 		return "success"
+	default:
+		return "failed"
 	}
-	return "failed"
 }
 
-func updateInsuranceOutcome(result UpdateInsuranceResult) string {
-	if result.Outcome != "" {
-		return string(result.Outcome)
+func subscriberNumber(plan, subscriberNum string) string {
+	if insurance.IsSelfPayInsurance(plan) && strings.TrimSpace(subscriberNum) == "" {
+		return "self pay"
 	}
-	if result.Status == UpdateInsuranceStatusUpdated {
-		return "success"
+	return subscriberNum
+}
+
+func decidePlan(plan, coverage string, office *domain.OfficeConfig, dob string) insurance.InsuranceDecision {
+	if coverage == "" {
+		coverage = "medical"
 	}
-	return "failed"
+	return insurance.DecideInsurance(plan, coverage, office, dob)
 }
 
 func recordMutation(operation, outcome string) {

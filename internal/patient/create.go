@@ -12,16 +12,14 @@ import (
 
 func (p *patient) Create(ctx context.Context, command CreateCommand) (result CreateResult) {
 	defer func() {
-		recordMutation("create", createOutcome(result))
+		recordMutation("create", mutationLabel(result.Outcome, result.Status == CreateStatusCreated))
 	}()
 
 	office, err := domain.ResolveOffice(command.Office)
 	if err != nil {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
 	}
-	if domain.IsSelfPayInsurance(command.Insurance) && strings.TrimSpace(command.SubscriberNum) == "" {
-		command.SubscriberNum = "self pay"
-	}
+	command.SubscriberNum = subscriberNumber(command.Insurance, command.SubscriberNum)
 	if missing := createMissingFields(command); len(missing) > 0 {
 		return CreateResult{
 			Status:  CreateStatusError,
@@ -29,11 +27,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 			Message: fmt.Sprintf("Missing required fields: %s", strings.Join(missing, ", ")),
 		}
 	}
-	coverage := command.CoverageType
-	if coverage == "" {
-		coverage = "medical"
-	}
-	decision := domain.DecideInsurance(command.Insurance, coverage, office, command.DOB)
+	decision := decidePlan(command.Insurance, command.CoverageType, office, command.DOB)
 	if decision.Participation != "accepted" {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
@@ -131,14 +125,14 @@ func (p *patient) createPatient(ctx context.Context, command CreateCommand, offi
 		FirstName: domain.StripDiacritics(command.FirstName),
 		LastName:  domain.StripDiacritics(command.LastName),
 		DOB:       domain.NormalizeDOB(command.DOB),
-		Phone:     domain.FormatPhone(command.Phone),
+		Phone:     formatPhone(command.Phone),
 		Email:     strings.TrimSpace(command.Email),
 		Street:    command.Street,
 		AptSuite:  command.AptSuite,
 		City:      command.City,
 		State:     strings.ToUpper(command.State),
 		Zip:       command.Zip,
-		Sex:       domain.NormalizeSex(command.Sex),
+		Sex:       normalizeSex(command.Sex),
 		SSN:       strings.TrimSpace(command.SSN),
 		OfficeID:  office.ID,
 	})
@@ -251,16 +245,27 @@ func (p *patient) loadCreatedPatient(ctx context.Context, match domain.Patient) 
 }
 
 func creationMatch(candidate domain.Patient, command CreateCommand) bool {
-	firstName := candidate.FirstName
-	if firstName == "" {
-		firstName = domain.ParseFirstName(candidate.FullName)
-	}
-	lastName := candidate.LastName
-	if lastName == "" {
-		lastName = strings.TrimSpace(strings.SplitN(candidate.FullName, ",", 2)[0])
-	}
-	return strings.EqualFold(domain.StripDiacritics(firstName), domain.StripDiacritics(command.FirstName)) &&
-		strings.EqualFold(domain.StripDiacritics(lastName), domain.StripDiacritics(command.LastName)) &&
+	return strings.EqualFold(domain.StripDiacritics(patientFirstName(candidate)), domain.StripDiacritics(command.FirstName)) &&
+		strings.EqualFold(domain.StripDiacritics(patientLastName(candidate)), domain.StripDiacritics(command.LastName)) &&
 		domain.NormalizeDOB(candidate.DOB) == domain.NormalizeDOB(command.DOB) &&
 		(candidate.Phone == "" || domain.NormalizePhoneDigits(candidate.Phone) == domain.NormalizePhoneDigits(command.Phone))
+}
+
+func formatPhone(phone string) string {
+	digits := domain.NormalizePhoneDigits(phone)
+	if len(digits) != 10 {
+		return phone
+	}
+	return fmt.Sprintf("(%s)%s-%s", digits[:3], digits[3:6], digits[6:])
+}
+
+func normalizeSex(sex string) string {
+	switch strings.ToUpper(strings.TrimSpace(sex)) {
+	case "M", "MALE":
+		return "M"
+	case "F", "FEMALE":
+		return "F"
+	default:
+		return "U"
+	}
 }

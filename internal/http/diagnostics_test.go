@@ -10,8 +10,9 @@ import (
 	"testing"
 
 	"advancedmd-token-management/internal/clients"
-	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/safeerrors"
+	"advancedmd-token-management/internal/session"
+
 	"github.com/go-chi/chi/v5"
 )
 
@@ -23,10 +24,10 @@ func TestProviderFailureCorrelatesResponseAndLogDespiteHTTP200(t *testing.T) {
 	log.SetOutput(&logs)
 	defer log.SetOutput(previous)
 	router := chi.NewRouter()
-	router.Use(RequestIDMiddleware)
-	router.Use(LoggingMiddleware(nil))
+	router.Use(requestIDMiddleware)
+	router.Use(loggingMiddleware(nil))
 	router.Post("/api/appointment/book", func(w http.ResponseWriter, r *http.Request) {
-		_, err := clients.NewAdvancedMDRestClient(upstream.Client()).BookAppointment(r.Context(), &domain.TokenData{RestApiBase: strings.TrimPrefix(upstream.URL, "https://")}, clients.BookAppointmentParams{})
+		_, err := clients.NewAdvancedMDRestClient(upstream.Client()).BookAppointment(r.Context(), &session.TokenData{RestApiBase: strings.TrimPrefix(upstream.URL, "https://")}, clients.BookAppointmentParams{})
 		if err == nil {
 			t.Error("expected upstream failure")
 		}
