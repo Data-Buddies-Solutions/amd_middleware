@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"uuid"
 
 	patientmodule "advancedmd-token-management/internal/patient"
 	"advancedmd-token-management/internal/safeerrors"
@@ -17,7 +18,6 @@ import (
 	"advancedmd-token-management/internal/session"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 type contextKey string
@@ -109,9 +109,9 @@ func requestIDMiddleware(next http.Handler) http.Handler {
 		requestID := r.Header.Get("X-Request-ID")
 		logRequestID := requestID
 		if requestID == "" {
-			requestID = uuid.New().String()
+			requestID = uuid.NewV4().String()
 			logRequestID = requestID
-		} else if parsed, err := uuid.Parse(requestID); err != nil || parsed.String() != requestID || parsed.Version() != 4 {
+		} else if parsed, err := uuid.Parse(requestID); err != nil || parsed.String() != requestID || parsed[6]>>4 != 4 {
 			digest := sha256.Sum256([]byte(requestID))
 			logRequestID = fmt.Sprintf("external-%x", digest[:8])
 		}
