@@ -1,4 +1,3 @@
-// Package eligibility checks general plan activity and preserves identity uncertainty.
 package eligibility
 
 import (
@@ -15,7 +14,6 @@ type Person struct {
 	MemberID    string `json:"memberId,omitempty"`
 }
 
-// MatchResult reports exact identity agreement or the reason staff must review.
 type MatchResult struct {
 	Status         string   `json:"status"`
 	ReviewRequired bool     `json:"reviewRequired"`
@@ -37,8 +35,6 @@ func sameID(a, b string) bool { return identifier(a) != "" && identifier(a) == i
 
 func validDOB(s string) bool { _, err := time.Parse("20060102", s); return err == nil }
 
-// surname ignores a separately spoken generational suffix, without exposing a
-// suffix field or changing the payer's returned last name.
 func surname(s string) string {
 	parts := strings.Fields(s)
 	if len(parts) > 1 {
@@ -50,12 +46,9 @@ func surname(s string) string {
 	return name(strings.Join(parts, " "))
 }
 
-// Match permits one missing leading letter only with matching DOB, member ID,
-// and surname. Other name differences remain reviewable.
 func Match(expected, returned Person) MatchResult {
 	first, last := name(expected.FirstName), name(expected.LastName)
 	returnedFirst, returnedLast := name(returned.FirstName), name(returned.LastName)
-	// Separate a middle name only when the payer explicitly returns it.
 	if middle := name(returned.MiddleName); middle != "" {
 		parts := strings.Fields(expected.FirstName)
 		for i := 1; i < len(parts); i++ {

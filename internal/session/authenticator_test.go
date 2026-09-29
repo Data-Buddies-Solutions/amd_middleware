@@ -9,7 +9,6 @@ import (
 )
 
 func TestAdvancedMDLoginGetsAuthToken(t *testing.T) {
-	// Mock server for step 2 - returns token
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/xml")
 		w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>

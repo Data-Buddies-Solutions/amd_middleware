@@ -27,8 +27,6 @@ func (r *canceledLeaderSetupRecords) GetSchedulerSetup(ctx context.Context) (dom
 	return r.SchedulerSetup, nil
 }
 
-// Done is first observed when Search joins the existing setup refresh. This
-// makes cancellation happen while another live request is actually waiting.
 type observedSetupWaitContext struct {
 	context.Context
 	waiting chan struct{}
@@ -46,7 +44,7 @@ func TestSetupLiveWaiterRecoversAfterInitiatingRequestCancels(t *testing.T) {
 	}
 	scheduler := scheduling.New(records, "secret", func() time.Time {
 		return time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
-	})
+	}, false)
 	leaderCtx, cancelLeader := context.WithCancel(context.Background())
 	defer cancelLeader()
 	leader := make(chan error, 1)

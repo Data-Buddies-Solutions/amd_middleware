@@ -11,7 +11,6 @@ import (
 
 const defaultSameStartCapacity = 1
 
-// SchedulingPolicy owns the scheduling decisions for one office.
 type SchedulingPolicy struct {
 	office *OfficeConfig
 }
@@ -20,22 +19,11 @@ func NewSchedulingPolicy(office *OfficeConfig) SchedulingPolicy {
 	return SchedulingPolicy{office: office}
 }
 
-// SchedulingRouting applies the office's pediatric routing rule without changing
-// explicitly rejected or optical-only lanes.
 func (p SchedulingPolicy) SchedulingRouting(routing RoutingRule, dob string) RoutingRule {
 	if routing == RoutingNotAccepted || routing == RoutingOpticalOnly {
 		return routing
 	}
 	if p.office != nil && IsMinor(dob) {
-		return p.office.PediatricRouting
-	}
-	return routing
-}
-
-// PatientRouting preserves the office's patient-resolution rule: every accepted
-// minor is reported on the pediatric lane, including optical coverage.
-func (p SchedulingPolicy) PatientRouting(routing RoutingRule, dob string) RoutingRule {
-	if routing != RoutingNotAccepted && p.office != nil && IsMinor(dob) {
 		return p.office.PediatricRouting
 	}
 	return routing
@@ -58,8 +46,6 @@ func (p SchedulingPolicy) ProviderNames(routing RoutingRule, dob string) []strin
 	return p.office.ProvidersForRoutingAndDOB(routing, dob)
 }
 
-// AllowedAppointmentTypeIDs returns the canonical appointment types accepted by
-// this office, routing lane, and patient DOB.
 func (p SchedulingPolicy) AllowedAppointmentTypeIDs(routing RoutingRule, dob string) []int {
 	if p.office == nil {
 		return nil
@@ -91,7 +77,6 @@ func appointmentTypeMatchesDOB(typeID int, dob string) bool {
 	}
 }
 
-// EligibleColumns applies office, routing, DOB, and provider eligibility in one pass.
 func (p SchedulingPolicy) EligibleColumns(columns []SchedulerColumn, profiles map[string]SchedulerProfile, routing RoutingRule, dob, requestedProvider string) []SchedulerColumn {
 	if p.office == nil {
 		return nil
@@ -156,7 +141,6 @@ type SchedulingPolicyError struct {
 	Missing []string
 }
 
-// PrepareBooking validates and resolves every office-owned booking decision.
 func (p SchedulingPolicy) PrepareBooking(req BookingPolicyRequest) (BookingPolicyDecision, *SchedulingPolicyError) {
 	if p.office == nil {
 		return BookingPolicyDecision{}, &SchedulingPolicyError{Message: "Office is required"}
@@ -242,7 +226,6 @@ type SameStartDecision struct {
 	RequiresForce bool
 }
 
-// SameStart applies the office column's capacity and force rule at one start time.
 func (p SchedulingPolicy) SameStart(columnID string, start time.Time, booked int) SameStartDecision {
 	capacity := defaultSameStartCapacity
 	if p.office != nil {

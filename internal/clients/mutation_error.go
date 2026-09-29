@@ -5,7 +5,6 @@ import (
 	"net/http"
 )
 
-// MutationDisposition describes what a provider response proves about a write.
 type MutationDisposition uint8
 
 const (
@@ -39,15 +38,13 @@ func mutationDispositionForStatus(status int) MutationDisposition {
 		return MutationDispositionAuthentication
 	case status == http.StatusConflict:
 		return MutationDispositionConflict
-	case status >= 400 && status < 500:
+	case status >= 400 && status < 500 && status != http.StatusRequestTimeout:
 		return MutationDispositionRejected
 	default:
 		return MutationDispositionAmbiguous
 	}
 }
 
-// MutationDispositionOf returns the provider-level proof attached to a failed
-// mutation.
 func MutationDispositionOf(err error) MutationDisposition {
 	var mutationErr *mutationError
 	if errors.As(err, &mutationErr) {

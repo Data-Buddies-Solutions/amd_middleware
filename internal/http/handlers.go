@@ -16,16 +16,11 @@ import (
 	"advancedmd-token-management/internal/session"
 )
 
-// ErrorResponse is the JSON response structure for error conditions.
-// Returns 200 OK with status:"error" so ElevenLabs passes the message to the LLM.
 type ErrorResponse struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
 }
 
-// PatientResolveRequest is the single patient-read request shape. It supports
-// pre-call phone lookup, verification by phone/name/DOB, and direct loading for
-// an already verified patient ID.
 type PatientResolveRequest struct {
 	PatientID string `json:"patientId,omitempty"`
 	LastName  string `json:"lastName,omitempty"`
@@ -35,7 +30,6 @@ type PatientResolveRequest struct {
 	Office    string `json:"office,omitempty"`
 }
 
-// PatientResolveResponse is returned by /api/patient/resolve.
 type PatientResolveResponse struct {
 	InsuranceDecision   *domain.InsuranceDecision  `json:"insuranceDecision,omitempty"`
 	Reason              string                     `json:"reason,omitempty"`
@@ -59,8 +53,6 @@ type PatientResolveResponse struct {
 	Matches             []PatientCandidateResponse `json:"matches"`
 }
 
-// PatientCandidateResponse is the private, lightweight identity selection
-// shape returned before one patient is fully hydrated.
 type PatientCandidateResponse struct {
 	Status    string `json:"status"`
 	PatientID string `json:"patientId"`
@@ -69,7 +61,6 @@ type PatientCandidateResponse struct {
 	DOB       string `json:"dob"`
 }
 
-// Handlers holds the dependencies for HTTP handlers.
 type Handlers struct {
 	eligibility *eligibility.Service
 	session     session.Session
@@ -77,7 +68,6 @@ type Handlers struct {
 	scheduling  schedulingmodule.Scheduling
 }
 
-// NewHandlers creates a new Handlers instance.
 func NewHandlers(
 	amdSession session.Session,
 	patient patientmodule.Patient,
@@ -90,20 +80,16 @@ func NewHandlers(
 	}
 }
 
-// HandleLive reports process liveness without calling AdvancedMD.
 func (h *Handlers) HandleLive(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"status":"ok"}`))
 }
 
-// HandleReady reports that local initialization completed and HTTP traffic can
-// be accepted. AdvancedMD session health remains a separate signal.
 func (h *Handlers) HandleReady(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"status":"ready"}`))
 }
 
-// HandleMetrics exposes PHI-free patient mutation outcome counters.
 func (h *Handlers) HandleMetrics(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 	fmt.Fprintln(w, "# HELP patient_mutation_outcomes_total Patient mutation outcomes by operation and category.")
@@ -119,8 +105,6 @@ func (h *Handlers) HandleMetrics(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-// HandleSessionMaintenance refreshes the process-local AdvancedMD session
-// without returning credentials, tokens, or provider endpoints.
 func (h *Handlers) HandleSessionMaintenance(w http.ResponseWriter, r *http.Request) {
 	if err := h.session.Maintain(r.Context()); err != nil {
 		category := safeerrors.Classify(err)
@@ -133,7 +117,6 @@ func (h *Handlers) HandleSessionMaintenance(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// AddPatientRequest is the expected JSON body for patient creation.
 type AddPatientRequest struct {
 	FirstName      string `json:"firstName"`
 	LastName       string `json:"lastName"`
@@ -154,7 +137,6 @@ type AddPatientRequest struct {
 	Office         string `json:"office,omitempty"`
 }
 
-// AddPatientResponse is returned after creating a patient.
 type AddPatientResponse struct {
 	InsuranceDecision *domain.InsuranceDecision `json:"insuranceDecision,omitempty"`
 	Status            string                    `json:"status"`
@@ -168,7 +150,6 @@ type AddPatientResponse struct {
 	Message           string                    `json:"message,omitempty"`
 }
 
-// HandleAddPatient creates a new patient in AdvancedMD and attaches insurance.
 func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -220,23 +201,21 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// PatientApptDetail is one appointment returned to the Voice Agent.
 type PatientApptDetail struct {
-	ID                int    `json:"id"`                 // AMD appointment ID — for cancel_appt
-	Date              string `json:"date"`               // Human-readable (e.g., "Wednesday, March 18, 2026")
-	Time              string `json:"time"`               // e.g., "12:00 PM"
-	Provider          string `json:"provider,omitempty"` // e.g., "Dr. Austin Bach"
-	Type              string `json:"type,omitempty"`     // e.g., "New Adult Medical"
+	ID                int    `json:"id"`
+	Date              string `json:"date"`
+	Time              string `json:"time"`
+	Provider          string `json:"provider,omitempty"`
+	Type              string `json:"type,omitempty"`
 	VisitType         string `json:"visitType,omitempty"`
-	AppointmentTypeID int    `json:"appointmentTypeId,omitempty"` // AMD appointment type ID
-	Facility          string `json:"facility,omitempty"`          // e.g., "Abita Eye Group Spring Hill"
-	OfficeID          string `json:"officeId,omitempty"`          // Stable office ID that owns the appointment column
-	Office            string `json:"office,omitempty"`            // Display name for the owning office
-	CancellationToken string `json:"cancellationToken,omitempty"` // Private agent-owned cancellation authorization
-	RescheduleToken   string `json:"rescheduleToken,omitempty"`   // Private agent-owned reschedule authorization
+	AppointmentTypeID int    `json:"appointmentTypeId,omitempty"`
+	Facility          string `json:"facility,omitempty"`
+	OfficeID          string `json:"officeId,omitempty"`
+	Office            string `json:"office,omitempty"`
+	CancellationToken string `json:"cancellationToken,omitempty"`
+	RescheduleToken   string `json:"rescheduleToken,omitempty"`
 }
 
-// HandlePatientResolve resolves a patient and, by default, loads appointments.
 func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -265,15 +244,6 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 		json.NewEncoder(w).Encode(PatientResolveResponse{
 			Status:  "error",
 			Message: msg,
-		})
-		return
-	}
-
-	if h.patient == nil {
-		recordRequestOutcome(r.Context(), outcomeInternalFailure, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(PatientResolveResponse{
-			Status:  "error",
-			Message: "Failed to look up patient in AdvancedMD. Please try again.",
 		})
 		return
 	}
@@ -425,7 +395,6 @@ func (r CancelAppointmentRequest) command() schedulingmodule.CancelCommand {
 
 type CancelAppointmentResponse = schedulingmodule.CancelReceipt
 
-// HandleCancelAppointment delegates cancellation behavior to Scheduling.
 func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -435,15 +404,6 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 		json.NewEncoder(w).Encode(CancelAppointmentResponse{
 			Status:  "error",
 			Message: "Invalid JSON body",
-		})
-		return
-	}
-	if h.scheduling == nil {
-		recordRequestOutcome(r.Context(), outcomeInternalFailure, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(CancelAppointmentResponse{
-			Status:  "error",
-			Outcome: string(schedulingmodule.CategoryWriteFailed),
-			Message: "Appointment scheduling is temporarily unavailable. Please try again.",
 		})
 		return
 	}
@@ -469,7 +429,6 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 type BookAppointmentRequest = schedulingmodule.BookCommand
 type BookAppointmentResponse = schedulingmodule.BookReceipt
 
-// HandleBookAppointment delegates booking behavior to Scheduling.
 func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -477,15 +436,6 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
 		json.NewEncoder(w).Encode(BookAppointmentResponse{Status: "error", Message: "Invalid JSON body"})
-		return
-	}
-	if h.scheduling == nil {
-		recordRequestOutcome(r.Context(), outcomeInternalFailure, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(BookAppointmentResponse{
-			Status:  "error",
-			Outcome: string(schedulingmodule.CategoryWriteFailed),
-			Message: "Appointment scheduling is temporarily unavailable. Please try again.",
-		})
 		return
 	}
 	response, err := h.scheduling.Book(r.Context(), req)
@@ -510,11 +460,8 @@ func schedulingOutcome(err error) string {
 	return string(category)
 }
 
-// AvailabilityRequest preserves the authenticated HTTP request shape while the
-// Scheduling module owns its behavior.
 type AvailabilityRequest = schedulingmodule.SearchCommand
 
-// HandleGetAvailability searches through the Scheduling module.
 func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -527,14 +474,6 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if h.scheduling == nil {
-		recordRequestOutcome(r.Context(), outcomeInternalFailure, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(ErrorResponse{
-			Status:  "error",
-			Message: "Appointment scheduling is temporarily unavailable. Please try again.",
-		})
-		return
-	}
 	response, err := h.scheduling.Search(r.Context(), req)
 	if err != nil {
 		recordSchedulingError(r.Context(), err)
@@ -547,7 +486,6 @@ func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(response)
 }
 
-// HandleListAppointmentSlots loads an inventory window through the Scheduling module.
 func (h *Handlers) HandleListAppointmentSlots(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -560,19 +498,12 @@ func (h *Handlers) HandleListAppointmentSlots(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if h.scheduling == nil {
-		recordRequestOutcome(r.Context(), outcomeInternalFailure, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(inventoryError(domain.AvailabilityOutcomeSearchIncomplete, "Appointment scheduling is temporarily unavailable. Retry once; if it still fails, contact office staff."))
-		return
-	}
 	response, err := h.scheduling.List(r.Context(), req)
 	if err != nil {
 		recordSchedulingError(r.Context(), err)
 		outcome := domain.AvailabilityOutcomeInvalidInput
 		if schedulingmodule.ProviderFailureOf(err) != safeerrors.CategoryNone {
 			outcome = domain.AvailabilityOutcomeSearchIncomplete
-		} else if schedulingmodule.CategoryOf(err) == schedulingmodule.CategoryPolicyBlocked {
-			outcome = domain.AvailabilityOutcomePolicyBlocked
 		}
 		json.NewEncoder(w).Encode(inventoryError(outcome, err.Error()))
 		return
@@ -584,8 +515,6 @@ func (h *Handlers) HandleListAppointmentSlots(w http.ResponseWriter, r *http.Req
 	json.NewEncoder(w).Encode(response)
 }
 
-// Inventory errors use the same envelope as successful reads, so consumers can
-// distinguish a correctable request, a policy block, and an unavailable read.
 func inventoryError(outcome, message string) domain.AvailabilityResponse {
 	return domain.AvailabilityResponse{
 		Status: domain.AvailabilityStatusError, Outcome: outcome,
@@ -594,7 +523,6 @@ func inventoryError(outcome, message string) domain.AvailabilityResponse {
 	}
 }
 
-// UpdateInsuranceRequest is the expected JSON body for insurance updates.
 type UpdateInsuranceRequest struct {
 	PatientID      string `json:"patientId"`
 	DOB            string `json:"dob,omitempty"`
@@ -608,7 +536,6 @@ type UpdateInsuranceRequest struct {
 	Office         string `json:"office,omitempty"`
 }
 
-// UpdateInsuranceResponse is returned after updating insurance.
 type UpdateInsuranceResponse struct {
 	Effect            string                    `json:"effect"`
 	InsuranceDecision *domain.InsuranceDecision `json:"insuranceDecision,omitempty"`
@@ -624,7 +551,6 @@ type UpdateInsuranceResponse struct {
 	Message           string                    `json:"message,omitempty"`
 }
 
-// HandleUpdateInsurance swaps a patient's insurance: end-dates the old plan and attaches a new one.
 func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -704,7 +630,6 @@ func recordSchedulingError(ctx context.Context, err error) {
 	}
 }
 
-// HandleRescheduleAppointment delegates both provider writes to Scheduling.
 func (h *Handlers) HandleRescheduleAppointment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var req schedulingmodule.BookCommand
@@ -713,11 +638,6 @@ func (h *Handlers) HandleRescheduleAppointment(w http.ResponseWriter, r *http.Re
 	if err := decoder.Decode(&req); err != nil {
 		recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
 		json.NewEncoder(w).Encode(schedulingmodule.RescheduleReceipt{Status: "failed", Message: "Invalid JSON body"})
-		return
-	}
-	if h.scheduling == nil {
-		recordRequestOutcome(r.Context(), outcomeInternalFailure, safeerrors.CategoryNone)
-		json.NewEncoder(w).Encode(schedulingmodule.RescheduleReceipt{Status: "failed", Message: "Scheduling unavailable"})
 		return
 	}
 	receipt, err := h.scheduling.Reschedule(r.Context(), req)

@@ -34,8 +34,6 @@ func observeProviderFailure(ctx context.Context, operation string, started time.
 
 var numericFaultCode = regexp.MustCompile(`^-?[0-9]{1,6}$`)
 
-// Only short numeric values at the explicit faultcode path are kept.
-// Free-form faults/descriptions may contain patient data and are never retained.
 func providerRejection(operation string, body []byte) error {
 	result := &ProviderRejectionError{operation: operation}
 	var envelope struct {
@@ -61,8 +59,6 @@ func providerRejection(operation string, body []byte) error {
 	return result
 }
 
-// The transport observes status before body reading/parsing can fail. Each
-// semantic provider operation gets its own observation, including parallel reads.
 type providerObservationKey struct{}
 type providerObservation struct{ httpStatus int }
 

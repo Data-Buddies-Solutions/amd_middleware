@@ -9,8 +9,6 @@ type participationMatchCandidate struct {
 	required bool
 }
 
-// participationMatch accepts a specific product over its parent name, but never
-// chooses between different products merely because one name is longer.
 func participationMatch(source, query string) *participationRule {
 	query = insuranceNormalize(query)
 	var matches []participationMatchCandidate
@@ -69,8 +67,6 @@ func participationMatch(source, query string) *participationRule {
 	return selected.rule
 }
 
-// A duplicated vision label is one match, not two different products. Require
-// the same matched term so shared billing buckets never resolve mixed input.
 func equivalentVisionAlias(a, b participationMatchCandidate) bool {
 	if a.term != b.term || a.rule.Status != b.rule.Status || a.rule.Preauth != b.rule.Preauth ||
 		a.rule.Notice != b.rule.Notice || a.rule.Clarification != b.rule.Clarification {

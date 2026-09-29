@@ -30,7 +30,7 @@ func TestRequestLogPreservesRescheduleReceiptFailure(t *testing.T) {
 			records := advancedmdtest.NewAdapter()
 			records.SchedulerSetupError = advancedmd.NewError(tc.category)
 			now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-			scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now })
+			scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now }, false)
 			_, failure := scheduler.Search(context.Background(), schedulingmodule.SearchCommand{Office: "Spring Hill", RequestedDate: "2026-06-03", Routing: "bach_only"})
 			if failure == nil {
 				t.Fatal("expected scheduling provider failure")
@@ -60,10 +60,8 @@ func TestRequestLogPreservesRescheduleReceiptFailure(t *testing.T) {
 }
 
 func TestRequestIDMiddlewareHashesCallerValueForLogs(t *testing.T) {
-	var requestID string
 	var logRequestID string
 	handler := RequestIDMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestID = GetRequestID(r.Context())
 		logRequestID = GetLogRequestID(r.Context())
 		w.WriteHeader(http.StatusNoContent)
 	}))
@@ -75,9 +73,6 @@ func TestRequestIDMiddlewareHashesCallerValueForLogs(t *testing.T) {
 
 	if got := w.Header().Get("X-Request-ID"); got != "patientId=17604634 token=secret" {
 		t.Fatalf("X-Request-ID = %q, want caller value echoed", got)
-	}
-	if requestID != "patientId=17604634 token=secret" {
-		t.Fatalf("request ID = %q, want caller value retained", requestID)
 	}
 	if !strings.HasPrefix(logRequestID, "external-") {
 		t.Fatalf("log request ID = %q, want hashed external ID", logRequestID)
@@ -96,7 +91,7 @@ func TestRequestLogIsStructuredAndPHISafe(t *testing.T) {
 	t.Cleanup(func() { log.SetOutput(previousWriter) })
 
 	router := NewRouter(
-		NewHandlers(unavailableSession{}, patientmodule.New(advancedmd.NewAdapter(unavailableSession{}, nil, nil)), nil),
+		NewHandlers(unavailableSession{}, patientmodule.New(advancedmd.NewAdapter(unavailableSession{}, nil, nil), testAppointmentTokens), nil),
 		"test-secret",
 		nil,
 	)
@@ -253,7 +248,7 @@ func TestRequestLogPreservesAvailabilityProviderFailureCategory(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	records := advancedmdtest.NewAdapter()
 	records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryAuthentication)
-	scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now })
+	scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now }, false)
 	router := NewRouter(&Handlers{scheduling: scheduler}, "test-secret", nil)
 	req := httptest.NewRequest(
 		http.MethodPost,

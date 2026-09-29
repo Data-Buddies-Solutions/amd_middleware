@@ -29,7 +29,6 @@ func TestMedicalDocumentCarrierAttachments(t *testing.T) {
 			if d.CarrierCode != tc.code || d.CarrierID != tc.id || d.Participation != "accepted" || d.CanSchedule != tc.schedule {
 				t.Fatalf("wrong attachment or permission: %+v", d)
 			}
-			// An old/wrong chart attachment must never become schedulable through caller text.
 			chart := PatientDemographics{CarrierName: tc.plan, CarrierID: "car308175"}
 			if DecideChartInsurance(chart, tc.plan, "medical", office, "01/02/1980").CanSchedule {
 				t.Fatal("stale carrier attachment allowed scheduling")

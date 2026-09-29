@@ -2,8 +2,6 @@ package domain
 
 import "testing"
 
-// The pre-centralization middleware (30eb724^) allowed these office/plan pairs.
-// The agent-only migration fixtures did not cover the middleware's office rules.
 func TestMedicalMigrationPreservesOfficeAcceptance(t *testing.T) {
 	for _, tc := range []struct{ office, plan, carrier string }{
 		{"Crystal River", "Aetna QHP Individual Exchange", "car40887"},

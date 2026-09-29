@@ -73,32 +73,6 @@ func TestAppointmentLookupOfficeIDs(t *testing.T) {
 	}
 }
 
-func TestOfficeConfig_IsAllowedColumn(t *testing.T) {
-	office := DefaultOffice()
-
-	tests := []struct {
-		columnID string
-		want     bool
-	}{
-		{"1513", true},
-		{"1598", true},
-		{"1551", true},
-		{"1550", true},
-		{"1600", true},
-		{"9999", false},
-		{"", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.columnID, func(t *testing.T) {
-			got := office.IsAllowedColumn(tt.columnID)
-			if got != tt.want {
-				t.Errorf("IsAllowedColumn(%q) = %v, want %v", tt.columnID, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestCanonicalAppointmentTypeID(t *testing.T) {
 	defer InitRegistry("prod")
 
@@ -128,9 +102,9 @@ func TestSandboxRejectsUnmappedProductionIDs(t *testing.T) {
 	if office, ok := LookupOffice("spring_hill"); !ok || office != devSpringHillOffice {
 		t.Fatal("sandbox office ID must resolve to the sandbox Spring Hill config")
 	}
-	for _, selector := range []string{"crystal_river", "+16182265883"} {
+	for _, selector := range []string{"crystal_river", "+13523202007"} {
 		if _, ok := LookupOffice(selector); ok {
-			t.Errorf("sandbox unexpectedly accepts production placeholder %q", selector)
+			t.Errorf("sandbox unexpectedly accepts production office %q", selector)
 		}
 	}
 	unmapped := []int{1010, 3364, 4244, 4245, 6167, 6168, 6169}
@@ -231,7 +205,7 @@ func TestOfficeConfig_HollywoodAndSweetwaterColumns(t *testing.T) {
 				t.Fatalf("FacilityID = %q, want %q", tt.office.FacilityID, tt.facilityID)
 			}
 			for _, columnID := range tt.columns {
-				if !tt.office.IsAllowedColumn(columnID) {
+				if _, ok := tt.office.Columns[columnID]; !ok {
 					t.Fatalf("expected column %s to be allowed", columnID)
 				}
 			}
@@ -256,7 +230,7 @@ func TestOfficeConfig_NorthMiamiBeachOpticalColumn(t *testing.T) {
 	if office.DefaultProfileID != "621" {
 		t.Fatalf("DefaultProfileID = %q, want 621", office.DefaultProfileID)
 	}
-	if !office.IsAllowedColumn("1601") {
+	if _, ok := office.Columns["1601"]; !ok {
 		t.Fatal("expected column 1601 to be allowed")
 	}
 	if medical := office.ColumnsForRouting(RoutingAll); len(medical) != 0 {
@@ -443,10 +417,8 @@ func TestOfficeConfig_RoutineAgeRules(t *testing.T) {
 }
 
 func TestInitRegistry(t *testing.T) {
-	// Ensure we restore prod after this test
 	defer InitRegistry("prod")
 
-	// Dev environment
 	InitRegistry("dev")
 	office, ok := LookupOffice("+14843989071")
 	if !ok {
@@ -455,20 +427,18 @@ func TestInitRegistry(t *testing.T) {
 	if office.FacilityID != "1032" {
 		t.Errorf("dev FacilityID = %q, want %q", office.FacilityID, "1032")
 	}
-	if !office.IsAllowedColumn("1716") {
+	if _, ok := office.Columns["1716"]; !ok {
 		t.Error("dev registry should have column 1716 (Bach)")
 	}
-	if office.IsAllowedColumn("1513") {
+	if _, ok := office.Columns["1513"]; ok {
 		t.Error("dev registry should NOT have prod column 1513")
 	}
 
-	// Prod phone should not exist in dev registry
 	_, ok = LookupOffice("+17275919997")
 	if ok {
 		t.Error("dev registry should NOT have prod phone +17275919997")
 	}
 
-	// DefaultOffice works in dev
 	devDefault := DefaultOffice()
 	if devDefault == nil {
 		t.Fatal("DefaultOffice() returned nil in dev mode")
@@ -477,23 +447,21 @@ func TestInitRegistry(t *testing.T) {
 		t.Errorf("dev DefaultOffice().FacilityID = %q, want %q", devDefault.FacilityID, "1032")
 	}
 
-	// Prod environment
 	InitRegistry("prod")
 	office = DefaultOffice()
 	if office.FacilityID != "1568" {
 		t.Errorf("prod FacilityID = %q, want %q", office.FacilityID, "1568")
 	}
-	if !office.IsAllowedColumn("1513") {
+	if _, ok := office.Columns["1513"]; !ok {
 		t.Error("prod registry should have column 1513 (Bach)")
 	}
-	if !office.IsAllowedColumn("1600") {
+	if _, ok := office.Columns["1600"]; !ok {
 		t.Error("prod registry should have column 1600 (Dr. Melissa Otero)")
 	}
-	if office.IsAllowedColumn("1716") {
+	if _, ok := office.Columns["1716"]; ok {
 		t.Error("prod registry should NOT have dev column 1716")
 	}
 
-	// Default (empty string) = prod
 	InitRegistry("")
 	office = DefaultOffice()
 	if office.FacilityID != "1568" {

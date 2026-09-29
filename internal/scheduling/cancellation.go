@@ -12,8 +12,6 @@ import (
 	"advancedmd-token-management/internal/safeerrors"
 )
 
-// CancelCommand preserves the public cancellation request while Scheduling
-// owns patient ownership and reconciliation.
 type CancelCommand struct {
 	AppointmentID     int
 	PatientID         string
@@ -21,7 +19,6 @@ type CancelCommand struct {
 	CancellationToken *string
 }
 
-// CancelReceipt is the stable cancellation result returned to HTTP callers.
 type CancelReceipt struct {
 	Status        string `json:"status"`
 	Outcome       string `json:"outcome,omitempty"`
@@ -36,8 +33,6 @@ type cancellationTelemetry struct {
 	startedAt         time.Time
 }
 
-// CancellationObservation is the PHI-free operation budget for one
-// cancellation request.
 type CancellationObservation struct {
 	Path              string
 	Outcome           string
@@ -48,7 +43,6 @@ type CancellationObservation struct {
 
 type cancellationObserverKey struct{}
 
-// WithCancellationObserver attaches a request-scoped telemetry sink.
 func WithCancellationObserver(
 	ctx context.Context,
 	observer func(CancellationObservation),
@@ -101,10 +95,6 @@ func (s *service) Cancel(ctx context.Context, command CancelCommand) (receipt Ca
 	if err != nil {
 		return CancelReceipt{}, schedulingError(err.Error())
 	}
-	if s.records == nil {
-		return CancelReceipt{}, ownershipCheckError()
-	}
-
 	read, err := s.records.ReadPatientAppointments(ctx, domain.PatientAppointmentsQuery{
 		PatientID: command.PatientID,
 		OfficeIDs: domain.AppointmentLookupOfficeIDs(office),
@@ -172,13 +162,6 @@ func (s *service) cancelWithToken(
 			return CancelReceipt{}, invalidCancellationTokenError()
 		}
 	}
-	if s.records == nil {
-		return CancelReceipt{}, categorizedError(
-			CategoryWriteFailed,
-			"Appointment scheduling is temporarily unavailable. Please try again.",
-		)
-	}
-
 	return s.cancelVerifiedAppointment(
 		ctx,
 		advancedmd.Cancellation{

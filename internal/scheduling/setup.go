@@ -2,7 +2,6 @@ package scheduling
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -34,7 +33,6 @@ func (s *service) schedulerSetup(ctx context.Context, now time.Time) (*domain.Sc
 			select {
 			case <-flight.done:
 				if flight.callerCanceled {
-					// A different request's cancellation must not fail this caller.
 					now = s.now().UTC()
 					continue
 				}
@@ -46,13 +44,7 @@ func (s *service) schedulerSetup(ctx context.Context, now time.Time) (*domain.Sc
 		flight := &setupRefresh{done: make(chan struct{})}
 		s.setupFlight = flight
 		s.setupMu.Unlock()
-		var setup domain.SchedulerSetup
-		var err error
-		if s.records == nil {
-			err = fmt.Errorf("AdvancedMD scheduling records are not configured")
-		} else {
-			setup, err = s.records.GetSchedulerSetup(ctx)
-		}
+		setup, err := s.records.GetSchedulerSetup(ctx)
 		s.setupMu.Lock()
 		defer s.setupMu.Unlock()
 		refreshedAt := s.now().UTC()

@@ -17,8 +17,6 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
-// newTestRestClient creates a TLS test server and REST client wired together.
-// The handler receives all requests. Returns the client, tokenData pointing at the server, and a cleanup func.
 func newTestRestClient(t *testing.T, handler http.Handler) (*AdvancedMDRestClient, *domain.TokenData, func()) {
 	t.Helper()
 	server := httptest.NewTLSServer(handler)
@@ -29,7 +27,6 @@ func newTestRestClient(t *testing.T, handler http.Handler) (*AdvancedMDRestClien
 		},
 	}
 
-	// Strip "https://" from server.URL to match RestApiBase format
 	restBase := server.URL[8:]
 
 	tokenData := &domain.TokenData{
@@ -155,7 +152,6 @@ func TestScheduleReadLogsUpstreamStatus(t *testing.T) {
 
 func TestGetAppointmentsByMonth_ReturnsAppointments(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify correct query params
 		if r.URL.Query().Get("forView") != "month" {
 			t.Errorf("Expected forView=month, got %s", r.URL.Query().Get("forView"))
 		}
@@ -214,7 +210,6 @@ func TestGetAppointmentsByMonth_ReturnsAppointments(t *testing.T) {
 		t.Fatalf("Expected 2 appointments, got %d", len(appts))
 	}
 
-	// Verify first appointment fields
 	if appts[0].PatientID != 12345 {
 		t.Errorf("Expected PatientID 12345, got %d", appts[0].PatientID)
 	}
@@ -228,7 +223,6 @@ func TestGetAppointmentsByMonth_ReturnsAppointments(t *testing.T) {
 		t.Error("Expected ConfirmDate to be non-nil for first appointment")
 	}
 
-	// Verify second appointment has nil ConfirmDate
 	if appts[1].ConfirmDate != nil {
 		t.Error("Expected ConfirmDate to be nil for second appointment")
 	}
@@ -286,22 +280,18 @@ func TestBookAppointment_IncludesForceWhenSet(t *testing.T) {
 
 func TestCancelAppointment_Success(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify PUT method
 		if r.Method != http.MethodPut {
 			t.Errorf("Expected PUT method, got %s", r.Method)
 		}
 
-		// Verify URL path
 		if !strings.Contains(r.URL.Path, "/scheduler/appointments/9570263/cancel") {
 			t.Errorf("Expected path to contain /scheduler/appointments/9570263/cancel, got %s", r.URL.Path)
 		}
 
-		// Verify Authorization header
 		if r.Header.Get("Authorization") != "Bearer test-token" {
 			t.Errorf("Expected Authorization 'Bearer test-token', got %q", r.Header.Get("Authorization"))
 		}
 
-		// Verify request body
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Fatalf("Failed to read request body: %v", err)
@@ -323,8 +313,15 @@ func TestCancelAppointment_Success(t *testing.T) {
 	}
 }
 
-func TestMutationAuthenticationResponses(t *testing.T) {
-	for _, status := range []int{http.StatusUnauthorized, http.StatusForbidden} {
+func TestMutationDispositionForStatus(t *testing.T) {
+	for status, want := range map[int]MutationDisposition{
+		http.StatusBadRequest:          MutationDispositionRejected,
+		http.StatusUnauthorized:        MutationDispositionAuthentication,
+		http.StatusForbidden:           MutationDispositionAuthentication,
+		http.StatusRequestTimeout:      MutationDispositionAmbiguous,
+		http.StatusConflict:            MutationDispositionConflict,
+		http.StatusInternalServerError: MutationDispositionAmbiguous,
+	} {
 		t.Run(http.StatusText(status), func(t *testing.T) {
 			handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(status)
@@ -333,12 +330,12 @@ func TestMutationAuthenticationResponses(t *testing.T) {
 			defer cleanup()
 
 			_, bookingErr := client.BookAppointment(context.Background(), tokenData, BookAppointmentParams{})
-			if got := MutationDispositionOf(bookingErr); got != MutationDispositionAuthentication {
-				t.Fatalf("booking disposition = %v, want authentication", got)
+			if got := MutationDispositionOf(bookingErr); got != want {
+				t.Fatalf("booking disposition = %v, want %v", got, want)
 			}
 			cancellationErr := client.CancelAppointment(context.Background(), tokenData, 9570263)
-			if got := MutationDispositionOf(cancellationErr); got != MutationDispositionAuthentication {
-				t.Fatalf("cancellation disposition = %v, want authentication", got)
+			if got := MutationDispositionOf(cancellationErr); got != want {
+				t.Fatalf("cancellation disposition = %v, want %v", got, want)
 			}
 		})
 	}

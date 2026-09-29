@@ -13,7 +13,6 @@ import (
 	"advancedmd-token-management/internal/safeerrors"
 )
 
-// newTestXMLRPCClient creates a TLS test server and XMLRPC client wired together.
 func newTestXMLRPCClient(t *testing.T, handler http.Handler) (*AdvancedMDClient, *domain.TokenData, func()) {
 	t.Helper()
 	server := httptest.NewTLSServer(handler)
@@ -24,7 +23,6 @@ func newTestXMLRPCClient(t *testing.T, handler http.Handler) (*AdvancedMDClient,
 		},
 	}
 
-	// Strip "https://" to match XmlrpcURL format (doXMLRPCRequest adds it back)
 	xmlrpcURL := server.URL[8:]
 
 	tokenData := &domain.TokenData{

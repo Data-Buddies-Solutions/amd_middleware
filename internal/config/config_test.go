@@ -5,7 +5,6 @@ import (
 	"testing"
 )
 
-// setEnvVars sets all required env vars for testing and returns a cleanup function.
 func setEnvVars(t *testing.T) func() {
 	t.Helper()
 	vars := map[string]string{
@@ -119,7 +118,6 @@ func TestLoad_MissingRequiredFields(t *testing.T) {
 			cleanup := setEnvVars(t)
 			defer cleanup()
 
-			// Unset the one we're testing
 			os.Unsetenv(tt.envVar)
 
 			_, err := Load()

@@ -2,15 +2,13 @@ package scheduling
 
 import (
 	"context"
+	"strings"
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
 )
 
-// RescheduleReceipt reports the two independent provider effects. A partial or
-// uncertain result must never be presented as a completed move.
 type RescheduleReceipt struct {
-	// Failure preserves diagnostics when the outcome is returned as a receipt.
 	Failure      error          `json:"-"`
 	Status       string         `json:"status"`
 	Outcome      string         `json:"outcome,omitempty"`
@@ -19,15 +17,11 @@ type RescheduleReceipt struct {
 	Message      string         `json:"message"`
 }
 
-// Reschedule sends each provider write once. The caller owns replay protection
-// and must reconcile uncertain or partial results before another mutation.
 func (s *service) Reschedule(ctx context.Context, command BookCommand) (RescheduleReceipt, error) {
 	if command.BookingToken == "" {
 		return RescheduleReceipt{}, categorizedError(CategoryBookingTokenRequired, "A current bookingToken is required to reschedule.")
 	}
-	if s.records == nil {
-		return RescheduleReceipt{}, categorizedError(CategoryWriteFailed, "Scheduling is unavailable. No appointment was changed.")
-	}
+	command.PatientID = domain.StripPatientPrefix(strings.TrimSpace(command.PatientID))
 	policy, err := s.appointmentTokens.verifyReschedule(command.RescheduleToken, s.now().UTC())
 	if err != nil || command.PatientID != policy.PatientID || policy.AppointmentTypeID == 0 {
 		return RescheduleReceipt{}, invalidRescheduleTokenError()
@@ -40,7 +34,6 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 	if visit == "" || (command.VisitCategory != "" && command.VisitCategory != visit) {
 		return RescheduleReceipt{}, schedulingError("The existing visit type cannot be preserved. Reload appointments or ask staff for help.")
 	}
-	// The preserved type must obey destination office and lane restrictions too.
 	if !booking.office.AllowsAppointmentType(policy.AppointmentTypeID, domain.ParseRoutingRule(booking.command.Routing)) {
 		return RescheduleReceipt{}, schedulingError("The destination does not support the existing appointment type.")
 	}
@@ -60,8 +53,6 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 		return RescheduleReceipt{Status: "uncertain", Outcome: string(CategoryIndeterminateWrite), Failure: err, Message: err.Error()}, nil
 	}
 	partial := RescheduleReceipt{Status: "partial", Booking: &replacement, Message: "The replacement is booked. The original cancellation is not confirmed. Do not book again; ask staff to reconcile."}
-	// The original may have changed while booking. Keep the replacement and
-	// return partial instead of cancelling an appointment the caller did not confirm.
 	if err := s.verifyRescheduleOriginal(ctx, policy); err != nil {
 		partial.Outcome = string(CategoryOf(err))
 		partial.Failure = err
@@ -79,8 +70,6 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 	return RescheduleReceipt{Status: "completed", Booking: &replacement, Cancellation: &cancellation, Message: "The replacement is booked and the original appointment is cancelled."}, nil
 }
 
-// Tokens authorize a confirmed appointment; a fresh read verifies it still
-// exists with the same identity before either provider write.
 func (s *service) verifyRescheduleOriginal(ctx context.Context, policy appointmentTokenPolicy) error {
 	read, err := s.records.ReadPatientAppointmentsForMonth(ctx, advancedmd.AppointmentMonthQuery{
 		PatientID: policy.PatientID, OfficeIDs: []string{policy.OfficeID}, Month: policy.start,

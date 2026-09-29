@@ -43,8 +43,6 @@ func TestSchedulerSetupAllowsExplicitEmptyLists(t *testing.T) {
 	}
 }
 
-// Encoding/json accepts provider field capitalization variants; envelope
-// validation must preserve that behavior and tolerate inactive column settings.
 func TestSchedulerSetupPreservesProviderFieldVariants(t *testing.T) {
 	client, token, close := newTestXMLRPCClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"PPMDResults":{"Results":{"ColumnList":{"column":{"@id":"col1","@profile":"prof1"}}}}}`))

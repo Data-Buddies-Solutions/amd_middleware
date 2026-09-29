@@ -23,7 +23,6 @@ func TestInsuranceDecisionHTTPContract(t *testing.T) {
 	if strings.Contains(w.Body.String(), "carrierId") {
 		t.Fatal("provider transport ID exposed")
 	}
-	// A caller assertion is not a staff or payer verification record.
 	w = httptest.NewRecorder()
 	handlers.HandleInsuranceDecision(w, httptest.NewRequest(http.MethodPost, "/api/insurance/decision", strings.NewReader(`{"plan":"United Individual Exchange","coverageType":"medical","office":"Hollywood","referralVerified":true}`)))
 	if w.Code != http.StatusBadRequest {

@@ -15,8 +15,6 @@ func (s *service) Search(ctx context.Context, command SearchCommand) (domain.Ava
 	return s.search(ctx, command, 0)
 }
 
-// ListCommand loads a complete inventory window for conversational selection.
-// Insurance clarification is not a prerequisite for listing openings.
 type ListCommand struct {
 	PatientID       string `json:"patientId,omitempty"`
 	InsurancePlan   string `json:"insurancePlan,omitempty"`
@@ -300,7 +298,6 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 }
 
 func enforcePreauthMinDate(requestedDate, now time.Time) time.Time {
-	// Match provider schedules: clinic calendar values encoded in UTC, not Eastern instants.
 	minDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, 14)
 	if requestedDate.Before(minDate) {
 		return minDate

@@ -2,8 +2,6 @@ package domain
 
 import "encoding/json"
 
-// A medical plan is defined once. Offices contain only participation differences.
-// Every accepted office policy has a complete carrier mapping.
 type medicalPlan struct {
 	Name            string                         `json:"name"`
 	Aliases         []string                       `json:"aliases"`

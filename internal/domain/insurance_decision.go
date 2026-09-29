@@ -7,9 +7,6 @@ import (
 	"strings"
 )
 
-// These participation sources moved from Python. Provider transport IDs remain
-// private; a billing code is not an AdvancedMD record ID.
-//
 //go:embed insurance_data/*.json
 var insuranceSources embed.FS
 
@@ -46,12 +43,11 @@ type participationRule struct {
 	Notice          string   `json:"callerNotice"`
 	Clarification   string   `json:"clarificationNeeded"`
 	Preauth         bool     `json:"preauthRequired"`
-	// Medical metadata comes from one catalog; the vision source is unchanged.
-	CarrierID    string
-	CarrierCode  string
-	Routing      RoutingRule
-	Requirements []InsuranceRequirement
-	Providers    []string
+	CarrierID       string
+	CarrierCode     string
+	Routing         RoutingRule
+	Requirements    []InsuranceRequirement
+	Providers       []string
 }
 
 var insuranceWords = regexp.MustCompile(`[^a-z0-9]+`)
@@ -81,8 +77,6 @@ func requirement(kind, channel string) InsuranceRequirement {
 	return InsuranceRequirement{kind, channel, "unverified"}
 }
 
-// Preserve the existing vision handling of medical-only identities. This reads
-// shared identities; it does not apply medical participation rules to vision.
 func medicalIdentityCode(name string) string {
 	n := insuranceNormalize(name)
 	n = strings.TrimSpace(strings.ReplaceAll(n, " medical ", " "))
@@ -106,13 +100,10 @@ func medicalIdentityCode(name string) string {
 	return ""
 }
 
-// DecideInsurance accepts a mapped plan for registration. It does
-// not run eligibility or verify referrals. No caller boolean can mark one verified.
 func DecideInsurance(plan, coverage string, office *OfficeConfig, dob string) InsuranceDecision {
 	return decideInsurance(plan, coverage, office, dob, false)
 }
 
-// DecideEligibilityInsurance never reduces an unknown payer product to a parent carrier.
 func DecideEligibilityInsurance(plan, coverage string, office *OfficeConfig, dob string) InsuranceDecision {
 	return decideInsurance(plan, coverage, office, dob, true)
 }
@@ -219,7 +210,6 @@ func decideInsurance(plan, coverage string, office *OfficeConfig, dob string, ex
 		d.AllowedProviders = append([]string{}, policy.ProviderNames(d.Routing, dob)...)
 	}
 	if len(d.CredentialedProviders) > 0 {
-		// Intersection: credentialing never grants an office a new provider column.
 		allowed := []string{}
 		for _, p := range d.AllowedProviders {
 			for _, a := range d.CredentialedProviders {
@@ -246,13 +236,9 @@ func decideInsurance(plan, coverage string, office *OfficeConfig, dob string, ex
 	return d
 }
 
-// DecideChartInsurance binds a caller's clarified product to the carrier actually
-// on the chart. It never silently changes that chart or trusts request routing.
 func DecideChartInsurance(chart PatientDemographics, plan, coverage string, office *OfficeConfig, dob string) InsuranceDecision {
 	recordedPlan := chart.CarrierName
 	if coverage == "routine_vision" {
-		// Vision carrier IDs identify the billing bucket attached at registration.
-		// Directory labels are display text, not another caller plan to match.
 		recordedPlan = ""
 		for _, rule := range participationSources["SPRING_HILL_ROUTINE_VISION"] {
 			entry, ok := lookupVisionInsurance(rule.Canonical)
@@ -266,16 +252,12 @@ func DecideChartInsurance(chart PatientDemographics, plan, coverage string, offi
 		recordedPlan = "Preferred Care Partners"
 	}
 	decision := DecideInsurance(recordedPlan, coverage, office, dob)
-	// AMD stores a carrier directory label, not the patient's exact product.
-	// A card-confirmed product may refine that known label, but must still match
-	// the chart carrier ID below. An explicit chart product remains authoritative.
 	if coverage == "medical" && plan != "" {
 		carrierName := medicalCatalog.CarrierNames[chart.CarrierID]
 		if carrierName != "" && insuranceNormalize(chart.CarrierName) == insuranceNormalize(carrierName) {
 			decision = DecideInsurance(plan, coverage, office, dob)
 		}
 	}
-	// A caller cannot clear a restriction already established by the chart.
 	if !decision.CanSchedule {
 		if decision.Outcome == "accepted" {
 			decision.Outcome = "needs_staff_task"

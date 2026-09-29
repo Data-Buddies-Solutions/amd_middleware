@@ -96,7 +96,6 @@ func TestPRE04CredentialingAndChartBinding(t *testing.T) {
 		if d.CanSchedule {
 			t.Fatal("Caller correction silently scheduled against old PRE04 plan")
 		}
-		// Caller-selected Preferred Care cannot relabel an existing United attachment.
 		d = DecideChartInsurance(PatientDemographics{CarrierID: "car40923", CarrierName: "United Healthcare"}, "Preferred Care Partners", "medical", office, "01/02/1980")
 		if d.CanSchedule {
 			t.Fatal("mismatched chart scheduled")

@@ -11,8 +11,6 @@ import (
 	"advancedmd-token-management/internal/safeerrors"
 )
 
-// A bounded read sequence models the authoritative chart before and after a
-// write. Provider mutations are still recorded by the shared test adapter.
 type insuranceRead struct {
 	chart domain.PatientDemographics
 	err   error
@@ -95,7 +93,7 @@ func TestInsuranceReplacementOwnsReferencesAndWriteEffects(t *testing.T) {
 			command.InsPlanID = "stale-plan"
 			command.RespPartyID = "stale-party"
 			command.OldInsurance = "stale name"
-			got := patient.New(records).UpdateInsurance(context.Background(), command)
+			got := patient.New(records, testAppointmentTokens).UpdateInsurance(context.Background(), command)
 			if got.Effect != tc.effect || got.Outcome != tc.outcome {
 				t.Fatalf("result=%+v, want %s/%s", got, tc.effect, tc.outcome)
 			}
@@ -132,7 +130,7 @@ func TestInsuranceReconciliationRetriesOnlyReads(t *testing.T) {
 		{chart: initial}, {err: advancedmd.NewError(safeerrors.CategoryTimeout)}, {chart: attached},
 	}}
 	records.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryTimeout)
-	got := patient.New(records).UpdateInsurance(context.Background(), validUpdateInsuranceCommand())
+	got := patient.New(records, testAppointmentTokens).UpdateInsurance(context.Background(), validUpdateInsuranceCommand())
 	if got.Effect != "completed" || got.Outcome != patient.MutationReconciledSuccess || records.AddInsuranceCalls != 1 || records.EndInsuranceCalls != 0 || records.DemographicCalls != 3 {
 		t.Fatalf("result=%+v reads=%d end/add=%d/%d", got, records.DemographicCalls, records.EndInsuranceCalls, records.AddInsuranceCalls)
 	}

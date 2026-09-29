@@ -49,32 +49,29 @@ func TestIdentityEvidence(t *testing.T) {
 	}
 }
 
+func assess(t *testing.T, body string) responseAssessment {
+	t.Helper()
+	var response Response
+	if err := json.Unmarshal([]byte(body), &response); err != nil {
+		t.Fatal(err)
+	}
+	return assessResponse(response, example(), false)
+}
+
 func TestFamilyAndErrorResponsesStayUnverified(t *testing.T) {
-	p := example()
-	base := Case{Expected: p, Source: "eligibility", Response: json.RawMessage(`{"subscriber":{"firstName":"Mara","lastName":"Peters","dateOfBirth":"19800512"},"errors":[{"code":"73"}],"benefitsInformation":[{"code":"1"}]}`)}
-	a, err := Assess(base)
-	if err != nil || a.ActiveResponse || a.Match.Status != "payer_rejected" {
-		t.Fatalf("error accepted: %+v %v", a, err)
+	a := assess(t, `{"subscriber":{"firstName":"Mara","lastName":"Peters","dateOfBirth":"19800512"},"errors":[{"code":"73"}],"benefitsInformation":[{"code":"1"}]}`)
+	if a.Coverage == "active" || a.Match.Status != "payer_rejected" {
+		t.Fatalf("error accepted: %+v", a)
 	}
-	base.Response = json.RawMessage(`{"dependents":[{},{}],"benefitsInformation":[{"code":"1"}]}`)
-	a, err = Assess(base)
-	if err != nil || a.Match.Status != "ambiguous_dependents" || !a.Match.ReviewRequired {
+	a = assess(t, `{"dependents":[{},{}],"benefitsInformation":[{"code":"1"}]}`)
+	if a.Match.Status != "ambiguous_dependents" || !a.Match.ReviewRequired {
 		t.Fatalf("ambiguous family accepted: %+v", a)
-	}
-	base.Response = json.RawMessage(`{"subscriber":{"firstName":"Mara","lastName":"Peters","dateOfBirth":"19800512"},"benefitsInformation":[{"code":"1"}]}`)
-	base.Source = "discovery"
-	a, err = Assess(base)
-	if err != nil || a.Match.Status != "discovery_review" || !a.Match.ReviewRequired {
-		t.Fatal("discovery autoaccepted")
 	}
 }
 
-func TestUnknownResponsesAreErrors(t *testing.T) {
-	if _, err := Assess(Case{Source: "unknown", Response: json.RawMessage(`{"errors":[{"code":"73"}]}`)}); err == nil {
-		t.Fatal("unknown source accepted")
-	}
+func TestUnknownResponsesAreUnrecognized(t *testing.T) {
 	for _, body := range []string{`null`, `{}`, `{"unexpected":true}`} {
-		if _, err := Assess(Case{Source: "eligibility", Response: json.RawMessage(body)}); err == nil {
+		if assess(t, body).Recognized {
 			t.Fatalf("accepted %s", body)
 		}
 	}

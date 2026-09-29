@@ -19,8 +19,6 @@ func (h *Handlers) HandleEligibility(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"eligibility_not_configured"}`, http.StatusServiceUnavailable)
 		return
 	}
-	// Office is trusted integration context, using the same registry/default as
-	// other middleware endpoints; it is not a clinical question for the patient.
 	var input struct {
 		eligibility.CheckInput
 		Office string `json:"office,omitempty"`
@@ -46,8 +44,6 @@ func (h *Handlers) HandleEligibility(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result.InsuranceResolution = eligibility.ResolveInsurance(result, office, input.CheckInput)
-	// A receipt is still HTTP 200 when the payer outcome is unknown. Preserve
-	// that contract while exposing failures through the existing safe logs.
 	results := []eligibility.Result{result}
 	if len(result.ProviderResults) > 0 {
 		results = result.ProviderResults

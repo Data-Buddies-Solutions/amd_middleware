@@ -1,4 +1,3 @@
-// Package session owns the AdvancedMD authentication and token lifecycle.
 package session
 
 import (
@@ -14,7 +13,6 @@ import (
 	"golang.org/x/net/html/charset"
 )
 
-// Credentials holds AdvancedMD login credentials.
 type Credentials struct {
 	Username  string
 	Password  string
@@ -22,37 +20,31 @@ type Credentials struct {
 	AppName   string
 }
 
-// PPMDResults represents the XML response structure from AdvancedMD API.
 type PPMDResults struct {
 	XMLName xml.Name `xml:"PPMDResults"`
 	Results Results  `xml:"Results"`
 	Error   Error    `xml:"Error"`
 }
 
-// Results contains the login response data.
 type Results struct {
 	Success     string      `xml:"success,attr"`
 	UserContext UserContext `xml:"usercontext"`
 }
 
-// UserContext contains authentication details returned from AdvancedMD.
 type UserContext struct {
 	Webserver string `xml:"webserver,attr"`
 	Token     string `xml:",chardata"`
 }
 
-// Error contains error information from failed AdvancedMD requests.
 type Error struct {
 	Fault Fault `xml:"Fault"`
 }
 
-// Fault contains detailed error information.
 type Fault struct {
 	Code        string `xml:"detail>code"`
 	Description string `xml:"detail>description"`
 }
 
-// advancedMDLogin is the private provider boundary used only by sessionImpl.
 type advancedMDLogin struct {
 	creds  Credentials
 	client *http.Client
@@ -65,7 +57,6 @@ func newAdvancedMDLogin(creds Credentials, client *http.Client) *advancedMDLogin
 	}
 }
 
-// buildLoginXML creates the XML payload for AdvancedMD login requests.
 func (a *advancedMDLogin) buildLoginXML() string {
 	now := time.Now().Format("1/2/2006 3:04:05 PM")
 	return fmt.Sprintf(
@@ -78,15 +69,12 @@ func (a *advancedMDLogin) buildLoginXML() string {
 	)
 }
 
-// escapeXMLAttr keeps credential characters such as &, <, and " from breaking
-// the login message.
 func escapeXMLAttr(value string) string {
 	var escaped strings.Builder
 	xml.EscapeText(&escaped, []byte(value))
 	return escaped.String()
 }
 
-// parseXMLResponse parses AdvancedMD XML responses with charset support.
 func parseXMLResponse(body []byte) (*PPMDResults, error) {
 	var result PPMDResults
 	decoder := xml.NewDecoder(bytes.NewReader(body))
@@ -121,7 +109,6 @@ func (a *advancedMDLogin) postLogin(ctx context.Context, url string) (*PPMDResul
 	return result, nil
 }
 
-// getWebserver performs Step 1 of the AdvancedMD login process.
 func (a *advancedMDLogin) getWebserver(ctx context.Context) (string, error) {
 	const url = "https://partnerlogin.advancedmd.com/practicemanager/xmlrpc/processrequest.aspx"
 	result, err := a.postLogin(ctx, url)
@@ -137,7 +124,6 @@ func (a *advancedMDLogin) getWebserver(ctx context.Context) (string, error) {
 	return webserver, nil
 }
 
-// getAuthToken performs Step 2 of the AdvancedMD login process.
 func (a *advancedMDLogin) getAuthToken(ctx context.Context, webserverURL string) (string, error) {
 	url := webserverURL + "/xmlrpc/processrequest.aspx"
 	result, err := a.postLogin(ctx, url)
@@ -158,7 +144,6 @@ func (a *advancedMDLogin) getAuthToken(ctx context.Context, webserverURL string)
 	return token, nil
 }
 
-// Authenticate performs the complete 2-step AdvancedMD authentication flow.
 func (a *advancedMDLogin) Authenticate(ctx context.Context) (token, webserverURL string, err error) {
 	webserverURL, err = a.getWebserver(ctx)
 	if err != nil {

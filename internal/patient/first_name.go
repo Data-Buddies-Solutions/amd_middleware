@@ -64,7 +64,6 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 	matches := []domain.Patient{}
 	seen := map[string]bool{}
 	for _, row := range read.Patients {
-		// Missing or invalid DOB is not a match, regardless of the first name.
 		if exactFirstName(candidateName(row)) != name || !usableDOB(row.DOB) || domain.NormalizeDOB(row.DOB) != dob {
 			continue
 		}
@@ -93,8 +92,6 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 	if err != nil {
 		return unresolved("demographics_unavailable", advancedmd.CategoryOf(err))
 	}
-	// Keep the matched lookup identity when optional demographic fields are absent;
-	// an authoritative conflicting identity cannot replace it silently.
 	if demographics.FullName != "" {
 		if exactFirstName(candidateName(domain.Patient{FullName: demographics.FullName})) != name {
 			return unresolved("identity_not_verified", safeerrors.CategoryInvalidResponse)

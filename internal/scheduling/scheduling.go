@@ -18,7 +18,6 @@ const (
 
 var eastern = domain.EasternLocation()
 
-// SearchCommand is the domain input for one availability search.
 type SearchCommand struct {
 	PatientID       string                      `json:"patientId,omitempty"`
 	InsurancePlan   string                      `json:"insurancePlan,omitempty"`
@@ -40,13 +39,11 @@ const (
 	AvailabilityTimeAfternoon AvailabilityTimeKind = "afternoon"
 )
 
-// AvailabilityTimePreference is a canonical clinic-local time preference.
 type AvailabilityTimePreference struct {
 	Kind        AvailabilityTimeKind `json:"kind,omitempty"`
 	MinuteOfDay *int                 `json:"minuteOfDay,omitempty"`
 }
 
-// Scheduling is the complete scheduling boundary used by HTTP.
 type Scheduling interface {
 	Search(ctx context.Context, command SearchCommand) (domain.AvailabilityResponse, error)
 	List(ctx context.Context, command ListCommand) (domain.AvailabilityResponse, error)
@@ -55,12 +52,10 @@ type Scheduling interface {
 	Reschedule(ctx context.Context, command BookCommand) (RescheduleReceipt, error)
 }
 
-// Category is a stable, provider-independent scheduling outcome.
 type Category string
 
 const (
 	CategoryValidation               Category = "validation"
-	CategoryPolicyBlocked            Category = "policy_blocked"
 	CategoryInvalidBookingToken      Category = "invalid_booking_token"
 	CategoryInvalidCancellationToken Category = "invalid_cancellation_token"
 	CategoryInvalidRescheduleToken   Category = "invalid_reschedule_token"
@@ -75,7 +70,6 @@ const (
 	CategoryIndeterminateWrite       Category = "indeterminate_write"
 )
 
-// Error contains only caller-safe scheduling failure details.
 type Error struct {
 	category        Category
 	providerFailure safeerrors.Category
@@ -87,7 +81,6 @@ func (e *Error) Error() string {
 	return e.message
 }
 
-// CategoryOf returns the stable domain category for a Scheduling error.
 func CategoryOf(err error) Category {
 	var schedulingErr *Error
 	if errors.As(err, &schedulingErr) {
@@ -96,8 +89,6 @@ func CategoryOf(err error) Category {
 	return CategoryValidation
 }
 
-// ProviderFailureOf returns the stable provider category carried by a
-// Scheduling error, or none when the failure did not come from AdvancedMD.
 func ProviderFailureOf(err error) safeerrors.Category {
 	var schedulingErr *Error
 	if errors.As(err, &schedulingErr) {
@@ -109,8 +100,6 @@ func ProviderFailureOf(err error) safeerrors.Category {
 	return safeerrors.CategoryNone
 }
 
-// MissingOf returns caller-safe fields required to complete a Scheduling
-// command.
 func MissingOf(err error) []string {
 	var schedulingErr *Error
 	if errors.As(err, &schedulingErr) {
@@ -133,22 +122,11 @@ type service struct {
 	setupFlight    *setupRefresh
 }
 
-// Config makes compatibility behavior explicit at composition time.
-type Config struct {
-	AllowRawBooking bool
-}
-
-// New constructs Scheduling with compatibility behavior disabled.
-func New(records advancedmd.SchedulingRecords, bookingTokenSecret string, now func() time.Time) Scheduling {
-	return NewWithConfig(records, bookingTokenSecret, now, Config{})
-}
-
-// NewWithConfig constructs the single owner for scheduling behavior.
-func NewWithConfig(
+func New(
 	records advancedmd.SchedulingRecords,
 	bookingTokenSecret string,
 	now func() time.Time,
-	config Config,
+	allowRawBooking bool,
 ) Scheduling {
 	if now == nil {
 		now = time.Now
@@ -157,7 +135,7 @@ func NewWithConfig(
 		records:            records,
 		bookingTokenSecret: bookingTokenSecret,
 		appointmentTokens:  NewAppointmentTokens(bookingTokenSecret, now),
-		allowRawBooking:    config.AllowRawBooking,
+		allowRawBooking:    allowRawBooking,
 		now:                now,
 	}
 }
