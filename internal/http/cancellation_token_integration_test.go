@@ -40,6 +40,7 @@ func TestCancellationTokenCancelsPairedOfficeAppointmentWithoutRediscovery(t *te
 		nil,
 		patient.New(records, tokens),
 		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+		nil,
 	)
 
 	resolveRecorder := postJSON(t, handlers.HandlePatientResolve, "/api/patient/resolve", map[string]any{
@@ -81,7 +82,7 @@ func TestCancellationTokenCancelsPairedOfficeAppointmentWithoutRediscovery(t *te
 		"office":            "Crystal River",
 		"cancellationToken": appointment.CancellationToken,
 	})
-	var cancelled CancelAppointmentResponse
+	var cancelled scheduling.CancelReceipt
 	if err := json.NewDecoder(cancelRecorder.Body).Decode(&cancelled); err != nil {
 		t.Fatalf("decode cancellation: %v", err)
 	}
@@ -129,6 +130,7 @@ func TestPatientResolutionIssuesOneDistinctTokenPerAppointment(t *testing.T) {
 		nil,
 		patient.New(records, tokens),
 		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+		nil,
 	)
 
 	resolveRecorder := postJSON(t, handlers.HandlePatientResolve, "/api/patient/resolve", map[string]any{
@@ -159,7 +161,7 @@ func TestPatientResolutionIssuesOneDistinctTokenPerAppointment(t *testing.T) {
 	cancelRecorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{
 		"cancellationToken": resolved.Appointments[1].CancellationToken,
 	})
-	var cancelled CancelAppointmentResponse
+	var cancelled scheduling.CancelReceipt
 	if err := json.NewDecoder(cancelRecorder.Body).Decode(&cancelled); err != nil {
 		t.Fatalf("decode cancellation: %v", err)
 	}
@@ -191,6 +193,7 @@ func TestPresentEmptyCancellationTokenDoesNotFallBackToRediscovery(t *testing.T)
 		nil,
 		patient.New(records, testAppointmentTokens),
 		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+		nil,
 	)
 
 	recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{
@@ -199,7 +202,7 @@ func TestPresentEmptyCancellationTokenDoesNotFallBackToRediscovery(t *testing.T)
 		"office":            "Spring Hill",
 		"cancellationToken": "",
 	})
-	var response CancelAppointmentResponse
+	var response scheduling.CancelReceipt
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 		t.Fatalf("decode cancellation: %v", err)
 	}
@@ -283,6 +286,7 @@ func TestCancellationTokenRejectionsPerformNoProviderOperations(t *testing.T) {
 				nil,
 				patient.New(records, testAppointmentTokens),
 				scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+				nil,
 			)
 			body := test.body
 			if body == nil {
@@ -295,7 +299,7 @@ func TestCancellationTokenRejectionsPerformNoProviderOperations(t *testing.T) {
 			body["cancellationToken"] = test.token
 
 			recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", body)
-			var response CancelAppointmentResponse
+			var response scheduling.CancelReceipt
 			if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 				t.Fatalf("decode cancellation: %v", err)
 			}
@@ -326,6 +330,7 @@ func TestCancellationAndBookingTokensAreNotInterchangeable(t *testing.T) {
 		nil,
 		patient.New(records, testAppointmentTokens),
 		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+		nil,
 	)
 
 	recorder := postJSON(t, handlers.HandleBookAppointment, "/api/appointment/book", map[string]any{
@@ -333,7 +338,7 @@ func TestCancellationAndBookingTokensAreNotInterchangeable(t *testing.T) {
 		"bookingToken":      cancellationToken,
 		"appointmentTypeId": 1007,
 	})
-	var response BookAppointmentResponse
+	var response scheduling.BookReceipt
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 		t.Fatalf("decode booking: %v", err)
 	}
@@ -361,6 +366,7 @@ func TestCancellationTelemetryReportsOperationBudgetWithoutSensitiveValues(t *te
 		nil,
 		patient.New(records, testAppointmentTokens),
 		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+		nil,
 	)
 	router := NewRouter(handlers, "agent-secret", nil)
 	var logs bytes.Buffer
@@ -374,7 +380,7 @@ func TestCancellationTelemetryReportsOperationBudgetWithoutSensitiveValues(t *te
 		"office":            "Spring Hill",
 		"cancellationToken": token + "tampered",
 	})
-	var response CancelAppointmentResponse
+	var response scheduling.CancelReceipt
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 		t.Fatalf("decode cancellation: %v", err)
 	}
@@ -428,6 +434,7 @@ func TestLegacyCancellationTelemetryReportsProviderReadCount(t *testing.T) {
 		nil,
 		patient.New(records, testAppointmentTokens),
 		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+		nil,
 	)
 	router := NewRouter(handlers, "agent-secret", nil)
 	var logs bytes.Buffer
@@ -440,7 +447,7 @@ func TestLegacyCancellationTelemetryReportsProviderReadCount(t *testing.T) {
 		"appointmentId": 33333,
 		"office":        "Spring Hill",
 	})
-	var response CancelAppointmentResponse
+	var response scheduling.CancelReceipt
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 		t.Fatalf("decode cancellation: %v", err)
 	}
@@ -480,11 +487,12 @@ func TestCancellationHTTPContractSupportsTokenOnlyAndTokenlessLegacyRequests(t *
 			nil,
 			patient.New(records, testAppointmentTokens),
 			scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+			nil,
 		)
 		recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{
 			"cancellationToken": token,
 		})
-		var response CancelAppointmentResponse
+		var response scheduling.CancelReceipt
 		if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 			t.Fatalf("decode cancellation: %v", err)
 		}
@@ -508,13 +516,14 @@ func TestCancellationHTTPContractSupportsTokenOnlyAndTokenlessLegacyRequests(t *
 			nil,
 			patient.New(records, testAppointmentTokens),
 			scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+			nil,
 		)
 		recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{
 			"patientId":     "12345",
 			"appointmentId": 33333,
 			"office":        "Spring Hill",
 		})
-		var response CancelAppointmentResponse
+		var response scheduling.CancelReceipt
 		if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 			t.Fatalf("decode cancellation: %v", err)
 		}
@@ -545,12 +554,13 @@ func TestTokenCancellationPreservesAmbiguousWriteReconciliation(t *testing.T) {
 		nil,
 		patient.New(records, testAppointmentTokens),
 		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+		nil,
 	)
 
 	recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{
 		"cancellationToken": token,
 	})
-	var response CancelAppointmentResponse
+	var response scheduling.CancelReceipt
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 		t.Fatalf("decode cancellation: %v", err)
 	}

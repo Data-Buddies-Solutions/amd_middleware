@@ -68,7 +68,7 @@ func main() {
 		cfg.AllowRawSlotBooking,
 	)
 
-	handlers := apphttp.NewHandlers(amdSession, patients, scheduler)
+	var eligibilityService *eligibility.Service
 	if key, providersJSON := os.Getenv("STEDI_API_KEY"), os.Getenv("STEDI_PROVIDERS"); key != "" || providersJSON != "" {
 		var providers map[string]eligibility.Provider
 		if providersJSON != "" && json.Unmarshal([]byte(providersJSON), &providers) != nil {
@@ -78,8 +78,9 @@ func main() {
 		if err != nil {
 			log.Fatal("invalid eligibility configuration")
 		}
-		handlers.SetEligibility(service)
+		eligibilityService = service
 	}
+	handlers := apphttp.NewHandlers(amdSession, patients, scheduler, eligibilityService)
 
 	maintenanceAuthorizer := apphttp.NewMaintenanceAuthorizer(
 		cfg.MaintenanceOIDCAudience,
