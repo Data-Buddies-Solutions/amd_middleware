@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.2.3](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.2...v5.2.3) (2026-09-29)
+
+
+### Bug Fixes
+
+* remove dead code and comments, correct write-timeout and patient-ID handling ([#214](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/214)) ([be762d1](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/be762d15eede20d185e2b4517c62c94c912082bf))
+
 ## [5.2.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.1...v5.2.2) (2026-09-28)
 
 
