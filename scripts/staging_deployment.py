@@ -86,6 +86,9 @@ def request(url, body=None, token=None):
         return error.code, error.read()
 
 
+AGENT_OFFICE = "+17275919997"
+
+
 def smoke(service):
     url = service["status"]["url"]
     checks = {}
@@ -106,6 +109,13 @@ def smoke(service):
     require(payload.get("status") == "error" and payload.get("message") == "Invalid JSON body",
             "Sandbox API token did not reach request validation")
     checks["authenticated_request_validation"] = "passed_without_provider_call"
+    status, body = request(url + "/api/patient/resolve",
+                           body=json.dumps({"office": AGENT_OFFICE}).encode(), token=token)
+    payload = json.loads(body) if status == 200 else {}
+    require(payload.get("status") == "error"
+            and str(payload.get("message", "")).startswith("Provide patientId"),
+            f"Agent office {AGENT_OFFICE} did not resolve in the sandbox registry")
+    checks["agent_office_resolution"] = "passed_without_provider_call"
     return checks
 
 

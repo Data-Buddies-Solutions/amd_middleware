@@ -64,10 +64,26 @@ class StagingDeploymentTest(unittest.TestCase):
     def test_smoke_proves_auth_without_provider_requests(self, request, cloud):
         request.side_effect = [(200, b""), (200, b""), (401, b""), (200, json.dumps({
             "status": "error", "message": "Invalid JSON body", "appointments": None, "matches": None,
+        }).encode()), (200, json.dumps({
+            "status": "error", "message": "Provide patientId, phone, phone + firstName, phone + dob, firstName + dob, or lastName + dob",
         }).encode())]
         result = staging.smoke(service())
         self.assertEqual(result["authenticated_request_validation"], "passed_without_provider_call")
-        self.assertEqual(request.call_args.kwargs, {"body": b"{", "token": "test-token"})
+        self.assertEqual(result["agent_office_resolution"], "passed_without_provider_call")
+        self.assertEqual(request.call_args_list[3].kwargs, {"body": b"{", "token": "test-token"})
+        self.assertEqual(request.call_args.kwargs,
+                         {"body": b'{"office": "+17275919997"}', "token": "test-token"})
+
+    @patch.object(staging, "cloud", return_value="test-token")
+    @patch.object(staging, "request")
+    def test_unknown_agent_office_fails_the_deploy(self, request, cloud):
+        request.side_effect = [(200, b""), (200, b""), (401, b""), (200, json.dumps({
+            "status": "error", "message": "Invalid JSON body",
+        }).encode()), (200, json.dumps({
+            "status": "error", "message": 'unknown office: "+17275919997". Valid options: Spring Hill',
+        }).encode())]
+        with self.assertRaises(RuntimeError):
+            staging.smoke(service())
 
     @patch.object(staging, "cloud", return_value="test-token")
     @patch.object(staging, "request")
