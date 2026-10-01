@@ -71,6 +71,7 @@ type PatientRecords interface {
 type SchedulingRecords interface {
 	GetSchedulerSetup(ctx context.Context) (domain.SchedulerSetup, error)
 	ReadSchedule(ctx context.Context, query domain.ScheduleReadQuery) (domain.ScheduleReadResult, error)
+	ReadScheduleRange(ctx context.Context, query domain.ScheduleRangeQuery) (map[string]domain.ScheduleReadResult, error)
 	GetPatientDemographics(ctx context.Context, patientID string) (domain.PatientDemographics, error)
 	ReadPatientAppointments(ctx context.Context, query domain.PatientAppointmentsQuery) (AppointmentRead, error)
 	ReadPatientAppointmentsForMonth(ctx context.Context, query AppointmentMonthQuery) (AppointmentRead, error)

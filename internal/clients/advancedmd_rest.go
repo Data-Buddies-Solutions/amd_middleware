@@ -75,6 +75,10 @@ func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *s
 		return nil, fmt.Errorf("failed to parse appointments: %w", err)
 	}
 
+	return ScheduledAppointments(amdAppts)
+}
+
+func ScheduledAppointments(amdAppts []AMDAppointmentResponse) ([]domain.Appointment, error) {
 	var appointments []domain.Appointment
 	for _, a := range amdAppts {
 		startTime, err := ParseDateTime(a.StartDateTime)
@@ -101,17 +105,28 @@ type AMDBlockHoldResponse struct {
 	EndDateTime   string `json:"enddatetime"`
 	Duration      int    `json:"duration"`
 	ColumnID      int    `json:"columnid"`
-	Note          string `json:"note"`
-	Recurrence    struct {
+	Column        struct {
+		ID int `json:"id"`
+	} `json:"column"`
+	Note       string `json:"note"`
+	Recurrence struct {
 		RecurrenceType int `json:"recurrencetype"`
 	} `json:"recurrence"`
 }
 
-func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *session.TokenData, columnID string, startDate string) (holdsResult []domain.BlockHold, resultErr error) {
-	ctx, finish := beginProviderOperation(ctx, "get_block_holds")
+func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *session.TokenData, columnID string, startDate string) ([]domain.BlockHold, error) {
+	return c.getBlockHolds(ctx, tokenData, "get_block_holds", columnID, "day", startDate)
+}
+
+func (c *AdvancedMDRestClient) GetBlockHoldsByMonth(ctx context.Context, tokenData *session.TokenData, columnIDs string, startDate string) ([]domain.BlockHold, error) {
+	return c.getBlockHolds(ctx, tokenData, "get_block_holds_by_month", columnIDs, "month", startDate)
+}
+
+func (c *AdvancedMDRestClient) getBlockHolds(ctx context.Context, tokenData *session.TokenData, operation, columnIDs, view, startDate string) (holdsResult []domain.BlockHold, resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, operation)
 	defer func() { finish(resultErr) }()
-	url := fmt.Sprintf("https://%s/scheduler/blockholds?columnId=%s&forView=day&startDate=%s",
-		tokenData.RestApiBase, columnID, startDate)
+	url := fmt.Sprintf("https://%s/scheduler/blockholds?columnId=%s&forView=%s&startDate=%s",
+		tokenData.RestApiBase, columnIDs, view, startDate)
 
 	body, err := c.getResponseBody(ctx, tokenData, url, "block holds")
 	if err != nil {
@@ -142,12 +157,19 @@ func (c *AdvancedMDRestClient) GetBlockHolds(ctx context.Context, tokenData *ses
 			ID:            h.ID,
 			StartDateTime: startTime,
 			EndDateTime:   endTime,
-			ColumnID:      h.ColumnID,
+			ColumnID:      blockHoldColumnID(h),
 			Note:          h.Note,
 		})
 	}
 
 	return holds, nil
+}
+
+func blockHoldColumnID(hold AMDBlockHoldResponse) int {
+	if hold.Column.ID != 0 {
+		return hold.Column.ID
+	}
+	return hold.ColumnID
 }
 
 func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, tokenData *session.TokenData, columnIDs string, startDate string) (appointmentsResult []AMDAppointmentResponse, resultErr error) {

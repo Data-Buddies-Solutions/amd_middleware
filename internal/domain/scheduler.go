@@ -54,6 +54,12 @@ type ScheduleReadQuery struct {
 	Date      string
 }
 
+type ScheduleRangeQuery struct {
+	ColumnIDs []string
+	Start     time.Time
+	End       time.Time
+}
+
 type ColumnSchedule struct {
 	Appointments         []Appointment
 	BlockHolds           []BlockHold

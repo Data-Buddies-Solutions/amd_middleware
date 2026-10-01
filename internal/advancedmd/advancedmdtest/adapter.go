@@ -65,6 +65,7 @@ type Adapter struct {
 	SchedulerSetupCalls      int
 	ScheduleReads            map[string]domain.ScheduleReadResult
 	ScheduleReadErrors       map[string]error
+	ScheduleRangeQueries     []domain.ScheduleRangeQuery
 	ScheduleReadQueries      []domain.ScheduleReadQuery
 	BookAppointmentID        int
 	BookAppointmentErr       error
@@ -219,6 +220,29 @@ func (a *Adapter) ReadSchedule(_ context.Context, query domain.ScheduleReadQuery
 		}
 	}
 	return result, nil
+}
+
+func (a *Adapter) ReadScheduleRange(_ context.Context, query domain.ScheduleRangeQuery) (map[string]domain.ScheduleReadResult, error) {
+	a.scheduleMu.Lock()
+	defer a.scheduleMu.Unlock()
+	query.ColumnIDs = append([]string(nil), query.ColumnIDs...)
+	a.ScheduleRangeQueries = append(a.ScheduleRangeQueries, query)
+	results := make(map[string]domain.ScheduleReadResult)
+	for day := query.Start; !day.After(query.End); day = day.AddDate(0, 0, 1) {
+		date := day.Format("2006-01-02")
+		if err := a.ScheduleReadErrors[date]; err != nil {
+			return nil, err
+		}
+		read := a.ScheduleReads[date]
+		result := domain.ScheduleReadResult{Columns: make(map[string]domain.ColumnSchedule, len(query.ColumnIDs))}
+		for _, columnID := range query.ColumnIDs {
+			if column, ok := read.Columns[columnID]; ok {
+				result.Columns[columnID] = column
+			}
+		}
+		results[date] = result
+	}
+	return results, nil
 }
 
 func (a *Adapter) BookAppointment(_ context.Context, booking advancedmd.Booking) (int, error) {
