@@ -33,8 +33,11 @@ func TestListLoadsEveryEligibleSlotAcrossCalendarWindow(t *testing.T) {
 			if result.SearchedFrom != "2026-10-26" || result.SearchedThrough != first.AddDate(0, 0, count-1).Format("2006-01-02") {
 				t.Fatalf("wrong coverage: %s..%s", result.SearchedFrom, result.SearchedThrough)
 			}
-			if len(records.ScheduleReadQueries) != count {
-				t.Fatalf("reads=%d want=%d", len(records.ScheduleReadQueries), count)
+			if len(records.ScheduleRangeQueries) != 1 || len(records.ScheduleReadQueries) != 0 {
+				t.Fatalf("range reads=%d day reads=%d, want one range read", len(records.ScheduleRangeQueries), len(records.ScheduleReadQueries))
+			}
+			if query := records.ScheduleRangeQueries[0]; !query.Start.Equal(first) || !query.End.Equal(first.AddDate(0, 0, count-1)) {
+				t.Fatalf("range read %s..%s", query.Start.Format("2006-01-02"), query.End.Format("2006-01-02"))
 			}
 			for i, slot := range result.Slots {
 				if i > 0 && slot.DateTime < result.Slots[i-1].DateTime {
@@ -72,7 +75,7 @@ func TestListRejectsUnsupportedRangeBeforeProviderRead(t *testing.T) {
 	}
 }
 
-func TestListStartsAtRequestedDateWithoutReadingInterveningDates(t *testing.T) {
+func TestListReadsOnlyTheRequestedWindow(t *testing.T) {
 	now := time.Date(2026, 9, 8, 12, 0, 0, 0, time.UTC)
 	first := time.Date(2026, 11, 2, 0, 0, 0, 0, time.UTC)
 	column := testColumn("1513", "620", "1568", "09:00", "10:00", 15)
@@ -85,7 +88,7 @@ func TestListStartsAtRequestedDateWithoutReadingInterveningDates(t *testing.T) {
 	for _, offset := range []int{0, 14} {
 		start := first.AddDate(0, 0, offset)
 		end := start.AddDate(0, 0, 13)
-		before := len(records.ScheduleReadQueries)
+		before := len(records.ScheduleRangeQueries)
 		result, err := scheduler.List(context.Background(), scheduling.ListCommand{
 			Office: "Spring Hill", Routing: "bach_only", StartDate: start.Format("2006-01-02"),
 		})
@@ -95,15 +98,9 @@ func TestListStartsAtRequestedDateWithoutReadingInterveningDates(t *testing.T) {
 		if result.SearchedFrom != start.Format("2006-01-02") || result.SearchedThrough != end.Format("2006-01-02") {
 			t.Fatalf("wrong coverage: %s..%s", result.SearchedFrom, result.SearchedThrough)
 		}
-		queries := records.ScheduleReadQueries[before:]
-		if len(queries) != 10 {
-			t.Fatalf("schedule reads=%d, want ten working dates", len(queries))
-		}
-		for _, query := range queries {
-			date, _ := time.Parse("2006-01-02", query.Date)
-			if date.Before(start) || date.After(end) || date.Weekday() == time.Saturday || date.Weekday() == time.Sunday {
-				t.Fatalf("unexpected provider read: %s", query.Date)
-			}
+		queries := records.ScheduleRangeQueries[before:]
+		if len(queries) != 1 || !queries[0].Start.Equal(start) || !queries[0].End.Equal(end) {
+			t.Fatalf("schedule range reads=%#v, want one read of %s..%s", queries, start.Format("2006-01-02"), end.Format("2006-01-02"))
 		}
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -523,6 +524,127 @@ func (a *Adapter) ReadSchedule(ctx context.Context, query domain.ScheduleReadQue
 	}
 
 	return result, nil
+}
+
+func (a *Adapter) ReadScheduleRange(ctx context.Context, query domain.ScheduleRangeQuery) (map[string]domain.ScheduleReadResult, error) {
+	token, err := a.token(ctx)
+	if err != nil {
+		return nil, err
+	}
+	columnIDs := strings.Join(query.ColumnIDs, "-")
+	var months []string
+	for month := time.Date(query.Start.Year(), query.Start.Month(), 1, 0, 0, 0, 0, time.UTC); !month.After(query.End); month = month.AddDate(0, 1, 0) {
+		months = append(months, month.Format("2006-01-02"))
+	}
+	appointments := make([][]clients.AMDAppointmentResponse, len(months))
+	holds := make([][]domain.BlockHold, len(months))
+	failures := make([]error, 2*len(months))
+	var reads sync.WaitGroup
+	for i, month := range months {
+		reads.Add(2)
+		go func() {
+			defer reads.Done()
+			appointments[i], failures[2*i] = a.restClient.GetAppointmentsByMonth(ctx, token, columnIDs, month)
+		}()
+		go func() {
+			defer reads.Done()
+			holds[i], failures[2*i+1] = a.restClient.GetBlockHoldsByMonth(ctx, token, columnIDs, month)
+		}()
+	}
+	reads.Wait()
+	for _, err := range failures {
+		if err != nil {
+			failure := classify(err)
+			log.Printf("schedule read incomplete category=%s", CategoryOf(failure))
+			return nil, failure
+		}
+	}
+	scheduled, err := clients.ScheduledAppointments(slices.Concat(appointments...))
+	if err != nil {
+		failure := classify(err)
+		log.Printf("schedule read incomplete category=%s", CategoryOf(failure))
+		return nil, failure
+	}
+	return scheduleByDate(query, scheduled, slices.Concat(holds...)), nil
+}
+
+func scheduleByDate(query domain.ScheduleRangeQuery, appointments []domain.Appointment, holds []domain.BlockHold) map[string]domain.ScheduleReadResult {
+	queried := make(map[int]string, len(query.ColumnIDs))
+	for _, columnID := range query.ColumnIDs {
+		if id, err := strconv.Atoi(columnID); err == nil {
+			queried[id] = columnID
+		}
+	}
+	result := make(map[string]domain.ScheduleReadResult)
+	unattributed := make(map[string]bool)
+	for day := query.Start; !day.After(query.End); day = day.AddDate(0, 0, 1) {
+		date := day.Format("2006-01-02")
+		columns := make(map[string]domain.ColumnSchedule, len(query.ColumnIDs))
+		for _, columnID := range query.ColumnIDs {
+			columns[columnID] = domain.ColumnSchedule{AppointmentsComplete: true, BlockHoldsComplete: true}
+		}
+		result[date] = domain.ScheduleReadResult{Columns: columns}
+	}
+	type rowKey struct {
+		id     int
+		column int
+		start  time.Time
+	}
+	seen := make(map[rowKey]bool)
+	for _, appointment := range appointments {
+		key := rowKey{appointment.ID, appointment.ColumnID, appointment.StartDateTime}
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		date := appointment.StartDateTime.Format("2006-01-02")
+		read, ok := result[date]
+		if !ok {
+			continue
+		}
+		columnID, ok := queried[appointment.ColumnID]
+		if !ok {
+			unattributed[date] = true
+			continue
+		}
+		column := read.Columns[columnID]
+		column.Appointments = append(column.Appointments, appointment)
+		read.Columns[columnID] = column
+	}
+	seen = make(map[rowKey]bool)
+	for _, hold := range holds {
+		key := rowKey{hold.ID, hold.ColumnID, hold.StartDateTime}
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		end := hold.EndDateTime
+		if !end.After(hold.StartDateTime) {
+			end = hold.StartDateTime.Add(time.Nanosecond)
+		}
+		for date, read := range result {
+			dayStart, _ := time.Parse("2006-01-02", date)
+			if !hold.StartDateTime.Before(dayStart.AddDate(0, 0, 1)) || !end.After(dayStart) {
+				continue
+			}
+			columnID, ok := queried[hold.ColumnID]
+			if !ok {
+				unattributed[date] = true
+				continue
+			}
+			column := read.Columns[columnID]
+			column.BlockHolds = append(column.BlockHolds, hold)
+			read.Columns[columnID] = column
+		}
+	}
+	for date := range unattributed {
+		for columnID, column := range result[date].Columns {
+			column.AppointmentsComplete = false
+			column.BlockHoldsComplete = false
+			result[date].Columns[columnID] = column
+		}
+	}
+	return result
 }
 
 func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, error) {
