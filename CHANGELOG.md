@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.2.8](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.7...v5.2.8) (2026-10-01)
+
+
+### Bug Fixes
+
+* **scheduling:** read slot inventory by month to stop AdvancedMD throttling ([#234](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/234)) ([39e0798](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/39e07983f3d86698ea4f7c88efd3d91accb33856))
+
 ## [5.2.7](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.6...v5.2.7) (2026-10-01)
 
 
