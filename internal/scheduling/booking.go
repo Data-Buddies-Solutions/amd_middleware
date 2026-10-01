@@ -333,14 +333,14 @@ func (s *service) revalidateBookingSlot(
 	policy schedulingPolicy,
 ) (time.Time, bool, error) {
 	command := booking.command
-	setup, err := s.records.GetSchedulerSetup(ctx)
+	setup, err := s.schedulerSetup(ctx, s.now().UTC())
 	if err != nil {
 		return time.Time{}, false, categorizedError(
 			CategoryWriteFailed,
 			"Unable to revalidate the selected provider. Please check availability again.",
 		)
 	}
-	column, ok := currentBookingColumn(&setup, booking.office, command)
+	column, ok := currentBookingColumn(setup, booking.office, command)
 	if !ok {
 		return time.Time{}, false, categorizedError(
 			CategorySlotUnavailable,
