@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.2.7](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.6...v5.2.7) (2026-10-01)
+
+
+### Bug Fixes
+
+* **scheduling:** reuse cached setup and resend reads on dead connections ([#232](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/232)) ([fd1fd33](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/fd1fd33f25209a6d6dba882cbe24a6e091b427eb))
+
 ## [5.2.6](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.5...v5.2.6) (2026-09-29)
 
 
