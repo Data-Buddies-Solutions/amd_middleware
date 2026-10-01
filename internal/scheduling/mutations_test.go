@@ -200,6 +200,27 @@ func TestBookStillRejectsUnrecognizedTypeWithoutRescheduleAuthorization(t *testi
 	}
 }
 
+func TestBookRevalidatesProviderFromCachedSchedulerSetup(t *testing.T) {
+	now := mutationTestNow()
+	records := bookingRecords()
+	records.BookAppointmentID = 98765
+	records.ScheduleReads["2026-06-03"] = domain.ScheduleReadResult{}
+	command := signedBookCommand(t, now)
+	scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false)
+
+	if _, err := scheduler.Book(context.Background(), command); scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed {
+		t.Fatalf("first Book error = %v, want write_failed from the incomplete schedule read", err)
+	}
+	records.ScheduleReads["2026-06-03"] = completeRead("1513", nil, nil)
+	receipt, err := scheduler.Book(context.Background(), command)
+	if err != nil || receipt.Status != "booked" {
+		t.Fatalf("second Book receipt = %#v, error = %v", receipt, err)
+	}
+	if records.SchedulerSetupCalls != 1 {
+		t.Fatalf("scheduler setup reads = %d, want 1 shared by both bookings", records.SchedulerSetupCalls)
+	}
+}
+
 func TestBookRevalidatesPatientOfficeTypeProviderCapacityAndForce(t *testing.T) {
 	now := mutationTestNow()
 	tests := []struct {

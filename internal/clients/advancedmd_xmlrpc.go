@@ -72,7 +72,14 @@ func NewAdvancedMDClient(httpClient *http.Client) *AdvancedMDClient {
 	return &AdvancedMDClient{httpClient: httpClient}
 }
 
-func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *session.TokenData, payload interface{}) ([]byte, error) {
+type xmlrpcKind int
+
+const (
+	xmlrpcRead xmlrpcKind = iota
+	xmlrpcWrite
+)
+
+func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *session.TokenData, payload interface{}, kind xmlrpcKind) ([]byte, error) {
 	jsonBody, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -88,6 +95,9 @@ func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *sessi
 	req.Header.Set("Cookie", tokenData.CookieToken)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	if kind == xmlrpcRead {
+		req.Header["Idempotency-Key"] = nil
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -162,7 +172,7 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *sessi
 	expectedPages, expectedTotal := 0, 0
 	for page := 1; page <= maxLookupPages; page++ {
 		payload.PPMDMsg.Page = page
-		body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
+		body, err := c.doXMLRPCRequest(ctx, tokenData, payload, xmlrpcRead)
 		if err != nil {
 			return domain.PatientCandidateRead{}, err
 		}
@@ -293,7 +303,7 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *session.To
 		},
 	}
 
-	body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
+	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, xmlrpcWrite)
 	if err != nil {
 		return domain.CreatedPatient{}, fmt.Errorf("addpatient request failed: %w", err)
 	}
@@ -346,7 +356,7 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *session.
 		},
 	}
 
-	body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
+	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, xmlrpcWrite)
 	if err != nil {
 		return fmt.Errorf("addinsurance request failed: %w", err)
 	}
@@ -381,7 +391,7 @@ func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *sess
 		},
 	}
 
-	body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
+	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, xmlrpcWrite)
 	if err != nil {
 		return fmt.Errorf("enddate insurance request failed: %w", err)
 	}
@@ -519,7 +529,7 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *sessio
 		},
 	}
 
-	body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
+	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, xmlrpcRead)
 	if err != nil {
 		return domain.PatientDemographics{}, fmt.Errorf("getdemographic request failed: %w", err)
 	}
@@ -693,7 +703,7 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *ses
 		},
 	}
 
-	body, err := c.doXMLRPCRequest(ctx, tokenData, payload)
+	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, xmlrpcRead)
 	if err != nil {
 		return nil, fmt.Errorf("getschedulersetup request failed: %w", err)
 	}

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"advancedmd-token-management/internal/domain"
@@ -703,5 +704,59 @@ func TestAdvancedMDClient_GetSchedulerSetupAcceptsNumericAttributes(t *testing.T
 	column := setup.Columns[0]
 	if column.ID != "1513" || column.ProfileID != "620" || column.FacilityID != "1568" || column.Interval != 15 || column.MaxApptsPerSlot != 2 || column.StartTime != "08:00" || column.Workweek != 62 {
 		t.Fatalf("column = %+v", column)
+	}
+}
+
+func dropSecondRequestOnReusedConnection(t *testing.T, requests *atomic.Int32, response string) http.Handler {
+	t.Helper()
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, sent := r.Header["Idempotency-Key"]; sent {
+			t.Errorf("Idempotency-Key reached AdvancedMD: %q", r.Header.Values("Idempotency-Key"))
+		}
+		if requests.Add(1) == 2 {
+			conn, _, err := w.(http.Hijacker).Hijack()
+			if err != nil {
+				t.Errorf("Hijack: %v", err)
+				return
+			}
+			conn.Close()
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(response))
+	})
+}
+
+func TestAdvancedMDClient_ReadRetriesOnceWhenReusedConnectionIsDead(t *testing.T) {
+	var requests atomic.Int32
+	client, tokenData, cleanup := newTestXMLRPCClient(t, dropSecondRequestOnReusedConnection(t, &requests,
+		`{"PPMDResults":{"Results":{"patientlist":{"patient":{"@id":"pat123","@name":"DOE,JANE","@dob":"08/18/2000"}}}}}`))
+	defer cleanup()
+
+	for attempt := 1; attempt <= 2; attempt++ {
+		if _, err := client.GetDemographic(context.Background(), tokenData, "pat123"); err != nil {
+			t.Fatalf("GetDemographic attempt %d: %v", attempt, err)
+		}
+	}
+	if got := requests.Load(); got != 3 {
+		t.Fatalf("server requests = %d, want 3 with one resend of the dropped read", got)
+	}
+}
+
+func TestAdvancedMDClient_WriteIsNotResentWhenReusedConnectionIsDead(t *testing.T) {
+	var requests atomic.Int32
+	client, tokenData, cleanup := newTestXMLRPCClient(t, dropSecondRequestOnReusedConnection(t, &requests,
+		`{"PPMDResults":{"Results":{"@success":"1"},"Error":{}}}`))
+	defer cleanup()
+
+	if err := client.EndDateInsurance(context.Background(), tokenData, "pat123", "ins789"); err != nil {
+		t.Fatalf("first EndDateInsurance: %v", err)
+	}
+	err := client.EndDateInsurance(context.Background(), tokenData, "pat123", "ins789")
+	if safeerrors.Classify(err) != safeerrors.CategoryNetwork {
+		t.Fatalf("second EndDateInsurance error = %v, want a network failure", err)
+	}
+	if got := requests.Load(); got != 2 {
+		t.Fatalf("server requests = %d, want 2 with no resend of the write", got)
 	}
 }
