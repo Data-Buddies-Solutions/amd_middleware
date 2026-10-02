@@ -98,6 +98,9 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 		(command.VisitType == domain.AppointmentVisitRoutineVision && !office.SupportsRouting(domain.RoutingOpticalOnly)) {
 		return unsupportedVisit(), nil
 	}
+	if age, ok := domain.AgeYearsOn(command.DOB, nowEastern); ok && command.VisitType == domain.AppointmentVisitRoutineVision && routineVisionTooYoung(office, age) {
+		return empty, schedulingError(underSevenRoutineVisionMessage)
+	}
 	if command.PatientID != "" && command.VisitType != "" && command.CoverageType != "" && command.CoverageType != command.VisitType {
 		return empty, schedulingError("coverageType must match visitType")
 	}

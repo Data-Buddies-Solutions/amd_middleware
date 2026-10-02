@@ -175,3 +175,21 @@ func TestPreauthInventoryExcludesOccupiedAndHeldWallClockSlots(t *testing.T) {
 		})
 	}
 }
+
+func TestListSendsSpringHillUnderSevenRoutineVisionToMedical(t *testing.T) {
+	now := time.Date(2026, 10, 2, 12, 0, 0, 0, time.UTC)
+	for _, tt := range []struct {
+		dob     string
+		blocked bool
+	}{
+		{"03/15/2021", true},
+		{"10/02/2019", false},
+	} {
+		records := recordsWithSetup()
+		_, err := scheduling.New(records, "test-secret", func() time.Time { return now }, false).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", VisitType: domain.AppointmentVisitRoutineVision, DOB: tt.dob})
+		blocked := err != nil && err.Error() == "Spring Hill does not schedule routine vision for children under 7. Search medical availability instead; Dr. Bach sees these children."
+		if blocked != tt.blocked || blocked && records.SchedulerSetupCalls != 0 {
+			t.Fatalf("dob %s: error=%v setup reads=%d, want blocked=%v", tt.dob, err, records.SchedulerSetupCalls, tt.blocked)
+		}
+	}
+}
