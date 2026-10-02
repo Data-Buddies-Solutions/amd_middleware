@@ -1,0 +1,3938 @@
+{
+  "source": "Abita Eye Group Insurance List, 2026-07-07 (South Florida)",
+  "offices": [
+    "hollywood",
+    "sweetwater",
+    "north_miami_beach_optical"
+  ],
+  "plans": [
+    {
+      "id": "aetna-medicare-medical",
+      "label": "Aetna Medicare HMO & PPO",
+      "coverage": "medical",
+      "names": [
+        "Aetna Medicare HMO & PPO",
+        "Aetna Medicare HMO & PPO (Medical)",
+        "Aetna Medicare",
+        "Aetna Medicare HMO",
+        "Aetna Medicare PPO",
+        "Aetna Medicare PPO Medical",
+        "Aetna Medicare Signature PPO"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-commercial-medical",
+      "label": "Aetna Commercial HMO & PPO",
+      "coverage": "medical",
+      "names": [
+        "Aetna Commercial HMO & PPO",
+        "Aetna (Commercial, HMO & PPO) (Medical)",
+        "Aetna Commercial",
+        "Aetna Commercial HMO",
+        "Aetna Commercial PPO",
+        "Aetna Employer Plan",
+        "Aetna HMO",
+        "Aetna PPO",
+        "Aetna Managed Choice"
+      ],
+      "carrierCode": "AET07",
+      "carrierId": "car40887",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-epo-university-of-miami",
+      "label": "Aetna EPO University of Miami",
+      "coverage": "medical",
+      "names": [
+        "Aetna EPO University of Miami"
+      ],
+      "carrierCode": "AET07",
+      "carrierId": "car40887",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "EPO University of Miami plan check w/Eligibility Team prior to appt for Limitations participating network",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-epo-north-broward",
+      "label": "Aetna EPO North Broward Hospital",
+      "coverage": "medical",
+      "names": [
+        "Aetna EPO North Broward Hospital",
+        "Aetna EPO North Broward"
+      ],
+      "carrierCode": "AET07",
+      "carrierId": "car40887",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Dr. ABach ONLY -Check w/Eligibility Team prior to appt for Limitations participating network",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-better-health-medicaid-medical",
+      "label": "Aetna Better Health Medicaid MMA",
+      "coverage": "medical",
+      "names": [
+        "Aetna Better Health Medicaid MMA",
+        "Aetna Better Health Medicaid MMA (Medical)",
+        "Aetna Better Health",
+        "Aetna Better Health of Florida",
+        "Aetna Better Health Medicaid",
+        "Aetna Medicaid"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [
+        "sweetwater",
+        "north_miami_beach_optical"
+      ],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "effective 2/1/2025 ONLY in MiamiDade - NO LONGER Provided in Broward County",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-healthy-kids-medical",
+      "label": "Aetna Healthy Kids/Kid Care (CHIP)",
+      "coverage": "medical",
+      "names": [
+        "Aetna Healthy Kids/Kid Care (CHIP)",
+        "Aetna Healthy Kids/Kid Care (CHIP) (Medical)",
+        "Aetna Healthy Kids",
+        "Aetna Healthy Kids Kid Care",
+        "Aetna Kid Care"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "ambetter-medical",
+      "label": "Ambetter Medical",
+      "coverage": "medical",
+      "names": [
+        "Ambetter Medical",
+        "Ambetter Health Medical",
+        "Ambetter from Sunshine Health Medical"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Does Not Require Referral",
+      "selfPay": false
+    },
+    {
+      "id": "ambetter-select-medical",
+      "label": "Ambetter Select",
+      "coverage": "medical",
+      "names": [
+        "Ambetter Select",
+        "Ambetter Select (Medical)",
+        "Ambetter Health Select",
+        "Ambetter from Sunshine Health Select"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "ambetter-value-medical",
+      "label": "Ambetter Value",
+      "coverage": "medical",
+      "names": [
+        "Ambetter Value",
+        "Ambetter Value (Medical)",
+        "Ambetter Health Value",
+        "Ambetter from Sunshine Health Value"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "pcp_referral"
+        }
+      ],
+      "callerNotice": "",
+      "note": "REQUIRES SIMPLE REFERRAL FROM THE PCP OFFICE",
+      "selfPay": false
+    },
+    {
+      "id": "avmed-select",
+      "label": "AvMed Select",
+      "coverage": "medical",
+      "names": [
+        "AvMed Select",
+        "AvMed Broad Network",
+        "AvMed Tier B",
+        "AvMed Jackson Health Select",
+        "AvMed JH Select",
+        "AvMed ESO",
+        "AvMed Select SG",
+        "AvMed Small Group",
+        "AvMed MDC Select",
+        "AvMed Miami Dade County Select",
+        "AvMed Baptist Health South Network",
+        "AvMed BH South Network",
+        "AvMed Empower",
+        "Av Med Select"
+      ],
+      "carrierCode": "AVM01",
+      "carrierId": "car40890",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Engage-Need referral from PCP unless 16 year old or under, not needed. Empower-We are par. Jackson First Network HMO-Non par.",
+      "selfPay": false
+    },
+    {
+      "id": "avmed-engage",
+      "label": "AvMed Engage",
+      "coverage": "medical",
+      "names": [
+        "AvMed Engage",
+        "Av Med Engage"
+      ],
+      "carrierCode": "AVM01",
+      "carrierId": "car40890",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "pcp_referral"
+        }
+      ],
+      "callerNotice": "",
+      "note": "Engage-Need referral from PCP unless 16 year old or under, not needed. Empower-We are par. Jackson First Network HMO-Non par.",
+      "selfPay": false
+    },
+    {
+      "id": "avmed-entrust-medical",
+      "label": "AvMed Entrust",
+      "coverage": "medical",
+      "names": [
+        "AvMed Entrust",
+        "AvMed Entrust (Medical)",
+        "Av Med Entrust"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "You can be seen as self-pay.",
+      "note": "We are non par, we can do self pay.",
+      "selfPay": false
+    },
+    {
+      "id": "careplus-medicare-medical",
+      "label": "CarePlus Medicare",
+      "coverage": "medical",
+      "names": [
+        "CarePlus Medicare",
+        "CarePlus (Medicare) Medical",
+        "CarePlus",
+        "Care Plus",
+        "Care Plus Medicare",
+        "Humana Care Plus",
+        "Humana CarePlus"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [
+        "hollywood"
+      ],
+      "requirements": [
+        {
+          "kind": "prior_authorization"
+        }
+      ],
+      "callerNotice": "",
+      "note": "HOLLYWOOD OFFICE ONLY - requires prior authorization from PCP",
+      "selfPay": false
+    },
+    {
+      "id": "childrens-medical-services-medical",
+      "label": "Children's Medical Services",
+      "coverage": "medical",
+      "names": [
+        "Children's Medical Services",
+        "Children's Medical Services (Medical)",
+        "Children's Medical"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibility from Envolve for Benefits",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-hmo",
+      "label": "Cigna HMO",
+      "coverage": "medical",
+      "names": [
+        "Cigna HMO"
+      ],
+      "carrierCode": "CIGN1",
+      "carrierId": "car301345",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "pcp_referral"
+        }
+      ],
+      "callerNotice": "",
+      "note": "Requires Referral/RX from PCP - Miami-Dade Public Schools - Dr. Austin Bach ONLY",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-florida-connect-epo",
+      "label": "Cigna Florida Connect EPO",
+      "coverage": "medical",
+      "names": [
+        "Cigna Florida Connect EPO",
+        "Cigna Florida Connect EPO (Exclusive Provider Organization)",
+        "Cigna Florida Connect"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "You can be seen as self-pay.",
+      "note": "NON-PAR with EPO Florida Connect (Exclusive Provider Organization) Can be self pay",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-local-plus-non-par",
+      "label": "Cigna Local Plus",
+      "coverage": "medical",
+      "names": [
+        "Cigna Local Plus"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "You can be seen as self-pay.",
+      "note": "NON-PAR with Local Plus, Can be self pay",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-sure-fit",
+      "label": "Cigna Sure Fit",
+      "coverage": "medical",
+      "names": [
+        "Cigna Sure Fit",
+        "Cigna SureFit"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "You can be seen as self-pay.",
+      "note": "NON-PAR with Sure Fit, Can be self pay",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-medicare-advantage-medical",
+      "label": "Cigna Medicare Advantage (Healthspring)",
+      "coverage": "medical",
+      "names": [
+        "Cigna Medicare Advantage (Healthspring)",
+        "Cigna Medicare Advantage (Medical) HMO & PPO effec 1/1/2023 Healthspring",
+        "Cigna Medicare Advantage (Medical) HMO & PPO",
+        "Cigna Medicare Advantage",
+        "Cigna Medicare Advantage HMO",
+        "Cigna Medicare Advantage PPO",
+        "Cigna Healthspring",
+        "Healthspring",
+        "Cigna Medicare"
+      ],
+      "carrierCode": "CIGN4",
+      "carrierId": "car302890",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "pcp_referral",
+          "channel": "availity"
+        }
+      ],
+      "callerNotice": "",
+      "note": "Dr. Bach ONLY,  Healthspring HMO needs referral from the portal (Availity)",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-open-access",
+      "label": "Cigna Open Access",
+      "coverage": "medical",
+      "names": [
+        "Cigna Open Access"
+      ],
+      "carrierCode": "CIG09",
+      "carrierId": "car40895",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-miami-dade-public-schools",
+      "label": "Cigna Miami-Dade Public Schools",
+      "coverage": "medical",
+      "names": [
+        "Cigna Miami-Dade Public Schools",
+        "Cigna Miami Dade",
+        "Miami Dade Public Schools"
+      ],
+      "carrierCode": "CIG09",
+      "carrierId": "car40895",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-ppo",
+      "label": "Cigna PPO",
+      "coverage": "medical",
+      "names": [
+        "Cigna PPO"
+      ],
+      "carrierCode": "CIG09",
+      "carrierId": "car40895",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "clear-spring-health-medicare-advantage",
+      "label": "Clear Spring Health Medicare Advantage",
+      "coverage": "medical",
+      "names": [
+        "Clear Spring Health Medicare Advantage",
+        "Clear Spring Health",
+        "Clear Spring"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Miriam Bach": "pending",
+        "Dr. Melissa Otero": "pending",
+        "Dr. Gisselle Calero": "pending",
+        "Dr. Maria Casas": "pending",
+        "Dr. Lisbet Vidal": "pending",
+        "Dr. Kyler Farnan": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "ONLY Medical and Only Dr. Bach",
+      "selfPay": false
+    },
+    {
+      "id": "community-care-plan-medical",
+      "label": "Community Care Plan",
+      "coverage": "medical",
+      "names": [
+        "Community Care Plan",
+        "Community Care Plan Medical"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "eye-america-aao",
+      "label": "Eye America AAO",
+      "coverage": "medical",
+      "names": [
+        "Eye America AAO",
+        "Eye America AAO (American Academy of Ophthalmology)",
+        "Eye America",
+        "EyeCare America",
+        "American Academy of Ophthalmology"
+      ],
+      "carrierCode": "EYEC1",
+      "carrierId": "car308627",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "No Billing, No charge to the patient - $VISTA ONLY Dr. BACH",
+      "selfPay": false
+    },
+    {
+      "id": "devoted-medicare-hmo-medical",
+      "label": "Devoted Medicare HMO",
+      "coverage": "medical",
+      "names": [
+        "Devoted Medicare HMO",
+        "Devoted Medicare HMO (Medical)",
+        "Devoted",
+        "Devoted Health"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Effective 1/1/2025 Prior Auth are not required for Medical Office Visits & Diagnostic Testing. But are for SX & Injections",
+      "selfPay": false
+    },
+    {
+      "id": "devoted-medicare-ppo-medical",
+      "label": "Devoted Medicare PPO",
+      "coverage": "medical",
+      "names": [
+        "Devoted Medicare PPO",
+        "Devoted Medicare PPO (Medical)"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Effective 1/1/2025 Prior Auth are not required for Medical Office Visits & Diagnostic Testing. But are for SX & Injections",
+      "selfPay": false
+    },
+    {
+      "id": "doctors-health-medicare-medical",
+      "label": "Doctors Health Medicare",
+      "coverage": "medical",
+      "names": [
+        "Doctors Health Medicare",
+        "Doctors Health Medicare (Medical) EFFECTIVE 5/1/2026",
+        "Doctors Health",
+        "Miami Dade Doctors Health",
+        "Miami Dade Ddoctors Health",
+        "Miami Dade Doctors Healthcare",
+        "Doctors Healthcare",
+        "Doctors HealthCare Plans"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Effective 5/1/2026 w/iCare. Pull eligibility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-hmo",
+      "label": "Florida Blue HMO",
+      "coverage": "medical",
+      "names": [
+        "Florida Blue HMO",
+        "BCBS HMO",
+        "Blue Cross Blue Shield HMO",
+        "Blue Cross HMO",
+        "FL Blue HMO"
+      ],
+      "carrierCode": "FLOR1",
+      "carrierId": "car280750",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "prior_authorization",
+          "channel": "emi_portal"
+        }
+      ],
+      "callerNotice": "",
+      "note": "Dr. ABach [Peds Auth from PCP & Adults ONLY for STRABISMUS-Auth from General Ophthalmologist] Requires Prior Auth through EMI portal",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-medicare-ppo-medical",
+      "label": "Florida Blue Medicare PPO",
+      "coverage": "medical",
+      "names": [
+        "Florida Blue Medicare PPO",
+        "Florida Blue Medicare PPO (Medical)",
+        "Florida Blue Medicare Advantage PPO",
+        "BCBS Medicare PPO",
+        "Blue Cross Medicare PPO",
+        "Blue Cross Blue Shield Medicare PPO"
+      ],
+      "carrierCode": "FLO01",
+      "carrierId": "car40897",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-medicare-hmo-medical",
+      "label": "Florida Blue Medicare HMO",
+      "coverage": "medical",
+      "names": [
+        "Florida Blue Medicare HMO",
+        "Florida Blue Medicare Advantage HMO",
+        "BCBS Medicare HMO",
+        "Blue Cross Medicare HMO",
+        "Blue Cross Blue Shield Medicare HMO"
+      ],
+      "carrierCode": "FLO01",
+      "carrierId": "car40897",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Miriam Bach": "pending",
+        "Dr. Melissa Otero": "pending",
+        "Dr. Gisselle Calero": "pending",
+        "Dr. Maria Casas": "pending",
+        "Dr. Lisbet Vidal": "pending",
+        "Dr. Kyler Farnan": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Not on the 2026-07-07 sheet (no Florida Blue Medicare HMO medical row). Staff must confirm participation.",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-ppo-out-of-state",
+      "label": "Florida Blue PPO Out of State",
+      "coverage": "medical",
+      "names": [
+        "Florida Blue PPO Out of State",
+        "BCBS out of state",
+        "Blue Cross Blue Shield out of state",
+        "Blue Cross out of state",
+        "BCBS PPO",
+        "Blue Cross Blue Shield PPO",
+        "Blue Cross PPO",
+        "FL Blue PPO",
+        "Florida Blue PPO"
+      ],
+      "carrierCode": "FLO01",
+      "carrierId": "car40897",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-ppo-federal-employee",
+      "label": "Florida Blue PPO Federal Employee",
+      "coverage": "medical",
+      "names": [
+        "Florida Blue PPO Federal Employee",
+        "Florida Blue PPO (Federal Employee ID starts with R)",
+        "Florida Blue Federal Employee Program",
+        "Blue Cross Blue Shield Federal Employee Program",
+        "BCBS Federal Employee Program",
+        "FEP Blue"
+      ],
+      "carrierCode": "FLO01",
+      "carrierId": "car40897",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-select-non-par",
+      "label": "Florida BlueSelect",
+      "coverage": "medical",
+      "names": [
+        "Florida BlueSelect",
+        "Florida Blue Select",
+        "Blue Select",
+        "Fl Blue Select",
+        "Florida Blue BlueSelect",
+        "BlueSelect"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "You can be seen as self-pay.",
+      "note": "NON PAR - OUT OF NETWORK, Can be self pay",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-steward-tier-1",
+      "label": "Florida Blue Steward Healthcare Network Tier 1",
+      "coverage": "medical",
+      "names": [
+        "Florida Blue Steward Healthcare Network Tier 1",
+        "Florida Blue Steward",
+        "Fl Blue Steward",
+        "Florida Blue Steward Tier 1",
+        "Steward Healthcare Network"
+      ],
+      "carrierCode": "FLO01",
+      "carrierId": "car40897",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "ONLY Dr. Austin Bach",
+      "selfPay": false
+    },
+    {
+      "id": "florida-complete-care-medicare",
+      "label": "Florida Complete Care",
+      "coverage": "medical",
+      "names": [
+        "Florida Complete Care",
+        "Florida Complete Care - Medicare Medical ONLY",
+        "Florida Complete Care Medicare"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "florida-community-care",
+      "label": "Florida Community Care",
+      "coverage": "medical",
+      "names": [
+        "Florida Community Care",
+        "Florida Community Care (ILF Medicaid"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "freedom-health-medicare-medical",
+      "label": "Freedom Health Medicare",
+      "coverage": "medical",
+      "names": [
+        "Freedom Health Medicare",
+        "Freedom Health Medicare (Medical)",
+        "Freedom Health",
+        "Freedom"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [
+        "hollywood"
+      ],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Dr. ABach only. Medical only in Broward (Hollywood)",
+      "selfPay": false
+    },
+    {
+      "id": "humana-medicaid-hmo",
+      "label": "Humana Medicaid HMO",
+      "coverage": "medical",
+      "names": [
+        "Humana Medicaid HMO",
+        "Humana Medicaid",
+        "HUM02",
+        "Humana Healthy Horizons"
+      ],
+      "carrierCode": "HUM02",
+      "carrierId": "car303033",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "prior_authorization",
+          "channel": "availity"
+        }
+      ],
+      "callerNotice": "",
+      "note": "Requires Prior Auth/Referral through Availity with CPT codes specific and we need it with our tax ID 83-0653677",
+      "selfPay": false
+    },
+    {
+      "id": "humana-medicare-ppo",
+      "label": "Humana Medicare PPO",
+      "coverage": "medical",
+      "names": [
+        "Humana Medicare PPO"
+      ],
+      "carrierCode": "HUM PPO",
+      "carrierId": "car303062",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "humana-medicare-hmo",
+      "label": "Humana Medicare HMO",
+      "coverage": "medical",
+      "names": [
+        "Humana Medicare HMO",
+        "Humana Gold",
+        "Humana Gold Plus",
+        "Humana Gold Plus HMO"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "effective 1/1/2026 will be administered by iCare for Medical services.",
+      "selfPay": false
+    },
+    {
+      "id": "humana-premier-hmo",
+      "label": "Humana Premier HMO",
+      "coverage": "medical",
+      "names": [
+        "Humana Premier HMO",
+        "Humana Premier HMO (Access)",
+        "Humana Premier"
+      ],
+      "carrierCode": "HUMPHMO",
+      "carrierId": "car303061",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Does not require Prior Auth/Referral",
+      "selfPay": false
+    },
+    {
+      "id": "humana-ppo-pos",
+      "label": "Humana PPO/POS",
+      "coverage": "medical",
+      "names": [
+        "Humana PPO/POS",
+        "Humana PPO",
+        "Humana POS"
+      ],
+      "carrierCode": "HUM PPO",
+      "carrierId": "car303062",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Does not require Prior Auth/Referral",
+      "selfPay": false
+    },
+    {
+      "id": "imagine-health",
+      "label": "Imagine Health",
+      "coverage": "medical",
+      "names": [
+        "Imagine Health",
+        "Imagine"
+      ],
+      "carrierCode": "IMAG1",
+      "carrierId": "car308142",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "pending",
+        "Dr. Lisbet Vidal": "pending",
+        "Dr. Kyler Farnan": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Network (Participates with Multiple Insurances) call Individual Number listed on the back of the insurance card",
+      "selfPay": false
+    },
+    {
+      "id": "medical-center-international",
+      "label": "Medical Center International (SouthBay Medical Center)",
+      "coverage": "medical",
+      "names": [
+        "Medical Center International (SouthBay Medical Center)",
+        "Medical Center International (SouthBay Medical Center) Only Medical",
+        "Medical Center International",
+        "SouthBay Medical Center",
+        "South Bay Medical Center"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Miriam Bach": "pending",
+        "Dr. Melissa Otero": "pending",
+        "Dr. Gisselle Calero": "pending",
+        "Dr. Maria Casas": "pending",
+        "Dr. Lisbet Vidal": "pending",
+        "Dr. Kyler Farnan": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Dr. Austin Bach ONLY - Selfpays $75.00 All Visits",
+      "selfPay": false
+    },
+    {
+      "id": "florida-medicaid",
+      "label": "Florida Medicaid",
+      "coverage": "medical",
+      "names": [
+        "Florida Medicaid",
+        "Medicaid (straight Medicaid)",
+        "Straight Medicaid",
+        "Straight Florida Medicaid"
+      ],
+      "carrierCode": "FLO03",
+      "carrierId": "car40899",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "medicare-part-b",
+      "label": "Medicare Part B",
+      "coverage": "medical",
+      "names": [
+        "Medicare Part B",
+        "Medicare",
+        "Florida Medicare",
+        "Standard Medicare",
+        "Original Medicare"
+      ],
+      "carrierCode": "FLO02",
+      "carrierId": "car40900",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "pending",
+        "Dr. Kyler Farnan": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "meritain-health",
+      "label": "Meritain Health",
+      "coverage": "medical",
+      "names": [
+        "Meritain Health",
+        "Meritain"
+      ],
+      "carrierCode": "MERI1",
+      "carrierId": "car301578",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Meritain Health Aetna - only Dr. Bach is participating",
+      "selfPay": false
+    },
+    {
+      "id": "miami-childrens-health-plan-medical",
+      "label": "Miami Children's Health Plan (Medicaid)",
+      "coverage": "medical",
+      "names": [
+        "Miami Children's Health Plan (Medicaid)",
+        "Miami Children's Health Plan (Medicaid) Medical",
+        "Miami Children's Health Plan",
+        "Miami Children's",
+        "Miami Children"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "molina-marketplace-non-par",
+      "label": "Molina Marketplace",
+      "coverage": "medical",
+      "names": [
+        "Molina Marketplace",
+        "Molina Market Place (Medical)",
+        "Molina Market Place"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "You can be seen as self-pay.",
+      "note": "No Longer Accepting any patients for this plan - Can be self pay",
+      "selfPay": false
+    },
+    {
+      "id": "molina-medicaid-medical",
+      "label": "Molina Medicaid",
+      "coverage": "medical",
+      "names": [
+        "Molina Medicaid",
+        "Molina Medicaid (Medical)",
+        "Molina Healthcare Medicaid"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [
+        "sweetwater",
+        "north_miami_beach_optical"
+      ],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "effective 2/1/2025 ONLY in MiamiDade - NO LONGER Provided in Broward County ask patient for new insurance",
+      "selfPay": false
+    },
+    {
+      "id": "molina-medicare-medical",
+      "label": "Molina Medicare",
+      "coverage": "medical",
+      "names": [
+        "Molina Medicare",
+        "Molina Medicare (Medical)",
+        "Molina Healthcare Medicare"
+      ],
+      "carrierCode": "MOLI2",
+      "carrierId": "car301507",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "pcp_referral"
+        }
+      ],
+      "callerNotice": "",
+      "note": "Dr. Austin Bach ONLY - Medical - Requires Referrals from PCP",
+      "selfPay": false
+    },
+    {
+      "id": "multiplan-phcs",
+      "label": "Multiplan PHCS",
+      "coverage": "medical",
+      "names": [
+        "Multiplan PHCS",
+        "Multiplan",
+        "PHCS"
+      ],
+      "carrierCode": "",
+      "carrierId": "car301648",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Multiplan is a Network (Participates with Multiple Insurances)",
+      "selfPay": false
+    },
+    {
+      "id": "optimum-healthplan-medicare-medical",
+      "label": "Optimum Healthplan Medicare",
+      "coverage": "medical",
+      "names": [
+        "Optimum Healthplan Medicare",
+        "Optimum Healthplan Medicare (Medical)",
+        "Optimum",
+        "Optimum Healthcare",
+        "Optimum Healthplan",
+        "Optimum Medicare",
+        "Optimum Medicare Advantage"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [
+        "hollywood"
+      ],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Dr. A Bach ONLY, Medical only in Broward (Hollywood)",
+      "selfPay": false
+    },
+    {
+      "id": "oscar-health-medical",
+      "label": "Oscar Health",
+      "coverage": "medical",
+      "names": [
+        "Oscar Health",
+        "Oscar Health Plans (Medical)",
+        "Oscar Health Plans",
+        "Oscar"
+      ],
+      "carrierCode": "OSCA1",
+      "carrierId": "car284233",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "ODs cannot see Medical for Oscar",
+      "selfPay": false
+    },
+    {
+      "id": "partners-direct-health",
+      "label": "Partners Direct Health",
+      "coverage": "medical",
+      "names": [
+        "Partners Direct Health",
+        "Partners Direct Health (Medical) Imagine Health",
+        "Partners Direct"
+      ],
+      "carrierCode": "IMAG1",
+      "carrierId": "car308142",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "ONLY Dr. A Bach",
+      "selfPay": false
+    },
+    {
+      "id": "preferred-care-partners-medical",
+      "label": "Preferred Care Partners",
+      "coverage": "medical",
+      "names": [
+        "Preferred Care Partners",
+        "Preferred Care Network / Preferred Care Partners (Medical)",
+        "Preferred Care Network",
+        "Preferred Care",
+        "PRE04",
+        "Preferred Care Partners Medical",
+        "Preferred Care Network Preferred Care Partners"
+      ],
+      "carrierCode": "PRE04",
+      "carrierId": "car40916",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "pending",
+        "Dr. Melissa Otero": "pending",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "MEDICAL ONLY - We cannot render vision/routine eye care services.",
+      "selfPay": false
+    },
+    {
+      "id": "seminole-tribe-medical",
+      "label": "Seminole Tribe of Florida",
+      "coverage": "medical",
+      "names": [
+        "Seminole Tribe of Florida",
+        "Seminole Tribe of Florida Self-Funded Health Plan",
+        "Seminole Tribe"
+      ],
+      "carrierCode": "SEMI1",
+      "carrierId": "car301427",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "pcp_referral"
+        }
+      ],
+      "callerNotice": "",
+      "note": "Requires Referrals - Medical & Vision",
+      "selfPay": false
+    },
+    {
+      "id": "simply-medicaid-medical",
+      "label": "Simply Medicaid/Healthy Kids",
+      "coverage": "medical",
+      "names": [
+        "Simply Medicaid/Healthy Kids",
+        "Simply Medicaid/Healthy Kids (Medical)",
+        "Simply Medicaid",
+        "Simply Healthy Kids",
+        "Simply Healthcare Medicaid",
+        "Simply Medcaid",
+        "Simply Healthcare",
+        "Simply Health",
+        "Simply Health Plans",
+        "Simply"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "simply-medicare-medical",
+      "label": "Simply Medicare",
+      "coverage": "medical",
+      "names": [
+        "Simply Medicare",
+        "Simply Medicare (Medical)"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "pending",
+        "Dr. Melissa Otero": "pending",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "solis-medicare-medical",
+      "label": "Solis Medicare",
+      "coverage": "medical",
+      "names": [
+        "Solis Medicare",
+        "Solis Medicare (Medical)",
+        "Solis"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "prior_authorization"
+        }
+      ],
+      "callerNotice": "",
+      "note": "Medical Requires Prior Auth",
+      "selfPay": false
+    },
+    {
+      "id": "staywell-medicare-medical",
+      "label": "Staywell Medicare",
+      "coverage": "medical",
+      "names": [
+        "Staywell Medicare",
+        "Staywell Medicare (Medical)",
+        "Staywell"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibility from Envolve for Benefits",
+      "selfPay": false
+    },
+    {
+      "id": "sunhealth-discount-plan",
+      "label": "SunHealth Discount Plan",
+      "coverage": "medical",
+      "names": [
+        "SunHealth Discount Plan",
+        "SunHealth",
+        "Sun Health"
+      ],
+      "carrierCode": "SUNHEALT",
+      "carrierId": "car308086",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Discount Plan - Patient Pays for all examinations",
+      "selfPay": false
+    },
+    {
+      "id": "sunshine-medicaid-medical",
+      "label": "Sunshine Medicaid",
+      "coverage": "medical",
+      "names": [
+        "Sunshine Medicaid",
+        "Sunshine Medicaid (Medical)",
+        "Sunshine",
+        "Sunshine Health"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibility from Envolve for Benefits",
+      "selfPay": false
+    },
+    {
+      "id": "tricare-prime",
+      "label": "Tricare Prime",
+      "coverage": "medical",
+      "names": [
+        "Tricare Prime"
+      ],
+      "carrierCode": "TRI00",
+      "carrierId": "car284327",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "prior_authorization"
+        }
+      ],
+      "callerNotice": "",
+      "note": "Medical ONLY-Needs Prior Auth",
+      "selfPay": false
+    },
+    {
+      "id": "tricare-select",
+      "label": "Tricare Select",
+      "coverage": "medical",
+      "names": [
+        "Tricare Select"
+      ],
+      "carrierCode": "TRI00",
+      "carrierId": "car284327",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Does Not Require Auth",
+      "selfPay": false
+    },
+    {
+      "id": "tricare-for-life",
+      "label": "Tricare For Life",
+      "coverage": "medical",
+      "names": [
+        "Tricare For Life",
+        "Tricare for Life - Supplemental Insurance to Medicare",
+        "Tricare Forever"
+      ],
+      "carrierCode": "TRI05",
+      "carrierId": "car40921",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Plan is the 2nd to Medicare ONLY (Medicare will Always be Primary)",
+      "selfPay": false
+    },
+    {
+      "id": "umr",
+      "label": "UMR",
+      "coverage": "medical",
+      "names": [
+        "UMR",
+        "UMR (United Health One)",
+        "United Health One"
+      ],
+      "carrierCode": "UNIT3",
+      "carrierId": "car284838",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Some require prior auth - we need to call to confirm",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-medical",
+      "label": "United Healthcare Medical",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Medical"
+      ],
+      "carrierCode": "UNI20",
+      "carrierId": "car40923",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "WE ARE NON PAR WITH MEDICAID PLANS, can do self pay",
+      "selfPay": false
+    },
+    {
+      "id": "us-health-group",
+      "label": "US Health Group",
+      "coverage": "medical",
+      "names": [
+        "US Health Group",
+        "US Health Group - A UnitedHealthcare Company",
+        "Ushealth",
+        "Ushealth Group"
+      ],
+      "carrierCode": "UNIT3",
+      "carrierId": "car284838",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-aarp-medicare",
+      "label": "United Healthcare AARP Medicare Complete",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare AARP Medicare Complete",
+        "United AARP Medicare Complete/Medicare Advantage (HMO/LPPO) Medical",
+        "United Healthcare AARP Medicare",
+        "AARPM",
+        "united aarp medicare advantage",
+        "United Aarp Medicare Complete",
+        "UHC AARP Medicare",
+        "UnitedHealthcare AARP Medicare Complete",
+        "United Health Care AARP Medicare",
+        "United Healthcare AARP Medicare Advantage",
+        "united aarp medicare complete medicare advantage hmo lppo",
+        "AARP Medicare Complete",
+        "AARP Medicare Advantage"
+      ],
+      "carrierCode": "AARPM",
+      "carrierId": "car302750",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-all-savers",
+      "label": "United Healthcare All Savers",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare All Savers",
+        "All Savers"
+      ],
+      "carrierCode": "ALL 1",
+      "carrierId": "car284949",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-golden-rule",
+      "label": "United Healthcare Golden Rule",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Golden Rule",
+        "United Healthcare Golden Rule (Medical)",
+        "GOL05",
+        "united golden rule",
+        "Golden Rule",
+        "UHC Golden Rule",
+        "UnitedHealthcare Golden Rule",
+        "United Health Care Golden Rule"
+      ],
+      "carrierCode": "GOL05",
+      "carrierId": "car40902",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "No Auth Required - only for surgical procedures",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-individual-exchange",
+      "label": "United Healthcare Individual Exchange",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Individual Exchange",
+        "United Healthcare Individual Exchange Network (Medical)",
+        "UNI20",
+        "United Healthcare Individual Exchange Network",
+        "united individual exchange",
+        "UHC Individual Exchange",
+        "UnitedHealthcare Individual Exchange",
+        "United Health Care Individual Exchange"
+      ],
+      "carrierCode": "UNI20",
+      "carrierId": "car40923",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "pcp_referral",
+          "channel": "uhc_portal"
+        }
+      ],
+      "callerNotice": "",
+      "note": "Effective 1/1/2024 NEW CONTRACT requires referral from PCP starting with R & in must be through UHC portal",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-nhp-hmo-access",
+      "label": "United Healthcare NHP HMO Access",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare NHP HMO Access",
+        "United Healthcare - NHP HMO Access (Medical)"
+      ],
+      "carrierCode": "UNI20",
+      "carrierId": "car40923",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "NO auths/referrals needed (access) only for surgical procedures",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-nhp-hmo-only",
+      "label": "United Healthcare NHP HMO Only",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare NHP HMO Only",
+        "United Healthcare - NHP HMO ONLY (Medical)"
+      ],
+      "carrierCode": "UNI20",
+      "carrierId": "car40923",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "pcp_referral"
+        }
+      ],
+      "callerNotice": "",
+      "note": "Needs referral from PCP",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-oxford",
+      "label": "United Healthcare Oxford",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Oxford",
+        "OX04",
+        "united oxford",
+        "Oxford Health Plans",
+        "UHC Oxford",
+        "UnitedHealthcare Oxford",
+        "United Health Care Oxford"
+      ],
+      "carrierCode": "OX04",
+      "carrierId": "car284471",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-shared-services",
+      "label": "United Healthcare Shared Services",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Shared Services",
+        "United Healthcare - Shared Services (Medical)",
+        "UNIT9",
+        "united shared services"
+      ],
+      "carrierCode": "UNIT9",
+      "carrierId": "car303047",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "NO Auth Required - only for surgical procedures",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-student-resources",
+      "label": "United Healthcare Student Resources",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Student Resources",
+        "United Healthcare - Student Resources (Medical)",
+        "UHC STU",
+        "united student resources",
+        "UHC Student Resources"
+      ],
+      "carrierCode": "UHC STU",
+      "carrierId": "car283950",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "NO Auth Required - only for surgical procedures",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-surest",
+      "label": "United Healthcare Surest",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Surest",
+        "United Healthcare - Surest Health Plans (formerly Bind)",
+        "BIND1",
+        "united surest",
+        "Surest"
+      ],
+      "carrierCode": "BIND1",
+      "carrierId": "car301501",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-global",
+      "label": "United Healthcare Global International Plan",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Global International Plan",
+        "United Healthcare Global (Medical) International Plan",
+        "UNIT15",
+        "united global international plan",
+        "United Healthcare Global",
+        "United Healthcare Global Medical"
+      ],
+      "carrierCode": "UNIT15",
+      "carrierId": "car284971",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "prior_authorization"
+        }
+      ],
+      "callerNotice": "",
+      "note": "Requires Prior Auth - Some plans cover Vision",
+      "selfPay": false
+    },
+    {
+      "id": "wellcare-medicaid-medical",
+      "label": "Wellcare Medicaid",
+      "coverage": "medical",
+      "names": [
+        "Wellcare Medicaid",
+        "Wellcare (Medicaid) Medical"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibility from Envolve for Benefits",
+      "selfPay": false
+    },
+    {
+      "id": "wellcare-medicare-lppo",
+      "label": "WellCare Medicare LPPO",
+      "coverage": "medical",
+      "names": [
+        "WellCare Medicare LPPO",
+        "Wellcare Medicare LPPO (Medical)",
+        "WellCare Medicare"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "prior_authorization"
+        }
+      ],
+      "callerNotice": "",
+      "note": "Wellcare LPPO MEDICARE MEDICAL ONLY requires prior-auth",
+      "selfPay": false
+    },
+    {
+      "id": "self-pay-medical",
+      "label": "Self Pay",
+      "coverage": "medical",
+      "names": [
+        "Self Pay",
+        "Selfpay",
+        "Cash",
+        "Cash Pay"
+      ],
+      "carrierCode": "SELF",
+      "carrierId": "car301672",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": true
+    },
+    {
+      "id": "aetna-medicare-ppo-vision",
+      "label": "Aetna Medicare PPO Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Aetna Medicare PPO Vision",
+        "Aetna Medicare PPO (Vision) effective 1/1/2026",
+        "Aetna Medicare PPO"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-medicare-vision",
+      "label": "Aetna Medicare HMO & PPO Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Aetna Medicare HMO & PPO Vision",
+        "Aetna Medicare",
+        "Aetna Medicare HMO",
+        "Aetna Medicare HMO & PPO"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-better-health-medicaid-vision",
+      "label": "Aetna Better Health Medicaid MMA Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Aetna Better Health Medicaid MMA Vision",
+        "Aetna Better Health",
+        "Aetna Better Health of Florida",
+        "Aetna Better Health Medicaid",
+        "Aetna Medicaid"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [
+        "sweetwater",
+        "north_miami_beach_optical"
+      ],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "effective 2/1/2025 ONLY in MiamiDade - NO LONGER Provided in Broward County",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-healthy-kids-vision",
+      "label": "Aetna Healthy Kids/Kid Care (CHIP) Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Aetna Healthy Kids/Kid Care (CHIP) Vision",
+        "Aetna Healthy Kids",
+        "Aetna Healthy Kids Kid Care",
+        "Aetna Kid Care"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "ambetter-vision",
+      "label": "Ambetter Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Ambetter Vision",
+        "Ambetter",
+        "Ambetter from Sunshine Health"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Does Not Require Referral",
+      "selfPay": false
+    },
+    {
+      "id": "avmed-entrust-vision",
+      "label": "AvMed Entrust Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "AvMed Entrust Vision",
+        "AvMed Entrust"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "VISION ONLY",
+      "selfPay": false
+    },
+    {
+      "id": "careplus-medicare-vision",
+      "label": "CarePlus Medicare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "CarePlus Medicare Vision",
+        "CarePlus Medicare Routine Vision",
+        "CarePlus",
+        "Care Plus",
+        "CarePlus Medicare"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "pending",
+        "Dr. Melissa Otero": "pending",
+        "Dr. Gisselle Calero": "pending",
+        "Dr. Maria Casas": "pending",
+        "Dr. Lisbet Vidal": "pending",
+        "Dr. Kyler Farnan": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "CarePlus Medicare Routine Vision, Sweetwater and Hollywood",
+      "selfPay": false
+    },
+    {
+      "id": "childrens-medical-services-vision",
+      "label": "Children's Medical Services Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Children's Medical Services Vision",
+        "Children's Medical Services",
+        "Children's Medical"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibility from Envolve for Benefits",
+      "selfPay": false
+    },
+    {
+      "id": "community-care-plan-vision",
+      "label": "Community Care Plan Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Community Care Plan Vision",
+        "Community Care Plan"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "devoted-medicare-hmo-vision",
+      "label": "Devoted Medicare HMO Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Devoted Medicare HMO Vision",
+        "Devoted Medicare HMO",
+        "Devoted",
+        "Devoted Health"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "devoted-medicare-ppo-vision",
+      "label": "Devoted Medicare PPO Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Devoted Medicare PPO Vision",
+        "Devoted Medicare PPO"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "doctors-health-medicare-vision",
+      "label": "Doctors Health Medicare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Doctors Health Medicare Vision",
+        "Doctors Health Medicare (Vision) EFFECTIVE 8/1/2023",
+        "Doctors Health Medicare",
+        "Doctors Health",
+        "Doctors Healthcare",
+        "Doctors HealthCare Plans"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Routine Vision ONLY - Pull eligibility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-medicare-vision",
+      "label": "Florida Blue Medicare HMO & PPO Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Florida Blue Medicare HMO & PPO Vision",
+        "Florida Blue Medicare",
+        "Florida Blue Medicare HMO",
+        "Florida Blue Medicare PPO",
+        "BCBS Medicare",
+        "BCBS Medicare HMO",
+        "Blue Cross Blue Shield Medicare HMO"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "effective 1/1/2024 Premier will be managing the Routine Vision Plan",
+      "selfPay": false
+    },
+    {
+      "id": "freedom-health-medicare-vision",
+      "label": "Freedom Health Medicare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Freedom Health Medicare Vision",
+        "Freedom Health Medicare",
+        "Freedom Health",
+        "Freedom"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [
+        "hollywood"
+      ],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Routine/Vision only in Broward (Hollywood & Coral Springs) Indian River (VeroBeach)",
+      "selfPay": false
+    },
+    {
+      "id": "healthsun-vision",
+      "label": "HealthSun Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "HealthSun Vision",
+        "Healthsun Vision ONLY",
+        "HealthSun"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "humana-medicaid-vision",
+      "label": "Humana Medicaid Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Humana Medicaid Vision",
+        "Humana Medicaid",
+        "Humana Healthy Horizons"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "humana-medicare-vision",
+      "label": "Humana Medicare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Humana Medicare Vision",
+        "Humana Medicare",
+        "Humana Gold Plus",
+        "Humana Gold",
+        "Humana Medicare PPO"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "miami-childrens-health-plan-vision",
+      "label": "Miami Children's Health Plan (Medicaid) Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Miami Children's Health Plan (Medicaid) Vision",
+        "Miami Children's Health Plan",
+        "Miami Children's",
+        "Miami Children"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "molina-medicaid-vision",
+      "label": "Molina Medicaid Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Molina Medicaid Vision",
+        "Molina Medicaid",
+        "Molina Healthcare",
+        "Molina Healthcare Medicaid"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [
+        "sweetwater",
+        "north_miami_beach_optical"
+      ],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "effective 2/1/2025 ONLY in MiamiDade - NO LONGER Provided in Broward County ask patient for new insurance",
+      "selfPay": false
+    },
+    {
+      "id": "optimum-healthplan-medicare-vision",
+      "label": "Optimum Healthplan Medicare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Optimum Healthplan Medicare Vision",
+        "Optimum",
+        "Optimum Healthcare",
+        "Optimum Healthplan",
+        "Optimum Medicare"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [
+        "hollywood"
+      ],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Routine/Vision only in Broward (Hollywood & Coral Springs) Indian River (VeroBeach)",
+      "selfPay": false
+    },
+    {
+      "id": "preferred-care-network-medica-vision",
+      "label": "Medica Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Medica Vision",
+        "Medica",
+        "Previously Medica Vision"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "seminole-tribe-vision",
+      "label": "Seminole Tribe of Florida",
+      "coverage": "routine_vision",
+      "names": [
+        "Seminole Tribe of Florida",
+        "Seminole Tribe of Florida Self-Funded Health Plan",
+        "Seminole Tribe"
+      ],
+      "carrierCode": "SEMI1",
+      "carrierId": "car301427",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [
+        {
+          "kind": "pcp_referral"
+        }
+      ],
+      "callerNotice": "",
+      "note": "Requires Referrals - Medical & Vision",
+      "selfPay": false
+    },
+    {
+      "id": "simply-medicaid-vision",
+      "label": "Simply Medicaid/Healthy Kids Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Simply Medicaid/Healthy Kids Vision",
+        "Simply Medicaid",
+        "Simply Healthy Kids",
+        "Simply Healthcare Medicaid",
+        "Simply Medcaid",
+        "Simply Healthcare",
+        "Simply"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "simply-medicare-vision",
+      "label": "Simply Medicare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Simply Medicare Vision",
+        "Simply Medicare"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibilility from ehealthdeck.com it will provide pre-certification",
+      "selfPay": false
+    },
+    {
+      "id": "solis-medicare-vision",
+      "label": "Solis Medicare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Solis Medicare Vision",
+        "Solis Medicare",
+        "Solis"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "staywell-medicaid-vision",
+      "label": "Staywell Medicaid Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Staywell Medicaid Vision",
+        "Staywell Medicaid",
+        "Staywell"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibility from Envolve for Benefits",
+      "selfPay": false
+    },
+    {
+      "id": "sunshine-medicaid-vision",
+      "label": "Sunshine Medicaid Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Sunshine Medicaid Vision",
+        "Sunshine Medicaid",
+        "Sunshine",
+        "Sunshine Health"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibility from Envolve for Benefits",
+      "selfPay": false
+    },
+    {
+      "id": "wellcare-medicaid-vision",
+      "label": "Wellcare Medicaid Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Wellcare Medicaid Vision",
+        "Wellcare Medicaid"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Pull eligibility from Envolve for Benefits",
+      "selfPay": false
+    },
+    {
+      "id": "wellcare-medicare-hmo-vision",
+      "label": "WellCare Medicare HMO Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "WellCare Medicare HMO Vision",
+        "WellCare Medicare HMO",
+        "WellCare Medicare"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Vision - Routine ONLY - No Refferals/No Auths",
+      "selfPay": false
+    },
+    {
+      "id": "vsp",
+      "label": "VSP",
+      "coverage": "routine_vision",
+      "names": [
+        "VSP",
+        "Vision Service Plan"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280695",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "eyemed",
+      "label": "EyeMed",
+      "coverage": "routine_vision",
+      "names": [
+        "EyeMed",
+        "Eye Med",
+        "Eye Med Vision",
+        "EyeMed Vision Care"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280684",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "nva",
+      "label": "NVA",
+      "coverage": "routine_vision",
+      "names": [
+        "NVA",
+        "National Vision",
+        "National Vision Administrators"
+      ],
+      "carrierCode": "",
+      "carrierId": "car308794",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "davis-vision",
+      "label": "Davis Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Davis Vision",
+        "Davis"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280612",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "spectera",
+      "label": "Spectera",
+      "coverage": "routine_vision",
+      "names": [
+        "Spectera",
+        "Spectera Vision"
+      ],
+      "carrierCode": "",
+      "carrierId": "car308790",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "solstice",
+      "label": "Solstice",
+      "coverage": "routine_vision",
+      "names": [
+        "Solstice",
+        "Soltice",
+        "Solstice Vision"
+      ],
+      "carrierCode": "",
+      "carrierId": "car301652",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "icare-routine-vision",
+      "label": "iCare",
+      "coverage": "routine_vision",
+      "names": [
+        "iCare",
+        "Eye Care Health",
+        "Eye Care Solutions",
+        "Eye Care Health Solutions",
+        "iCare Health Options"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "guardian",
+      "label": "Guardian",
+      "coverage": "routine_vision",
+      "names": [
+        "Guardian",
+        "Guardian Vision"
+      ],
+      "carrierCode": "",
+      "carrierId": "car308792",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "alivi",
+      "label": "Alivi",
+      "coverage": "routine_vision",
+      "names": [
+        "Alivi",
+        "Alivi Health"
+      ],
+      "carrierCode": "",
+      "carrierId": "car308796",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "premier-eye-care",
+      "label": "Premier Eye Care",
+      "coverage": "routine_vision",
+      "names": [
+        "Premier Eye Care"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "envolve-routine-vision",
+      "label": "Envolve",
+      "coverage": "routine_vision",
+      "names": [
+        "Envolve",
+        "Envolve Vision"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "sunhealth-routine-vision",
+      "label": "SunHealth",
+      "coverage": "routine_vision",
+      "names": [
+        "SunHealth",
+        "Sun Health",
+        "SunHealth Vision",
+        "SunHealth Discount Plan"
+      ],
+      "carrierCode": "",
+      "carrierId": "car308791",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "oscar-routine-vision",
+      "label": "Oscar",
+      "coverage": "routine_vision",
+      "names": [
+        "Oscar",
+        "Oscar Health"
+      ],
+      "carrierCode": "OSCA1",
+      "carrierId": "car284233",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "For new patients with Oscar, Davis Vision coverage is automatic through age 18. For patients 19 and older, Davis Vision is included only if they selected Oscar's additional vision option. Without that option, the visit would be self-pay.",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "self-pay-routine-vision",
+      "label": "Self Pay",
+      "coverage": "routine_vision",
+      "names": [
+        "Self Pay",
+        "Selfpay",
+        "Cash",
+        "Cash Pay"
+      ],
+      "carrierCode": "SELF",
+      "carrierId": "car301672",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": true
+    },
+    {
+      "id": "metlife-vision",
+      "label": "MetLife Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "MetLife Vision",
+        "MetLife"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280695",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "liberty-financial-vision",
+      "label": "Liberty Financial Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Liberty Financial Vision",
+        "Liberty Financial"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280695",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "lincoln-financial-vision",
+      "label": "Lincoln Financial Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Lincoln Financial Vision",
+        "Lincoln Financial",
+        "Lincoln Finacial"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280695",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "humana-vision-through-work",
+      "label": "Humana Vision (through work)",
+      "coverage": "routine_vision",
+      "names": [
+        "Humana Vision (through work)",
+        "Humana Employer Vision",
+        "Humana PPO"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280684",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-vision-through-work",
+      "label": "Aetna Vision (through work)",
+      "coverage": "routine_vision",
+      "names": [
+        "Aetna Vision (through work)",
+        "Aetna Employer Vision",
+        "Aetna Commercial",
+        "Aetna Commercial HMO & PPO",
+        "Aetna PPO",
+        "Aetna HMO",
+        "Aetna EPO",
+        "Aetna Employer Plan",
+        "Aetna Managed Choice"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280684",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "unum-vision",
+      "label": "Unum Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Unum Vision",
+        "Unum"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280684",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-vision",
+      "label": "Cigna Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Cigna Vision",
+        "Cigna Employer Vision",
+        "Cigna PPO",
+        "Cigna HMO",
+        "Cigna Open Access"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280684",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-florida-connect-epo-vision",
+      "label": "Cigna Florida Connect EPO",
+      "coverage": "routine_vision",
+      "names": [
+        "Cigna Florida Connect EPO",
+        "Cigna Florida Connect EPO (Exclusive Provider Organization)",
+        "Cigna Florida Connect"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "You can be seen as self-pay.",
+      "note": "NON-PAR with EPO Florida Connect (Exclusive Provider Organization) Can be self pay",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-local-plus-non-par-vision",
+      "label": "Cigna Local Plus",
+      "coverage": "routine_vision",
+      "names": [
+        "Cigna Local Plus"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "You can be seen as self-pay.",
+      "note": "NON-PAR with Local Plus, Can be self pay",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-sure-fit-vision",
+      "label": "Cigna Sure Fit",
+      "coverage": "routine_vision",
+      "names": [
+        "Cigna Sure Fit",
+        "Cigna SureFit"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "You can be seen as self-pay.",
+      "note": "NON-PAR with Sure Fit, Can be self pay",
+      "selfPay": false
+    },
+    {
+      "id": "superior-vision",
+      "label": "Superior Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Superior Vision",
+        "Superior"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280612",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-vision-through-work",
+      "label": "Florida Blue Vision (through work)",
+      "coverage": "routine_vision",
+      "names": [
+        "Florida Blue Vision (through work)",
+        "Florida Blue Employer Vision",
+        "Florida Blue PPO",
+        "Florida Blue HMO",
+        "BCBS PPO",
+        "Blue Cross Blue Shield PPO"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280612",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "blueview-vision",
+      "label": "BlueView Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "BlueView Vision",
+        "BlueView",
+        "Blue View"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280612",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "versant-vision",
+      "label": "Versant",
+      "coverage": "routine_vision",
+      "names": [
+        "Versant",
+        "Versant Health"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280612",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "unitedhealthcare-vision",
+      "label": "UnitedHealthcare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "UnitedHealthcare Vision",
+        "United Healthcare",
+        "UnitedHealthcare",
+        "United Health Care",
+        "United Healthcare Vision",
+        "United Vision",
+        "UHC Vision"
+      ],
+      "carrierCode": "",
+      "carrierId": "car308790",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "amerihealth-vision",
+      "label": "AmeriHealth",
+      "coverage": "routine_vision",
+      "names": [
+        "AmeriHealth",
+        "AmeriHealth Vision"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "yes",
+        "Dr. Melissa Otero": "yes",
+        "Dr. Gisselle Calero": "yes",
+        "Dr. Maria Casas": "yes",
+        "Dr. Lisbet Vidal": "yes",
+        "Dr. Kyler Farnan": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    }
+  ]
+}

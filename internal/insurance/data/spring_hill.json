@@ -1,0 +1,3550 @@
+{
+  "source": "Converted from Abita Eye Group medical reference 2026-07-07 (AMD directory verified 2026-09-17) and the Spring Hill routine vision list",
+  "offices": [
+    "spring_hill"
+  ],
+  "plans": [
+    {
+      "id": "aetna-better-health",
+      "label": "Aetna Better Health",
+      "coverage": "medical",
+      "names": [
+        "Aetna Better Health",
+        "Aetna Better Health Medicaid MMA (Medical)"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-better-health-of-florida",
+      "label": "Aetna Better Health Of Florida",
+      "coverage": "medical",
+      "names": [
+        "Aetna Better Health Of Florida"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-commercial",
+      "label": "Aetna Commercial",
+      "coverage": "medical",
+      "names": [
+        "Aetna Commercial",
+        "Aetna Commercial HMO And PPO",
+        "Aetna Employer Plan"
+      ],
+      "carrierCode": "AET07",
+      "carrierId": "car40887",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-commercial-hmo",
+      "label": "Aetna Commercial HMO",
+      "coverage": "medical",
+      "names": [
+        "Aetna Commercial HMO"
+      ],
+      "carrierCode": "AET07",
+      "carrierId": "car40887",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-commercial-ppo",
+      "label": "Aetna Commercial PPO",
+      "coverage": "medical",
+      "names": [
+        "Aetna Commercial PPO"
+      ],
+      "carrierCode": "AET07",
+      "carrierId": "car40887",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-epo",
+      "label": "Aetna EPO",
+      "coverage": "medical",
+      "names": [
+        "Aetna EPO"
+      ],
+      "carrierCode": "AET07",
+      "carrierId": "car40887",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-epo-north-broward",
+      "label": "Aetna EPO North Broward",
+      "coverage": "medical",
+      "names": [
+        "Aetna EPO North Broward"
+      ],
+      "carrierCode": "AET07",
+      "carrierId": "car40887",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-epo-university-of-miami",
+      "label": "Aetna EPO University Of Miami",
+      "coverage": "medical",
+      "names": [
+        "Aetna EPO University Of Miami"
+      ],
+      "carrierCode": "AET07",
+      "carrierId": "car40887",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-healthy-kids",
+      "label": "Aetna Healthy Kids",
+      "coverage": "medical",
+      "names": [
+        "Aetna Healthy Kids",
+        "Aetna Healthy Kids Kid Care"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-hmo",
+      "label": "Aetna HMO",
+      "coverage": "medical",
+      "names": [
+        "Aetna HMO"
+      ],
+      "carrierCode": "AET07",
+      "carrierId": "car40887",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-managed-choice",
+      "label": "Aetna Managed Choice",
+      "coverage": "medical",
+      "names": [
+        "Aetna Managed Choice"
+      ],
+      "carrierCode": "AET07",
+      "carrierId": "car40887",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-medicare",
+      "label": "Aetna Medicare",
+      "coverage": "medical",
+      "names": [
+        "Aetna Medicare"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-medicare-hmo",
+      "label": "Aetna Medicare HMO",
+      "coverage": "medical",
+      "names": [
+        "Aetna Medicare HMO"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-medicare-ppo",
+      "label": "Aetna Medicare PPO",
+      "coverage": "medical",
+      "names": [
+        "Aetna Medicare PPO",
+        "Aetna Medicare PPO Medical"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-medicare-signature-ppo",
+      "label": "Aetna Medicare Signature PPO",
+      "coverage": "medical",
+      "names": [
+        "Aetna Medicare Signature PPO"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-ppo",
+      "label": "Aetna PPO",
+      "coverage": "medical",
+      "names": [
+        "Aetna PPO"
+      ],
+      "carrierCode": "AET07",
+      "carrierId": "car40887",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-qhp-individual-exchange",
+      "label": "Aetna QHP Individual Exchange",
+      "coverage": "medical",
+      "names": [
+        "Aetna QHP Individual Exchange",
+        "Aetna QHP"
+      ],
+      "carrierCode": "AET07",
+      "carrierId": "car40887",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "ambetter",
+      "label": "Ambetter",
+      "coverage": "medical",
+      "names": [
+        "Ambetter",
+        "Ambetter Medical",
+        "Ambetter Health",
+        "Ambetter from Sunshine Health"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "ambetter-premier",
+      "label": "Ambetter Premier",
+      "coverage": "medical",
+      "names": [
+        "Ambetter Premier"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "ambetter-select",
+      "label": "Ambetter Select",
+      "coverage": "medical",
+      "names": [
+        "Ambetter Select"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "ambetter-value",
+      "label": "Ambetter Value",
+      "coverage": "medical",
+      "names": [
+        "Ambetter Value"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "avmed-entrust",
+      "label": "AvMed Entrust",
+      "coverage": "medical",
+      "names": [
+        "AvMed Entrust",
+        "AvMed Entrust Medical",
+        "Av Med Entrust"
+      ],
+      "carrierCode": "AVM01",
+      "carrierId": "car40890",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "avmed-jackson-first-network-hmo",
+      "label": "AvMed Jackson First Network HMO",
+      "coverage": "medical",
+      "names": [
+        "AvMed Jackson First Network HMO"
+      ],
+      "carrierCode": "AVM01",
+      "carrierId": "car40890",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "avmed-medicare-advantage",
+      "label": "AvMed Medicare Advantage",
+      "coverage": "medical",
+      "names": [
+        "AvMed Medicare Advantage",
+        "Av Med Medicare",
+        "Av Med Medicare Advantage",
+        "AvMed Medicare"
+      ],
+      "carrierCode": "",
+      "carrierId": "car301737",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "avmed-select",
+      "label": "AvMed Select",
+      "coverage": "medical",
+      "names": [
+        "AvMed Select",
+        "Av Med Select"
+      ],
+      "carrierCode": "AVM01",
+      "carrierId": "car40890",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "care-health-plus",
+      "label": "Care Health Plus",
+      "coverage": "medical",
+      "names": [
+        "Care Health Plus",
+        "Care Health"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "careplus-medicare-medical",
+      "label": "CarePlus Medicare Medical",
+      "coverage": "medical",
+      "names": [
+        "CarePlus Medicare Medical",
+        "Care Plus",
+        "CarePlus"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "childrens-medical-services",
+      "label": "Children's Medical Services",
+      "coverage": "medical",
+      "names": [
+        "Children's Medical Services",
+        "Children's Medical"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-florida-connect-epo",
+      "label": "Cigna Florida Connect EPO",
+      "coverage": "medical",
+      "names": [
+        "Cigna Florida Connect EPO"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Joseph Licht": "pending",
+        "Dr. Noel": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-hmo",
+      "label": "Cigna HMO",
+      "coverage": "medical",
+      "names": [
+        "Cigna HMO"
+      ],
+      "carrierCode": "CIGN1",
+      "carrierId": "car301345",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-local-plus",
+      "label": "Cigna Local Plus",
+      "coverage": "medical",
+      "names": [
+        "Cigna Local Plus"
+      ],
+      "carrierCode": "CIGN1",
+      "carrierId": "car301345",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-medicare-advantage",
+      "label": "Cigna Medicare Advantage",
+      "coverage": "medical",
+      "names": [
+        "Cigna Medicare Advantage",
+        "Cigna Medicare Advantage (Medical) HMO & PPO",
+        "Cigna Medicare Advantage (Medical) HMO & PPO effec 1/1/2023 Healthspring",
+        "Cigna Medicare Advantage Healthspring",
+        "Cigna Medicare Advantage HMO"
+      ],
+      "carrierCode": "CIGN4",
+      "carrierId": "car302890",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-medicare-advantage-ppo",
+      "label": "Cigna Medicare Advantage PPO",
+      "coverage": "medical",
+      "names": [
+        "Cigna Medicare Advantage PPO"
+      ],
+      "carrierCode": "CIGN4",
+      "carrierId": "car302890",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-miami-dade-public-schools",
+      "label": "Cigna Miami Dade Public Schools",
+      "coverage": "medical",
+      "names": [
+        "Cigna Miami Dade Public Schools",
+        "Cigna Miami Dade",
+        "Miami Dade Public Schools"
+      ],
+      "carrierCode": "CIG09",
+      "carrierId": "car40895",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-open-access",
+      "label": "Cigna Open Access",
+      "coverage": "medical",
+      "names": [
+        "Cigna Open Access"
+      ],
+      "carrierCode": "CIG09",
+      "carrierId": "car40895",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-ppo",
+      "label": "Cigna PPO",
+      "coverage": "medical",
+      "names": [
+        "Cigna PPO"
+      ],
+      "carrierCode": "CIG09",
+      "carrierId": "car40895",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-sure-fit",
+      "label": "Cigna Sure Fit",
+      "coverage": "medical",
+      "names": [
+        "Cigna Sure Fit"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Joseph Licht": "pending",
+        "Dr. Noel": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "community-care-plan",
+      "label": "Community Care Plan",
+      "coverage": "medical",
+      "names": [
+        "Community Care Plan"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "devoted-medicare-hmo",
+      "label": "Devoted Medicare HMO",
+      "coverage": "medical",
+      "names": [
+        "Devoted Medicare HMO",
+        "Devoted"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "devoted-medicare-ppo",
+      "label": "Devoted Medicare PPO",
+      "coverage": "medical",
+      "names": [
+        "Devoted Medicare PPO"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "doctors-health-medicare",
+      "label": "Doctors Health Medicare",
+      "coverage": "medical",
+      "names": [
+        "Doctors Health Medicare",
+        "Doctors Health",
+        "Miami Dade Ddoctors Health",
+        "Miami Dade Doctors Health",
+        "Miami Dade Doctors Healthcare"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "envolve-vision",
+      "label": "Envolve Vision",
+      "coverage": "medical",
+      "names": [
+        "Envolve Vision",
+        "Envolve"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "eye-america-aao",
+      "label": "Eye America AAO",
+      "coverage": "medical",
+      "names": [
+        "Eye America AAO",
+        "Eye America"
+      ],
+      "carrierCode": "EYEC1",
+      "carrierId": "car308627",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "eye-care-health-solutions",
+      "label": "Eye Care Health Solutions",
+      "coverage": "medical",
+      "names": [
+        "Eye Care Health Solutions",
+        "Eye Care Health"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-hmo",
+      "label": "Florida Blue HMO",
+      "coverage": "medical",
+      "names": [
+        "Florida Blue HMO",
+        "BCBS HMO",
+        "Blue Cross Blue Shield HMO",
+        "Blue Cross HMO",
+        "FL Blue HMO"
+      ],
+      "carrierCode": "FLOR1",
+      "carrierId": "car280750",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-medicare-hmo",
+      "label": "Florida Blue Medicare HMO",
+      "coverage": "medical",
+      "names": [
+        "Florida Blue Medicare HMO",
+        "BCBS Medicare HMO",
+        "Blue Cross Blue Shield Medicare HMO"
+      ],
+      "carrierCode": "FLO01",
+      "carrierId": "car40897",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-medicare-ppo",
+      "label": "Florida Blue Medicare PPO",
+      "coverage": "medical",
+      "names": [
+        "Florida Blue Medicare PPO"
+      ],
+      "carrierCode": "FLO01",
+      "carrierId": "car40897",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-ppo-federal-employee",
+      "label": "Florida Blue PPO Federal Employee",
+      "coverage": "medical",
+      "names": [
+        "Florida Blue PPO Federal Employee"
+      ],
+      "carrierCode": "FLO01",
+      "carrierId": "car40897",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-ppo-out-of-state",
+      "label": "Florida Blue PPO Out Of State",
+      "coverage": "medical",
+      "names": [
+        "Florida Blue PPO Out Of State",
+        "BCBS out of state",
+        "BCBS PPO",
+        "Blue Cross Blue Shield out of state",
+        "Blue Cross Blue Shield PPO",
+        "Blue Cross out of state",
+        "Blue Cross PPO",
+        "FL Blue PPO",
+        "Florida Blue PPO"
+      ],
+      "carrierCode": "FLO01",
+      "carrierId": "car40897",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-select",
+      "label": "Florida Blue Select",
+      "coverage": "medical",
+      "names": [
+        "Florida Blue Select",
+        "Blue Select",
+        "Fl Blue Select",
+        "Florida Blue BlueSelect",
+        "Florida BlueSelect"
+      ],
+      "carrierCode": "FLO01",
+      "carrierId": "car40897",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-steward-tier-1",
+      "label": "Florida Blue Steward Tier 1",
+      "coverage": "medical",
+      "names": [
+        "Florida Blue Steward Tier 1",
+        "Fl Blue Steward",
+        "Florida Blue Steward"
+      ],
+      "carrierCode": "FLO01",
+      "carrierId": "car40897",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-community-care",
+      "label": "Florida Community Care",
+      "coverage": "medical",
+      "names": [
+        "Florida Community Care",
+        "Florida Community Care (ILF Medicaid"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-complete-care",
+      "label": "Florida Complete Care",
+      "coverage": "medical",
+      "names": [
+        "Florida Complete Care",
+        "Florida Complete Care - Medicare Medical ONLY"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-medicaid",
+      "label": "Florida Medicaid",
+      "coverage": "medical",
+      "names": [
+        "Florida Medicaid",
+        "Straight Florida Medicaid",
+        "Straight Medicaid"
+      ],
+      "carrierCode": "FLO03",
+      "carrierId": "car40899",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-medicare",
+      "label": "Florida Medicare",
+      "coverage": "medical",
+      "names": [
+        "Florida Medicare",
+        "Medicare",
+        "Medicare Part B",
+        "Standard Medicare"
+      ],
+      "carrierCode": "FLO02",
+      "carrierId": "car40900",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "freedom-health-medicare",
+      "label": "Freedom Health Medicare",
+      "coverage": "medical",
+      "names": [
+        "Freedom Health Medicare",
+        "Freedom",
+        "Freedom Health"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "humana-care-plus",
+      "label": "Humana Care Plus",
+      "coverage": "medical",
+      "names": [
+        "Humana Care Plus"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "humana-healthy-horizons",
+      "label": "Humana Healthy Horizons",
+      "coverage": "medical",
+      "names": [
+        "Humana Healthy Horizons"
+      ],
+      "carrierCode": "",
+      "carrierId": "car308175",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "humana-medicaid-hmo",
+      "label": "Humana Medicaid HMO",
+      "coverage": "medical",
+      "names": [
+        "Humana Medicaid HMO",
+        "HUM02",
+        "Humana Medicaid"
+      ],
+      "carrierCode": "HUM02",
+      "carrierId": "car303033",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "At Spring Hill, patients with this plan can only see Dr. Bach.",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "humana-medicare",
+      "label": "Humana Medicare",
+      "coverage": "medical",
+      "names": [
+        "Humana Medicare"
+      ],
+      "carrierCode": "HUM01",
+      "carrierId": "car40906",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "humana-medicare-hmo",
+      "label": "Humana Medicare HMO",
+      "coverage": "medical",
+      "names": [
+        "Humana Medicare HMO",
+        "Humana Gold",
+        "Humana Gold Plus"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "humana-medicare-ppo",
+      "label": "Humana Medicare PPO",
+      "coverage": "medical",
+      "names": [
+        "Humana Medicare PPO"
+      ],
+      "carrierCode": "HUM PPO",
+      "carrierId": "car303062",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "humana-ppo",
+      "label": "Humana PPO",
+      "coverage": "medical",
+      "names": [
+        "Humana PPO"
+      ],
+      "carrierCode": "HUM PPO",
+      "carrierId": "car303062",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "humana-ppo-pos",
+      "label": "Humana PPO Pos",
+      "coverage": "medical",
+      "names": [
+        "Humana PPO Pos"
+      ],
+      "carrierCode": "HUM PPO",
+      "carrierId": "car303062",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "humana-premier-hmo",
+      "label": "Humana Premier HMO",
+      "coverage": "medical",
+      "names": [
+        "Humana Premier HMO",
+        "Humana Premier HMO Access"
+      ],
+      "carrierCode": "HUMPHMO",
+      "carrierId": "car303061",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "icare",
+      "label": "iCare",
+      "coverage": "medical",
+      "names": [
+        "iCare"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "imagine-health",
+      "label": "Imagine Health",
+      "coverage": "medical",
+      "names": [
+        "Imagine Health",
+        "Imagine"
+      ],
+      "carrierCode": "IMAG1",
+      "carrierId": "car308142",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "leon-health-plan",
+      "label": "Leon Health Plan",
+      "coverage": "medical",
+      "names": [
+        "Leon Health Plan",
+        "Leon",
+        "Leon Health Center",
+        "Leon Health Centers",
+        "Leon Healthplan",
+        "Leon Medical Center",
+        "Leon Medical Centers",
+        "Leon Medical Centers Health Plan",
+        "Leon Medical Centers Health Plans"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Joseph Licht": "pending",
+        "Dr. Noel": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "meritain-health",
+      "label": "Meritain Health",
+      "coverage": "medical",
+      "names": [
+        "Meritain Health",
+        "Meritain",
+        "Meritain Health - Aetna"
+      ],
+      "carrierCode": "MERI1",
+      "carrierId": "car301578",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "miami-childrens-health-plan",
+      "label": "Miami Children's Health Plan",
+      "coverage": "medical",
+      "names": [
+        "Miami Children's Health Plan",
+        "Miami Children",
+        "Miami Children's",
+        "Miami Children's Health Plan (Medicaid) Medical"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "molina-marketplace",
+      "label": "Molina Marketplace",
+      "coverage": "medical",
+      "names": [
+        "Molina Marketplace"
+      ],
+      "carrierCode": "",
+      "carrierId": "car308175",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "molina-medicaid",
+      "label": "Molina Medicaid",
+      "coverage": "medical",
+      "names": [
+        "Molina Medicaid"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "molina-medicare",
+      "label": "Molina Medicare",
+      "coverage": "medical",
+      "names": [
+        "Molina Medicare"
+      ],
+      "carrierCode": "MOLI2",
+      "carrierId": "car301507",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "multiplan-phcs",
+      "label": "Multiplan PHCS",
+      "coverage": "medical",
+      "names": [
+        "Multiplan PHCS",
+        "Multiplan",
+        "PHCS"
+      ],
+      "carrierCode": "",
+      "carrierId": "car301648",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "optimum-healthcare",
+      "label": "Optimum Healthcare",
+      "coverage": "medical",
+      "names": [
+        "Optimum Healthcare",
+        "Optimum",
+        "Optimum Healthplan",
+        "Optimum Healthplan Medicare",
+        "Optimum Medicare",
+        "Optimum Medicare Advantage"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "oscar-health",
+      "label": "Oscar Health",
+      "coverage": "medical",
+      "names": [
+        "Oscar Health",
+        "Oscar",
+        "Oscar Health Plans"
+      ],
+      "carrierCode": "OSCA1",
+      "carrierId": "car284233",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "partners-direct-health",
+      "label": "Partners Direct Health",
+      "coverage": "medical",
+      "names": [
+        "Partners Direct Health",
+        "Partners Direct",
+        "Partners Direct Health (Medical) Imagine Health"
+      ],
+      "carrierCode": "IMAG1",
+      "carrierId": "car308142",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Joseph Licht": "pending",
+        "Dr. Noel": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "preferred-care-partners",
+      "label": "Preferred Care Partners",
+      "coverage": "medical",
+      "names": [
+        "Preferred Care Partners",
+        "PRE04",
+        "preferred care",
+        "preferred care network",
+        "preferred care network preferred care partners",
+        "Preferred Care Partners Medical"
+      ],
+      "carrierCode": "PRE04",
+      "carrierId": "car40916",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Joseph Licht": "no",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "self-pay-medical",
+      "label": "Self Pay",
+      "coverage": "medical",
+      "names": [
+        "Self Pay",
+        "Cash",
+        "Cash Pay",
+        "Selfpay"
+      ],
+      "carrierCode": "SELF",
+      "carrierId": "car301672",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": true
+    },
+    {
+      "id": "seminole-tribe",
+      "label": "Seminole Tribe",
+      "coverage": "medical",
+      "names": [
+        "Seminole Tribe",
+        "Seminole Tribe of Florida Self-Funded Health Plan"
+      ],
+      "carrierCode": "SEMI1",
+      "carrierId": "car301427",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Joseph Licht": "pending",
+        "Dr. Noel": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "simply-health",
+      "label": "Simply Health",
+      "coverage": "medical",
+      "names": [
+        "Simply Health",
+        "Simply",
+        "Simply Health Plans",
+        "Simply Healthcare"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "simply-medicaid",
+      "label": "Simply Medicaid",
+      "coverage": "medical",
+      "names": [
+        "Simply Medicaid"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "simply-medicare",
+      "label": "Simply Medicare",
+      "coverage": "medical",
+      "names": [
+        "Simply Medicare",
+        "Simply Medicare Medical"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "solis-medicare",
+      "label": "Solis Medicare",
+      "coverage": "medical",
+      "names": [
+        "Solis Medicare",
+        "Solis"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "southbay-medical-center",
+      "label": "SouthBay Medical Center",
+      "coverage": "medical",
+      "names": [
+        "SouthBay Medical Center",
+        "Medical Center International"
+      ],
+      "carrierCode": "",
+      "carrierId": "",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Joseph Licht": "pending",
+        "Dr. Noel": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "staywell-medicare",
+      "label": "Staywell Medicare",
+      "coverage": "medical",
+      "names": [
+        "Staywell Medicare",
+        "Staywell"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "sunhealth",
+      "label": "SunHealth",
+      "coverage": "medical",
+      "names": [
+        "SunHealth",
+        "Sun Health"
+      ],
+      "carrierCode": "SUNHEALT",
+      "carrierId": "car308086",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "sunshine-medicaid",
+      "label": "Sunshine Medicaid",
+      "coverage": "medical",
+      "names": [
+        "Sunshine Medicaid",
+        "Sunshine",
+        "Sunshine Health"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "tricare-for-life",
+      "label": "Tricare For Life",
+      "coverage": "medical",
+      "names": [
+        "Tricare For Life",
+        "Tricare for Life - Supplemental Insurance to Medicare"
+      ],
+      "carrierCode": "TRI05",
+      "carrierId": "car40921",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "tricare-forever",
+      "label": "Tricare Forever",
+      "coverage": "medical",
+      "names": [
+        "Tricare Forever"
+      ],
+      "carrierCode": "TRI05",
+      "carrierId": "car40921",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "tricare-prime",
+      "label": "Tricare Prime",
+      "coverage": "medical",
+      "names": [
+        "Tricare Prime",
+        "Tricare Humana Military (Prime)"
+      ],
+      "carrierCode": "TRI00",
+      "carrierId": "car284327",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "tricare-select",
+      "label": "Tricare Select",
+      "coverage": "medical",
+      "names": [
+        "Tricare Select",
+        "Tricare Humana Military (Select)"
+      ],
+      "carrierCode": "TRI00",
+      "carrierId": "car284327",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "umr",
+      "label": "UMR",
+      "coverage": "medical",
+      "names": [
+        "UMR",
+        "United Health One"
+      ],
+      "carrierCode": "UNIT3",
+      "carrierId": "car284838",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-aarp-medicare",
+      "label": "United Healthcare AARP Medicare",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare AARP Medicare",
+        "AARPM",
+        "united aarp medicare advantage",
+        "United Aarp Medicare Complete",
+        "united aarp medicare complete medicare advantage hmo lppo",
+        "UHC AARP Medicare",
+        "UnitedHealthcare AARP Medicare Complete",
+        "United Health Care AARP Medicare",
+        "United Healthcare AARP Medicare Advantage",
+        "UHC AARP Medicare Advantage"
+      ],
+      "carrierCode": "AARPM",
+      "carrierId": "car302750",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-all-savers",
+      "label": "United Healthcare All Savers",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare All Savers"
+      ],
+      "carrierCode": "ALL 1",
+      "carrierId": "car284949",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-choice",
+      "label": "United Healthcare Choice",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Choice"
+      ],
+      "carrierCode": "UNI20",
+      "carrierId": "car40923",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-dual-complete",
+      "label": "United Healthcare Dual Complete",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Dual Complete",
+        "DuoComplete",
+        "Duo Complete",
+        "United Healthcare Medicare Dual Complete",
+        "UHC Dual Complete",
+        "UnitedHealthcare Dual Complete",
+        "United Healthcare Dual Complete Medicare Advantage",
+        "UHC Medicare Dual Complete",
+        "UHC Dual Complete Medicare Advantage",
+        "United Health Care Medicare Dual Complete",
+        "UnitedHealthcare Medicare Dual Complete"
+      ],
+      "carrierCode": "UNI20",
+      "carrierId": "car40923",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-global",
+      "label": "United Healthcare Global",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Global",
+        "UNIT15",
+        "united global international plan",
+        "United Healthcare Global (Medical) International Plan",
+        "United Healthcare Global International Plan",
+        "United Healthcare Global Medical"
+      ],
+      "carrierCode": "UNIT15",
+      "carrierId": "car284971",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-golden-rule",
+      "label": "United Healthcare Golden Rule",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Golden Rule",
+        "GOL05",
+        "united golden rule",
+        "UHC Golden Rule",
+        "UnitedHealthcare Golden Rule",
+        "United Health Care Golden Rule"
+      ],
+      "carrierCode": "GOL05",
+      "carrierId": "car40902",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-hmo",
+      "label": "United Healthcare HMO",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare HMO"
+      ],
+      "carrierCode": "UNI20",
+      "carrierId": "car40923",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-individual-exchange",
+      "label": "United Healthcare Individual Exchange",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Individual Exchange",
+        "UNI20",
+        "United Healthcare Individual Exchange Network",
+        "United Healthcare Individual Exchange Network (Medical)",
+        "united individual exchange",
+        "UHC Individual Exchange",
+        "UnitedHealthcare Individual Exchange",
+        "United Health Care Individual Exchange"
+      ],
+      "carrierCode": "UNI20",
+      "carrierId": "car40923",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-nhp",
+      "label": "United Healthcare NHP",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare NHP"
+      ],
+      "carrierCode": "UNI20",
+      "carrierId": "car40923",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-nhp-hmo-access",
+      "label": "United Healthcare NHP HMO Access",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare NHP HMO Access"
+      ],
+      "carrierCode": "UNI20",
+      "carrierId": "car40923",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-nhp-hmo-only",
+      "label": "United Healthcare NHP HMO Only",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare NHP HMO Only"
+      ],
+      "carrierCode": "UNI20",
+      "carrierId": "car40923",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-oxford",
+      "label": "United Healthcare Oxford",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Oxford",
+        "OX04",
+        "united oxford",
+        "UHC Oxford",
+        "UnitedHealthcare Oxford",
+        "United Health Care Oxford"
+      ],
+      "carrierCode": "OX04",
+      "carrierId": "car284471",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-shared-services",
+      "label": "United Healthcare Shared Services",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Shared Services",
+        "UNIT9",
+        "united shared services"
+      ],
+      "carrierCode": "UNIT9",
+      "carrierId": "car303047",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-student-resources",
+      "label": "United Healthcare Student Resources",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Student Resources",
+        "UHC STU",
+        "United Healthcare Student Resources Medical",
+        "united student resources"
+      ],
+      "carrierCode": "UHC STU",
+      "carrierId": "car283950",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-surest",
+      "label": "United Healthcare Surest",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Surest",
+        "BIND1",
+        "united healthcare surest health plans formerly bind",
+        "united surest"
+      ],
+      "carrierCode": "BIND1",
+      "carrierId": "car301501",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "us-health-group",
+      "label": "US Health Group",
+      "coverage": "medical",
+      "names": [
+        "US Health Group",
+        "Ushealth",
+        "Ushealth Group",
+        "US Health Group - a UnitedHealthcare Company"
+      ],
+      "carrierCode": "UNIT3",
+      "carrierId": "car284838",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Joseph Licht": "pending",
+        "Dr. Noel": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "vivida",
+      "label": "Vivida",
+      "coverage": "medical",
+      "names": [
+        "Vivida"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "wellcare-medicaid",
+      "label": "WellCare Medicaid",
+      "coverage": "medical",
+      "names": [
+        "WellCare Medicaid",
+        "WellCare Medicaid Medical"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "wellcare-medicare-lppo",
+      "label": "WellCare Medicare Lppo",
+      "coverage": "medical",
+      "names": [
+        "WellCare Medicare Lppo",
+        "WellCare Medicare",
+        "WellCare Medicare Lppo Medical"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Austin Bach": "yes",
+        "Dr. Joseph Licht": "yes",
+        "Dr. Noel": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-medicare-ppo-vision",
+      "label": "Aetna Medicare PPO Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Aetna Medicare PPO Vision",
+        "Aetna Medicare PPO (Vision) effective 1/1/2026",
+        "Aetna Medicare PPO"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-medicare-vision",
+      "label": "Aetna Medicare HMO & PPO Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Aetna Medicare HMO & PPO Vision",
+        "Aetna Medicare",
+        "Aetna Medicare HMO",
+        "Aetna Medicare HMO & PPO"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-better-health-medicaid-vision",
+      "label": "Aetna Better Health Medicaid MMA Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Aetna Better Health Medicaid MMA Vision",
+        "Aetna Better Health",
+        "Aetna Better Health of Florida",
+        "Aetna Better Health Medicaid",
+        "Aetna Medicaid"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-healthy-kids-vision",
+      "label": "Aetna Healthy Kids/Kid Care (CHIP) Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Aetna Healthy Kids/Kid Care (CHIP) Vision",
+        "Aetna Healthy Kids",
+        "Aetna Healthy Kids Kid Care",
+        "Aetna Kid Care"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "ambetter-vision",
+      "label": "Ambetter Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Ambetter Vision",
+        "Ambetter",
+        "Ambetter from Sunshine Health"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "avmed-entrust-vision",
+      "label": "AvMed Entrust Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "AvMed Entrust Vision",
+        "AvMed Entrust",
+        "AvMed",
+        "Av Med",
+        "AvMed Vision"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "careplus-medicare-vision",
+      "label": "CarePlus Medicare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "CarePlus Medicare Vision",
+        "CarePlus Medicare Routine Vision",
+        "CarePlus",
+        "Care Plus",
+        "CarePlus Medicare"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Melissa Otero": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "CarePlus Medicare routine vision is pending for these providers.",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "childrens-medical-services-vision",
+      "label": "Children's Medical Services Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Children's Medical Services Vision",
+        "Children's Medical Services",
+        "Children's Medical"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "community-care-plan-vision",
+      "label": "Community Care Plan Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Community Care Plan Vision",
+        "Community Care Plan"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "devoted-medicare-hmo-vision",
+      "label": "Devoted Medicare HMO Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Devoted Medicare HMO Vision",
+        "Devoted Medicare HMO",
+        "Devoted",
+        "Devoted Health"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "devoted-medicare-ppo-vision",
+      "label": "Devoted Medicare PPO Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Devoted Medicare PPO Vision",
+        "Devoted Medicare PPO"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "doctors-health-medicare-vision",
+      "label": "Doctors Health Medicare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Doctors Health Medicare Vision",
+        "Doctors Health Medicare (Vision) EFFECTIVE 8/1/2023",
+        "Doctors Health Medicare",
+        "Doctors Health",
+        "Doctors Healthcare",
+        "Doctors HealthCare Plans"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-medicare-vision",
+      "label": "Florida Blue Medicare HMO & PPO Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Florida Blue Medicare HMO & PPO Vision",
+        "Florida Blue Medicare",
+        "Florida Blue Medicare HMO",
+        "Florida Blue Medicare PPO",
+        "BCBS Medicare",
+        "BCBS Medicare HMO",
+        "Blue Cross Blue Shield Medicare HMO"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "freedom-health-medicare-vision",
+      "label": "Freedom Health Medicare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Freedom Health Medicare Vision",
+        "Freedom Health Medicare",
+        "Freedom Health",
+        "Freedom"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "healthsun-vision",
+      "label": "HealthSun Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "HealthSun Vision",
+        "Healthsun Vision ONLY",
+        "HealthSun"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "humana-medicaid-vision",
+      "label": "Humana Medicaid Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Humana Medicaid Vision",
+        "Humana Medicaid",
+        "Humana Healthy Horizons"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "humana-medicare-vision",
+      "label": "Humana Medicare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Humana Medicare Vision",
+        "Humana Medicare",
+        "Humana Gold Plus",
+        "Humana Gold",
+        "Humana Medicare PPO"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "miami-childrens-health-plan-vision",
+      "label": "Miami Children's Health Plan (Medicaid) Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Miami Children's Health Plan (Medicaid) Vision",
+        "Miami Children's Health Plan",
+        "Miami Children's",
+        "Miami Children"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "molina-medicaid-vision",
+      "label": "Molina Medicaid Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Molina Medicaid Vision",
+        "Molina Medicaid",
+        "Molina Healthcare",
+        "Molina Healthcare Medicaid"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "optimum-healthplan-medicare-vision",
+      "label": "Optimum Healthplan Medicare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Optimum Healthplan Medicare Vision",
+        "Optimum",
+        "Optimum Healthcare",
+        "Optimum Healthplan",
+        "Optimum Medicare"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "preferred-care-network-medica-vision",
+      "label": "Medica Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Medica Vision",
+        "Medica",
+        "Previously Medica Vision"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "simply-medicaid-vision",
+      "label": "Simply Medicaid/Healthy Kids Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Simply Medicaid/Healthy Kids Vision",
+        "Simply Medicaid",
+        "Simply Healthy Kids",
+        "Simply Healthcare Medicaid",
+        "Simply Medcaid",
+        "Simply Healthcare",
+        "Simply"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "simply-medicare-vision",
+      "label": "Simply Medicare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Simply Medicare Vision",
+        "Simply Medicare"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "solis-medicare-vision",
+      "label": "Solis Medicare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Solis Medicare Vision",
+        "Solis Medicare",
+        "Solis"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "staywell-medicaid-vision",
+      "label": "Staywell Medicaid Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Staywell Medicaid Vision",
+        "Staywell Medicaid",
+        "Staywell"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "sunshine-medicaid-vision",
+      "label": "Sunshine Medicaid Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Sunshine Medicaid Vision",
+        "Sunshine Medicaid",
+        "Sunshine",
+        "Sunshine Health"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "wellcare-medicaid-vision",
+      "label": "Wellcare Medicaid Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Wellcare Medicaid Vision",
+        "Wellcare Medicaid"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "wellcare-medicare-hmo-vision",
+      "label": "WellCare Medicare HMO Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "WellCare Medicare HMO Vision",
+        "WellCare Medicare HMO",
+        "WellCare Medicare"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "vsp",
+      "label": "VSP",
+      "coverage": "routine_vision",
+      "names": [
+        "VSP",
+        "Vision Service Plan"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280695",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "eyemed",
+      "label": "EyeMed",
+      "coverage": "routine_vision",
+      "names": [
+        "EyeMed",
+        "Eye Med",
+        "Eye Med Vision",
+        "EyeMed Vision Care"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280684",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "nva",
+      "label": "NVA",
+      "coverage": "routine_vision",
+      "names": [
+        "NVA",
+        "National Vision",
+        "National Vision Administrators"
+      ],
+      "carrierCode": "",
+      "carrierId": "car308794",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "davis-vision",
+      "label": "Davis Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Davis Vision",
+        "Davis"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280612",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "spectera",
+      "label": "Spectera",
+      "coverage": "routine_vision",
+      "names": [
+        "Spectera",
+        "Spectera Vision"
+      ],
+      "carrierCode": "",
+      "carrierId": "car308790",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "solstice",
+      "label": "Solstice",
+      "coverage": "routine_vision",
+      "names": [
+        "Solstice",
+        "Soltice",
+        "Solstice Vision"
+      ],
+      "carrierCode": "",
+      "carrierId": "car301652",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "icare-routine-vision",
+      "label": "iCare",
+      "coverage": "routine_vision",
+      "names": [
+        "iCare",
+        "Eye Care Health",
+        "Eye Care Solutions",
+        "Eye Care Health Solutions",
+        "iCare Health Options"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "guardian",
+      "label": "Guardian",
+      "coverage": "routine_vision",
+      "names": [
+        "Guardian",
+        "Guardian Vision"
+      ],
+      "carrierCode": "",
+      "carrierId": "car308792",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "alivi",
+      "label": "Alivi",
+      "coverage": "routine_vision",
+      "names": [
+        "Alivi",
+        "Alivi Health"
+      ],
+      "carrierCode": "",
+      "carrierId": "car308796",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "premier-eye-care",
+      "label": "Premier Eye Care",
+      "coverage": "routine_vision",
+      "names": [
+        "Premier Eye Care"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "envolve-routine-vision",
+      "label": "Envolve",
+      "coverage": "routine_vision",
+      "names": [
+        "Envolve",
+        "Envolve Vision"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "sunhealth-routine-vision",
+      "label": "SunHealth",
+      "coverage": "routine_vision",
+      "names": [
+        "SunHealth",
+        "Sun Health",
+        "SunHealth Vision",
+        "SunHealth Discount Plan"
+      ],
+      "carrierCode": "",
+      "carrierId": "car308791",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "oscar-routine-vision",
+      "label": "Oscar",
+      "coverage": "routine_vision",
+      "names": [
+        "Oscar",
+        "Oscar Health"
+      ],
+      "carrierCode": "OSCA1",
+      "carrierId": "car284233",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "For new patients with Oscar, Davis Vision coverage is automatic through age 18. For patients 19 and older, Davis Vision is included only if they selected Oscar's additional vision option. Without that option, the visit would be self-pay.",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "self-pay-routine-vision",
+      "label": "Self Pay",
+      "coverage": "routine_vision",
+      "names": [
+        "Self Pay",
+        "Selfpay",
+        "Cash",
+        "Cash Pay"
+      ],
+      "carrierCode": "SELF",
+      "carrierId": "car301672",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": true
+    },
+    {
+      "id": "metlife-vision",
+      "label": "MetLife Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "MetLife Vision",
+        "MetLife"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280695",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "liberty-financial-vision",
+      "label": "Liberty Financial Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Liberty Financial Vision",
+        "Liberty Financial"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280695",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "lincoln-financial-vision",
+      "label": "Lincoln Financial Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Lincoln Financial Vision",
+        "Lincoln Financial",
+        "Lincoln Finacial"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280695",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "humana-vision-through-work",
+      "label": "Humana Vision (through work)",
+      "coverage": "routine_vision",
+      "names": [
+        "Humana Vision (through work)",
+        "Humana Employer Vision",
+        "Humana PPO"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280684",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "aetna-vision-through-work",
+      "label": "Aetna Vision (through work)",
+      "coverage": "routine_vision",
+      "names": [
+        "Aetna Vision (through work)",
+        "Aetna Employer Vision",
+        "Aetna Commercial",
+        "Aetna Commercial HMO & PPO",
+        "Aetna PPO",
+        "Aetna HMO",
+        "Aetna EPO",
+        "Aetna Employer Plan",
+        "Aetna Managed Choice",
+        "Aetna QHP",
+        "Aetna QHP Individual Exchange"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280684",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "unum-vision",
+      "label": "Unum Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Unum Vision",
+        "Unum"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280684",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "cigna-vision",
+      "label": "Cigna Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Cigna Vision",
+        "Cigna",
+        "Cigna Employer Vision",
+        "Cigna PPO",
+        "Cigna HMO",
+        "Cigna Open Access"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280684",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "superior-vision",
+      "label": "Superior Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "Superior Vision",
+        "Superior"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280612",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "florida-blue-vision-through-work",
+      "label": "Florida Blue Vision (through work)",
+      "coverage": "routine_vision",
+      "names": [
+        "Florida Blue Vision (through work)",
+        "Florida Blue Employer Vision",
+        "Florida Blue PPO",
+        "Florida Blue HMO",
+        "BCBS PPO",
+        "Blue Cross Blue Shield PPO"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280612",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "blueview-vision",
+      "label": "BlueView Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "BlueView Vision",
+        "BlueView",
+        "Blue View"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280612",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "versant-vision",
+      "label": "Versant",
+      "coverage": "routine_vision",
+      "names": [
+        "Versant",
+        "Versant Health"
+      ],
+      "carrierCode": "",
+      "carrierId": "car280612",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "unitedhealthcare-vision",
+      "label": "UnitedHealthcare Vision",
+      "coverage": "routine_vision",
+      "names": [
+        "UnitedHealthcare Vision",
+        "United Healthcare",
+        "UnitedHealthcare",
+        "United Health Care",
+        "United Healthcare Vision",
+        "United Vision",
+        "UHC Vision"
+      ],
+      "carrierCode": "",
+      "carrierId": "car308790",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "amerihealth-vision",
+      "label": "AmeriHealth",
+      "coverage": "routine_vision",
+      "names": [
+        "AmeriHealth",
+        "AmeriHealth Vision"
+      ],
+      "carrierCode": "PREM1",
+      "carrierId": "car281317",
+      "doctors": {
+        "Dr. Melissa Otero": "yes"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "",
+      "selfPay": false
+    }
+  ]
+}

@@ -96,18 +96,21 @@ func mutationLabel(outcome MutationOutcome, succeeded bool) string {
 	}
 }
 
-func subscriberNumber(plan, subscriberNum string) string {
-	if insurance.IsSelfPayInsurance(plan) && strings.TrimSpace(subscriberNum) == "" {
+func subscriberNumber(selfPay bool, subscriberNum string) string {
+	if selfPay && strings.TrimSpace(subscriberNum) == "" {
 		return "self pay"
 	}
 	return subscriberNum
 }
 
-func decidePlan(plan, coverage string, office *domain.OfficeConfig, dob string) insurance.InsuranceDecision {
+func decideInsurance(name, planID, coverage string, office *domain.OfficeConfig, dob string) insurance.InsuranceDecision {
 	if coverage == "" {
 		coverage = "medical"
 	}
-	return insurance.DecideInsurance(plan, coverage, office, dob)
+	if planID != "" {
+		return insurance.DecidePlan(planID, coverage, office, dob)
+	}
+	return insurance.DecideInsurance(name, coverage, office, dob)
 }
 
 func recordMutation(operation, outcome string) {

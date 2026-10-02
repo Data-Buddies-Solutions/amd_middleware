@@ -25,7 +25,12 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 		recordMutation("update_insurance", mutationLabel(result.Outcome, result.Status == UpdateInsuranceStatusUpdated))
 	}()
 
-	command.SubscriberNum = subscriberNumber(command.Insurance, command.SubscriberNum)
+	office, err := domain.ResolveOffice(command.Office)
+	if err != nil {
+		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
+	}
+	decision := decideInsurance(command.Insurance, command.InsurancePlanID, command.CoverageType, office, command.DOB)
+	command.SubscriberNum = subscriberNumber(decision.SelfPay, command.SubscriberNum)
 	if command.PatientID == "" || command.DOB == "" || command.Insurance == "" || command.SubscriberNum == "" {
 		return UpdateInsuranceResult{
 			Status:  UpdateInsuranceStatusError,
@@ -40,11 +45,6 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 			Message: err.Error(),
 		}
 	}
-	office, err := domain.ResolveOffice(command.Office)
-	if err != nil {
-		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
-	}
-	decision := decidePlan(command.Insurance, command.CoverageType, office, command.DOB)
 	if decision.Participation != "accepted" {
 		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
@@ -92,7 +92,6 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 		PatientID:         command.PatientID,
 		OldInsurance:      command.OldInsurance,
 		NewInsurance:      command.Insurance,
-		Routing:           decision.Routing,
 		AllowedProviders:  decision.AllowedProviders,
 		RoutingAmbiguous:  decision.Participation == "unknown",
 		PreauthRequired:   len(decision.Requirements) > 0,
