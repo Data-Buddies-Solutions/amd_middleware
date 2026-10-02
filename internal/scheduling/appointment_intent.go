@@ -59,8 +59,8 @@ func resolveAppointmentTypeForIntent(office *domain.OfficeConfig, routing domain
 			if !ok {
 				return unresolvedAppointmentType([]string{"dob"}, "Patient DOB is required before scheduling pediatric routine vision at Spring Hill.")
 			}
-			if age < 7 {
-				return unresolvedAppointmentType([]string{"appointmentLane"}, "Spring Hill does not schedule routine vision for children under 7. Treat the visit as medical and schedule with Dr. Bach on the Spring Hill medical lane.")
+			if routineVisionTooYoung(office, age) {
+				return unresolvedAppointmentType([]string{"appointmentLane"}, underSevenRoutineVisionMessage)
 			}
 		}
 
@@ -105,6 +105,12 @@ func resolveAppointmentTypeForIntent(office *domain.OfficeConfig, routing domain
 		return resolvedAppointmentType(1005)
 	}
 	return resolvedAppointmentType(1007)
+}
+
+const underSevenRoutineVisionMessage = "Spring Hill does not schedule routine vision for children under 7. Search medical availability instead; Dr. Bach sees these children."
+
+func routineVisionTooYoung(office *domain.OfficeConfig, age int) bool {
+	return office.ID == "spring_hill" && age < 7
 }
 
 func resolvedAppointmentType(typeID int) appointmentTypeResolution {
