@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [5.2.9](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.8...v5.2.9) (2026-10-02)
+
+
+### Bug Fixes
+
+* **scheduling:** block under-7 routine vision at Spring Hill during slot search ([#236](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/236)) ([3cbe5b4](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/3cbe5b454ebd11c30650cb2dcb877ab0941df806))
+
 ## [5.2.8](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.7...v5.2.8) (2026-10-01)
 
 
