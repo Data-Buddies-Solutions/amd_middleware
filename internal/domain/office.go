@@ -99,7 +99,7 @@ func (o *OfficeConfig) ColumnsForRoutingAndDOB(rule RoutingRule, dob string) map
 
 	filtered := make(map[string]bool, len(cols))
 	for id := range cols {
-		if o.ColumnAllowsDOB(id, dob) {
+		if dob == "" || o.ColumnAllowsDOB(id, dob) {
 			filtered[id] = true
 		}
 	}
@@ -208,6 +208,19 @@ func (o *OfficeConfig) AppointmentColor(typeID int) (string, bool) {
 func (o *OfficeConfig) AppointmentTypeName(typeID int) (string, bool) {
 	name, ok := DefaultAppointmentTypeNames[typeID]
 	return name, ok
+}
+
+func OfficeIDs() []string {
+	seen := make(map[string]bool)
+	ids := make([]string, 0, len(officeRegistry))
+	for _, office := range officeRegistry {
+		if !seen[office.ID] {
+			seen[office.ID] = true
+			ids = append(ids, office.ID)
+		}
+	}
+	sort.Strings(ids)
+	return ids
 }
 
 func LookupOfficeByID(officeID string) (*OfficeConfig, bool) {

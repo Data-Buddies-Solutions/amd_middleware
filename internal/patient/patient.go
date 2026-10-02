@@ -102,7 +102,6 @@ type ResolveResult struct {
 	InsuranceCarrierID  string                       `json:"insuranceCarrierId,omitempty"`
 	InsPlanID           string                       `json:"insPlanId,omitempty"`
 	RespPartyID         string                       `json:"respPartyId,omitempty"`
-	Routing             domain.RoutingRule           `json:"routing,omitempty"`
 	AllowedProviders    []string                     `json:"allowedProviders,omitempty"`
 	RoutingAmbiguous    bool                         `json:"routingAmbiguous,omitempty"`
 	PreauthRequired     bool                         `json:"preauthRequired,omitempty"`
@@ -128,23 +127,24 @@ type ResolutionObservation struct {
 }
 
 type CreateCommand struct {
-	FirstName      string `json:"firstName"`
-	LastName       string `json:"lastName"`
-	DOB            string `json:"dob"`
-	Phone          string `json:"phone"`
-	Email          string `json:"email"`
-	Street         string `json:"street"`
-	AptSuite       string `json:"aptSuite"`
-	City           string `json:"city"`
-	State          string `json:"state"`
-	Zip            string `json:"zip"`
-	Sex            string `json:"sex"`
-	SSN            string `json:"ssn"`
-	Insurance      string `json:"insurance"`
-	CoverageType   string `json:"coverageType"`
-	SubscriberName string `json:"subscriberName"`
-	SubscriberNum  string `json:"subscriberNum"`
-	Office         string `json:"office"`
+	FirstName       string `json:"firstName"`
+	LastName        string `json:"lastName"`
+	DOB             string `json:"dob"`
+	Phone           string `json:"phone"`
+	Email           string `json:"email"`
+	Street          string `json:"street"`
+	AptSuite        string `json:"aptSuite"`
+	City            string `json:"city"`
+	State           string `json:"state"`
+	Zip             string `json:"zip"`
+	Sex             string `json:"sex"`
+	SSN             string `json:"ssn"`
+	Insurance       string `json:"insurance"`
+	InsurancePlanID string `json:"insurancePlanId"`
+	CoverageType    string `json:"coverageType"`
+	SubscriberName  string `json:"subscriberName"`
+	SubscriberNum   string `json:"subscriberNum"`
+	Office          string `json:"office"`
 }
 
 type CreateResult struct {
@@ -154,23 +154,23 @@ type CreateResult struct {
 	PatientID         string                       `json:"patientId,omitempty"`
 	Name              string                       `json:"name,omitempty"`
 	DOB               string                       `json:"dob,omitempty"`
-	Routing           domain.RoutingRule           `json:"routing,omitempty"`
 	AllowedProviders  []string                     `json:"allowedProviders,omitempty"`
 	PreauthRequired   bool                         `json:"preauthRequired,omitempty"`
 	Message           string                       `json:"message,omitempty"`
 }
 
 type UpdateInsuranceCommand struct {
-	PatientID      string `json:"patientId"`
-	DOB            string `json:"dob"`
-	InsPlanID      string `json:"insPlanId"`
-	RespPartyID    string `json:"respPartyId"`
-	OldInsurance   string `json:"oldInsurance"`
-	Insurance      string `json:"insurance"`
-	CoverageType   string `json:"coverageType"`
-	SubscriberName string `json:"subscriberName"`
-	SubscriberNum  string `json:"subscriberNum"`
-	Office         string `json:"office"`
+	PatientID       string `json:"patientId"`
+	DOB             string `json:"dob"`
+	InsPlanID       string `json:"insPlanId"`
+	RespPartyID     string `json:"respPartyId"`
+	OldInsurance    string `json:"oldInsurance"`
+	Insurance       string `json:"insurance"`
+	InsurancePlanID string `json:"insurancePlanId"`
+	CoverageType    string `json:"coverageType"`
+	SubscriberName  string `json:"subscriberName"`
+	SubscriberNum   string `json:"subscriberNum"`
+	Office          string `json:"office"`
 }
 
 type UpdateInsuranceResult struct {
@@ -181,7 +181,6 @@ type UpdateInsuranceResult struct {
 	PatientID         string                       `json:"patientId,omitempty"`
 	OldInsurance      string                       `json:"oldInsurance,omitempty"`
 	NewInsurance      string                       `json:"newInsurance,omitempty"`
-	Routing           domain.RoutingRule           `json:"routing,omitempty"`
 	AllowedProviders  []string                     `json:"allowedProviders,omitempty"`
 	RoutingAmbiguous  bool                         `json:"routingAmbiguous,omitempty"`
 	PreauthRequired   bool                         `json:"preauthRequired,omitempty"`

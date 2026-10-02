@@ -5,7 +5,7 @@ clinical system of record.**
 
 The caller asks for outcomes: find this patient, offer a valid appointment, book this
 slot, cancel this visit. The middleware owns everything that makes those outcomes safe:
-authentication, office and insurance policy, eligibility, concurrency checks, provider
+authentication, office and insurance policy, concurrency checks, provider
 translation, and recovery when a write may or may not have succeeded. It is one Go
 deployable, organized as a modular monolith.
 
@@ -20,7 +20,7 @@ Each noun has one place in the tree and one job at runtime.
 | Noun | Place | Job |
 | --- | --- | --- |
 | **Handler** | `internal/http/` | Decode one request, call one feature, respond. Records the PHI-safe request outcome. Never decides policy. |
-| **Feature** | `internal/patient/`, `internal/scheduling/`, `internal/eligibility/`, `internal/insurance/` | The one owner of a workflow's rules, receipts, and reconciliation. Commands and results carry their own JSON tags. |
+| **Feature** | `internal/patient/`, `internal/scheduling/`, `internal/insurance/` | The one owner of a workflow's rules, receipts, and reconciliation. Commands and results carry their own JSON tags. |
 | **Value** | `internal/domain/`, `internal/safeerrors/`, `internal/safelog/` | Shared offices, routing, patient and scheduler types, and PHI-safe errors and logs. No I/O. |
 | **Records** | `internal/advancedmd/` | The `PatientRecords` and `SchedulingRecords` seam, the production adapter, the deterministic test adapter, and the one classifier of failed writes. |
 | **Transport** | `internal/clients/`, `internal/session/` | AdvancedMD XMLRPC and REST calls, the one response decoder, and the one owner of the login token. |
@@ -38,7 +38,7 @@ flowchart LR
     http["http<br/>decode · call · respond"]
   end
   subgraph features["Features"]
-    workflows["patient · scheduling · eligibility"]
+    workflows["patient · scheduling"]
     insurance["insurance<br/>policy, no I/O"]
   end
   subgraph seam["Records seam"]
@@ -54,7 +54,6 @@ flowchart LR
   records --> clients
   clients --> session
   clients --> amd[("AdvancedMD")]
-  workflows --> stedi[("Stedi")]
 ```
 
 Every layer may use the values (`domain`, `safeerrors`, `safelog`), which import nothing
@@ -67,7 +66,7 @@ internal.
 | Transport | `clients` | values, session |
 | Records | `advancedmd`, `advancedmdtest` | values, session, transport |
 | Policy | `insurance` | values |
-| Feature | `patient`, `scheduling`, `eligibility` | values, records, policy. Never another feature. |
+| Feature | `patient`, `scheduling` | values, records, policy. Never another feature. |
 | Handler | `http` | values, session, records, policy, features. Never transport. |
 | Composition | `cmd/api`, `config` | anything |
 
@@ -191,6 +190,35 @@ means a pre-write failure or a reconciled failed write; `indeterminate_write`
 means the cancellation may have happened and must not be retried automatically.
 A `cancelled` receipt identifies the exact appointment that was cancelled.
 
+## Insurance plans
+
+Each office uses exactly one plan list in [internal/insurance/data](internal/insurance/data):
+`south_florida.json` (Hollywood, Sweetwater, North Miami Beach Optical),
+`spring_hill.json`, and `crystal_river.json`. `carriers.json` names the AdvancedMD
+carriers. A plan has a stable `id`, a caller-facing `label`, a `coverage`
+(`medical` or `routine_vision`), every `name` a caller might say, its AdvancedMD
+carrier, and a `yes|no|pending` answer per doctor. The lists are validated when the
+service starts; invalid data stops the process.
+
+The office registry decides which doctors can take a visit: medical uses the office's
+`all_three` tier, routine vision its optical tier, and the pediatric rule applies. The
+plan only filters those doctors. Any `yes` doctor means the plan is accepted
+(`needs_staff_task` when a prior authorization or referral is required); otherwise any
+`pending` doctor sends the call to staff; otherwise it is not accepted.
+
+`POST /api/insurance/decision` takes whatever the caller said. An exact name wins.
+Otherwise the matcher finds every plan the words could mean, tolerating small typos,
+extra words, and fragments. If those plans all end the same way at this office, it
+answers with the best one; if not, it asks `Which of these is on your card` with up to
+four `options` (`planId`, `label`); with more possibilities it asks for the full plan
+name. Generic words alone, or no match for this visit type, ask for the card. Every decision for
+a plan carries its `planId` and `carrierId`.
+
+`POST /api/add-patient` and `POST /api/patient/update-insurance` accept an optional
+`insurancePlanId`. When it is sent, the decision is made for that plan in the office's
+list and coverage and its carrier is written; the name is not matched again. Without
+it, the name is decided as above.
+
 ## The scheduling handshake
 
 Availability and booking are deliberately one workflow. A slot can become
@@ -254,11 +282,10 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 
 | Route | Intent | Owner |
 | --- | --- | --- |
-| `POST /api/patient/resolve` | Resolve identity, demographics, routing, and upcoming appointments | `patient.Resolve` |
+| `POST /api/patient/resolve` | Resolve identity, demographics, chart insurance, and upcoming appointments | `patient.Resolve` |
 | `POST /api/add-patient` | Create a patient and attach primary insurance | `patient.Create` |
 | `POST /api/patient/update-insurance` | Replace primary insurance | `patient.UpdateInsurance` |
 | `POST /api/insurance/decision` | Decide plan participation for an office | `insurance.DecideInsurance` |
-| `POST /api/eligibility/check` | Check payer eligibility through Stedi | `eligibility.Service.Check` |
 | `POST /api/scheduler/availability` | Find policy-valid slots and sign them | `scheduling.Search` |
 | `POST /api/scheduler/slots` | List openings as an inventory envelope | `scheduling.List` |
 | `POST /api/appointment/book` | Revalidate and book a signed slot | `scheduling.Book` |
@@ -352,7 +379,7 @@ their owners:
 - [Records seam](internal/advancedmd/advancedmd.go) and [adapter](internal/advancedmd/adapter.go): provider records, completeness, and write classification
 - [AdvancedMD transport](internal/clients/advancedmd_xmlrpc.go): the response decoder and `oneOrMany`
 - [Office policy](internal/domain/office.go): offices, scheduler columns, and routing lanes
-- [Insurance decisions](internal/insurance/decision.go): participation and scheduling requirements
+- [Insurance decisions](internal/insurance/decision.go) and [plan lists](internal/insurance/data): participation, matching, and scheduling requirements
 - [Scheduling policy](internal/scheduling/policy.go) and [tokens](internal/scheduling/tokens.go): booking rules and signed promises
 - [Patient resolution](internal/patient/resolve.go): identity and appointment loading
 - [Deployment](scripts/deploy-cloud-run.sh): production configuration and maintenance identity
@@ -383,67 +410,3 @@ before the original is cancelled. `partial` and `uncertain` receipts require
 reconciliation and must not be presented as completed moves. See
 [rescheduling](internal/scheduling/reschedule.go) and its tests.
 
-### Intake eligibility
-
-`POST /api/eligibility/check` accepts the patient's `firstName`, `lastName`,
-`dob`, `memberId`, `plan`, trusted `office`, and optional `coverageType`
-(`medical` by default, or `routine_vision`). It requests STC `30` once per
-provider without automatic retries. Eligibility is evidence, not booking
-permission or proof of provider network participation.
-
-Spring Hill medical intake checks Bach, Licht, and Noel concurrently using
-their verified individual NPIs. `providerResults` retains each assessed result
-with `provider: {profileId, name, firstName, lastName, npi}`. Profile IDs come
-from the active scheduling registry. The top-level status and corrected identity
-are usable only when all three trusted results agree; otherwise it reports
-`review` / `provider_results_need_review`. Successful individual results remain
-available when another request fails. The raw responses are stored only in the
-individual entries, with no duplicated top-level response.
-
-Spring Hill routine vision checks Melissa Otero, OD (NPI `1457904765`,
-[CMS NPPES](https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1457904765))
-using the optical scheduling profile. Optical responses retain benefit rows for
-STC `30` and `AL`; medical responses retain `30` and `98`. Matching rows retain
-all payer qualifiers, zero amounts, and plan descriptions. Other benefit rows
-are removed before the response reaches the agent or portal. Assessment uses
-the original response so filtering cannot erase an error or identity conflict.
-
-`STEDI_API_KEY` enables this path. Production deployment binds it to the
-`stedi-api-key` Secret Manager secret; add a production key version and grant
-the runtime service account secret access before deploying.
-Crystal River uses Joseph Licht's individual NPI (`1497147680`) for eligibility,
-as confirmed by the practice. Its single result uses the same `providerResults`
-shape and registry profile ID as Spring Hill, so the portal can link it to
-the booked physician. Sweetwater medical eligibility uses Austin Bach's individual
-NPI (`1659706588`), as confirmed by the practice, with his scheduling profile in
-the same single-result shape. This applies to explicit `medical` coverage and
-the default when `coverageType` is omitted.
-
-Sweetwater `routine_vision` checks Maria M. Casas (`1851438519`), Kyler Farnan
-(`1568198158`), and Gisselle Calero (`1619592607`) concurrently, using the same
-per-provider results and consensus rules as Spring Hill medical. Optical benefits
-retain STC `30` and `AL`; partial failures retain successful provider results and
-require review. Individual identities were verified against CMS NPPES on
-September 24, 2026:
-[Casas](https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1851438519),
-[Farnan](https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1568198158),
-[Calero](https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1619592607).
-The scheduling registry supplies their Sweetwater association and profile IDs;
-NPPES identity verification does not establish payer enrollment or live success.
-
-Hollywood medical eligibility uses Austin Bach (`1659706588`) and scheduling
-profile `620`, matching Sweetwater medical without requiring `STEDI_PROVIDERS`.
-Hollywood routine vision retains its configured provider.
-
-North Miami Beach Optical routine vision uses Miriam Bach, OD's verified
-individual NPI (`1801200977`) and its scheduling profile for appointment linkage.
-See [vision payer mappings](docs/vision-eligibility-mapping.md) for supported and
-unsupported Stedi routes. Other offices retain the
-single-provider configuration in `STEDI_PROVIDERS`; an absent provider stays
-explicitly unavailable, with no organization-NPI fallback for medical fanout.
-Verified booking receipts include `profileId`, allowing the agent to select the
-matching provider result for the booked appointment. Registry identity sources
-(CMS NPPES, verified September 23, 2026):
-[Austin Bach](https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1659706588),
-[Joseph Licht](https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1497147680),
-[Don Noel](https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1659998482).

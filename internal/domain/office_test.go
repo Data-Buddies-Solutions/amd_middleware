@@ -376,8 +376,8 @@ func TestOfficeConfig_RoutineAgeRules(t *testing.T) {
 	office := prodOffices["+17864657475"]
 	now := time.Now()
 
-	if got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, ""); len(got) != 0 {
-		t.Fatalf("missing DOB routine providers = %v, want none", got)
+	if got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, ""); len(got) != 3 {
+		t.Fatalf("missing DOB routine providers = %v, want all without an age filter", got)
 	}
 	if got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, "not-a-date"); len(got) != 0 {
 		t.Fatalf("invalid DOB routine providers = %v, want none", got)
