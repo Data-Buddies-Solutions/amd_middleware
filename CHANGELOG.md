@@ -4,6 +4,17 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [6.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.9...v6.0.0) (2026-10-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* **insurance:** resolve caller plan names to plan IDs and remove Stedi eligibility ([#238](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/238))
+
+### Features
+
+* **insurance:** resolve caller plan names to plan IDs and remove Stedi eligibility ([#238](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/238)) ([84b57f4](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/84b57f4e94024e3b4ee6bd5bd314a35dfe50555c))
+
 ## [5.2.9](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.8...v5.2.9) (2026-10-02)
 
 
