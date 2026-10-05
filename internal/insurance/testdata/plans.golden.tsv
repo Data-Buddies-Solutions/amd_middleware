@@ -1,0 +1,644 @@
+office	coverage	planId	outcome	carrierId	requirements	adultDoctors	childDoctors	answer
+crystal_river	medical	aetna-better-health	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	aetna-better-health-of-florida	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	aetna-commercial	accepted	car40887		Dr. Licht		success: Yes, we accept Aetna Commercial.
+crystal_river	medical	aetna-commercial-hmo	accepted	car40887		Dr. Licht		success: Yes, we accept Aetna Commercial HMO.
+crystal_river	medical	aetna-commercial-ppo	accepted	car40887		Dr. Licht		success: Yes, we accept Aetna Commercial PPO.
+crystal_river	medical	aetna-epo	not_accepted	car40887				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	aetna-epo-north-broward	not_accepted	car40887				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	aetna-epo-university-of-miami	not_accepted	car40887				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	aetna-healthy-kids	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	aetna-hmo	accepted	car40887		Dr. Licht		success: Yes, we accept Aetna HMO.
+crystal_river	medical	aetna-managed-choice	accepted	car40887		Dr. Licht		success: Yes, we accept Aetna Managed Choice.
+crystal_river	medical	aetna-medicare	accepted	car40907		Dr. Licht		success: Yes, we accept Aetna Medicare.
+crystal_river	medical	aetna-medicare-hmo	accepted	car40907		Dr. Licht		success: Yes, we accept Aetna Medicare HMO.
+crystal_river	medical	aetna-medicare-ppo	accepted	car40907		Dr. Licht		success: Yes, we accept Aetna Medicare PPO.
+crystal_river	medical	aetna-medicare-signature-ppo	accepted	car40907		Dr. Licht		success: Yes, we accept Aetna Medicare Signature PPO.
+crystal_river	medical	aetna-ppo	accepted	car40887		Dr. Licht		success: Yes, we accept Aetna PPO.
+crystal_river	medical	aetna-qhp-individual-exchange	accepted	car40887		Dr. Licht		success: Yes, we accept Aetna QHP Individual Exchange.
+crystal_river	medical	ambetter	not_accepted	car281245				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	ambetter-premier	not_accepted	car281245				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	ambetter-select	not_accepted	car281245				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	ambetter-value	not_accepted	car281245				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	avmed-entrust	needs_staff_task	car40890				blocked: The office needs to confirm this coverage.
+crystal_river	medical	avmed-jackson-first-network-hmo	needs_staff_task	car40890				blocked: The office needs to confirm this coverage.
+crystal_river	medical	avmed-medicare-advantage	not_accepted	car301737				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	avmed-select	needs_staff_task	car40890				blocked: The office needs to confirm this coverage.
+crystal_river	medical	care-health-plus	needs_staff_task					blocked: The office needs to confirm this coverage.
+crystal_river	medical	careplus-medicare-medical	accepted	car281317		Dr. Licht		success: Yes, we accept CarePlus Medicare Medical.
+crystal_river	medical	childrens-medical-services	needs_staff_task	car281245				blocked: The office needs to confirm this coverage.
+crystal_river	medical	cigna-florida-connect-epo	needs_staff_task					blocked: The office needs to confirm this coverage.
+crystal_river	medical	cigna-hmo	accepted	car301345		Dr. Licht		success: Yes, we accept Cigna HMO.
+crystal_river	medical	cigna-local-plus	not_accepted	car301345				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	cigna-medicare-advantage	accepted	car302890		Dr. Licht		success: Yes, we accept Cigna Medicare Advantage.
+crystal_river	medical	cigna-medicare-advantage-ppo	accepted	car302890		Dr. Licht		success: Yes, we accept Cigna Medicare Advantage PPO.
+crystal_river	medical	cigna-miami-dade-public-schools	not_accepted	car40895				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	cigna-open-access	accepted	car40895		Dr. Licht		success: Yes, we accept Cigna Open Access.
+crystal_river	medical	cigna-ppo	accepted	car40895		Dr. Licht		success: Yes, we accept Cigna PPO.
+crystal_river	medical	cigna-sure-fit	needs_staff_task					blocked: The office needs to confirm this coverage.
+crystal_river	medical	community-care-plan	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	devoted-medicare-hmo	accepted	car281317		Dr. Licht		success: Yes, we accept Devoted Medicare HMO.
+crystal_river	medical	devoted-medicare-ppo	accepted	car281317		Dr. Licht		success: Yes, we accept Devoted Medicare PPO.
+crystal_river	medical	doctors-health-medicare	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	envolve-vision	needs_staff_task	car281245				blocked: The office needs to confirm this coverage.
+crystal_river	medical	eye-america-aao	not_accepted	car308627				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	eye-care-health-solutions	needs_staff_task	car40907				blocked: The office needs to confirm this coverage.
+crystal_river	medical	florida-blue-hmo	not_accepted	car280750				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	florida-blue-medicare-hmo	accepted	car40897		Dr. Licht		success: Yes, we accept Florida Blue Medicare HMO.
+crystal_river	medical	florida-blue-medicare-ppo	accepted	car40897		Dr. Licht		success: Yes, we accept Florida Blue Medicare PPO.
+crystal_river	medical	florida-blue-ppo-federal-employee	accepted	car40897		Dr. Licht		success: Yes, we accept Florida Blue PPO Federal Employee.
+crystal_river	medical	florida-blue-ppo-out-of-state	accepted	car40897		Dr. Licht		success: Yes, we accept Florida Blue PPO Out Of State.
+crystal_river	medical	florida-blue-select	not_accepted	car40897				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	florida-blue-steward-tier-1	not_accepted	car40897				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	florida-community-care	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	florida-complete-care	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	florida-medicaid	not_accepted	car40899				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	florida-medicare	accepted	car40900		Dr. Licht		success: Yes, we accept Florida Medicare.
+crystal_river	medical	freedom-health-medicare	accepted	car40907		Dr. Licht		success: Yes, we accept Freedom Health Medicare.
+crystal_river	medical	humana-care-plus	not_accepted	car281317				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	humana-healthy-horizons	not_accepted	car308175				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	humana-hmo	not_accepted	car308175				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	humana-medicaid-hmo	not_accepted	car303033				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	humana-medicare	not_accepted	car40906				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	humana-medicare-hmo	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	humana-medicare-ppo	not_accepted	car303062				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	humana-ppo	not_accepted	car303062				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	humana-ppo-pos	not_accepted	car303062				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	humana-premier-hmo	not_accepted	car303061				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	icare	needs_staff_task	car40907				blocked: The office needs to confirm this coverage.
+crystal_river	medical	imagine-health	accepted	car308142		Dr. Licht		success: Yes, we accept Imagine Health.
+crystal_river	medical	leon-health-plan	needs_staff_task					blocked: The office needs to confirm this coverage.
+crystal_river	medical	medicaid-all-plans	not_accepted	car40899				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	meritain-health	accepted	car301578		Dr. Licht		success: Yes, we accept Meritain Health.
+crystal_river	medical	miami-childrens-health-plan	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	molina-marketplace	needs_staff_task	car308175				blocked: The office needs to confirm this coverage.
+crystal_river	medical	molina-medicaid	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	molina-medicare	accepted	car301507		Dr. Licht		success: Yes, we accept Molina Medicare.
+crystal_river	medical	multiplan-phcs	accepted	car301648		Dr. Licht		success: Yes, we accept Multiplan PHCS.
+crystal_river	medical	optimum-healthcare	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	oscar-health	accepted	car284233		Dr. Licht		success: Yes, we accept Oscar Health.
+crystal_river	medical	partners-direct-health	needs_staff_task	car308142				blocked: The office needs to confirm this coverage.
+crystal_river	medical	preferred-care-partners	needs_staff_task	car40916				blocked: The office needs to confirm this coverage.
+crystal_river	medical	self-pay-medical	accepted	car301672		Dr. Licht		success: Yes, we accept Self Pay.
+crystal_river	medical	seminole-tribe	needs_staff_task	car301427				blocked: The office needs to confirm this coverage.
+crystal_river	medical	simply-medicaid	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	simply-medicare	accepted	car40907		Dr. Licht		success: Yes, we accept Simply Medicare.
+crystal_river	medical	solis-medicare	accepted	car281317		Dr. Licht		success: Yes, we accept Solis Medicare.
+crystal_river	medical	southbay-medical-center	needs_staff_task					blocked: The office needs to confirm this coverage.
+crystal_river	medical	staywell-medicare	not_accepted	car281245				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	sunhealth	accepted	car308086		Dr. Licht		success: Yes, we accept SunHealth.
+crystal_river	medical	sunshine-medicaid	not_accepted	car281245				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	tricare-for-life	accepted	car40921		Dr. Licht		success: Yes, we accept Tricare For Life.
+crystal_river	medical	tricare-forever	accepted	car40921		Dr. Licht		success: Yes, we accept Tricare Forever.
+crystal_river	medical	tricare-prime	accepted	car284327		Dr. Licht		success: Yes, we accept Tricare Prime.
+crystal_river	medical	tricare-select	accepted	car284327		Dr. Licht		success: Yes, we accept Tricare Select.
+crystal_river	medical	umr	accepted	car284838		Dr. Licht		success: Yes, we accept UMR.
+crystal_river	medical	united-healthcare-aarp-medicare	accepted	car302750		Dr. Licht		success: Yes, we accept United Healthcare AARP Medicare.
+crystal_river	medical	united-healthcare-all-savers	accepted	car284949		Dr. Licht		success: Yes, we accept United Healthcare All Savers.
+crystal_river	medical	united-healthcare-choice	accepted	car40923		Dr. Licht		success: Yes, we accept United Healthcare Choice.
+crystal_river	medical	united-healthcare-dual-complete	accepted	car40923		Dr. Licht		success: Yes, we accept United Healthcare Dual Complete.
+crystal_river	medical	united-healthcare-global	accepted	car284971		Dr. Licht		success: Yes, we accept United Healthcare Global.
+crystal_river	medical	united-healthcare-golden-rule	accepted	car40902		Dr. Licht		success: Yes, we accept United Healthcare Golden Rule.
+crystal_river	medical	united-healthcare-hmo	accepted	car40923		Dr. Licht		success: Yes, we accept United Healthcare HMO.
+crystal_river	medical	united-healthcare-individual-exchange	accepted	car40923		Dr. Licht		success: Yes, we accept United Healthcare Individual Exchange.
+crystal_river	medical	united-healthcare-nhp	accepted	car40923		Dr. Licht		success: Yes, we accept United Healthcare NHP.
+crystal_river	medical	united-healthcare-nhp-hmo-access	accepted	car40923		Dr. Licht		success: Yes, we accept United Healthcare NHP HMO Access.
+crystal_river	medical	united-healthcare-nhp-hmo-only	accepted	car40923		Dr. Licht		success: Yes, we accept United Healthcare NHP HMO Only.
+crystal_river	medical	united-healthcare-oxford	accepted	car284471		Dr. Licht		success: Yes, we accept United Healthcare Oxford.
+crystal_river	medical	united-healthcare-shared-services	accepted	car303047		Dr. Licht		success: Yes, we accept United Healthcare Shared Services.
+crystal_river	medical	united-healthcare-student-resources	accepted	car283950		Dr. Licht		success: Yes, we accept United Healthcare Student Resources.
+crystal_river	medical	united-healthcare-surest	accepted	car301501		Dr. Licht		success: Yes, we accept United Healthcare Surest.
+crystal_river	medical	us-health-group	needs_staff_task	car284838				blocked: The office needs to confirm this coverage.
+crystal_river	medical	vivida	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	wellcare-medicaid	not_accepted	car281245				blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	wellcare-medicare-lppo	accepted	car281317		Dr. Licht		success: Yes, we accept WellCare Medicare Lppo.
+hollywood	medical	aetna-medicare-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Aetna Medicare HMO & PPO.
+hollywood	medical	aetna-commercial-medical	accepted	car40887		Dr. Bach	Dr. Bach	success: Yes, we accept Aetna Commercial HMO & PPO.
+hollywood	medical	aetna-qhp-individual-exchange	needs_staff_task	car40887				blocked: The office needs to confirm this coverage.
+hollywood	medical	aetna-epo-university-of-miami	needs_staff_task	car40887	staff_verify	Dr. Bach	Dr. Bach	blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	aetna-epo-north-broward	needs_staff_task	car40887	staff_verify	Dr. Bach	Dr. Bach	blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	aetna-better-health-medicaid-medical	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+hollywood	medical	aetna-healthy-kids-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Aetna Healthy Kids/Kid Care (CHIP).
+hollywood	medical	ambetter-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Ambetter Medical.
+hollywood	medical	ambetter-select-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Ambetter Select.
+hollywood	medical	ambetter-value-medical	needs_staff_task	car281245	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+hollywood	medical	ambetter-premier-medical	needs_staff_task	car281245				blocked: The office needs to confirm this coverage.
+hollywood	medical	avmed-select	accepted	car40890		Dr. Bach	Dr. Bach	success: Yes, we accept AvMed Select.
+hollywood	medical	avmed-jackson-first-network-hmo	not_accepted	car40890				blocked: This plan is not accepted for this visit type at this office.
+hollywood	medical	avmed-engage	needs_staff_task	car40890	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+hollywood	medical	avmed-entrust-medical	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	medical	careplus-medicare-medical	needs_staff_task	car281317	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
+hollywood	medical	childrens-medical-services-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Children's Medical Services.
+hollywood	medical	cigna-hmo	needs_staff_task	car301345	pcp_referral,staff_verify	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+hollywood	medical	cigna-florida-connect-epo	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	medical	cigna-local-plus-non-par	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	medical	cigna-sure-fit	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	medical	cigna-medicare-advantage-medical	needs_staff_task	car302890	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+hollywood	medical	cigna-open-access	accepted	car40895		Dr. Bach	Dr. Bach	success: Yes, we accept Cigna Open Access.
+hollywood	medical	cigna-miami-dade-public-schools	accepted	car40895		Dr. Bach	Dr. Bach	success: Yes, we accept Cigna Miami-Dade Public Schools.
+hollywood	medical	cigna-ppo	accepted	car40895		Dr. Bach	Dr. Bach	success: Yes, we accept Cigna PPO.
+hollywood	medical	clear-spring-health-medicare-advantage	needs_staff_task					blocked: The office needs to confirm this coverage.
+hollywood	medical	community-care-plan-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Community Care Plan.
+hollywood	medical	eye-america-aao	needs_staff_task	car308627	staff_verify	Dr. Bach	Dr. Bach	blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	devoted-medicare-hmo-medical	accepted	car281317		Dr. Bach	Dr. Bach	success: Yes, we accept Devoted Medicare HMO.
+hollywood	medical	devoted-medicare-ppo-medical	accepted	car281317		Dr. Bach	Dr. Bach	success: Yes, we accept Devoted Medicare PPO.
+hollywood	medical	doctors-health-medicare-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Doctors Health Medicare.
+hollywood	medical	florida-blue-hmo	needs_staff_task	car280750	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
+hollywood	medical	florida-blue-medicare-ppo-medical	accepted	car40897		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Blue Medicare PPO.
+hollywood	medical	florida-blue-medicare-hmo-medical	needs_staff_task	car40897				blocked: The office needs to confirm this coverage.
+hollywood	medical	florida-blue-ppo-out-of-state	accepted	car40897		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Blue PPO Out of State.
+hollywood	medical	florida-blue-ppo-federal-employee	accepted	car40897		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Blue PPO Federal Employee.
+hollywood	medical	florida-blue-select-non-par	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	medical	florida-blue-steward-tier-1	accepted	car40897		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Blue Steward Healthcare Network Tier 1.
+hollywood	medical	florida-complete-care-medicare	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Complete Care.
+hollywood	medical	florida-community-care	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Community Care.
+hollywood	medical	freedom-health-medicare-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Freedom Health Medicare.
+hollywood	medical	humana-medicaid-hmo	needs_staff_task	car303033	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
+hollywood	medical	humana-medicare-ppo	accepted	car303062		Dr. Bach	Dr. Bach	success: Yes, we accept Humana Medicare PPO.
+hollywood	medical	humana-medicare-hmo	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Humana Medicare HMO.
+hollywood	medical	humana-premier-hmo	accepted	car303061		Dr. Bach	Dr. Bach	success: Yes, we accept Humana Premier HMO.
+hollywood	medical	humana-ppo-pos	accepted	car303062		Dr. Bach	Dr. Bach	success: Yes, we accept Humana PPO/POS.
+hollywood	medical	imagine-health	needs_staff_task	car308142	staff_verify	Dr. Bach	Dr. Bach	blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	medical-center-international	needs_staff_task					blocked: The office needs to confirm this coverage.
+hollywood	medical	florida-medicaid	accepted	car40899		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Medicaid.
+hollywood	medical	medicare-part-b	accepted	car40900		Dr. Bach	Dr. Bach	success: Yes, we accept Medicare Part B.
+hollywood	medical	icare-medical	needs_staff_task	car40907				blocked: The office needs to confirm this coverage.
+hollywood	medical	meritain-health	accepted	car301578		Dr. Bach	Dr. Bach	success: Yes, we accept Meritain Health.
+hollywood	medical	miami-childrens-health-plan-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Miami Children's Health Plan (Medicaid).
+hollywood	medical	molina-marketplace-non-par	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	medical	molina-medicaid-medical	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+hollywood	medical	molina-medicare-medical	needs_staff_task	car301507	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+hollywood	medical	multiplan-phcs	accepted	car301648		Dr. Bach	Dr. Bach	success: Yes, we accept Multiplan PHCS.
+hollywood	medical	optimum-healthplan-medicare-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Optimum Healthplan Medicare.
+hollywood	medical	oscar-health-medical	accepted	car284233		Dr. Bach	Dr. Bach	success: Yes, we accept Oscar Health.
+hollywood	medical	partners-direct-health	accepted	car308142		Dr. Bach	Dr. Bach	success: Yes, we accept Partners Direct Health.
+hollywood	medical	preferred-care-partners-medical	accepted	car40916		Dr. Bach	Dr. Bach	success: Yes, we accept Preferred Care Partners.
+hollywood	medical	seminole-tribe-medical	needs_staff_task	car301427	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+hollywood	medical	simply-medicaid-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Simply Medicaid/Healthy Kids.
+hollywood	medical	simply-medicare-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Simply Medicare.
+hollywood	medical	solis-medicare-medical	needs_staff_task	car281317	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
+hollywood	medical	staywell-medicare-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Staywell Medicare.
+hollywood	medical	sunhealth-discount-plan	accepted	car308086		Dr. Bach	Dr. Bach	success: Yes, we accept SunHealth Discount Plan.
+hollywood	medical	sunshine-medicaid-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Sunshine Medicaid.
+hollywood	medical	tricare-prime	needs_staff_task	car284327	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
+hollywood	medical	tricare-select	accepted	car284327		Dr. Bach	Dr. Bach	success: Yes, we accept Tricare Select.
+hollywood	medical	tricare-for-life	accepted	car40921		Dr. Bach	Dr. Bach	success: Yes, we accept Tricare For Life.
+hollywood	medical	umr	needs_staff_task	car284838	staff_verify	Dr. Bach	Dr. Bach	blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	united-healthcare-medical	accepted	car40923		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Medical.
+hollywood	medical	united-healthcare-medicaid-non-par	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	medical	us-health-group	accepted	car284838		Dr. Bach	Dr. Bach	success: Yes, we accept US Health Group.
+hollywood	medical	united-healthcare-aarp-medicare	accepted	car302750		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare AARP Medicare Complete.
+hollywood	medical	united-healthcare-dual-complete-medical	needs_staff_task	car40923				blocked: The office needs to confirm this coverage.
+hollywood	medical	united-healthcare-choice-medical	needs_staff_task	car40923				blocked: The office needs to confirm this coverage.
+hollywood	medical	united-healthcare-all-savers	accepted	car284949		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare All Savers.
+hollywood	medical	united-healthcare-golden-rule	accepted	car40902		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Golden Rule.
+hollywood	medical	united-healthcare-individual-exchange	needs_staff_task	car40923	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+hollywood	medical	united-healthcare-nhp-hmo-access	accepted	car40923		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare NHP HMO Access.
+hollywood	medical	united-healthcare-nhp-hmo-only	needs_staff_task	car40923	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+hollywood	medical	united-healthcare-oxford	accepted	car284471		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Oxford.
+hollywood	medical	united-healthcare-shared-services	accepted	car303047		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Shared Services.
+hollywood	medical	united-healthcare-student-resources	accepted	car283950		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Student Resources.
+hollywood	medical	united-healthcare-surest	accepted	car301501		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Surest.
+hollywood	medical	united-healthcare-global	needs_staff_task	car284971	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
+hollywood	medical	wellcare-medicaid-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Wellcare Medicaid.
+hollywood	medical	wellcare-medicare-lppo	needs_staff_task	car281317	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
+hollywood	medical	self-pay-medical	accepted	car301672		Dr. Bach	Dr. Bach	success: Yes, we accept Self Pay.
+hollywood	medical	envolve-vision-medical	needs_staff_task	car281245				blocked: The office needs to confirm this coverage.
+hollywood	medical	eye-care-health-solutions-medical	needs_staff_task	car40907				blocked: The office needs to confirm this coverage.
+hollywood	routine_vision	aetna-medicare-ppo-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Aetna Medicare PPO Vision.
+hollywood	routine_vision	aetna-medicare-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Aetna Medicare HMO & PPO Vision.
+hollywood	routine_vision	aetna-better-health-medicaid-vision	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+hollywood	routine_vision	aetna-healthy-kids-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Aetna Healthy Kids/Kid Care (CHIP) Vision.
+hollywood	routine_vision	ambetter-vision	accepted	car281245		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Ambetter Vision.
+hollywood	routine_vision	avmed-entrust-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept AvMed Entrust Vision.
+hollywood	routine_vision	careplus-medicare-vision	needs_staff_task	car281317				blocked: The office needs to confirm this coverage.
+hollywood	routine_vision	childrens-medical-services-vision	accepted	car281245		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Children's Medical Services Vision.
+hollywood	routine_vision	community-care-plan-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Community Care Plan Vision.
+hollywood	routine_vision	devoted-medicare-hmo-vision	accepted	car281317		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Devoted Medicare HMO Vision.
+hollywood	routine_vision	devoted-medicare-ppo-vision	accepted	car281317		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Devoted Medicare PPO Vision.
+hollywood	routine_vision	doctors-health-medicare-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Doctors Health Medicare Vision.
+hollywood	routine_vision	florida-blue-medicare-vision	accepted	car281317		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Florida Blue Medicare HMO & PPO Vision.
+hollywood	routine_vision	freedom-health-medicare-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Freedom Health Medicare Vision.
+hollywood	routine_vision	healthsun-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept HealthSun Vision.
+hollywood	routine_vision	humana-medicaid-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Humana Medicaid Vision.
+hollywood	routine_vision	humana-medicare-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Humana Medicare Vision.
+hollywood	routine_vision	miami-childrens-health-plan-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Miami Children's Health Plan (Medicaid) Vision.
+hollywood	routine_vision	molina-medicaid-vision	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+hollywood	routine_vision	optimum-healthplan-medicare-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Optimum Healthplan Medicare Vision.
+hollywood	routine_vision	preferred-care-network-medica-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Medica Vision.
+hollywood	routine_vision	seminole-tribe-vision	needs_staff_task	car301427	pcp_referral	Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	blocked: This plan requires a referral from your primary care doctor before scheduling.
+hollywood	routine_vision	simply-medicaid-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+hollywood	routine_vision	simply-medicare-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Simply Medicare Vision.
+hollywood	routine_vision	solis-medicare-vision	accepted	car281317		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Solis Medicare Vision.
+hollywood	routine_vision	staywell-medicaid-vision	accepted	car281245		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Staywell Medicaid Vision.
+hollywood	routine_vision	sunshine-medicaid-vision	accepted	car281245		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Sunshine Medicaid Vision.
+hollywood	routine_vision	wellcare-medicaid-vision	accepted	car281245		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Wellcare Medicaid Vision.
+hollywood	routine_vision	wellcare-medicare-hmo-vision	accepted	car281317		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept WellCare Medicare HMO Vision.
+hollywood	routine_vision	vsp	accepted	car280695		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept VSP.
+hollywood	routine_vision	eyemed	accepted	car280684		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept EyeMed.
+hollywood	routine_vision	nva	accepted	car308794		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept NVA.
+hollywood	routine_vision	davis-vision	accepted	car280612		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Davis Vision.
+hollywood	routine_vision	spectera	accepted	car308790		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Spectera.
+hollywood	routine_vision	solstice	accepted	car301652		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Solstice.
+hollywood	routine_vision	icare-routine-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept iCare.
+hollywood	routine_vision	guardian	accepted	car308792		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Guardian.
+hollywood	routine_vision	alivi	accepted	car308796		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Alivi.
+hollywood	routine_vision	premier-eye-care	accepted	car281317		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Premier Eye Care.
+hollywood	routine_vision	envolve-routine-vision	accepted	car281245		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Envolve.
+hollywood	routine_vision	sunhealth-routine-vision	accepted	car308791		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept SunHealth.
+hollywood	routine_vision	oscar-routine-vision	accepted	car284233		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Oscar. For new patients with Oscar, Davis Vision coverage is automatic through age 18. For patients 19 and older, Davis Vision is included only if they selected Oscar's additional vision option. Without that option, the visit would be self-pay.
+hollywood	routine_vision	self-pay-routine-vision	accepted	car301672		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Self Pay.
+hollywood	routine_vision	metlife-vision	accepted	car280695		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept MetLife Vision.
+hollywood	routine_vision	liberty-financial-vision	accepted	car280695		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Liberty Financial Vision.
+hollywood	routine_vision	lincoln-financial-vision	accepted	car280695		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Lincoln Financial Vision.
+hollywood	routine_vision	humana-vision-through-work	accepted	car280684		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Humana Vision (through work).
+hollywood	routine_vision	aetna-vision-through-work	accepted	car280684		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Aetna Vision (through work).
+hollywood	routine_vision	unum-vision	accepted	car280684		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Unum Vision.
+hollywood	routine_vision	cigna-vision	accepted	car280684		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Cigna Vision.
+hollywood	routine_vision	cigna-florida-connect-epo-vision	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	routine_vision	cigna-local-plus-non-par-vision	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	routine_vision	cigna-sure-fit-vision	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	routine_vision	superior-vision	accepted	car280612		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Superior Vision.
+hollywood	routine_vision	florida-blue-vision-through-work	accepted	car280612		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Florida Blue Vision (through work).
+hollywood	routine_vision	blueview-vision	accepted	car280612		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept BlueView Vision.
+hollywood	routine_vision	versant-vision	accepted	car280612		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Versant.
+hollywood	routine_vision	unitedhealthcare-vision	accepted	car308790		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept UnitedHealthcare Vision.
+hollywood	routine_vision	amerihealth-vision	accepted	car281317		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept AmeriHealth.
+north_miami_beach_optical	routine_vision	aetna-medicare-ppo-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Aetna Medicare PPO Vision.
+north_miami_beach_optical	routine_vision	aetna-medicare-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Aetna Medicare HMO & PPO Vision.
+north_miami_beach_optical	routine_vision	aetna-better-health-medicaid-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Aetna Better Health Medicaid MMA Vision.
+north_miami_beach_optical	routine_vision	aetna-healthy-kids-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Aetna Healthy Kids/Kid Care (CHIP) Vision.
+north_miami_beach_optical	routine_vision	ambetter-vision	accepted	car281245		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Ambetter Vision.
+north_miami_beach_optical	routine_vision	avmed-entrust-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept AvMed Entrust Vision.
+north_miami_beach_optical	routine_vision	careplus-medicare-vision	not_accepted	car281317				blocked: This plan is not accepted for this visit type at this office.
+north_miami_beach_optical	routine_vision	childrens-medical-services-vision	accepted	car281245		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Children's Medical Services Vision.
+north_miami_beach_optical	routine_vision	community-care-plan-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Community Care Plan Vision.
+north_miami_beach_optical	routine_vision	devoted-medicare-hmo-vision	accepted	car281317		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Devoted Medicare HMO Vision.
+north_miami_beach_optical	routine_vision	devoted-medicare-ppo-vision	accepted	car281317		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Devoted Medicare PPO Vision.
+north_miami_beach_optical	routine_vision	doctors-health-medicare-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Doctors Health Medicare Vision.
+north_miami_beach_optical	routine_vision	florida-blue-medicare-vision	accepted	car281317		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Florida Blue Medicare HMO & PPO Vision.
+north_miami_beach_optical	routine_vision	freedom-health-medicare-vision	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+north_miami_beach_optical	routine_vision	healthsun-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept HealthSun Vision.
+north_miami_beach_optical	routine_vision	humana-medicaid-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Humana Medicaid Vision.
+north_miami_beach_optical	routine_vision	humana-medicare-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Humana Medicare Vision.
+north_miami_beach_optical	routine_vision	miami-childrens-health-plan-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Miami Children's Health Plan (Medicaid) Vision.
+north_miami_beach_optical	routine_vision	molina-medicaid-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Molina Medicaid Vision.
+north_miami_beach_optical	routine_vision	optimum-healthplan-medicare-vision	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+north_miami_beach_optical	routine_vision	preferred-care-network-medica-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Medica Vision.
+north_miami_beach_optical	routine_vision	seminole-tribe-vision	needs_staff_task	car301427	pcp_referral	Dr. Miriam Bach	Dr. Miriam Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+north_miami_beach_optical	routine_vision	simply-medicaid-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+north_miami_beach_optical	routine_vision	simply-medicare-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Simply Medicare Vision.
+north_miami_beach_optical	routine_vision	solis-medicare-vision	accepted	car281317		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Solis Medicare Vision.
+north_miami_beach_optical	routine_vision	staywell-medicaid-vision	accepted	car281245		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Staywell Medicaid Vision.
+north_miami_beach_optical	routine_vision	sunshine-medicaid-vision	accepted	car281245		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Sunshine Medicaid Vision.
+north_miami_beach_optical	routine_vision	wellcare-medicaid-vision	accepted	car281245		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Wellcare Medicaid Vision.
+north_miami_beach_optical	routine_vision	wellcare-medicare-hmo-vision	accepted	car281317		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept WellCare Medicare HMO Vision.
+north_miami_beach_optical	routine_vision	vsp	accepted	car280695		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept VSP.
+north_miami_beach_optical	routine_vision	eyemed	accepted	car280684		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept EyeMed.
+north_miami_beach_optical	routine_vision	nva	accepted	car308794		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept NVA.
+north_miami_beach_optical	routine_vision	davis-vision	accepted	car280612		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Davis Vision.
+north_miami_beach_optical	routine_vision	spectera	accepted	car308790		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Spectera.
+north_miami_beach_optical	routine_vision	solstice	accepted	car301652		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Solstice.
+north_miami_beach_optical	routine_vision	icare-routine-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept iCare.
+north_miami_beach_optical	routine_vision	guardian	accepted	car308792		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Guardian.
+north_miami_beach_optical	routine_vision	alivi	accepted	car308796		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Alivi.
+north_miami_beach_optical	routine_vision	premier-eye-care	accepted	car281317		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Premier Eye Care.
+north_miami_beach_optical	routine_vision	envolve-routine-vision	accepted	car281245		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Envolve.
+north_miami_beach_optical	routine_vision	sunhealth-routine-vision	accepted	car308791		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept SunHealth.
+north_miami_beach_optical	routine_vision	oscar-routine-vision	accepted	car284233		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Oscar. For new patients with Oscar, Davis Vision coverage is automatic through age 18. For patients 19 and older, Davis Vision is included only if they selected Oscar's additional vision option. Without that option, the visit would be self-pay.
+north_miami_beach_optical	routine_vision	self-pay-routine-vision	accepted	car301672		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Self Pay.
+north_miami_beach_optical	routine_vision	metlife-vision	accepted	car280695		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept MetLife Vision.
+north_miami_beach_optical	routine_vision	liberty-financial-vision	accepted	car280695		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Liberty Financial Vision.
+north_miami_beach_optical	routine_vision	lincoln-financial-vision	accepted	car280695		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Lincoln Financial Vision.
+north_miami_beach_optical	routine_vision	humana-vision-through-work	accepted	car280684		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Humana Vision (through work).
+north_miami_beach_optical	routine_vision	aetna-vision-through-work	accepted	car280684		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Aetna Vision (through work).
+north_miami_beach_optical	routine_vision	unum-vision	accepted	car280684		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Unum Vision.
+north_miami_beach_optical	routine_vision	cigna-vision	accepted	car280684		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Cigna Vision.
+north_miami_beach_optical	routine_vision	cigna-florida-connect-epo-vision	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+north_miami_beach_optical	routine_vision	cigna-local-plus-non-par-vision	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+north_miami_beach_optical	routine_vision	cigna-sure-fit-vision	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+north_miami_beach_optical	routine_vision	superior-vision	accepted	car280612		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Superior Vision.
+north_miami_beach_optical	routine_vision	florida-blue-vision-through-work	accepted	car280612		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Florida Blue Vision (through work).
+north_miami_beach_optical	routine_vision	blueview-vision	accepted	car280612		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept BlueView Vision.
+north_miami_beach_optical	routine_vision	versant-vision	accepted	car280612		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept Versant.
+north_miami_beach_optical	routine_vision	unitedhealthcare-vision	accepted	car308790		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept UnitedHealthcare Vision.
+north_miami_beach_optical	routine_vision	amerihealth-vision	accepted	car281317		Dr. Miriam Bach	Dr. Miriam Bach	success: Yes, we accept AmeriHealth.
+spring_hill	medical	aetna-better-health	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Aetna Better Health.
+spring_hill	medical	aetna-better-health-of-florida	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Aetna Better Health Of Florida.
+spring_hill	medical	aetna-commercial	accepted	car40887		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Aetna Commercial.
+spring_hill	medical	aetna-commercial-hmo	accepted	car40887		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Aetna Commercial HMO.
+spring_hill	medical	aetna-commercial-ppo	accepted	car40887		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Aetna Commercial PPO.
+spring_hill	medical	aetna-epo	not_accepted	car40887				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	aetna-epo-north-broward	not_accepted	car40887				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	aetna-epo-university-of-miami	not_accepted	car40887				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	aetna-healthy-kids	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Aetna Healthy Kids.
+spring_hill	medical	aetna-hmo	accepted	car40887		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Aetna HMO.
+spring_hill	medical	aetna-managed-choice	accepted	car40887		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Aetna Managed Choice.
+spring_hill	medical	aetna-medicare	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Aetna Medicare.
+spring_hill	medical	aetna-medicare-hmo	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Aetna Medicare HMO.
+spring_hill	medical	aetna-medicare-ppo	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Aetna Medicare PPO.
+spring_hill	medical	aetna-medicare-signature-ppo	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Aetna Medicare Signature PPO.
+spring_hill	medical	aetna-ppo	accepted	car40887		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Aetna PPO.
+spring_hill	medical	aetna-qhp-individual-exchange	accepted	car40887		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Aetna QHP Individual Exchange.
+spring_hill	medical	ambetter	accepted	car281245		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Ambetter.
+spring_hill	medical	ambetter-premier	accepted	car281245		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Ambetter Premier.
+spring_hill	medical	ambetter-select	accepted	car281245		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Ambetter Select.
+spring_hill	medical	ambetter-value	accepted	car281245		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Ambetter Value.
+spring_hill	medical	avmed-entrust	accepted	car40890		Dr. Bach,Dr. Licht	Dr. Bach	success: Yes, we accept AvMed Entrust.
+spring_hill	medical	avmed-jackson-first-network-hmo	accepted	car40890		Dr. Bach,Dr. Licht	Dr. Bach	success: Yes, we accept AvMed Jackson First Network HMO.
+spring_hill	medical	avmed-medicare-advantage	not_accepted	car301737				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	avmed-select	accepted	car40890		Dr. Bach,Dr. Licht	Dr. Bach	success: Yes, we accept AvMed Select.
+spring_hill	medical	care-health-plus	not_accepted					blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	careplus-medicare-medical	not_accepted	car281317				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	childrens-medical-services	accepted	car281245		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Children's Medical Services.
+spring_hill	medical	cigna-florida-connect-epo	needs_staff_task					blocked: The office needs to confirm this coverage.
+spring_hill	medical	cigna-hmo	accepted	car301345		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Cigna HMO.
+spring_hill	medical	cigna-local-plus	not_accepted	car301345				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	cigna-medicare-advantage	accepted	car302890		Dr. Bach,Dr. Licht	Dr. Bach	success: Yes, we accept Cigna Medicare Advantage.
+spring_hill	medical	cigna-medicare-advantage-ppo	accepted	car302890		Dr. Bach,Dr. Licht	Dr. Bach	success: Yes, we accept Cigna Medicare Advantage PPO.
+spring_hill	medical	cigna-miami-dade-public-schools	not_accepted	car40895				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	cigna-open-access	accepted	car40895		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Cigna Open Access.
+spring_hill	medical	cigna-ppo	accepted	car40895		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Cigna PPO.
+spring_hill	medical	cigna-sure-fit	needs_staff_task					blocked: The office needs to confirm this coverage.
+spring_hill	medical	community-care-plan	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Community Care Plan.
+spring_hill	medical	devoted-medicare-hmo	accepted	car281317		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Devoted Medicare HMO.
+spring_hill	medical	devoted-medicare-ppo	accepted	car281317		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Devoted Medicare PPO.
+spring_hill	medical	doctors-health-medicare	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	envolve-vision	accepted	car281245		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Envolve Vision.
+spring_hill	medical	eye-america-aao	not_accepted	car308627				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	eye-care-health-solutions	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Eye Care Health Solutions.
+spring_hill	medical	florida-blue-hmo	not_accepted	car280750				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	florida-blue-medicare-hmo	accepted	car40897		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Florida Blue Medicare HMO.
+spring_hill	medical	florida-blue-medicare-ppo	accepted	car40897		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Florida Blue Medicare PPO.
+spring_hill	medical	florida-blue-ppo-federal-employee	accepted	car40897		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Florida Blue PPO Federal Employee.
+spring_hill	medical	florida-blue-ppo-out-of-state	accepted	car40897		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Florida Blue PPO Out Of State.
+spring_hill	medical	florida-blue-select	not_accepted	car40897				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	florida-blue-steward-tier-1	not_accepted	car40897				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	florida-community-care	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Florida Community Care.
+spring_hill	medical	florida-complete-care	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Florida Complete Care.
+spring_hill	medical	florida-medicaid	accepted	car40899		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Florida Medicaid.
+spring_hill	medical	florida-medicare	accepted	car40900		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Florida Medicare.
+spring_hill	medical	freedom-health-medicare	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Freedom Health Medicare.
+spring_hill	medical	humana-care-plus	not_accepted	car281317				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	humana-healthy-horizons	accepted	car308175		Dr. Bach	Dr. Bach	success: Yes, we accept Humana Healthy Horizons.
+spring_hill	medical	humana-medicaid-hmo	accepted	car303033		Dr. Bach	Dr. Bach	success: Yes, we accept Humana Medicaid HMO. At Spring Hill, patients with this plan can only see Dr. Bach.
+spring_hill	medical	humana-medicare	accepted	car40906		Dr. Bach	Dr. Bach	success: Yes, we accept Humana Medicare.
+spring_hill	medical	humana-medicare-hmo	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	humana-medicare-ppo	accepted	car303062		Dr. Bach	Dr. Bach	success: Yes, we accept Humana Medicare PPO.
+spring_hill	medical	humana-ppo	accepted	car303062		Dr. Bach	Dr. Bach	success: Yes, we accept Humana PPO.
+spring_hill	medical	humana-ppo-pos	accepted	car303062		Dr. Bach	Dr. Bach	success: Yes, we accept Humana PPO Pos.
+spring_hill	medical	humana-premier-hmo	not_accepted	car303061				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	icare	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept iCare.
+spring_hill	medical	imagine-health	accepted	car308142		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Imagine Health.
+spring_hill	medical	leon-health-plan	needs_staff_task					blocked: The office needs to confirm this coverage.
+spring_hill	medical	meritain-health	accepted	car301578		Dr. Bach	Dr. Bach	success: Yes, we accept Meritain Health.
+spring_hill	medical	miami-childrens-health-plan	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	molina-marketplace	not_accepted	car308175				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	molina-medicaid	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Molina Medicaid.
+spring_hill	medical	molina-medicare	accepted	car301507		Dr. Bach	Dr. Bach	success: Yes, we accept Molina Medicare.
+spring_hill	medical	multiplan-phcs	accepted	car301648		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Multiplan PHCS.
+spring_hill	medical	optimum-healthcare	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	oscar-health	accepted	car284233		Dr. Bach,Dr. Licht	Dr. Bach	success: Yes, we accept Oscar Health.
+spring_hill	medical	partners-direct-health	needs_staff_task	car308142				blocked: The office needs to confirm this coverage.
+spring_hill	medical	preferred-care-partners	not_accepted	car40916				blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	self-pay-medical	accepted	car301672		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Self Pay.
+spring_hill	medical	seminole-tribe	needs_staff_task	car301427				blocked: The office needs to confirm this coverage.
+spring_hill	medical	simply-health	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Simply Health.
+spring_hill	medical	simply-medicaid	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Simply Medicaid.
+spring_hill	medical	simply-medicare	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Simply Medicare.
+spring_hill	medical	solis-medicare	accepted	car281317		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Solis Medicare.
+spring_hill	medical	southbay-medical-center	needs_staff_task					blocked: The office needs to confirm this coverage.
+spring_hill	medical	staywell-medicare	accepted	car281245		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Staywell Medicare.
+spring_hill	medical	sunhealth	accepted	car308086		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept SunHealth.
+spring_hill	medical	sunshine-medicaid	accepted	car281245		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Sunshine Medicaid.
+spring_hill	medical	tricare-for-life	accepted	car40921		Dr. Bach,Dr. Licht	Dr. Bach	success: Yes, we accept Tricare For Life.
+spring_hill	medical	tricare-forever	accepted	car40921		Dr. Bach,Dr. Licht	Dr. Bach	success: Yes, we accept Tricare Forever.
+spring_hill	medical	tricare-prime	accepted	car284327		Dr. Bach,Dr. Licht	Dr. Bach	success: Yes, we accept Tricare Prime.
+spring_hill	medical	tricare-select	accepted	car284327		Dr. Bach,Dr. Licht	Dr. Bach	success: Yes, we accept Tricare Select.
+spring_hill	medical	umr	accepted	car284838		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept UMR.
+spring_hill	medical	united-healthcare-aarp-medicare	accepted	car302750		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept United Healthcare AARP Medicare.
+spring_hill	medical	united-healthcare-all-savers	accepted	car284949		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept United Healthcare All Savers.
+spring_hill	medical	united-healthcare-choice	accepted	car40923		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept United Healthcare Choice.
+spring_hill	medical	united-healthcare-dual-complete	accepted	car40923		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept United Healthcare Dual Complete.
+spring_hill	medical	united-healthcare-global	accepted	car284971		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept United Healthcare Global.
+spring_hill	medical	united-healthcare-golden-rule	accepted	car40902		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept United Healthcare Golden Rule.
+spring_hill	medical	united-healthcare-hmo	accepted	car40923		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept United Healthcare HMO.
+spring_hill	medical	united-healthcare-individual-exchange	accepted	car40923		Dr. Bach,Dr. Licht	Dr. Bach	success: Yes, we accept United Healthcare Individual Exchange.
+spring_hill	medical	united-healthcare-nhp	accepted	car40923		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept United Healthcare NHP.
+spring_hill	medical	united-healthcare-nhp-hmo-access	accepted	car40923		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept United Healthcare NHP HMO Access.
+spring_hill	medical	united-healthcare-nhp-hmo-only	accepted	car40923		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept United Healthcare NHP HMO Only.
+spring_hill	medical	united-healthcare-oxford	accepted	car284471		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept United Healthcare Oxford.
+spring_hill	medical	united-healthcare-shared-services	accepted	car303047		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept United Healthcare Shared Services.
+spring_hill	medical	united-healthcare-student-resources	accepted	car283950		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept United Healthcare Student Resources.
+spring_hill	medical	united-healthcare-surest	accepted	car301501		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept United Healthcare Surest.
+spring_hill	medical	us-health-group	needs_staff_task	car284838				blocked: The office needs to confirm this coverage.
+spring_hill	medical	vivida	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept Vivida.
+spring_hill	medical	wellcare-medicaid	accepted	car281245		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept WellCare Medicaid.
+spring_hill	medical	wellcare-medicare-lppo	accepted	car281317		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	success: Yes, we accept WellCare Medicare Lppo.
+spring_hill	routine_vision	aetna-medicare-ppo-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Aetna Medicare PPO Vision.
+spring_hill	routine_vision	aetna-medicare-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Aetna Medicare HMO & PPO Vision.
+spring_hill	routine_vision	aetna-better-health-medicaid-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Aetna Better Health Medicaid MMA Vision.
+spring_hill	routine_vision	aetna-healthy-kids-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Aetna Healthy Kids/Kid Care (CHIP) Vision.
+spring_hill	routine_vision	ambetter-vision	accepted	car281245		Dr. Otero	Dr. Otero	success: Yes, we accept Ambetter Vision.
+spring_hill	routine_vision	avmed-entrust-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept AvMed Entrust Vision.
+spring_hill	routine_vision	careplus-medicare-vision	needs_staff_task	car281317				blocked: The office needs to confirm this coverage. CarePlus Medicare routine vision is pending for these providers.
+spring_hill	routine_vision	childrens-medical-services-vision	accepted	car281245		Dr. Otero	Dr. Otero	success: Yes, we accept Children's Medical Services Vision.
+spring_hill	routine_vision	community-care-plan-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Community Care Plan Vision.
+spring_hill	routine_vision	devoted-medicare-hmo-vision	accepted	car281317		Dr. Otero	Dr. Otero	success: Yes, we accept Devoted Medicare HMO Vision.
+spring_hill	routine_vision	devoted-medicare-ppo-vision	accepted	car281317		Dr. Otero	Dr. Otero	success: Yes, we accept Devoted Medicare PPO Vision.
+spring_hill	routine_vision	doctors-health-medicare-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Doctors Health Medicare Vision.
+spring_hill	routine_vision	florida-blue-medicare-vision	accepted	car281317		Dr. Otero	Dr. Otero	success: Yes, we accept Florida Blue Medicare HMO & PPO Vision.
+spring_hill	routine_vision	freedom-health-medicare-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Freedom Health Medicare Vision.
+spring_hill	routine_vision	healthsun-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept HealthSun Vision.
+spring_hill	routine_vision	humana-medicaid-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Humana Medicaid Vision.
+spring_hill	routine_vision	humana-medicare-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Humana Medicare Vision.
+spring_hill	routine_vision	miami-childrens-health-plan-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Miami Children's Health Plan (Medicaid) Vision.
+spring_hill	routine_vision	molina-medicaid-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Molina Medicaid Vision.
+spring_hill	routine_vision	optimum-healthplan-medicare-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Optimum Healthplan Medicare Vision.
+spring_hill	routine_vision	preferred-care-network-medica-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Medica Vision.
+spring_hill	routine_vision	simply-medicaid-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+spring_hill	routine_vision	simply-medicare-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept Simply Medicare Vision.
+spring_hill	routine_vision	solis-medicare-vision	accepted	car281317		Dr. Otero	Dr. Otero	success: Yes, we accept Solis Medicare Vision.
+spring_hill	routine_vision	staywell-medicaid-vision	accepted	car281245		Dr. Otero	Dr. Otero	success: Yes, we accept Staywell Medicaid Vision.
+spring_hill	routine_vision	sunshine-medicaid-vision	accepted	car281245		Dr. Otero	Dr. Otero	success: Yes, we accept Sunshine Medicaid Vision.
+spring_hill	routine_vision	wellcare-medicaid-vision	accepted	car281245		Dr. Otero	Dr. Otero	success: Yes, we accept Wellcare Medicaid Vision.
+spring_hill	routine_vision	wellcare-medicare-hmo-vision	accepted	car281317		Dr. Otero	Dr. Otero	success: Yes, we accept WellCare Medicare HMO Vision.
+spring_hill	routine_vision	vsp	accepted	car280695		Dr. Otero	Dr. Otero	success: Yes, we accept VSP.
+spring_hill	routine_vision	eyemed	accepted	car280684		Dr. Otero	Dr. Otero	success: Yes, we accept EyeMed.
+spring_hill	routine_vision	nva	accepted	car308794		Dr. Otero	Dr. Otero	success: Yes, we accept NVA.
+spring_hill	routine_vision	davis-vision	accepted	car280612		Dr. Otero	Dr. Otero	success: Yes, we accept Davis Vision.
+spring_hill	routine_vision	spectera	accepted	car308790		Dr. Otero	Dr. Otero	success: Yes, we accept Spectera.
+spring_hill	routine_vision	solstice	accepted	car301652		Dr. Otero	Dr. Otero	success: Yes, we accept Solstice.
+spring_hill	routine_vision	icare-routine-vision	accepted	car40907		Dr. Otero	Dr. Otero	success: Yes, we accept iCare.
+spring_hill	routine_vision	guardian	accepted	car308792		Dr. Otero	Dr. Otero	success: Yes, we accept Guardian.
+spring_hill	routine_vision	alivi	accepted	car308796		Dr. Otero	Dr. Otero	success: Yes, we accept Alivi.
+spring_hill	routine_vision	premier-eye-care	accepted	car281317		Dr. Otero	Dr. Otero	success: Yes, we accept Premier Eye Care.
+spring_hill	routine_vision	envolve-routine-vision	accepted	car281245		Dr. Otero	Dr. Otero	success: Yes, we accept Envolve.
+spring_hill	routine_vision	sunhealth-routine-vision	accepted	car308791		Dr. Otero	Dr. Otero	success: Yes, we accept SunHealth.
+spring_hill	routine_vision	oscar-routine-vision	accepted	car284233		Dr. Otero	Dr. Otero	success: Yes, we accept Oscar. For new patients with Oscar, Davis Vision coverage is automatic through age 18. For patients 19 and older, Davis Vision is included only if they selected Oscar's additional vision option. Without that option, the visit would be self-pay.
+spring_hill	routine_vision	self-pay-routine-vision	accepted	car301672		Dr. Otero	Dr. Otero	success: Yes, we accept Self Pay.
+spring_hill	routine_vision	metlife-vision	accepted	car280695		Dr. Otero	Dr. Otero	success: Yes, we accept MetLife Vision.
+spring_hill	routine_vision	liberty-financial-vision	accepted	car280695		Dr. Otero	Dr. Otero	success: Yes, we accept Liberty Financial Vision.
+spring_hill	routine_vision	lincoln-financial-vision	accepted	car280695		Dr. Otero	Dr. Otero	success: Yes, we accept Lincoln Financial Vision.
+spring_hill	routine_vision	humana-vision-through-work	accepted	car280684		Dr. Otero	Dr. Otero	success: Yes, we accept Humana Vision (through work).
+spring_hill	routine_vision	aetna-vision-through-work	accepted	car280684		Dr. Otero	Dr. Otero	success: Yes, we accept Aetna Vision (through work).
+spring_hill	routine_vision	unum-vision	accepted	car280684		Dr. Otero	Dr. Otero	success: Yes, we accept Unum Vision.
+spring_hill	routine_vision	cigna-vision	accepted	car280684		Dr. Otero	Dr. Otero	success: Yes, we accept Cigna Vision.
+spring_hill	routine_vision	superior-vision	accepted	car280612		Dr. Otero	Dr. Otero	success: Yes, we accept Superior Vision.
+spring_hill	routine_vision	florida-blue-vision-through-work	accepted	car280612		Dr. Otero	Dr. Otero	success: Yes, we accept Florida Blue Vision (through work).
+spring_hill	routine_vision	blueview-vision	accepted	car280612		Dr. Otero	Dr. Otero	success: Yes, we accept BlueView Vision.
+spring_hill	routine_vision	versant-vision	accepted	car280612		Dr. Otero	Dr. Otero	success: Yes, we accept Versant.
+spring_hill	routine_vision	unitedhealthcare-vision	accepted	car308790		Dr. Otero	Dr. Otero	success: Yes, we accept UnitedHealthcare Vision.
+spring_hill	routine_vision	amerihealth-vision	accepted	car281317		Dr. Otero	Dr. Otero	success: Yes, we accept AmeriHealth.
+sweetwater	medical	aetna-medicare-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Aetna Medicare HMO & PPO.
+sweetwater	medical	aetna-commercial-medical	accepted	car40887		Dr. Bach	Dr. Bach	success: Yes, we accept Aetna Commercial HMO & PPO.
+sweetwater	medical	aetna-qhp-individual-exchange	needs_staff_task	car40887				blocked: The office needs to confirm this coverage.
+sweetwater	medical	aetna-epo-university-of-miami	needs_staff_task	car40887	staff_verify	Dr. Bach	Dr. Bach	blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	aetna-epo-north-broward	needs_staff_task	car40887	staff_verify	Dr. Bach	Dr. Bach	blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	aetna-better-health-medicaid-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Aetna Better Health Medicaid MMA.
+sweetwater	medical	aetna-healthy-kids-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Aetna Healthy Kids/Kid Care (CHIP).
+sweetwater	medical	ambetter-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Ambetter Medical.
+sweetwater	medical	ambetter-select-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Ambetter Select.
+sweetwater	medical	ambetter-value-medical	needs_staff_task	car281245	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+sweetwater	medical	ambetter-premier-medical	needs_staff_task	car281245				blocked: The office needs to confirm this coverage.
+sweetwater	medical	avmed-select	accepted	car40890		Dr. Bach	Dr. Bach	success: Yes, we accept AvMed Select.
+sweetwater	medical	avmed-jackson-first-network-hmo	not_accepted	car40890				blocked: This plan is not accepted for this visit type at this office.
+sweetwater	medical	avmed-engage	needs_staff_task	car40890	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+sweetwater	medical	avmed-entrust-medical	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	medical	careplus-medicare-medical	not_accepted	car281317	prior_authorization			blocked: This plan is not accepted for this visit type at this office.
+sweetwater	medical	childrens-medical-services-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Children's Medical Services.
+sweetwater	medical	cigna-hmo	needs_staff_task	car301345	pcp_referral,staff_verify	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+sweetwater	medical	cigna-florida-connect-epo	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	medical	cigna-local-plus-non-par	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	medical	cigna-sure-fit	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	medical	cigna-medicare-advantage-medical	needs_staff_task	car302890	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+sweetwater	medical	cigna-open-access	accepted	car40895		Dr. Bach	Dr. Bach	success: Yes, we accept Cigna Open Access.
+sweetwater	medical	cigna-miami-dade-public-schools	accepted	car40895		Dr. Bach	Dr. Bach	success: Yes, we accept Cigna Miami-Dade Public Schools.
+sweetwater	medical	cigna-ppo	accepted	car40895		Dr. Bach	Dr. Bach	success: Yes, we accept Cigna PPO.
+sweetwater	medical	clear-spring-health-medicare-advantage	needs_staff_task					blocked: The office needs to confirm this coverage.
+sweetwater	medical	community-care-plan-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Community Care Plan.
+sweetwater	medical	eye-america-aao	needs_staff_task	car308627	staff_verify	Dr. Bach	Dr. Bach	blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	devoted-medicare-hmo-medical	accepted	car281317		Dr. Bach	Dr. Bach	success: Yes, we accept Devoted Medicare HMO.
+sweetwater	medical	devoted-medicare-ppo-medical	accepted	car281317		Dr. Bach	Dr. Bach	success: Yes, we accept Devoted Medicare PPO.
+sweetwater	medical	doctors-health-medicare-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Doctors Health Medicare.
+sweetwater	medical	florida-blue-hmo	needs_staff_task	car280750	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
+sweetwater	medical	florida-blue-medicare-ppo-medical	accepted	car40897		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Blue Medicare PPO.
+sweetwater	medical	florida-blue-medicare-hmo-medical	needs_staff_task	car40897				blocked: The office needs to confirm this coverage.
+sweetwater	medical	florida-blue-ppo-out-of-state	accepted	car40897		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Blue PPO Out of State.
+sweetwater	medical	florida-blue-ppo-federal-employee	accepted	car40897		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Blue PPO Federal Employee.
+sweetwater	medical	florida-blue-select-non-par	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	medical	florida-blue-steward-tier-1	accepted	car40897		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Blue Steward Healthcare Network Tier 1.
+sweetwater	medical	florida-complete-care-medicare	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Complete Care.
+sweetwater	medical	florida-community-care	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Community Care.
+sweetwater	medical	freedom-health-medicare-medical	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+sweetwater	medical	humana-medicaid-hmo	needs_staff_task	car303033	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
+sweetwater	medical	humana-medicare-ppo	accepted	car303062		Dr. Bach	Dr. Bach	success: Yes, we accept Humana Medicare PPO.
+sweetwater	medical	humana-medicare-hmo	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Humana Medicare HMO.
+sweetwater	medical	humana-premier-hmo	accepted	car303061		Dr. Bach	Dr. Bach	success: Yes, we accept Humana Premier HMO.
+sweetwater	medical	humana-ppo-pos	accepted	car303062		Dr. Bach	Dr. Bach	success: Yes, we accept Humana PPO/POS.
+sweetwater	medical	imagine-health	needs_staff_task	car308142	staff_verify	Dr. Bach	Dr. Bach	blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	medical-center-international	needs_staff_task					blocked: The office needs to confirm this coverage.
+sweetwater	medical	florida-medicaid	accepted	car40899		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Medicaid.
+sweetwater	medical	medicare-part-b	accepted	car40900		Dr. Bach	Dr. Bach	success: Yes, we accept Medicare Part B.
+sweetwater	medical	icare-medical	needs_staff_task	car40907				blocked: The office needs to confirm this coverage.
+sweetwater	medical	meritain-health	accepted	car301578		Dr. Bach	Dr. Bach	success: Yes, we accept Meritain Health.
+sweetwater	medical	miami-childrens-health-plan-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Miami Children's Health Plan (Medicaid).
+sweetwater	medical	molina-marketplace-non-par	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	medical	molina-medicaid-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Molina Medicaid.
+sweetwater	medical	molina-medicare-medical	needs_staff_task	car301507	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+sweetwater	medical	multiplan-phcs	accepted	car301648		Dr. Bach	Dr. Bach	success: Yes, we accept Multiplan PHCS.
+sweetwater	medical	optimum-healthplan-medicare-medical	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+sweetwater	medical	oscar-health-medical	accepted	car284233		Dr. Bach	Dr. Bach	success: Yes, we accept Oscar Health.
+sweetwater	medical	partners-direct-health	accepted	car308142		Dr. Bach	Dr. Bach	success: Yes, we accept Partners Direct Health.
+sweetwater	medical	preferred-care-partners-medical	accepted	car40916		Dr. Bach	Dr. Bach	success: Yes, we accept Preferred Care Partners.
+sweetwater	medical	seminole-tribe-medical	needs_staff_task	car301427	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+sweetwater	medical	simply-medicaid-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Simply Medicaid/Healthy Kids.
+sweetwater	medical	simply-medicare-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Simply Medicare.
+sweetwater	medical	solis-medicare-medical	needs_staff_task	car281317	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
+sweetwater	medical	staywell-medicare-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Staywell Medicare.
+sweetwater	medical	sunhealth-discount-plan	accepted	car308086		Dr. Bach	Dr. Bach	success: Yes, we accept SunHealth Discount Plan.
+sweetwater	medical	sunshine-medicaid-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Sunshine Medicaid.
+sweetwater	medical	tricare-prime	needs_staff_task	car284327	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
+sweetwater	medical	tricare-select	accepted	car284327		Dr. Bach	Dr. Bach	success: Yes, we accept Tricare Select.
+sweetwater	medical	tricare-for-life	accepted	car40921		Dr. Bach	Dr. Bach	success: Yes, we accept Tricare For Life.
+sweetwater	medical	umr	needs_staff_task	car284838	staff_verify	Dr. Bach	Dr. Bach	blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	united-healthcare-medical	accepted	car40923		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Medical.
+sweetwater	medical	united-healthcare-medicaid-non-par	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	medical	us-health-group	accepted	car284838		Dr. Bach	Dr. Bach	success: Yes, we accept US Health Group.
+sweetwater	medical	united-healthcare-aarp-medicare	accepted	car302750		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare AARP Medicare Complete.
+sweetwater	medical	united-healthcare-dual-complete-medical	needs_staff_task	car40923				blocked: The office needs to confirm this coverage.
+sweetwater	medical	united-healthcare-choice-medical	needs_staff_task	car40923				blocked: The office needs to confirm this coverage.
+sweetwater	medical	united-healthcare-all-savers	accepted	car284949		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare All Savers.
+sweetwater	medical	united-healthcare-golden-rule	accepted	car40902		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Golden Rule.
+sweetwater	medical	united-healthcare-individual-exchange	needs_staff_task	car40923	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+sweetwater	medical	united-healthcare-nhp-hmo-access	accepted	car40923		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare NHP HMO Access.
+sweetwater	medical	united-healthcare-nhp-hmo-only	needs_staff_task	car40923	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
+sweetwater	medical	united-healthcare-oxford	accepted	car284471		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Oxford.
+sweetwater	medical	united-healthcare-shared-services	accepted	car303047		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Shared Services.
+sweetwater	medical	united-healthcare-student-resources	accepted	car283950		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Student Resources.
+sweetwater	medical	united-healthcare-surest	accepted	car301501		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Surest.
+sweetwater	medical	united-healthcare-global	needs_staff_task	car284971	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
+sweetwater	medical	wellcare-medicaid-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Wellcare Medicaid.
+sweetwater	medical	wellcare-medicare-lppo	needs_staff_task	car281317	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
+sweetwater	medical	self-pay-medical	accepted	car301672		Dr. Bach	Dr. Bach	success: Yes, we accept Self Pay.
+sweetwater	medical	envolve-vision-medical	needs_staff_task	car281245				blocked: The office needs to confirm this coverage.
+sweetwater	medical	eye-care-health-solutions-medical	needs_staff_task	car40907				blocked: The office needs to confirm this coverage.
+sweetwater	routine_vision	aetna-medicare-ppo-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Aetna Medicare PPO Vision.
+sweetwater	routine_vision	aetna-medicare-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Aetna Medicare HMO & PPO Vision.
+sweetwater	routine_vision	aetna-better-health-medicaid-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Aetna Better Health Medicaid MMA Vision.
+sweetwater	routine_vision	aetna-healthy-kids-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Aetna Healthy Kids/Kid Care (CHIP) Vision.
+sweetwater	routine_vision	ambetter-vision	accepted	car281245		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Ambetter Vision.
+sweetwater	routine_vision	avmed-entrust-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept AvMed Entrust Vision.
+sweetwater	routine_vision	careplus-medicare-vision	needs_staff_task	car281317				blocked: The office needs to confirm this coverage.
+sweetwater	routine_vision	childrens-medical-services-vision	accepted	car281245		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Children's Medical Services Vision.
+sweetwater	routine_vision	community-care-plan-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Community Care Plan Vision.
+sweetwater	routine_vision	devoted-medicare-hmo-vision	accepted	car281317		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Devoted Medicare HMO Vision.
+sweetwater	routine_vision	devoted-medicare-ppo-vision	accepted	car281317		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Devoted Medicare PPO Vision.
+sweetwater	routine_vision	doctors-health-medicare-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Doctors Health Medicare Vision.
+sweetwater	routine_vision	florida-blue-medicare-vision	accepted	car281317		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Florida Blue Medicare HMO & PPO Vision.
+sweetwater	routine_vision	freedom-health-medicare-vision	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+sweetwater	routine_vision	healthsun-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept HealthSun Vision.
+sweetwater	routine_vision	humana-medicaid-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Humana Medicaid Vision.
+sweetwater	routine_vision	humana-medicare-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Humana Medicare Vision.
+sweetwater	routine_vision	miami-childrens-health-plan-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Miami Children's Health Plan (Medicaid) Vision.
+sweetwater	routine_vision	molina-medicaid-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Molina Medicaid Vision.
+sweetwater	routine_vision	optimum-healthplan-medicare-vision	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
+sweetwater	routine_vision	preferred-care-network-medica-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Medica Vision.
+sweetwater	routine_vision	seminole-tribe-vision	needs_staff_task	car301427	pcp_referral	Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	blocked: This plan requires a referral from your primary care doctor before scheduling.
+sweetwater	routine_vision	simply-medicaid-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+sweetwater	routine_vision	simply-medicare-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Simply Medicare Vision.
+sweetwater	routine_vision	solis-medicare-vision	accepted	car281317		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Solis Medicare Vision.
+sweetwater	routine_vision	staywell-medicaid-vision	accepted	car281245		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Staywell Medicaid Vision.
+sweetwater	routine_vision	sunshine-medicaid-vision	accepted	car281245		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Sunshine Medicaid Vision.
+sweetwater	routine_vision	wellcare-medicaid-vision	accepted	car281245		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Wellcare Medicaid Vision.
+sweetwater	routine_vision	wellcare-medicare-hmo-vision	accepted	car281317		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept WellCare Medicare HMO Vision.
+sweetwater	routine_vision	vsp	accepted	car280695		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept VSP.
+sweetwater	routine_vision	eyemed	accepted	car280684		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept EyeMed.
+sweetwater	routine_vision	nva	accepted	car308794		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept NVA.
+sweetwater	routine_vision	davis-vision	accepted	car280612		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Davis Vision.
+sweetwater	routine_vision	spectera	accepted	car308790		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Spectera.
+sweetwater	routine_vision	solstice	accepted	car301652		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Solstice.
+sweetwater	routine_vision	icare-routine-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept iCare.
+sweetwater	routine_vision	guardian	accepted	car308792		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Guardian.
+sweetwater	routine_vision	alivi	accepted	car308796		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Alivi.
+sweetwater	routine_vision	premier-eye-care	accepted	car281317		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Premier Eye Care.
+sweetwater	routine_vision	envolve-routine-vision	accepted	car281245		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Envolve.
+sweetwater	routine_vision	sunhealth-routine-vision	accepted	car308791		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept SunHealth.
+sweetwater	routine_vision	oscar-routine-vision	accepted	car284233		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Oscar. For new patients with Oscar, Davis Vision coverage is automatic through age 18. For patients 19 and older, Davis Vision is included only if they selected Oscar's additional vision option. Without that option, the visit would be self-pay.
+sweetwater	routine_vision	self-pay-routine-vision	accepted	car301672		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Self Pay.
+sweetwater	routine_vision	metlife-vision	accepted	car280695		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept MetLife Vision.
+sweetwater	routine_vision	liberty-financial-vision	accepted	car280695		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Liberty Financial Vision.
+sweetwater	routine_vision	lincoln-financial-vision	accepted	car280695		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Lincoln Financial Vision.
+sweetwater	routine_vision	humana-vision-through-work	accepted	car280684		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Humana Vision (through work).
+sweetwater	routine_vision	aetna-vision-through-work	accepted	car280684		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Aetna Vision (through work).
+sweetwater	routine_vision	unum-vision	accepted	car280684		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Unum Vision.
+sweetwater	routine_vision	cigna-vision	accepted	car280684		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Cigna Vision.
+sweetwater	routine_vision	cigna-florida-connect-epo-vision	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	routine_vision	cigna-local-plus-non-par-vision	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	routine_vision	cigna-sure-fit-vision	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	routine_vision	superior-vision	accepted	car280612		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Superior Vision.
+sweetwater	routine_vision	florida-blue-vision-through-work	accepted	car280612		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Florida Blue Vision (through work).
+sweetwater	routine_vision	blueview-vision	accepted	car280612		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept BlueView Vision.
+sweetwater	routine_vision	versant-vision	accepted	car280612		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Versant.
+sweetwater	routine_vision	unitedhealthcare-vision	accepted	car308790		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept UnitedHealthcare Vision.
+sweetwater	routine_vision	amerihealth-vision	accepted	car281317		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept AmeriHealth.

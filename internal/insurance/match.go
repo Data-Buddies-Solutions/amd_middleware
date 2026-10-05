@@ -169,7 +169,8 @@ func nameScore(heard, name []string, vocabulary map[string]bool) int {
 		}
 	}
 	full := nameMatched == len(name)
-	fragment := heardMatched == len(heard)
+	leads := !genericWords[name[0]] && slices.ContainsFunc(heard, func(h string) bool { return tokenPoints(h, name[0]) > 0 })
+	fragment := heardMatched == len(heard) && leads
 	if !specific || (!full && !fragment) {
 		return 0
 	}
@@ -193,7 +194,7 @@ func allDigits(word string) bool {
 }
 
 func contradicts(word string, vocabulary map[string]bool) bool {
-	return vocabulary[word] && (!genericWords[word] || word == "medicare" || word == "medicaid")
+	return vocabulary[word] && (!genericWords[word] || slices.Contains(programs, word))
 }
 
 func tokenPoints(heard, name string) int {

@@ -55,19 +55,19 @@ func syntheticFiles(t *testing.T, southFlorida, springHill, crystalRiver []plan)
 	}
 	files[officeTablesFile] = b
 	for dir, plans := range map[string][]plan{"south_florida": southFlorida, "spring_hill": springHill, "crystal_river": crystalRiver} {
-		files[dir+"/"+plansFile], files[dir+"/doctors.csv"] = syntheticCSV(t, plans)
+		files[dir+"/"+plansFile], files[dir+"/doctors.csv"] = syntheticCSV(t, plans, officeTables[dir+"/doctors.csv"])
 	}
 	return files
 }
 
-func syntheticCSV(t *testing.T, plans []plan) ([]byte, []byte) {
+func syntheticCSV(t *testing.T, plans []plan, offices []string) ([]byte, []byte) {
 	t.Helper()
 	planRows := [][]string{planColumns}
 	doctors := []string{}
-	for _, p := range plans {
-		for doctor := range p.Doctors {
-			if !slices.Contains(doctors, doctor) {
-				doctors = append(doctors, doctor)
+	for _, id := range offices {
+		for _, column := range office(t, id).Columns {
+			if !slices.Contains(doctors, column.DisplayName) {
+				doctors = append(doctors, column.DisplayName)
 			}
 		}
 	}

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestEveryPlanLabelResolvesToItsPlan(t *testing.T) {
+func TestEveryPlanNameResolvesToItsPlan(t *testing.T) {
 	for _, list := range catalog {
 		for _, officeID := range list.Offices {
 			o := office(t, officeID)
@@ -13,10 +13,11 @@ func TestEveryPlanLabelResolvesToItsPlan(t *testing.T) {
 				if !officeSupports(o, p.Coverage) {
 					continue
 				}
-				byName := DecideInsurance(p.Label, p.Coverage, o, adultDOB)
 				byID := DecidePlan(p.ID, p.Coverage, o, adultDOB)
-				if byName.PlanID != p.ID || byID.PlanID != p.ID || byName.Outcome != byID.Outcome {
-					t.Errorf("%s %s: by name %+v, by id %+v", officeID, p.ID, byName, byID)
+				for _, name := range planNames(p) {
+					if byName := DecideInsurance(name, p.Coverage, o, adultDOB); byName.PlanID != p.ID || byName.Outcome != byID.Outcome {
+						t.Errorf("%s %q: by name %+v, by id %+v", officeID, name, byName, byID)
+					}
 				}
 			}
 		}

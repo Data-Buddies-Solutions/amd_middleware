@@ -2,6 +2,7 @@ package insurance
 
 import (
 	"cmp"
+	"fmt"
 	"slices"
 	"strings"
 
@@ -35,7 +36,7 @@ func distinctOutcomes(plans []plan, office *domain.OfficeConfig, dob string) []I
 	seen := map[string]bool{}
 	for _, p := range plans {
 		decision := decidePlanAtOffice(p, office, dob)
-		key := outcomeKey(decision, p)
+		key := outcomeKey(decision)
 		if !seen[key] {
 			seen[key] = true
 			groups = append(groups, decision)
@@ -44,14 +45,15 @@ func distinctOutcomes(plans []plan, office *domain.OfficeConfig, dob string) []I
 	return groups
 }
 
-func outcomeKey(d InsuranceDecision, p plan) string {
+func outcomeKey(d InsuranceDecision) string {
 	doctors := slices.Clone(d.AllowedProviders)
 	slices.Sort(doctors)
-	selfPay := ""
-	if p.SelfPay {
-		selfPay = "self_pay"
+	kinds := []string{}
+	for _, r := range d.Requirements {
+		kinds = append(kinds, r.Kind)
 	}
-	return strings.Join([]string{d.Outcome, p.CarrierID, strings.Join(doctors, ","), p.requirementKinds(), selfPay}, "|")
+	slices.Sort(kinds)
+	return strings.Join([]string{d.Outcome, d.CarrierID, strings.Join(doctors, ","), strings.Join(kinds, ","), fmt.Sprint(d.SelfPay)}, "|")
 }
 
 func joinWithOr(items []string) string {

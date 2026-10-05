@@ -51,7 +51,12 @@ func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob st
 	if !ok {
 		return d
 	}
-	words := callerWords(tokens(heard), list.vocabulary[coverage])
+	heardWords := tokens(heard)
+	words := callerWords(heardWords, list.vocabulary[coverage])
+	if len(words) < len(heardWords) && namesProgram(words) {
+		d.Answer = answerAskFullName
+		return d
+	}
 	if p, ok := exactPlan(list, coverage, words); ok {
 		return decidePlanAtOffice(p, office, dob)
 	}

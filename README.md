@@ -209,12 +209,16 @@ doctor, then `requires` (`kind` or `kind:channel`, separated by `;`), `only_offi
 the caller `notice`, and the sheet's `note`. `office_tables.json` says which offices
 use which table, and `carriers.json` names the AdvancedMD carriers. The data is
 validated when the service starts; invalid data stops the process.
-`internal/insurance/testdata/decisions.golden.tsv` pins the decision for every plan
-name and common caller phrasing at every office. After a data change, run
-`go test ./internal/insurance -run Golden -update` and review its diff. A test also
-fails when a sheet note states a rule (staff check, Dr. Bach only, referral, prior
-authorization, office limit) that the row doesn't encode; encode it, or add
-`staff_verify` to `requires`.
+A table's doctor columns must be exactly the doctors of its offices.
+
+Two generated files in `internal/insurance/testdata` pin behavior: `plans.golden.tsv`
+has each plan's outcome, carrier, requirements and allowed doctors (adult and child)
+at every office, and `phrasings.golden.tsv` has the decision for common caller
+phrasings. Every plan name is also tested to resolve to its own plan. After a data
+change, run `go test ./internal/insurance -run Golden -update` and review the diff.
+A test also fails when a note uses one of the sheet's known rule phrasings (staff
+check, Dr. Bach only, referral, prior authorization, office limit) that the row
+doesn't encode; it can't read every possible wording, so review new notes too.
 
 The office registry decides which doctors can take a visit: medical uses the office's
 `all_three` tier, routine vision its optical tier, and the pediatric rule applies. The

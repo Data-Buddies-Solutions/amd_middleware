@@ -12,12 +12,13 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
-var updateGolden = flag.Bool("update", false, "rewrite testdata/decisions.golden.tsv")
-
-const goldenPath = "testdata/decisions.golden.tsv"
+var updateGolden = flag.Bool("update", false, "rewrite the golden decision files in testdata")
 
 var callerPhrasings = []string{
 	"", "health plan", "cash", "self pay",
+	"it's through my employer", "commercial", "the first one", "military", "I'm a student",
+	"I'm not sure", "Clover Medicare", "Medicare please", "the Medicare one I think",
+	"Medicare red white and blue card",
 	"Aetna", "Aetna Medicar", "Humana", "Humana Gold PPO", "Humana from work",
 	"Florida Blue", "Florida Blue Medicare Advantage", "Blue Cross", "BCBS", "BCBS HMO",
 	"United", "UHC", "United Healthcare PPO", "Cigna", "Molina", "Molina Medicade", "Simply",
@@ -29,14 +30,19 @@ var callerPhrasings = []string{
 }
 
 func TestDecisionsMatchGolden(t *testing.T) {
-	got := goldenRows(t)
+	checkGolden(t, "testdata/phrasings.golden.tsv", phrasingRows(t))
+	checkGolden(t, "testdata/plans.golden.tsv", planRows(t))
+}
+
+func checkGolden(t *testing.T, path, got string) {
+	t.Helper()
 	if *updateGolden {
-		if err := os.WriteFile(goldenPath, []byte(got), 0o644); err != nil {
+		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		return
 	}
-	want, err := os.ReadFile(goldenPath)
+	want, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("%v (run go test ./internal/insurance -run Golden -update)", err)
 	}
@@ -49,13 +55,13 @@ func TestDecisionsMatchGolden(t *testing.T) {
 	for i := range max(len(wantRows), len(gotRows)) {
 		w, g := row(wantRows, i), row(gotRows, i)
 		if w != g {
-			t.Errorf("row %d\nwant %s\n got %s", i+1, w, g)
+			t.Errorf("%s row %d\nwant %s\n got %s", filepath.Base(path), i+1, w, g)
 			if diffs++; diffs == 20 {
 				break
 			}
 		}
 	}
-	t.Fatalf("decisions changed; if intended, run go test ./internal/insurance -run Golden -update and review the diff of %s", filepath.Base(goldenPath))
+	t.Fatalf("decisions changed; if intended, run go test ./internal/insurance -run Golden -update and review the diff of %s", filepath.Base(path))
 }
 
 func row(rows []string, i int) string {
@@ -65,42 +71,51 @@ func row(rows []string, i int) string {
 	return ""
 }
 
-func goldenRows(t *testing.T) string {
+func phrasingRows(t *testing.T) string {
 	var b strings.Builder
 	b.WriteString("office\tcoverage\theard\toutcome\tplanId\tcarrierId\toptions\tanswer\n")
-	officeIDs := domain.OfficeIDs()
-	slices.Sort(officeIDs)
-	for _, officeID := range officeIDs {
-		list := listForOffice(officeID)
-		o := office(t, officeID)
-		for _, coverage := range []string{"medical", "routine_vision"} {
-			if !officeSupports(o, coverage) {
-				continue
+	forEachOfficeCoverage(t, func(o *domain.OfficeConfig, coverage string) {
+		for _, heard := range callerPhrasings {
+			d := DecideInsurance(heard, coverage, o, adultDOB)
+			options := []string{}
+			for _, option := range d.Options {
+				options = append(options, option.PlanID)
 			}
-			for _, heard := range goldenPhrasings(list, coverage) {
-				d := DecideInsurance(heard, coverage, o, adultDOB)
-				options := []string{}
-				for _, option := range d.Options {
-					options = append(options, option.PlanID)
-				}
-				fmt.Fprintf(&b, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", officeID, coverage, heard, d.Outcome, d.PlanID, d.CarrierID, strings.Join(options, ","), d.Answer)
-			}
+			fmt.Fprintf(&b, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", o.ID, coverage, heard, d.Outcome, d.PlanID, d.CarrierID, strings.Join(options, ","), d.Answer)
 		}
-	}
+	})
 	return b.String()
 }
 
-func goldenPhrasings(list planList, coverage string) []string {
-	phrasings := slices.Clone(callerPhrasings)
-	for _, p := range list.Plans {
-		if p.Coverage == coverage {
-			phrasings = append(phrasings, planNames(p)...)
+func planRows(t *testing.T) string {
+	var b strings.Builder
+	b.WriteString("office\tcoverage\tplanId\toutcome\tcarrierId\trequirements\tadultDoctors\tchildDoctors\tanswer\n")
+	forEachOfficeCoverage(t, func(o *domain.OfficeConfig, coverage string) {
+		for _, p := range listForOffice(o.ID).Plans {
+			if p.Coverage != coverage {
+				continue
+			}
+			adult := DecidePlan(p.ID, coverage, o, adultDOB)
+			child := DecidePlan(p.ID, coverage, o, dobYearsAgo(8))
+			kinds := []string{}
+			for _, r := range adult.Requirements {
+				kinds = append(kinds, r.Kind)
+			}
+			fmt.Fprintf(&b, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", o.ID, coverage, p.ID, adult.Outcome, adult.CarrierID, strings.Join(kinds, ","), strings.Join(adult.AllowedProviders, ","), strings.Join(child.AllowedProviders, ","), adult.Answer)
+		}
+	})
+	return b.String()
+}
+
+func forEachOfficeCoverage(t *testing.T, visit func(o *domain.OfficeConfig, coverage string)) {
+	officeIDs := domain.OfficeIDs()
+	slices.Sort(officeIDs)
+	for _, officeID := range officeIDs {
+		o := office(t, officeID)
+		for _, coverage := range []string{"medical", "routine_vision"} {
+			if officeSupports(o, coverage) {
+				visit(o, coverage)
+			}
 		}
 	}
-	seen := map[string]bool{}
-	return slices.DeleteFunc(phrasings, func(s string) bool {
-		key := strings.ToLower(s)
-		defer func() { seen[key] = true }()
-		return seen[key]
-	})
 }

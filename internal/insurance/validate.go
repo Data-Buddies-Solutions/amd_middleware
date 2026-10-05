@@ -2,6 +2,7 @@ package insurance
 
 import (
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"strings"
@@ -11,35 +12,41 @@ import (
 
 var planIDPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
-func validateCatalog(tables []string, lists []planList, carriers map[string]string) error {
-	doctors := registryDoctors()
-	officeList := map[string]string{}
+func validateOfficeTables(officeTables map[string][]string) error {
+	tables := slices.Sorted(maps.Keys(officeTables))
+	officeTable := map[string]string{}
+	for _, table := range tables {
+		if len(officeTables[table]) == 0 {
+			return fmt.Errorf("%s: no offices", table)
+		}
+		for _, office := range officeTables[table] {
+			if _, ok := domain.LookupOfficeByID(office); !ok {
+				return fmt.Errorf("%s: unknown office %q", table, office)
+			}
+			if other, ok := officeTable[office]; ok {
+				return fmt.Errorf("office %q is in %s and %s", office, other, table)
+			}
+			officeTable[office] = table
+		}
+	}
+	for _, office := range domain.OfficeIDs() {
+		if _, ok := officeTable[office]; !ok {
+			return fmt.Errorf("office %q has no plan list", office)
+		}
+	}
+	return nil
+}
+
+func validateCatalog(lists []planList, carriers map[string]string) error {
 	carrierForCode := map[string]string{}
 	planByID := map[string]plan{}
-	for i, list := range lists {
-		file := tables[i]
-		if len(list.Offices) == 0 {
-			return fmt.Errorf("%s: no offices", file)
-		}
-		for _, office := range list.Offices {
-			if _, ok := domain.LookupOfficeByID(office); !ok {
-				return fmt.Errorf("%s: unknown office %q", file, office)
-			}
-			if other, ok := officeList[office]; ok {
-				return fmt.Errorf("office %q is in %s and %s", office, other, file)
-			}
-			officeList[office] = file
-		}
-		ids := map[string]bool{}
+	for _, list := range lists {
+		file := list.Table
 		owners := map[string]string{}
 		for _, p := range list.Plans {
-			if err := validatePlan(p, list, doctors, carriers); err != nil {
+			if err := validatePlan(p, list, carriers); err != nil {
 				return fmt.Errorf("%s: plan %q: %w", file, p.ID, err)
 			}
-			if ids[p.ID] {
-				return fmt.Errorf("%s: duplicate plan id %q", file, p.ID)
-			}
-			ids[p.ID] = true
 			if other, ok := planByID[p.ID]; ok && (other.CarrierID != p.CarrierID || other.Coverage != p.Coverage) {
 				return fmt.Errorf("%s: plan id %q reused for a different plan", file, p.ID)
 			}
@@ -59,15 +66,10 @@ func validateCatalog(tables []string, lists []planList, carriers map[string]stri
 			}
 		}
 	}
-	for _, office := range domain.OfficeIDs() {
-		if _, ok := officeList[office]; !ok {
-			return fmt.Errorf("office %q has no plan list", office)
-		}
-	}
 	return nil
 }
 
-func validatePlan(p plan, list planList, doctors map[string]bool, carriers map[string]string) error {
+func validatePlan(p plan, list planList, carriers map[string]string) error {
 	if !planIDPattern.MatchString(p.ID) {
 		return fmt.Errorf("id must be lowercase kebab case")
 	}
@@ -87,9 +89,6 @@ func validatePlan(p plan, list planList, doctors map[string]bool, carriers map[s
 	}
 	anyYes := false
 	for doctor, value := range p.Doctors {
-		if !doctors[doctor] {
-			return fmt.Errorf("unknown doctor %q", doctor)
-		}
 		switch value {
 		case "yes":
 			anyYes = true
@@ -115,15 +114,4 @@ func validatePlan(p plan, list planList, doctors map[string]bool, carriers map[s
 		}
 	}
 	return nil
-}
-
-func registryDoctors() map[string]bool {
-	doctors := map[string]bool{}
-	for _, id := range domain.OfficeIDs() {
-		office, _ := domain.LookupOfficeByID(id)
-		for _, column := range office.Columns {
-			doctors[column.DisplayName] = true
-		}
-	}
-	return doctors
 }

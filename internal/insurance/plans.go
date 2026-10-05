@@ -1,9 +1,6 @@
 package insurance
 
-import (
-	"slices"
-	"strings"
-)
+import "slices"
 
 type planList struct {
 	Table      string
@@ -59,13 +56,4 @@ func (p plan) hasName(heard []string) bool {
 		}
 	}
 	return false
-}
-
-func (p plan) requirementKinds() string {
-	kinds := make([]string, 0, len(p.Requirements))
-	for _, r := range p.Requirements {
-		kinds = append(kinds, r.Kind)
-	}
-	slices.Sort(kinds)
-	return strings.Join(kinds, ",")
 }

@@ -7,9 +7,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"maps"
 	"path"
 	"slices"
 	"strings"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 //go:embed data
@@ -54,14 +57,13 @@ func parseCatalog(files map[string][]byte) ([]planList, error) {
 	if err := decodeStrictJSON(files[officeTablesFile], &officeTables); err != nil {
 		return nil, fmt.Errorf("%s: %w", officeTablesFile, err)
 	}
+	if err := validateOfficeTables(officeTables); err != nil {
+		return nil, err
+	}
 	if err := checkEveryFileIsListed(files, officeTables); err != nil {
 		return nil, err
 	}
-	tables := make([]string, 0, len(officeTables))
-	for table := range officeTables {
-		tables = append(tables, table)
-	}
-	slices.Sort(tables)
+	tables := slices.Sorted(maps.Keys(officeTables))
 	plansByDir := map[string]map[string]plan{}
 	usedByDir := map[string]map[string]bool{}
 	lists := make([]planList, 0, len(tables))
@@ -75,7 +77,7 @@ func parseCatalog(files map[string][]byte) ([]planList, error) {
 			plansByDir[dir] = plans
 			usedByDir[dir] = map[string]bool{}
 		}
-		list, err := parseTable(files[table], plansByDir[dir], usedByDir[dir])
+		list, err := parseTable(files[table], officeTables[table], plansByDir[dir], usedByDir[dir])
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", table, err)
 		}
@@ -91,7 +93,7 @@ func parseCatalog(files map[string][]byte) ([]planList, error) {
 			}
 		}
 	}
-	if err := validateCatalog(tables, lists, carriers); err != nil {
+	if err := validateCatalog(lists, carriers); err != nil {
 		return nil, err
 	}
 	return lists, nil
@@ -136,12 +138,15 @@ func parsePlans(b []byte) (map[string]plan, error) {
 	return plans, nil
 }
 
-func parseTable(b []byte, plans map[string]plan, used map[string]bool) (planList, error) {
+func parseTable(b []byte, offices []string, plans map[string]plan, used map[string]bool) (planList, error) {
 	header, rows, err := readTable(b)
 	if err != nil {
 		return planList{}, err
 	}
 	doctors := header[1 : len(header)-len(tableColumns)]
+	if err := checkDoctorColumns(doctors, offices); err != nil {
+		return planList{}, err
+	}
 	list := planList{}
 	seen := map[string]bool{}
 	for _, row := range rows {
@@ -174,7 +179,7 @@ func parseTable(b []byte, plans map[string]plan, used map[string]bool) (planList
 }
 
 func readTable(b []byte) ([]string, [][]string, error) {
-	records, err := csv.NewReader(bytes.NewReader(b)).ReadAll()
+	records, err := readRecords(b)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -185,17 +190,30 @@ func readTable(b []byte) ([]string, [][]string, error) {
 	if len(header) < len(tableColumns)+1 || header[0] != "plan" || !slices.Equal(header[len(header)-len(tableColumns):], tableColumns) {
 		return nil, nil, fmt.Errorf("header must be plan, doctor columns, then %s", strings.Join(tableColumns, ", "))
 	}
-	registry := registryDoctors()
-	for _, doctor := range header[1 : len(header)-len(tableColumns)] {
-		if !registry[doctor] {
-			return nil, nil, fmt.Errorf("unknown doctor %q", doctor)
-		}
-	}
 	return header, records[1:], nil
 }
 
+func checkDoctorColumns(columns, offices []string) error {
+	want := []string{}
+	for _, id := range offices {
+		office, _ := domain.LookupOfficeByID(id)
+		for _, column := range office.Columns {
+			if !slices.Contains(want, column.DisplayName) {
+				want = append(want, column.DisplayName)
+			}
+		}
+	}
+	got := slices.Clone(columns)
+	slices.Sort(want)
+	slices.Sort(got)
+	if !slices.Equal(got, want) {
+		return fmt.Errorf("doctor columns must be exactly %s", strings.Join(want, ", "))
+	}
+	return nil
+}
+
 func readCSV(b []byte, columns []string) ([][]string, error) {
-	records, err := csv.NewReader(bytes.NewReader(b)).ReadAll()
+	records, err := readRecords(b)
 	if err != nil {
 		return nil, err
 	}
@@ -203,6 +221,10 @@ func readCSV(b []byte, columns []string) ([][]string, error) {
 		return nil, fmt.Errorf("header must be %s", strings.Join(columns, ","))
 	}
 	return records[1:], nil
+}
+
+func readRecords(b []byte) ([][]string, error) {
+	return csv.NewReader(bytes.NewReader(bytes.TrimPrefix(b, []byte("\ufeff")))).ReadAll()
 }
 
 func splitList(s, separator string) []string {

@@ -48,7 +48,7 @@ humana-ppo-pos,Humana PPO/POS,medical,HUM PPO,car303062,,Humana PPO | Humana POS
 imagine-health,Imagine Health,medical,IMAG1,car308142,,Imagine
 medical-center-international,Medical Center International (SouthBay Medical Center),medical,,,,Medical Center International (SouthBay Medical Center) Only Medical | Medical Center International | SouthBay Medical Center | South Bay Medical Center
 florida-medicaid,Florida Medicaid,medical,FLO03,car40899,,Medicaid (straight Medicaid) | Straight Medicaid | Straight Florida Medicaid
-medicare-part-b,Medicare Part B,medical,FLO02,car40900,,Medicare | Florida Medicare | Standard Medicare | Original Medicare | Traditional Medicare | Medicare Health Insurance | Medicare Supplement | Medicare Supplemental | Medigap
+medicare-part-b,Medicare Part B,medical,FLO02,car40900,,Medicare | Florida Medicare | Standard Medicare | Original Medicare | Traditional Medicare | Medicare Health Insurance | Medicare Supplement | Medicare Supplemental | Medigap | Medicare Red White and Blue | Red White and Blue Medicare
 icare-medical,iCare,medical,ICA01,car40907,,
 meritain-health,Meritain Health,medical,MERI1,car301578,,Meritain
 miami-childrens-health-plan-medical,Miami Children's Health Plan (Medicaid),medical,ICA01,car40907,,Miami Children's Health Plan (Medicaid) Medical | Miami Children's Health Plan | Miami Children's | Miami Children
@@ -72,6 +72,7 @@ tricare-select,Tricare Select,medical,TRI00,car284327,,
 tricare-for-life,Tricare For Life,medical,TRI05,car40921,,Tricare for Life - Supplemental Insurance to Medicare | Tricare Forever
 umr,UMR,medical,UNIT3,car284838,,UMR (United Health One) | United Health One
 united-healthcare-medical,United Healthcare Medical,medical,UNI20,car40923,,
+united-healthcare-medicaid-non-par,United Healthcare Medicaid,medical,,,,UHC Medicaid | United Healthcare Community Plan | UnitedHealthcare Community Plan | UHC Community Plan
 us-health-group,US Health Group,medical,UNIT3,car284838,,US Health Group - A UnitedHealthcare Company | Ushealth | Ushealth Group
 united-healthcare-aarp-medicare,United Healthcare AARP Medicare Complete,medical,AARPM,car302750,,United AARP Medicare Complete/Medicare Advantage (HMO/LPPO) Medical | United Healthcare AARP Medicare | AARPM | united aarp medicare advantage | United Aarp Medicare Complete | UHC AARP Medicare | UnitedHealthcare AARP Medicare Complete | United Health Care AARP Medicare | United Healthcare AARP Medicare Advantage | united aarp medicare complete medicare advantage hmo lppo | AARP Medicare Complete | AARP Medicare Advantage
 united-healthcare-dual-complete-medical,United Healthcare Dual Complete,medical,UNI20,car40923,,UHC Dual Complete | United Healthcare Medicare Dual Complete | DuoComplete | Duo Complete
