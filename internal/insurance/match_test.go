@@ -20,7 +20,7 @@ func TestDecideInsuranceMatchesWhatTheCallerSaid(t *testing.T) {
 		{"typo", "Aetna Bettr Helth", "accepted", "aetna-better-health"},
 		{"extra words", "I have Aetna Better Health through my job", "accepted", "aetna-better-health"},
 		{"fragment shared by plans that end the same", "Aetna Better", "accepted", "aetna-better-health"},
-		{"fuzzy fragment", "Aetna Medicar", "accepted", "aetna-medicare"},
+		{"fuzzy fragment", "Aetna Medicaree", "accepted", "aetna-medicare"},
 		{"self pay", "cash", "accepted", "self-pay"},
 	}
 	for _, tc := range tests {
@@ -56,7 +56,7 @@ func TestDecideInsuranceAsksWithOptionsWhenPlansEndDifferently(t *testing.T) {
 
 func TestDecideInsuranceLimitsOptions(t *testing.T) {
 	plans := []plan{}
-	for i, id := range []string{"one", "two", "three", "four", "five"} {
+	for i, id := range []string{"alpha", "bravo", "charlie", "delta", "echo"} {
 		plans = append(plans, plan{ID: "acme-" + id, Label: "Acme " + id, Coverage: "medical", CarrierID: fmt.Sprintf("car%d", i+1), Doctors: bach("yes")})
 	}
 	useSyntheticCatalog(t, plans, nil, nil)
@@ -66,14 +66,14 @@ func TestDecideInsuranceLimitsOptions(t *testing.T) {
 	}
 	useSyntheticCatalog(t, plans[:maxOptions], nil, nil)
 	d = DecideInsurance("Acme", "medical", office(t, "hollywood"), adultDOB)
-	if len(d.Options) != maxOptions || d.Answer != "needs_input: Which of these is on your card: Acme one, Acme two, Acme four, or Acme three?" {
+	if len(d.Options) != maxOptions || d.Answer != "needs_input: Which of these is on your card: Acme alpha, Acme bravo, Acme delta, or Acme charlie?" {
 		t.Fatalf("decision = %+v", d)
 	}
 }
 
 func TestDecideInsuranceAsksForTheCardWhenNothingSpecificMatches(t *testing.T) {
 	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
-	for _, heard := range []string{"", "health plan", "my insurance", "Medicare", "Aetna Betr Helth", "Blue Cross"} {
+	for _, heard := range []string{"", "health plan", "my insurance", "Blue Cross", "the second one", "Tier 1"} {
 		d := DecideInsurance(heard, "medical", office(t, "hollywood"), adultDOB)
 		if d.Outcome != "needs_clarification" || d.Answer != answerAskCard || len(d.Options) != 0 {
 			t.Fatalf("%q: decision = %+v", heard, d)
@@ -81,20 +81,56 @@ func TestDecideInsuranceAsksForTheCardWhenNothingSpecificMatches(t *testing.T) {
 	}
 }
 
+func TestDecideInsuranceAsksForTheFullNameWhenOnlyTheProgramIsNamed(t *testing.T) {
+	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
+	for _, heard := range []string{"Medicare", "Medicaid", "Medicare Advantage", "my Medicaid card"} {
+		d := DecideInsurance(heard, "medical", office(t, "hollywood"), adultDOB)
+		if d.Outcome != "needs_clarification" || d.Answer != answerAskFullName || len(d.Options) != 0 {
+			t.Fatalf("%q: decision = %+v", heard, d)
+		}
+	}
+}
+
 func TestDecideInsuranceAsksWhenThePlanIsOnlyInTheOtherCoverage(t *testing.T) {
 	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
-	for _, c := range []struct{ heard, coverage string }{{"VSP", "medical"}, {"Aetna Medicare", "routine_vision"}} {
+	for _, c := range []struct{ heard, coverage, answer string }{{"VSP", "medical", answerAskCard}, {"Aetna Medicare", "routine_vision", answerAskFullName}} {
 		d := DecideInsurance(c.heard, c.coverage, office(t, "hollywood"), adultDOB)
-		if d.Outcome != "needs_clarification" || d.Participation != "unknown" || d.PlanID != "" || d.Answer != answerAskCard {
+		if d.Outcome != "needs_clarification" || d.Participation != "unknown" || d.PlanID != "" || d.Answer != c.answer {
 			t.Fatalf("%q %s: decision = %+v", c.heard, c.coverage, d)
 		}
 	}
 }
 
 func TestTokensNormalizeAndDropFillerWords(t *testing.T) {
-	got := tokens("I'm with the AETNA Medicare HMO & PPO card")
+	got := tokens("I'm with the AETNA Medicare HMO & PPO card, just that one")
 	if !slices.Equal(got, []string{"aetna", "medicare", "hmo", "ppo"}) {
 		t.Fatalf("tokens = %q", got)
+	}
+	for _, heard := range []string{"I care", "i-care", "iCare"} {
+		if got := tokens(heard); !slices.Equal(got, []string{"icare"}) {
+			t.Errorf("tokens(%q) = %q", heard, got)
+		}
+	}
+}
+
+func TestCallerWordsFixCommonWordsAndDropUnknownWords(t *testing.T) {
+	vocabulary := map[string]bool{"aetna": true, "better": true, "health": true, "medicare": true, "medicaid": true}
+	tests := []struct {
+		heard string
+		want  []string
+	}{
+		{"Aetna Bettr Helth", []string{"aetna", "bettr", "health"}},
+		{"Aetna Medicaree", []string{"aetna", "medicare"}},
+		{"Aetna Medicaide", []string{"aetna", "medicaid"}},
+		{"Aetna Medicade", []string{"aetna"}},
+		{"Aetna Medicar", []string{"aetna"}},
+		{"Aetna from work", []string{"aetna"}},
+		{"Aetna PPO", []string{"aetna", "ppo"}},
+	}
+	for _, tc := range tests {
+		if got := callerWords(tokens(tc.heard), vocabulary); !slices.Equal(got, tc.want) {
+			t.Errorf("callerWords(%q) = %q, want %q", tc.heard, got, tc.want)
+		}
 	}
 }
 
@@ -104,12 +140,15 @@ func TestTokenPointsUsesEditDistanceByLength(t *testing.T) {
 		points      int
 	}{
 		{"aetna", "aetna", exactTokenPoints},
-		{"helth", "health", fuzzyTokenPoints},
+		{"helth", "health", 0},
+		{"medicaid", "medicare", 0},
+		{"humanna", "humana", fuzzyTokenPoints},
 		{"betr", "better", 0},
 		{"cgna", "cigna", 0},
-		{"medicaree", "medicare", fuzzyTokenPoints},
-		{"healthcre", "healthcare", fuzzyTokenPoints},
-		{"helthcre", "healthcare", 0},
+		{"medicaree", "medicare", 0},
+		{"healthcre", "healthcare", 0},
+		{"staywel", "staywell", fuzzyTokenPoints},
+		{"devotted", "devoted", fuzzyTokenPoints},
 		{"humnaaa", "humana", 0},
 	}
 	for _, tc := range tests {

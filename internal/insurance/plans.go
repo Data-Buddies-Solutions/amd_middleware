@@ -35,6 +35,7 @@ type plan struct {
 	Note         string            `json:"note"`
 	SelfPay      bool              `json:"selfPay"`
 	nameTokens   [][]string
+	planTypes    map[string]bool
 }
 
 type planRequirement struct {
@@ -93,6 +94,12 @@ func parseCatalog(files map[string][]byte) ([]planList, error) {
 				p.nameTokens = append(p.nameTokens, words)
 				for _, word := range words {
 					list.vocabulary[p.Coverage][word] = true
+					if planTypes[word] {
+						if p.planTypes == nil {
+							p.planTypes = map[string]bool{}
+						}
+						p.planTypes[word] = true
+					}
 				}
 			}
 		}

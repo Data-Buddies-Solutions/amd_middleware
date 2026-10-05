@@ -1149,7 +1149,13 @@
         "Florida Medicare",
         "Medicare",
         "Medicare Part B",
-        "Standard Medicare"
+        "Standard Medicare",
+        "Original Medicare",
+        "Traditional Medicare",
+        "Medicare Health Insurance",
+        "Medicare Supplement",
+        "Medicare Supplemental",
+        "Medigap"
       ],
       "carrierCode": "FLO02",
       "carrierId": "car40900",
@@ -3451,7 +3457,11 @@
         "Florida Blue PPO",
         "Florida Blue HMO",
         "BCBS PPO",
-        "Blue Cross Blue Shield PPO"
+        "Blue Cross Blue Shield PPO",
+        "BCBS HMO",
+        "Blue Cross HMO",
+        "Blue Cross PPO",
+        "Blue Cross Blue Shield HMO"
       ],
       "carrierCode": "",
       "carrierId": "car280612",

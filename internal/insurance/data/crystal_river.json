@@ -1041,7 +1041,13 @@
         "Florida Medicare",
         "Medicare",
         "Medicare Part B",
-        "Standard Medicare"
+        "Standard Medicare",
+        "Original Medicare",
+        "Traditional Medicare",
+        "Medicare Health Insurance",
+        "Medicare Supplement",
+        "Medicare Supplemental",
+        "Medigap"
       ],
       "carrierCode": "FLO02",
       "carrierId": "car40900",

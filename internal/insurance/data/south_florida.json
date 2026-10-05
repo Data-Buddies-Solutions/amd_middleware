@@ -69,6 +69,31 @@
       "selfPay": false
     },
     {
+      "id": "aetna-qhp-individual-exchange",
+      "label": "Aetna QHP Individual Exchange",
+      "coverage": "medical",
+      "names": [
+        "Aetna QHP Individual Exchange",
+        "Aetna QHP"
+      ],
+      "carrierCode": "AET07",
+      "carrierId": "car40887",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Miriam Bach": "pending",
+        "Dr. Melissa Otero": "pending",
+        "Dr. Gisselle Calero": "pending",
+        "Dr. Maria Casas": "pending",
+        "Dr. Lisbet Vidal": "pending",
+        "Dr. Kyler Farnan": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Not on the 2026-07-07 insurance list; main accepted it. Staff confirms until the list includes it.",
+      "selfPay": false
+    },
+    {
       "id": "aetna-epo-university-of-miami",
       "label": "Aetna EPO University of Miami",
       "coverage": "medical",
@@ -262,6 +287,30 @@
       "selfPay": false
     },
     {
+      "id": "ambetter-premier-medical",
+      "label": "Ambetter Premier",
+      "coverage": "medical",
+      "names": [
+        "Ambetter Premier"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Miriam Bach": "pending",
+        "Dr. Melissa Otero": "pending",
+        "Dr. Gisselle Calero": "pending",
+        "Dr. Maria Casas": "pending",
+        "Dr. Lisbet Vidal": "pending",
+        "Dr. Kyler Farnan": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Not on the 2026-07-07 insurance list; main accepted it. Staff confirms until the list includes it.",
+      "selfPay": false
+    },
+    {
       "id": "avmed-select",
       "label": "AvMed Select",
       "coverage": "medical",
@@ -296,6 +345,31 @@
       "requirements": [],
       "callerNotice": "",
       "note": "Engage-Need referral from PCP unless 16 year old or under, not needed. Empower-We are par. Jackson First Network HMO-Non par.",
+      "selfPay": false
+    },
+    {
+      "id": "avmed-jackson-first-network-hmo",
+      "label": "AvMed Jackson First Network HMO",
+      "coverage": "medical",
+      "names": [
+        "AvMed Jackson First Network HMO",
+        "AvMed Jackson First Network"
+      ],
+      "carrierCode": "AVM01",
+      "carrierId": "car40890",
+      "doctors": {
+        "Dr. Austin Bach": "no",
+        "Dr. Miriam Bach": "no",
+        "Dr. Melissa Otero": "no",
+        "Dr. Gisselle Calero": "no",
+        "Dr. Maria Casas": "no",
+        "Dr. Lisbet Vidal": "no",
+        "Dr. Kyler Farnan": "no"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "AvMed note on the 2026-07-07 insurance list: Jackson First Network HMO-Non par.",
       "selfPay": false
     },
     {
@@ -1303,7 +1377,12 @@
         "Medicare",
         "Florida Medicare",
         "Standard Medicare",
-        "Original Medicare"
+        "Original Medicare",
+        "Traditional Medicare",
+        "Medicare Health Insurance",
+        "Medicare Supplement",
+        "Medicare Supplemental",
+        "Medigap"
       ],
       "carrierCode": "FLO02",
       "carrierId": "car40900",
@@ -1320,6 +1399,30 @@
       "requirements": [],
       "callerNotice": "",
       "note": "",
+      "selfPay": false
+    },
+    {
+      "id": "icare-medical",
+      "label": "iCare",
+      "coverage": "medical",
+      "names": [
+        "iCare"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Miriam Bach": "pending",
+        "Dr. Melissa Otero": "pending",
+        "Dr. Gisselle Calero": "pending",
+        "Dr. Maria Casas": "pending",
+        "Dr. Lisbet Vidal": "pending",
+        "Dr. Kyler Farnan": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Not on the 2026-07-07 insurance list; main accepted it. Staff confirms until the list includes it.",
       "selfPay": false
     },
     {
@@ -1990,6 +2093,59 @@
       "selfPay": false
     },
     {
+      "id": "united-healthcare-dual-complete-medical",
+      "label": "United Healthcare Dual Complete",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Dual Complete",
+        "UHC Dual Complete",
+        "United Healthcare Medicare Dual Complete",
+        "DuoComplete",
+        "Duo Complete"
+      ],
+      "carrierCode": "UNI20",
+      "carrierId": "car40923",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Miriam Bach": "pending",
+        "Dr. Melissa Otero": "pending",
+        "Dr. Gisselle Calero": "pending",
+        "Dr. Maria Casas": "pending",
+        "Dr. Lisbet Vidal": "pending",
+        "Dr. Kyler Farnan": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Not on the 2026-07-07 insurance list; main accepted it. Staff confirms until the list includes it.",
+      "selfPay": false
+    },
+    {
+      "id": "united-healthcare-choice-medical",
+      "label": "United Healthcare Choice",
+      "coverage": "medical",
+      "names": [
+        "United Healthcare Choice",
+        "UHC Choice"
+      ],
+      "carrierCode": "UNI20",
+      "carrierId": "car40923",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Miriam Bach": "pending",
+        "Dr. Melissa Otero": "pending",
+        "Dr. Gisselle Calero": "pending",
+        "Dr. Maria Casas": "pending",
+        "Dr. Lisbet Vidal": "pending",
+        "Dr. Kyler Farnan": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Not on the 2026-07-07 insurance list; main accepted it. Staff confirms until the list includes it.",
+      "selfPay": false
+    },
+    {
       "id": "united-healthcare-all-savers",
       "label": "United Healthcare All Savers",
       "coverage": "medical",
@@ -2362,6 +2518,56 @@
       "callerNotice": "",
       "note": "",
       "selfPay": true
+    },
+    {
+      "id": "envolve-vision-medical",
+      "label": "Envolve Vision",
+      "coverage": "medical",
+      "names": [
+        "Envolve Vision",
+        "Envolve"
+      ],
+      "carrierCode": "AMBE1",
+      "carrierId": "car281245",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Miriam Bach": "pending",
+        "Dr. Melissa Otero": "pending",
+        "Dr. Gisselle Calero": "pending",
+        "Dr. Maria Casas": "pending",
+        "Dr. Lisbet Vidal": "pending",
+        "Dr. Kyler Farnan": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Not on the 2026-07-07 insurance list; main accepted it. Staff confirms until the list includes it.",
+      "selfPay": false
+    },
+    {
+      "id": "eye-care-health-solutions-medical",
+      "label": "Eye Care Health Solutions",
+      "coverage": "medical",
+      "names": [
+        "Eye Care Health Solutions",
+        "Eye Care Health"
+      ],
+      "carrierCode": "ICA01",
+      "carrierId": "car40907",
+      "doctors": {
+        "Dr. Austin Bach": "pending",
+        "Dr. Miriam Bach": "pending",
+        "Dr. Melissa Otero": "pending",
+        "Dr. Gisselle Calero": "pending",
+        "Dr. Maria Casas": "pending",
+        "Dr. Lisbet Vidal": "pending",
+        "Dr. Kyler Farnan": "pending"
+      },
+      "onlyOffices": [],
+      "requirements": [],
+      "callerNotice": "",
+      "note": "Not on the 2026-07-07 insurance list; main accepted it. Staff confirms until the list includes it.",
+      "selfPay": false
     },
     {
       "id": "aetna-medicare-ppo-vision",
@@ -3809,7 +4015,11 @@
         "Florida Blue PPO",
         "Florida Blue HMO",
         "BCBS PPO",
-        "Blue Cross Blue Shield PPO"
+        "Blue Cross Blue Shield PPO",
+        "BCBS HMO",
+        "Blue Cross HMO",
+        "Blue Cross PPO",
+        "Blue Cross Blue Shield HMO"
       ],
       "carrierCode": "",
       "carrierId": "car280612",

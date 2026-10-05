@@ -1,6 +1,7 @@
 package insurance
 
 import (
+	"slices"
 	"strings"
 	"unicode"
 )
@@ -14,14 +15,21 @@ var fillerWords = map[string]bool{
 	"a": true, "an": true, "the": true, "my": true, "i": true, "im": true, "have": true, "has": true,
 	"it": true, "its": true, "is": true, "insurance": true, "plan": true, "card": true, "through": true,
 	"with": true, "called": true, "says": true, "from": true, "of": true, "and": true, "uh": true,
-	"um": true, "coverage": true, "policy": true,
+	"um": true, "coverage": true, "policy": true, "one": true, "that": true, "this": true, "just": true,
+	"regular": true,
 }
 
 var genericWords = map[string]bool{
 	"health": true, "healthcare": true, "care": true, "medical": true, "vision": true, "hmo": true,
 	"ppo": true, "epo": true, "pos": true, "medicare": true, "medicaid": true, "advantage": true,
-	"network": true, "florida": true, "select": true, "plus": true, "choice": true,
+	"network": true, "florida": true, "select": true, "plus": true, "choice": true, "tier": true,
 }
+
+var ambiguousSpellings = map[string]bool{"medicade": true}
+
+var planTypes = map[string]bool{"hmo": true, "ppo": true, "epo": true, "pos": true}
+
+var programs = []string{"medicare", "medicaid"}
 
 func tokens(s string) []string {
 	s = strings.ToLower(s)
@@ -32,12 +40,61 @@ func tokens(s string) []string {
 		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
 	})
 	kept := []string{}
-	for _, word := range words {
+	for i := 0; i < len(words); i++ {
+		word := words[i]
+		if word == "i" && i+1 < len(words) && words[i+1] == "care" {
+			word = "icare"
+			i++
+		}
 		if !fillerWords[word] {
 			kept = append(kept, word)
 		}
 	}
 	return kept
+}
+
+func callerWords(heard []string, vocabulary map[string]bool) []string {
+	kept := []string{}
+	for _, h := range heard {
+		if ambiguousSpellings[h] {
+			continue
+		}
+		if vocabulary[h] || genericWords[h] {
+			kept = append(kept, h)
+			continue
+		}
+		var spellings []string
+		for g := range genericWords {
+			if closeSpelling(h, g) {
+				spellings = append(spellings, g)
+			}
+		}
+		if len(spellings) == 1 {
+			kept = append(kept, spellings[0])
+			continue
+		}
+		if len(spellings) > 1 {
+			continue
+		}
+		for v := range vocabulary {
+			if tokenPoints(h, v) > 0 {
+				kept = append(kept, h)
+				break
+			}
+		}
+	}
+	return kept
+}
+
+func namesProgram(heard []string) bool {
+	program := false
+	for _, h := range heard {
+		if !genericWords[h] {
+			return false
+		}
+		program = program || slices.Contains(programs, h)
+	}
+	return program
 }
 
 func exactPlan(list planList, coverage string, heard []string) (plan, bool) {
@@ -53,7 +110,7 @@ func bestCandidates(list planList, coverage string, heard []string) []plan {
 	var found []plan
 	top := 0
 	for _, p := range list.Plans {
-		if p.Coverage != coverage {
+		if p.Coverage != coverage || contradictsPlanType(heard, p) {
 			continue
 		}
 		score := 0
@@ -83,18 +140,23 @@ func nameScore(heard, name []string, vocabulary map[string]bool) int {
 		best := 0
 		for _, n := range name {
 			points := tokenPoints(h, n)
-			if points > 0 && !genericWords[h] && !genericWords[n] {
+			if points > 0 && !genericWords[h] && !genericWords[n] && !allDigits(h) {
 				specific = true
 			}
 			best = max(best, points)
 		}
 		if best > 0 {
 			heardMatched++
-			score += best
+			if !genericWords[h] {
+				score += best
+			}
 			continue
 		}
 		if contradicts(h, vocabulary) {
 			return 0
+		}
+		if genericWords[h] {
+			heardMatched++
 		}
 	}
 	nameMatched := 0
@@ -114,6 +176,22 @@ func nameScore(heard, name []string, vocabulary map[string]bool) int {
 	return score
 }
 
+func contradictsPlanType(heard []string, p plan) bool {
+	if len(p.planTypes) == 0 {
+		return false
+	}
+	for _, h := range heard {
+		if planTypes[h] && !p.planTypes[h] {
+			return true
+		}
+	}
+	return false
+}
+
+func allDigits(word string) bool {
+	return strings.IndexFunc(word, func(r rune) bool { return !unicode.IsDigit(r) }) == -1
+}
+
 func contradicts(word string, vocabulary map[string]bool) bool {
 	return vocabulary[word] && (!genericWords[word] || word == "medicare" || word == "medicaid")
 }
@@ -122,13 +200,20 @@ func tokenPoints(heard, name string) int {
 	if heard == name {
 		return exactTokenPoints
 	}
-	a, b := []rune(heard), []rune(name)
-	shorter := min(len(a), len(b))
-	distance := editDistance(a, b)
-	if (shorter >= 5 && distance <= 1) || (shorter >= 9 && distance <= 2) {
+	if genericWords[heard] || genericWords[name] {
+		return 0
+	}
+	if closeSpelling(heard, name) {
 		return fuzzyTokenPoints
 	}
 	return 0
+}
+
+func closeSpelling(heard, name string) bool {
+	a, b := []rune(heard), []rune(name)
+	shorter := min(len(a), len(b))
+	distance := editDistance(a, b)
+	return (shorter >= 5 && distance <= 1) || (shorter >= 9 && distance <= 2)
 }
 
 func editDistance(a, b []rune) int {

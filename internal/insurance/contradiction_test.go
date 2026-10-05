@@ -56,6 +56,10 @@ func TestRealDataNeverPicksAPlanTheCallerContradicted(t *testing.T) {
 		{"United Healthcare Medicare", "routine_vision", "unitedhealthcare-vision"},
 		{"Cigna Medicare Advantage HMO", "routine_vision", "cigna-vision"},
 		{"Ambetter Premier", "routine_vision", "ambetter-vision"},
+		{"Humana Gold PPO", "medical", "humana-medicare-hmo"},
+		{"BCBS HMO", "routine_vision", "florida-blue-medicare-vision"},
+		{"Molina Medicade", "medical", "molina-medicare-medical"},
+		{"Medicare Supplement", "medical", "tricare-for-life"},
 	}
 	for _, tc := range tests {
 		d := DecideInsurance(tc.heard, tc.coverage, hollywood, adultDOB)
