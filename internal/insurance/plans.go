@@ -16,6 +16,7 @@ type plan struct {
 	Names        []string
 	CarrierCode  string
 	CarrierID    string
+	CarrierName  string
 	Doctors      map[string]string
 	OnlyOffices  []string
 	Requirements []planRequirement

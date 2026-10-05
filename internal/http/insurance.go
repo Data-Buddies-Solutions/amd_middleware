@@ -26,3 +26,24 @@ func (h *Handlers) HandleInsuranceDecision(w http.ResponseWriter, r *http.Reques
 	}
 	respond(w, insurance.DecideOfferedAnswer(req.Plan, req.Offered, req.CoverageType, office, req.DOB))
 }
+
+func (h *Handlers) HandleInsurancePlans(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	officeKey := query.Get("office")
+	office, err := domain.ResolveOffice(officeKey)
+	if officeKey == "" || err != nil {
+		http.Error(w, "Unknown office", http.StatusBadRequest)
+		return
+	}
+	coverage := query.Get("coverage")
+	plans, ok := insurance.ListPlans(coverage, office)
+	if !ok {
+		http.Error(w, "Unknown coverage", http.StatusBadRequest)
+		return
+	}
+	respond(w, struct {
+		OfficeID string                  `json:"officeId"`
+		Coverage string                  `json:"coverage"`
+		Plans    []insurance.PlanSummary `json:"plans"`
+	}{office.ID, coverage, plans})
+}
