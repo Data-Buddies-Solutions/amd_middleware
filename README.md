@@ -192,13 +192,26 @@ A `cancelled` receipt identifies the exact appointment that was cancelled.
 
 ## Insurance plans
 
-Each office uses exactly one plan list in [internal/insurance/data](internal/insurance/data):
-`south_florida.json` (Hollywood, Sweetwater, North Miami Beach Optical),
-`spring_hill.json`, and `crystal_river.json`. `carriers.json` names the AdvancedMD
-carriers. A plan has a stable `id`, a caller-facing `label`, a `coverage`
-(`medical` or `routine_vision`), every `name` a caller might say, its AdvancedMD
-carrier, and a `yes|no|pending` answer per doctor. The lists are validated when the
-service starts; invalid data stops the process.
+Plan data lives in [internal/insurance/data](internal/insurance/data), one folder per
+source insurance list:
+
+- `south_florida/` follows the Abita Eye Group Insurance List (2026-07-07) for
+  Hollywood, Sweetwater and North Miami Beach Optical.
+- `spring_hill_crystal_river/` follows the Abita Eye Group medical reference
+  (2026-07-07, AMD directory verified 2026-09-17) and the Spring Hill routine vision list.
+
+Each folder has a `plans.csv` that defines every plan once: a stable `id`, a
+caller-facing `label`, a `coverage` (`medical` or `routine_vision`), its AdvancedMD
+carrier, `self_pay`, and the `aliases` a caller might say, separated by `|`. Each
+office table (`doctors.csv`, `spring_hill.csv`, `crystal_river.csv`) mirrors the
+sheet: one row per plan the office's list includes and one `yes|no|pending` column per
+doctor, then `requires` (`kind` or `kind:channel`, separated by `;`), `only_offices`,
+the caller `notice`, and the sheet's `note`. `office_tables.json` says which offices
+use which table, and `carriers.json` names the AdvancedMD carriers. The data is
+validated when the service starts; invalid data stops the process.
+`internal/insurance/testdata/decisions.golden.tsv` pins the decision for every plan
+name and common caller phrasing at every office. After a data change, run
+`go test ./internal/insurance -run Golden -update` and review its diff.
 
 The office registry decides which doctors can take a visit: medical uses the office's
 `all_three` tier, routine vision its optical tier, and the pediatric rule applies. The
@@ -211,7 +224,8 @@ Otherwise the matcher finds every plan the words could mean, tolerating small ty
 extra words, and fragments. If those plans all end the same way at this office, it
 answers with the best one; if not, it asks `Which of these is on your card` with up to
 four `options` (`planId`, `label`); with more possibilities it asks for the full plan
-name. Generic words alone, or no match for this visit type, ask for the card. Every decision for
+name. Only "Medicare" or "Medicaid" with no plan name asks for the full plan name;
+other generic words alone, or no match for this visit type, ask for the card. Every decision for
 a plan carries its `planId` and `carrierId`.
 
 `POST /api/add-patient` and `POST /api/patient/update-insurance` accept an optional

@@ -11,13 +11,13 @@ import (
 
 var planIDPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
-func validateCatalog(files []string, lists []planList, carriers map[string]string) error {
+func validateCatalog(tables []string, lists []planList, carriers map[string]string) error {
 	doctors := registryDoctors()
 	officeList := map[string]string{}
 	carrierForCode := map[string]string{}
 	planByID := map[string]plan{}
 	for i, list := range lists {
-		file := files[i]
+		file := tables[i]
 		if len(list.Offices) == 0 {
 			return fmt.Errorf("%s: no offices", file)
 		}
@@ -80,12 +80,10 @@ func validatePlan(p plan, list planList, doctors map[string]bool, carriers map[s
 			return fmt.Errorf("name %q has only filler words", planNames(p)[i])
 		}
 		key := strings.Join(name, " ")
-		if i > 0 && repeated[key] {
+		if repeated[key] {
 			return fmt.Errorf("name %q is repeated", planNames(p)[i])
 		}
-		if i > 0 {
-			repeated[key] = true
-		}
+		repeated[key] = true
 	}
 	anyYes := false
 	for doctor, value := range p.Doctors {

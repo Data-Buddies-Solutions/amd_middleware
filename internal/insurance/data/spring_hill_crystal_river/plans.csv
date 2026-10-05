@@ -1,0 +1,170 @@
+id,label,coverage,carrier_code,carrier_id,self_pay,aliases
+aetna-better-health,Aetna Better Health,medical,ICA01,car40907,,Aetna Better Health Medicaid MMA (Medical)
+aetna-better-health-of-florida,Aetna Better Health Of Florida,medical,ICA01,car40907,,
+aetna-commercial,Aetna Commercial,medical,AET07,car40887,,Aetna Commercial HMO And PPO | Aetna Employer Plan
+aetna-commercial-hmo,Aetna Commercial HMO,medical,AET07,car40887,,
+aetna-commercial-ppo,Aetna Commercial PPO,medical,AET07,car40887,,
+aetna-epo,Aetna EPO,medical,AET07,car40887,,
+aetna-epo-north-broward,Aetna EPO North Broward,medical,AET07,car40887,,
+aetna-epo-university-of-miami,Aetna EPO University Of Miami,medical,AET07,car40887,,
+aetna-healthy-kids,Aetna Healthy Kids,medical,ICA01,car40907,,Aetna Healthy Kids Kid Care
+aetna-hmo,Aetna HMO,medical,AET07,car40887,,
+aetna-managed-choice,Aetna Managed Choice,medical,AET07,car40887,,
+aetna-medicare,Aetna Medicare,medical,ICA01,car40907,,
+aetna-medicare-hmo,Aetna Medicare HMO,medical,ICA01,car40907,,
+aetna-medicare-ppo,Aetna Medicare PPO,medical,ICA01,car40907,,Aetna Medicare PPO Medical
+aetna-medicare-signature-ppo,Aetna Medicare Signature PPO,medical,ICA01,car40907,,
+aetna-ppo,Aetna PPO,medical,AET07,car40887,,
+aetna-qhp-individual-exchange,Aetna QHP Individual Exchange,medical,AET07,car40887,,Aetna QHP
+ambetter,Ambetter,medical,AMBE1,car281245,,Ambetter Medical | Ambetter Health | Ambetter from Sunshine Health
+ambetter-premier,Ambetter Premier,medical,AMBE1,car281245,,
+ambetter-select,Ambetter Select,medical,AMBE1,car281245,,
+ambetter-value,Ambetter Value,medical,AMBE1,car281245,,
+avmed-entrust,AvMed Entrust,medical,AVM01,car40890,,AvMed Entrust Medical | Av Med Entrust
+avmed-jackson-first-network-hmo,AvMed Jackson First Network HMO,medical,AVM01,car40890,,
+avmed-medicare-advantage,AvMed Medicare Advantage,medical,,car301737,,Av Med Medicare | Av Med Medicare Advantage | AvMed Medicare
+avmed-select,AvMed Select,medical,AVM01,car40890,,Av Med Select
+care-health-plus,Care Health Plus,medical,,,,Care Health
+careplus-medicare-medical,CarePlus Medicare Medical,medical,PREM1,car281317,,Care Plus | CarePlus
+childrens-medical-services,Children's Medical Services,medical,AMBE1,car281245,,Children's Medical
+cigna-florida-connect-epo,Cigna Florida Connect EPO,medical,,,,
+cigna-hmo,Cigna HMO,medical,CIGN1,car301345,,
+cigna-local-plus,Cigna Local Plus,medical,CIGN1,car301345,,
+cigna-medicare-advantage,Cigna Medicare Advantage,medical,CIGN4,car302890,,Cigna Medicare Advantage (Medical) HMO & PPO | Cigna Medicare Advantage (Medical) HMO & PPO effec 1/1/2023 Healthspring | Cigna Medicare Advantage Healthspring | Cigna Medicare Advantage HMO
+cigna-medicare-advantage-ppo,Cigna Medicare Advantage PPO,medical,CIGN4,car302890,,
+cigna-miami-dade-public-schools,Cigna Miami Dade Public Schools,medical,CIG09,car40895,,Cigna Miami Dade | Miami Dade Public Schools
+cigna-open-access,Cigna Open Access,medical,CIG09,car40895,,
+cigna-ppo,Cigna PPO,medical,CIG09,car40895,,
+cigna-sure-fit,Cigna Sure Fit,medical,,,,
+community-care-plan,Community Care Plan,medical,ICA01,car40907,,
+devoted-medicare-hmo,Devoted Medicare HMO,medical,PREM1,car281317,,Devoted
+devoted-medicare-ppo,Devoted Medicare PPO,medical,PREM1,car281317,,
+doctors-health-medicare,Doctors Health Medicare,medical,ICA01,car40907,,Doctors Health | Miami Dade Ddoctors Health | Miami Dade Doctors Health | Miami Dade Doctors Healthcare
+envolve-vision,Envolve Vision,medical,AMBE1,car281245,,Envolve
+eye-america-aao,Eye America AAO,medical,EYEC1,car308627,,Eye America
+eye-care-health-solutions,Eye Care Health Solutions,medical,ICA01,car40907,,Eye Care Health
+florida-blue-hmo,Florida Blue HMO,medical,FLOR1,car280750,,BCBS HMO | Blue Cross Blue Shield HMO | Blue Cross HMO | FL Blue HMO
+florida-blue-medicare-hmo,Florida Blue Medicare HMO,medical,FLO01,car40897,,BCBS Medicare HMO | Blue Cross Blue Shield Medicare HMO
+florida-blue-medicare-ppo,Florida Blue Medicare PPO,medical,FLO01,car40897,,
+florida-blue-ppo-federal-employee,Florida Blue PPO Federal Employee,medical,FLO01,car40897,,
+florida-blue-ppo-out-of-state,Florida Blue PPO Out Of State,medical,FLO01,car40897,,BCBS out of state | BCBS PPO | Blue Cross Blue Shield out of state | Blue Cross Blue Shield PPO | Blue Cross out of state | Blue Cross PPO | FL Blue PPO | Florida Blue PPO
+florida-blue-select,Florida Blue Select,medical,FLO01,car40897,,Blue Select | Fl Blue Select | Florida Blue BlueSelect | Florida BlueSelect
+florida-blue-steward-tier-1,Florida Blue Steward Tier 1,medical,FLO01,car40897,,Fl Blue Steward | Florida Blue Steward
+florida-community-care,Florida Community Care,medical,ICA01,car40907,,Florida Community Care (ILF Medicaid
+florida-complete-care,Florida Complete Care,medical,ICA01,car40907,,Florida Complete Care - Medicare Medical ONLY
+florida-medicaid,Florida Medicaid,medical,FLO03,car40899,,Straight Florida Medicaid | Straight Medicaid
+florida-medicare,Florida Medicare,medical,FLO02,car40900,,Medicare | Medicare Part B | Standard Medicare | Original Medicare | Traditional Medicare | Medicare Health Insurance | Medicare Supplement | Medicare Supplemental | Medigap
+freedom-health-medicare,Freedom Health Medicare,medical,ICA01,car40907,,Freedom | Freedom Health
+humana-care-plus,Humana Care Plus,medical,PREM1,car281317,,
+humana-healthy-horizons,Humana Healthy Horizons,medical,,car308175,,
+humana-hmo,Humana HMO,medical,HUM03,car308175,,
+humana-medicaid-hmo,Humana Medicaid HMO,medical,HUM02,car303033,,HUM02 | Humana Medicaid
+humana-medicare,Humana Medicare,medical,HUM01,car40906,,
+humana-medicare-hmo,Humana Medicare HMO,medical,ICA01,car40907,,Humana Gold | Humana Gold Plus
+humana-medicare-ppo,Humana Medicare PPO,medical,HUM PPO,car303062,,
+humana-ppo,Humana PPO,medical,HUM PPO,car303062,,
+humana-ppo-pos,Humana PPO Pos,medical,HUM PPO,car303062,,
+humana-premier-hmo,Humana Premier HMO,medical,HUMPHMO,car303061,,Humana Premier HMO Access
+icare,iCare,medical,ICA01,car40907,,
+imagine-health,Imagine Health,medical,IMAG1,car308142,,Imagine
+leon-health-plan,Leon Health Plan,medical,,,,Leon | Leon Health Center | Leon Health Centers | Leon Healthplan | Leon Medical Center | Leon Medical Centers | Leon Medical Centers Health Plan | Leon Medical Centers Health Plans
+medicaid-all-plans,Medicaid,medical,FLO03,car40899,,All Medicaid Plans
+meritain-health,Meritain Health,medical,MERI1,car301578,,Meritain | Meritain Health - Aetna
+miami-childrens-health-plan,Miami Children's Health Plan,medical,ICA01,car40907,,Miami Children | Miami Children's | Miami Children's Health Plan (Medicaid) Medical
+molina-marketplace,Molina Marketplace,medical,,car308175,,
+molina-medicaid,Molina Medicaid,medical,ICA01,car40907,,
+molina-medicare,Molina Medicare,medical,MOLI2,car301507,,
+multiplan-phcs,Multiplan PHCS,medical,,car301648,,Multiplan | PHCS
+optimum-healthcare,Optimum Healthcare,medical,ICA01,car40907,,Optimum | Optimum Healthplan | Optimum Healthplan Medicare | Optimum Medicare | Optimum Medicare Advantage
+oscar-health,Oscar Health,medical,OSCA1,car284233,,Oscar | Oscar Health Plans
+partners-direct-health,Partners Direct Health,medical,IMAG1,car308142,,Partners Direct | Partners Direct Health (Medical) Imagine Health
+preferred-care-partners,Preferred Care Partners,medical,PRE04,car40916,,PRE04 | preferred care | preferred care network | preferred care network preferred care partners | Preferred Care Partners Medical
+self-pay-medical,Self Pay,medical,SELF,car301672,yes,Cash | Cash Pay | Selfpay
+seminole-tribe,Seminole Tribe,medical,SEMI1,car301427,,Seminole Tribe of Florida Self-Funded Health Plan
+simply-health,Simply Health,medical,ICA01,car40907,,Simply | Simply Health Plans | Simply Healthcare
+simply-medicaid,Simply Medicaid,medical,ICA01,car40907,,
+simply-medicare,Simply Medicare,medical,ICA01,car40907,,Simply Medicare Medical
+solis-medicare,Solis Medicare,medical,PREM1,car281317,,Solis
+southbay-medical-center,SouthBay Medical Center,medical,,,,Medical Center International
+staywell-medicare,Staywell Medicare,medical,AMBE1,car281245,,Staywell
+sunhealth,SunHealth,medical,SUNHEALT,car308086,,Sun Health
+sunshine-medicaid,Sunshine Medicaid,medical,AMBE1,car281245,,Sunshine | Sunshine Health
+tricare-for-life,Tricare For Life,medical,TRI05,car40921,,Tricare for Life - Supplemental Insurance to Medicare
+tricare-forever,Tricare Forever,medical,TRI05,car40921,,
+tricare-prime,Tricare Prime,medical,TRI00,car284327,,Tricare Humana Military (Prime)
+tricare-select,Tricare Select,medical,TRI00,car284327,,Tricare Humana Military (Select)
+umr,UMR,medical,UNIT3,car284838,,United Health One
+united-healthcare-aarp-medicare,United Healthcare AARP Medicare,medical,AARPM,car302750,,AARPM | united aarp medicare advantage | United Aarp Medicare Complete | united aarp medicare complete medicare advantage hmo lppo | UHC AARP Medicare | UnitedHealthcare AARP Medicare Complete | United Health Care AARP Medicare | United Healthcare AARP Medicare Advantage | UHC AARP Medicare Advantage
+united-healthcare-all-savers,United Healthcare All Savers,medical,ALL 1,car284949,,
+united-healthcare-choice,United Healthcare Choice,medical,UNI20,car40923,,
+united-healthcare-dual-complete,United Healthcare Dual Complete,medical,UNI20,car40923,,DuoComplete | Duo Complete | United Healthcare Medicare Dual Complete | UHC Dual Complete | UnitedHealthcare Dual Complete | United Healthcare Dual Complete Medicare Advantage | UHC Medicare Dual Complete | UHC Dual Complete Medicare Advantage | United Health Care Medicare Dual Complete | UnitedHealthcare Medicare Dual Complete
+united-healthcare-global,United Healthcare Global,medical,UNIT15,car284971,,UNIT15 | united global international plan | United Healthcare Global (Medical) International Plan | United Healthcare Global International Plan | United Healthcare Global Medical
+united-healthcare-golden-rule,United Healthcare Golden Rule,medical,GOL05,car40902,,GOL05 | united golden rule | UHC Golden Rule | UnitedHealthcare Golden Rule | United Health Care Golden Rule
+united-healthcare-hmo,United Healthcare HMO,medical,UNI20,car40923,,
+united-healthcare-individual-exchange,United Healthcare Individual Exchange,medical,UNI20,car40923,,UNI20 | United Healthcare Individual Exchange Network | United Healthcare Individual Exchange Network (Medical) | united individual exchange | UHC Individual Exchange | UnitedHealthcare Individual Exchange | United Health Care Individual Exchange
+united-healthcare-nhp,United Healthcare NHP,medical,UNI20,car40923,,
+united-healthcare-nhp-hmo-access,United Healthcare NHP HMO Access,medical,UNI20,car40923,,
+united-healthcare-nhp-hmo-only,United Healthcare NHP HMO Only,medical,UNI20,car40923,,
+united-healthcare-oxford,United Healthcare Oxford,medical,OX04,car284471,,OX04 | united oxford | UHC Oxford | UnitedHealthcare Oxford | United Health Care Oxford
+united-healthcare-shared-services,United Healthcare Shared Services,medical,UNIT9,car303047,,UNIT9 | united shared services
+united-healthcare-student-resources,United Healthcare Student Resources,medical,UHC STU,car283950,,UHC STU | United Healthcare Student Resources Medical | united student resources
+united-healthcare-surest,United Healthcare Surest,medical,BIND1,car301501,,BIND1 | united healthcare surest health plans formerly bind | united surest
+us-health-group,US Health Group,medical,UNIT3,car284838,,Ushealth | Ushealth Group | US Health Group - a UnitedHealthcare Company
+vivida,Vivida,medical,ICA01,car40907,,
+wellcare-medicaid,WellCare Medicaid,medical,AMBE1,car281245,,WellCare Medicaid Medical
+wellcare-medicare-lppo,WellCare Medicare Lppo,medical,PREM1,car281317,,WellCare Medicare | WellCare Medicare Lppo Medical
+aetna-medicare-ppo-vision,Aetna Medicare PPO Vision,routine_vision,ICA01,car40907,,Aetna Medicare PPO (Vision) effective 1/1/2026 | Aetna Medicare PPO
+aetna-medicare-vision,Aetna Medicare HMO & PPO Vision,routine_vision,ICA01,car40907,,Aetna Medicare | Aetna Medicare HMO | Aetna Medicare HMO & PPO
+aetna-better-health-medicaid-vision,Aetna Better Health Medicaid MMA Vision,routine_vision,ICA01,car40907,,Aetna Better Health | Aetna Better Health of Florida | Aetna Better Health Medicaid | Aetna Medicaid
+aetna-healthy-kids-vision,Aetna Healthy Kids/Kid Care (CHIP) Vision,routine_vision,ICA01,car40907,,Aetna Healthy Kids | Aetna Healthy Kids Kid Care | Aetna Kid Care
+ambetter-vision,Ambetter Vision,routine_vision,AMBE1,car281245,,Ambetter | Ambetter from Sunshine Health
+avmed-entrust-vision,AvMed Entrust Vision,routine_vision,ICA01,car40907,,AvMed Entrust | AvMed | Av Med | AvMed Vision
+careplus-medicare-vision,CarePlus Medicare Vision,routine_vision,PREM1,car281317,,CarePlus Medicare Routine Vision | CarePlus | Care Plus | CarePlus Medicare
+childrens-medical-services-vision,Children's Medical Services Vision,routine_vision,AMBE1,car281245,,Children's Medical Services | Children's Medical
+community-care-plan-vision,Community Care Plan Vision,routine_vision,ICA01,car40907,,Community Care Plan
+devoted-medicare-hmo-vision,Devoted Medicare HMO Vision,routine_vision,PREM1,car281317,,Devoted Medicare HMO | Devoted | Devoted Health
+devoted-medicare-ppo-vision,Devoted Medicare PPO Vision,routine_vision,PREM1,car281317,,Devoted Medicare PPO
+doctors-health-medicare-vision,Doctors Health Medicare Vision,routine_vision,ICA01,car40907,,Doctors Health Medicare (Vision) EFFECTIVE 8/1/2023 | Doctors Health Medicare | Doctors Health | Doctors Healthcare | Doctors HealthCare Plans
+florida-blue-medicare-vision,Florida Blue Medicare HMO & PPO Vision,routine_vision,PREM1,car281317,,Florida Blue Medicare | Florida Blue Medicare HMO | Florida Blue Medicare PPO | BCBS Medicare | BCBS Medicare HMO | Blue Cross Blue Shield Medicare HMO
+freedom-health-medicare-vision,Freedom Health Medicare Vision,routine_vision,ICA01,car40907,,Freedom Health Medicare | Freedom Health | Freedom
+healthsun-vision,HealthSun Vision,routine_vision,ICA01,car40907,,Healthsun Vision ONLY | HealthSun
+humana-medicaid-vision,Humana Medicaid Vision,routine_vision,ICA01,car40907,,Humana Medicaid | Humana Healthy Horizons
+humana-medicare-vision,Humana Medicare Vision,routine_vision,ICA01,car40907,,Humana Medicare | Humana Gold Plus | Humana Gold | Humana Medicare PPO
+miami-childrens-health-plan-vision,Miami Children's Health Plan (Medicaid) Vision,routine_vision,ICA01,car40907,,Miami Children's Health Plan | Miami Children's | Miami Children
+molina-medicaid-vision,Molina Medicaid Vision,routine_vision,ICA01,car40907,,Molina Medicaid | Molina Healthcare | Molina Healthcare Medicaid
+optimum-healthplan-medicare-vision,Optimum Healthplan Medicare Vision,routine_vision,ICA01,car40907,,Optimum | Optimum Healthcare | Optimum Healthplan | Optimum Medicare
+preferred-care-network-medica-vision,Medica Vision,routine_vision,ICA01,car40907,,Medica | Previously Medica Vision
+simply-medicaid-vision,Simply Medicaid/Healthy Kids Vision,routine_vision,ICA01,car40907,,Simply Medicaid | Simply Healthy Kids | Simply Healthcare Medicaid | Simply Medcaid | Simply Healthcare | Simply
+simply-medicare-vision,Simply Medicare Vision,routine_vision,ICA01,car40907,,Simply Medicare
+solis-medicare-vision,Solis Medicare Vision,routine_vision,PREM1,car281317,,Solis Medicare | Solis
+staywell-medicaid-vision,Staywell Medicaid Vision,routine_vision,AMBE1,car281245,,Staywell Medicaid | Staywell
+sunshine-medicaid-vision,Sunshine Medicaid Vision,routine_vision,AMBE1,car281245,,Sunshine Medicaid | Sunshine | Sunshine Health
+wellcare-medicaid-vision,Wellcare Medicaid Vision,routine_vision,AMBE1,car281245,,Wellcare Medicaid
+wellcare-medicare-hmo-vision,WellCare Medicare HMO Vision,routine_vision,PREM1,car281317,,WellCare Medicare HMO | WellCare Medicare
+vsp,VSP,routine_vision,,car280695,,Vision Service Plan
+eyemed,EyeMed,routine_vision,,car280684,,Eye Med | Eye Med Vision | EyeMed Vision Care
+nva,NVA,routine_vision,,car308794,,National Vision | National Vision Administrators
+davis-vision,Davis Vision,routine_vision,,car280612,,Davis
+spectera,Spectera,routine_vision,,car308790,,Spectera Vision
+solstice,Solstice,routine_vision,,car301652,,Soltice | Solstice Vision
+icare-routine-vision,iCare,routine_vision,ICA01,car40907,,Eye Care Health | Eye Care Solutions | Eye Care Health Solutions | iCare Health Options
+guardian,Guardian,routine_vision,,car308792,,Guardian Vision
+alivi,Alivi,routine_vision,,car308796,,Alivi Health
+premier-eye-care,Premier Eye Care,routine_vision,PREM1,car281317,,
+envolve-routine-vision,Envolve,routine_vision,AMBE1,car281245,,Envolve Vision
+sunhealth-routine-vision,SunHealth,routine_vision,,car308791,,Sun Health | SunHealth Vision | SunHealth Discount Plan
+oscar-routine-vision,Oscar,routine_vision,OSCA1,car284233,,Oscar Health
+self-pay-routine-vision,Self Pay,routine_vision,SELF,car301672,yes,Selfpay | Cash | Cash Pay
+metlife-vision,MetLife Vision,routine_vision,,car280695,,MetLife
+liberty-financial-vision,Liberty Financial Vision,routine_vision,,car280695,,Liberty Financial
+lincoln-financial-vision,Lincoln Financial Vision,routine_vision,,car280695,,Lincoln Financial | Lincoln Finacial
+humana-vision-through-work,Humana Vision (through work),routine_vision,,car280684,,Humana Employer Vision | Humana PPO
+aetna-vision-through-work,Aetna Vision (through work),routine_vision,,car280684,,Aetna Employer Vision | Aetna Commercial | Aetna Commercial HMO & PPO | Aetna PPO | Aetna HMO | Aetna EPO | Aetna Employer Plan | Aetna Managed Choice | Aetna QHP | Aetna QHP Individual Exchange
+unum-vision,Unum Vision,routine_vision,,car280684,,Unum
+cigna-vision,Cigna Vision,routine_vision,,car280684,,Cigna | Cigna Employer Vision | Cigna PPO | Cigna HMO | Cigna Open Access
+superior-vision,Superior Vision,routine_vision,,car280612,,Superior
+florida-blue-vision-through-work,Florida Blue Vision (through work),routine_vision,,car280612,,Florida Blue Employer Vision | Florida Blue PPO | Florida Blue HMO | BCBS PPO | Blue Cross Blue Shield PPO | BCBS HMO | Blue Cross HMO | Blue Cross PPO | Blue Cross Blue Shield HMO
+blueview-vision,BlueView Vision,routine_vision,,car280612,,BlueView | Blue View
+versant-vision,Versant,routine_vision,,car280612,,Versant Health
+unitedhealthcare-vision,UnitedHealthcare Vision,routine_vision,,car308790,,United Healthcare | UnitedHealthcare | United Health Care | United Healthcare Vision | United Vision | UHC Vision
+amerihealth-vision,AmeriHealth,routine_vision,PREM1,car281317,,AmeriHealth Vision

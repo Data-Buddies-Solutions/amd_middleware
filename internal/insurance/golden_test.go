@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 var updateGolden = flag.Bool("update", false, "rewrite testdata/decisions.golden.tsv")
@@ -66,21 +68,22 @@ func row(rows []string, i int) string {
 func goldenRows(t *testing.T) string {
 	var b strings.Builder
 	b.WriteString("office\tcoverage\theard\toutcome\tplanId\tcarrierId\toptions\tanswer\n")
-	for _, list := range catalog {
-		for _, officeID := range list.Offices {
-			o := office(t, officeID)
-			for _, coverage := range []string{"medical", "routine_vision"} {
-				if !officeSupports(o, coverage) {
-					continue
+	officeIDs := domain.OfficeIDs()
+	slices.Sort(officeIDs)
+	for _, officeID := range officeIDs {
+		list := listForOffice(officeID)
+		o := office(t, officeID)
+		for _, coverage := range []string{"medical", "routine_vision"} {
+			if !officeSupports(o, coverage) {
+				continue
+			}
+			for _, heard := range goldenPhrasings(list, coverage) {
+				d := DecideInsurance(heard, coverage, o, adultDOB)
+				options := []string{}
+				for _, option := range d.Options {
+					options = append(options, option.PlanID)
 				}
-				for _, heard := range goldenPhrasings(list, coverage) {
-					d := DecideInsurance(heard, coverage, o, adultDOB)
-					options := []string{}
-					for _, option := range d.Options {
-						options = append(options, option.PlanID)
-					}
-					fmt.Fprintf(&b, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", officeID, coverage, heard, d.Outcome, d.PlanID, d.CarrierID, strings.Join(options, ","), d.Answer)
-				}
+				fmt.Fprintf(&b, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", officeID, coverage, heard, d.Outcome, d.PlanID, d.CarrierID, strings.Join(options, ","), d.Answer)
 			}
 		}
 	}
