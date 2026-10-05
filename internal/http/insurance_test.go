@@ -32,6 +32,12 @@ func TestInsuranceDecisionHTTPContract(t *testing.T) {
 		}
 	}
 	w := httptest.NewRecorder()
+	body := `{"plan":"Medicare","coverageType":"medical","office":"Spring Hill","offeredPlanIds":["aetna-epo","aetna-hmo","aetna-medicare"]}`
+	handlers.HandleInsuranceDecision(w, httptest.NewRequest(http.MethodPost, "/api/insurance/decision", strings.NewReader(body)))
+	if !strings.Contains(w.Body.String(), `"planId":"aetna-medicare"`) {
+		t.Fatalf("offered answer response=%s", w.Body.String())
+	}
+	w = httptest.NewRecorder()
 	handlers.HandleInsuranceDecision(w, httptest.NewRequest(http.MethodPost, "/api/insurance/decision", strings.NewReader(`{"plan":"Self Pay","coverageType":"medical","office":"Hollywood","referralVerified":true}`)))
 	if w.Code != http.StatusBadRequest {
 		t.Fatal("caller verification flag accepted")

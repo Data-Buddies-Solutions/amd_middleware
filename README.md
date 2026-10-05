@@ -236,6 +236,12 @@ name. Only "Medicare" or "Medicaid" with no plan name asks for the full plan nam
 other generic words alone, or no match for this visit type, ask for the card. Every decision for
 a plan carries its `planId` and `carrierId`.
 
+To answer that question, send the caller's words again with `offeredPlanIds` set to
+the offered `planId`s. The middleware picks the offered plan the words name ("Medicare"
+after the Aetna options is Aetna Medicare), asks again with the offered plans that still
+fit when the words are vague, and decides the words as a new plan when they name none of
+them. The voice agent never matches the answer itself.
+
 `POST /api/add-patient` and `POST /api/patient/update-insurance` accept an optional
 `insurancePlanId`. When it is sent, the decision is made for that plan in the office's
 list and coverage and its carrier is written; the name is not matched again. Without
