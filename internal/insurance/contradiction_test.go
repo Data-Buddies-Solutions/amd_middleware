@@ -52,7 +52,6 @@ func TestRealDataNeverPicksAPlanTheCallerContradicted(t *testing.T) {
 		{"Staywell Medicaid", "medical", "staywell-medicare-medical"},
 		{"Sunshine Medicare", "medical", "sunshine-medicaid-medical"},
 		{"Oscar Medicare", "medical", "oscar-health-medical"},
-		{"Tricare Humana Military (Select)", "medical", "tricare-select"},
 		{"United Healthcare Medicare", "routine_vision", "unitedhealthcare-vision"},
 		{"Cigna Medicare Advantage HMO", "routine_vision", "cigna-vision"},
 		{"Ambetter Premier", "routine_vision", "ambetter-vision"},

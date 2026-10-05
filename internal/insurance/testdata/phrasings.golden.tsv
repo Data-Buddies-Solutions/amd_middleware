@@ -65,8 +65,8 @@ hollywood	medical	Clover Medicare	needs_clarification				needs_input: What is th
 hollywood	medical	Medicare please	needs_clarification				needs_input: What is the full plan name on your card?
 hollywood	medical	the Medicare one I think	needs_clarification				needs_input: What is the full plan name on your card?
 hollywood	medical	Medicare red white and blue card	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
-hollywood	medical	Aetna	needs_clarification				needs_input: What is the full plan name on your card?
-hollywood	medical	Aetna Medicar	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	medical	Aetna	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-epo-university-of-miami,aetna-better-health-medicaid-medical	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, Aetna EPO University of Miami, or Aetna Better Health Medicaid MMA?
+hollywood	medical	Aetna Medicar	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-epo-university-of-miami,aetna-better-health-medicaid-medical	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, Aetna EPO University of Miami, or Aetna Better Health Medicaid MMA?
 hollywood	medical	Humana	needs_clarification				needs_input: What is the full plan name on your card?
 hollywood	medical	Humana Gold PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
 hollywood	medical	Humana from work	needs_clarification				needs_input: What is the full plan name on your card?
@@ -325,8 +325,8 @@ sweetwater	medical	Clover Medicare	needs_clarification				needs_input: What is t
 sweetwater	medical	Medicare please	needs_clarification				needs_input: What is the full plan name on your card?
 sweetwater	medical	the Medicare one I think	needs_clarification				needs_input: What is the full plan name on your card?
 sweetwater	medical	Medicare red white and blue card	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
-sweetwater	medical	Aetna	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-epo-university-of-miami,aetna-qhp-individual-exchange	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, Aetna EPO University of Miami, or Aetna QHP Individual Exchange?
-sweetwater	medical	Aetna Medicar	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-epo-university-of-miami,aetna-qhp-individual-exchange	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, Aetna EPO University of Miami, or Aetna QHP Individual Exchange?
+sweetwater	medical	Aetna	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-epo-university-of-miami	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, or Aetna EPO University of Miami?
+sweetwater	medical	Aetna Medicar	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-epo-university-of-miami	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, or Aetna EPO University of Miami?
 sweetwater	medical	Humana	needs_clarification				needs_input: What is the full plan name on your card?
 sweetwater	medical	Humana Gold PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
 sweetwater	medical	Humana from work	needs_clarification				needs_input: What is the full plan name on your card?

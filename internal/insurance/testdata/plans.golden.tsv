@@ -114,7 +114,7 @@ crystal_river	medical	wellcare-medicaid	not_accepted	car281245				blocked: This 
 crystal_river	medical	wellcare-medicare-lppo	accepted	car281317		Dr. Licht		success: Yes, we accept WellCare Medicare Lppo.
 hollywood	medical	aetna-medicare-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Aetna Medicare HMO & PPO.
 hollywood	medical	aetna-commercial-medical	accepted	car40887		Dr. Bach	Dr. Bach	success: Yes, we accept Aetna Commercial HMO & PPO.
-hollywood	medical	aetna-qhp-individual-exchange	needs_staff_task	car40887				blocked: The office needs to confirm this coverage.
+hollywood	medical	aetna-qhp-individual-exchange	accepted	car40887		Dr. Bach	Dr. Bach	success: Yes, we accept Aetna QHP Individual Exchange.
 hollywood	medical	aetna-epo-university-of-miami	needs_staff_task	car40887	staff_verify	Dr. Bach	Dr. Bach	blocked: The office needs to verify this plan's coverage before scheduling.
 hollywood	medical	aetna-epo-north-broward	needs_staff_task	car40887	staff_verify	Dr. Bach	Dr. Bach	blocked: The office needs to verify this plan's coverage before scheduling.
 hollywood	medical	aetna-better-health-medicaid-medical	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
@@ -122,7 +122,7 @@ hollywood	medical	aetna-healthy-kids-medical	accepted	car40907		Dr. Bach	Dr. Bac
 hollywood	medical	ambetter-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Ambetter Medical.
 hollywood	medical	ambetter-select-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Ambetter Select.
 hollywood	medical	ambetter-value-medical	needs_staff_task	car281245	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
-hollywood	medical	ambetter-premier-medical	needs_staff_task	car281245				blocked: The office needs to confirm this coverage.
+hollywood	medical	ambetter-premier-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Ambetter Premier.
 hollywood	medical	avmed-select	accepted	car40890		Dr. Bach	Dr. Bach	success: Yes, we accept AvMed Select.
 hollywood	medical	avmed-jackson-first-network-hmo	not_accepted	car40890				blocked: This plan is not accepted for this visit type at this office.
 hollywood	medical	avmed-engage	needs_staff_task	car40890	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
@@ -188,8 +188,8 @@ hollywood	medical	united-healthcare-medical	accepted	car40923		Dr. Bach	Dr. Bach
 hollywood	medical	united-healthcare-medicaid-non-par	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
 hollywood	medical	us-health-group	accepted	car284838		Dr. Bach	Dr. Bach	success: Yes, we accept US Health Group.
 hollywood	medical	united-healthcare-aarp-medicare	accepted	car302750		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare AARP Medicare Complete.
-hollywood	medical	united-healthcare-dual-complete-medical	needs_staff_task	car40923				blocked: The office needs to confirm this coverage.
-hollywood	medical	united-healthcare-choice-medical	needs_staff_task	car40923				blocked: The office needs to confirm this coverage.
+hollywood	medical	united-healthcare-dual-complete-medical	accepted	car40923		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Dual Complete.
+hollywood	medical	united-healthcare-choice-medical	accepted	car40923		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Choice.
 hollywood	medical	united-healthcare-all-savers	accepted	car284949		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare All Savers.
 hollywood	medical	united-healthcare-golden-rule	accepted	car40902		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Golden Rule.
 hollywood	medical	united-healthcare-individual-exchange	needs_staff_task	car40923	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
@@ -492,7 +492,7 @@ spring_hill	routine_vision	unitedhealthcare-vision	accepted	car308790		Dr. Otero
 spring_hill	routine_vision	amerihealth-vision	accepted	car281317		Dr. Otero	Dr. Otero	success: Yes, we accept AmeriHealth.
 sweetwater	medical	aetna-medicare-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Aetna Medicare HMO & PPO.
 sweetwater	medical	aetna-commercial-medical	accepted	car40887		Dr. Bach	Dr. Bach	success: Yes, we accept Aetna Commercial HMO & PPO.
-sweetwater	medical	aetna-qhp-individual-exchange	needs_staff_task	car40887				blocked: The office needs to confirm this coverage.
+sweetwater	medical	aetna-qhp-individual-exchange	accepted	car40887		Dr. Bach	Dr. Bach	success: Yes, we accept Aetna QHP Individual Exchange.
 sweetwater	medical	aetna-epo-university-of-miami	needs_staff_task	car40887	staff_verify	Dr. Bach	Dr. Bach	blocked: The office needs to verify this plan's coverage before scheduling.
 sweetwater	medical	aetna-epo-north-broward	needs_staff_task	car40887	staff_verify	Dr. Bach	Dr. Bach	blocked: The office needs to verify this plan's coverage before scheduling.
 sweetwater	medical	aetna-better-health-medicaid-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Aetna Better Health Medicaid MMA.
@@ -500,7 +500,7 @@ sweetwater	medical	aetna-healthy-kids-medical	accepted	car40907		Dr. Bach	Dr. Ba
 sweetwater	medical	ambetter-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Ambetter Medical.
 sweetwater	medical	ambetter-select-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Ambetter Select.
 sweetwater	medical	ambetter-value-medical	needs_staff_task	car281245	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
-sweetwater	medical	ambetter-premier-medical	needs_staff_task	car281245				blocked: The office needs to confirm this coverage.
+sweetwater	medical	ambetter-premier-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Ambetter Premier.
 sweetwater	medical	avmed-select	accepted	car40890		Dr. Bach	Dr. Bach	success: Yes, we accept AvMed Select.
 sweetwater	medical	avmed-jackson-first-network-hmo	not_accepted	car40890				blocked: This plan is not accepted for this visit type at this office.
 sweetwater	medical	avmed-engage	needs_staff_task	car40890	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.
@@ -566,8 +566,8 @@ sweetwater	medical	united-healthcare-medical	accepted	car40923		Dr. Bach	Dr. Bac
 sweetwater	medical	united-healthcare-medicaid-non-par	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
 sweetwater	medical	us-health-group	accepted	car284838		Dr. Bach	Dr. Bach	success: Yes, we accept US Health Group.
 sweetwater	medical	united-healthcare-aarp-medicare	accepted	car302750		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare AARP Medicare Complete.
-sweetwater	medical	united-healthcare-dual-complete-medical	needs_staff_task	car40923				blocked: The office needs to confirm this coverage.
-sweetwater	medical	united-healthcare-choice-medical	needs_staff_task	car40923				blocked: The office needs to confirm this coverage.
+sweetwater	medical	united-healthcare-dual-complete-medical	accepted	car40923		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Dual Complete.
+sweetwater	medical	united-healthcare-choice-medical	accepted	car40923		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Choice.
 sweetwater	medical	united-healthcare-all-savers	accepted	car284949		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare All Savers.
 sweetwater	medical	united-healthcare-golden-rule	accepted	car40902		Dr. Bach	Dr. Bach	success: Yes, we accept United Healthcare Golden Rule.
 sweetwater	medical	united-healthcare-individual-exchange	needs_staff_task	car40923	pcp_referral	Dr. Bach	Dr. Bach	blocked: This plan requires a referral from your primary care doctor before scheduling.

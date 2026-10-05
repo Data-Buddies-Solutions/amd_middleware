@@ -50,7 +50,7 @@ medical-center-international,Medical Center International (SouthBay Medical Cent
 florida-medicaid,Florida Medicaid,medical,FLO03,car40899,,Medicaid (straight Medicaid) | Straight Medicaid | Straight Florida Medicaid
 medicare-part-b,Medicare Part B,medical,FLO02,car40900,,Medicare | Florida Medicare | Standard Medicare | Original Medicare | Traditional Medicare | Medicare Health Insurance | Medicare Supplement | Medicare Supplemental | Medigap | Medicare Red White and Blue | Red White and Blue Medicare
 icare-medical,iCare,medical,ICA01,car40907,,
-meritain-health,Meritain Health,medical,MERI1,car301578,,Meritain
+meritain-health,Meritain Health,medical,MERI1,car301578,,Meritain | Meritain Health - Aetna
 miami-childrens-health-plan-medical,Miami Children's Health Plan (Medicaid),medical,ICA01,car40907,,Miami Children's Health Plan (Medicaid) Medical | Miami Children's Health Plan | Miami Children's | Miami Children
 molina-marketplace-non-par,Molina Marketplace,medical,,,,Molina Market Place (Medical) | Molina Market Place
 molina-medicaid-medical,Molina Medicaid,medical,ICA01,car40907,,Molina Medicaid (Medical) | Molina Healthcare Medicaid
@@ -67,8 +67,8 @@ solis-medicare-medical,Solis Medicare,medical,PREM1,car281317,,Solis Medicare (M
 staywell-medicare-medical,Staywell Medicare,medical,AMBE1,car281245,,Staywell Medicare (Medical) | Staywell
 sunhealth-discount-plan,SunHealth Discount Plan,medical,SUNHEALT,car308086,,SunHealth | Sun Health
 sunshine-medicaid-medical,Sunshine Medicaid,medical,AMBE1,car281245,,Sunshine Medicaid (Medical) | Sunshine | Sunshine Health
-tricare-prime,Tricare Prime,medical,TRI00,car284327,,
-tricare-select,Tricare Select,medical,TRI00,car284327,,
+tricare-prime,Tricare Prime,medical,TRI00,car284327,,Tricare Humana Military (Prime)
+tricare-select,Tricare Select,medical,TRI00,car284327,,Tricare Humana Military (Select)
 tricare-for-life,Tricare For Life,medical,TRI05,car40921,,Tricare for Life - Supplemental Insurance to Medicare | Tricare Forever
 umr,UMR,medical,UNIT3,car284838,,UMR (United Health One) | United Health One
 united-healthcare-medical,United Healthcare Medical,medical,UNI20,car40923,,

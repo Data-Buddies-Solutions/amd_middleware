@@ -36,18 +36,29 @@ func TestRealDataAetnaBetterAtSouthFloridaOffices(t *testing.T) {
 }
 
 func TestRealDataBareAetnaAsksWithResolvableOptions(t *testing.T) {
-	sweetwater := office(t, "sweetwater")
-	d := DecideInsurance("Aetna", "medical", sweetwater, adultDOB)
-	if d.Outcome != "needs_clarification" || len(d.Options) < 2 {
-		t.Fatalf("decision = %+v", d)
-	}
-	for _, option := range d.Options {
-		if again := DecideInsurance(option.Label, "medical", sweetwater, adultDOB); again.PlanID != option.PlanID {
-			t.Fatalf("option %q resolved to %+v", option.Label, again)
+	for _, officeID := range []string{"hollywood", "sweetwater"} {
+		o := office(t, officeID)
+		d := DecideInsurance("Aetna", "medical", o, adultDOB)
+		if d.Outcome != "needs_clarification" || len(d.Options) < 2 {
+			t.Fatalf("%s: decision = %+v", officeID, d)
+		}
+		for _, option := range d.Options {
+			if again := DecideInsurance(option.Label, "medical", o, adultDOB); again.PlanID != option.PlanID {
+				t.Fatalf("%s: option %q resolved to %+v", officeID, option.Label, again)
+			}
 		}
 	}
-	if d := DecideInsurance("Aetna", "medical", office(t, "hollywood"), adultDOB); d.Answer != answerAskFullName {
-		t.Fatalf("hollywood has more than %d Aetna outcomes: %+v", maxOptions, d)
+}
+
+func TestRealDataSouthFloridaKnowsTheNamesMainAccepted(t *testing.T) {
+	for heard, planID := range map[string]string{
+		"Meritain Health - Aetna":          "meritain-health",
+		"Tricare Humana Military (Select)": "tricare-select",
+		"Tricare Humana Military (Prime)":  "tricare-prime",
+	} {
+		if d := DecideInsurance(heard, "medical", office(t, "hollywood"), adultDOB); d.PlanID != planID {
+			t.Errorf("%q: decision = %+v", heard, d)
+		}
 	}
 }
 

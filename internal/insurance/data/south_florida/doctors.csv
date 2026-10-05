@@ -1,7 +1,7 @@
 plan,Dr. Austin Bach,Dr. Miriam Bach,Dr. Gisselle Calero,Dr. Maria Casas,Dr. Lisbet Vidal,Dr. Kyler Farnan,requires,only_offices,notice,note
 aetna-medicare-medical,yes,yes,yes,yes,yes,yes,,,,
 aetna-commercial-medical,yes,yes,yes,yes,yes,yes,,,,
-aetna-qhp-individual-exchange,pending,pending,pending,pending,pending,pending,,,,Not on the 2026-07-07 insurance list. Staff confirms participation until the list includes it.
+aetna-qhp-individual-exchange,yes,no,no,no,no,no,,,,Not on the 2026-07-07 insurance list. Kept as main had it: medical visits with Dr. Austin Bach only.
 aetna-epo-university-of-miami,yes,yes,yes,yes,yes,yes,staff_verify,,,EPO University of Miami plan check w/Eligibility Team prior to appt for Limitations participating network
 aetna-epo-north-broward,yes,no,no,no,no,no,staff_verify,,,Dr. ABach ONLY -Check w/Eligibility Team prior to appt for Limitations participating network
 aetna-better-health-medicaid-medical,yes,yes,yes,yes,yes,yes,,sweetwater;north_miami_beach_optical,,effective 2/1/2025 ONLY in MiamiDade - NO LONGER Provided in Broward County
@@ -9,7 +9,7 @@ aetna-healthy-kids-medical,yes,yes,yes,yes,yes,yes,,,,Pull eligibilility from eh
 ambetter-medical,yes,yes,yes,yes,yes,yes,,,,Does Not Require Referral
 ambetter-select-medical,yes,yes,yes,yes,yes,yes,,,,
 ambetter-value-medical,yes,yes,yes,yes,yes,yes,pcp_referral,,,REQUIRES SIMPLE REFERRAL FROM THE PCP OFFICE
-ambetter-premier-medical,pending,pending,pending,pending,pending,pending,,,,Not on the 2026-07-07 insurance list. Staff confirms participation until the list includes it.
+ambetter-premier-medical,yes,no,no,no,no,no,,,,Not on the 2026-07-07 insurance list. Kept as main had it: medical visits with Dr. Austin Bach only.
 avmed-select,yes,no,no,no,no,no,,,,"Engage-Need referral from PCP unless 16 year old or under, not needed. Empower-We are par. Jackson First Network HMO-Non par."
 avmed-jackson-first-network-hmo,no,no,no,no,no,no,,,,AvMed note on the 2026-07-07 insurance list: Jackson First Network HMO-Non par.
 avmed-engage,yes,no,no,no,no,no,pcp_referral,,,"Engage-Need referral from PCP unless 16 year old or under, not needed. Empower-We are par. Jackson First Network HMO-Non par."
@@ -75,8 +75,8 @@ united-healthcare-medical,yes,yes,yes,yes,yes,yes,,,,"WE ARE NON PAR WITH MEDICA
 united-healthcare-medicaid-non-par,no,no,no,no,no,no,,,You can be seen as self-pay.,"United Healthcare row on the 2026-07-07 insurance list: WE ARE NON PAR WITH MEDICAID PLANS, can do self pay"
 us-health-group,yes,yes,yes,yes,yes,yes,,,,
 united-healthcare-aarp-medicare,yes,yes,yes,yes,yes,yes,,,,
-united-healthcare-dual-complete-medical,pending,pending,pending,pending,pending,pending,,,,Not on the 2026-07-07 insurance list. Staff confirms participation until the list includes it.
-united-healthcare-choice-medical,pending,pending,pending,pending,pending,pending,,,,Not on the 2026-07-07 insurance list. Staff confirms participation until the list includes it.
+united-healthcare-dual-complete-medical,yes,no,no,no,no,no,,,,Not on the 2026-07-07 insurance list. Kept as main had it: medical visits with Dr. Austin Bach only.
+united-healthcare-choice-medical,yes,no,no,no,no,no,,,,Not on the 2026-07-07 insurance list. Kept as main had it: medical visits with Dr. Austin Bach only.
 united-healthcare-all-savers,yes,yes,yes,yes,yes,yes,,,,
 united-healthcare-golden-rule,yes,yes,yes,yes,yes,yes,,,,No Auth Required - only for surgical procedures
 united-healthcare-individual-exchange,yes,yes,yes,yes,yes,yes,pcp_referral:uhc_portal,,,Effective 1/1/2024 NEW CONTRACT requires referral from PCP starting with R & in must be through UHC portal
