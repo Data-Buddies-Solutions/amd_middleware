@@ -250,7 +250,7 @@ func TestListSlotsErrorsPreserveInventoryContract(t *testing.T) {
 				records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryUnavailable)
 			}
 			scheduler := schedulingmodule.New(records, "secret", func() time.Time { return time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC) }, false)
-			handlers := NewHandlers(nil, nil, scheduler, nil)
+			handlers := NewHandlers(nil, nil, scheduler)
 			response := httptest.NewRecorder()
 			handlers.HandleListAppointmentSlots(response, httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(tc.body)))
 			var got schedulingmodule.AvailabilityResponse

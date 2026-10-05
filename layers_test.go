@@ -22,7 +22,6 @@ var packageLayers = map[string]string{
 	"internal/advancedmd":                "records",
 	"internal/advancedmd/advancedmdtest": "records",
 	"internal/insurance":                 "policy",
-	"internal/eligibility":               "feature",
 	"internal/patient":                   "feature",
 	"internal/scheduling":                "feature",
 	"internal/http":                      "handler",

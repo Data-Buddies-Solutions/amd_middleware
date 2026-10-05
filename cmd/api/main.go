@@ -13,7 +13,6 @@ import (
 	"advancedmd-token-management/internal/clients"
 	"advancedmd-token-management/internal/config"
 	"advancedmd-token-management/internal/domain"
-	"advancedmd-token-management/internal/eligibility"
 	apphttp "advancedmd-token-management/internal/http"
 	"advancedmd-token-management/internal/patient"
 	"advancedmd-token-management/internal/safeerrors"
@@ -64,14 +63,7 @@ func main() {
 		cfg.AllowRawSlotBooking,
 	)
 
-	var eligibilityService *eligibility.Service
-	if cfg.StediAPIKey != "" || cfg.StediProviders != nil {
-		eligibilityService, err = eligibility.New(cfg.StediAPIKey, cfg.StediProviders)
-		if err != nil {
-			log.Fatal("invalid eligibility configuration")
-		}
-	}
-	handlers := apphttp.NewHandlers(amdSession, patients, scheduler, eligibilityService)
+	handlers := apphttp.NewHandlers(amdSession, patients, scheduler)
 
 	maintenanceAuthorizer := apphttp.NewMaintenanceAuthorizer(
 		cfg.MaintenanceOIDCAudience,

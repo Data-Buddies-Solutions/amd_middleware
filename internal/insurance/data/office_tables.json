@@ -1,0 +1,13 @@
+{
+  "south_florida/doctors.csv": [
+    "hollywood",
+    "sweetwater",
+    "north_miami_beach_optical"
+  ],
+  "spring_hill_crystal_river/spring_hill.csv": [
+    "spring_hill"
+  ],
+  "spring_hill_crystal_river/crystal_river.csv": [
+    "crystal_river"
+  ]
+}

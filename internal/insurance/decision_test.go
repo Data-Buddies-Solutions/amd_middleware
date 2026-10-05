@@ -2,105 +2,168 @@ package insurance
 
 import (
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
-
-	"advancedmd-token-management/internal/domain"
+	"time"
 )
 
-func TestCorrectedInsuranceIdentities(t *testing.T) {
-	domain.InitRegistry("")
-	office, _ := domain.ResolveOffice("Hollywood")
-	for _, tc := range []struct{ plan, code, kind, channel string }{
-		{"United Individual Exchange", "UNI20", "pcp_referral", "uhc_portal"},
-		{"United AARP Medicare Complete/Medicare Advantage (HMO/LPPO)", "AARPM", "", ""},
-		{"United Golden Rule", "GOL05", "", ""},
-		{"United Oxford", "OX04", "", ""},
-		{"United Shared Services", "UNIT9", "", ""},
-		{"United Student Resources", "UHC STU", "", ""},
-		{"United Surest", "BIND1", "", ""},
-		{"United Global International Plan", "UNIT15", "vob_authorization", ""},
-		{"Preferred Care Partners", "PRE04", "", ""},
-		{"Humana Medicaid HMO", "HUM02", "prior_authorization", "availity"},
-	} {
-		t.Run(tc.code, func(t *testing.T) {
-			d := DecideInsurance(tc.plan, "medical", office, "01/02/1980")
-			if d.CarrierCode != tc.code || d.Participation != "accepted" || d.Eligibility != "not_checked" {
-				t.Fatalf("decision=%+v", d)
+func dobYearsAgo(years int) string {
+	return time.Now().AddDate(-years, 0, -1).Format("01/02/2006")
+}
+
+func springHillPlans() []plan {
+	return []plan{
+		{ID: "all-three", Label: "All Three", Coverage: "medical", CarrierID: "car1", Doctors: map[string]string{"Dr. Austin Bach": "yes", "Dr. Joseph Licht": "yes", "Dr. Noel": "yes"}},
+		{ID: "licht-only", Label: "Licht Only", Coverage: "medical", CarrierID: "car2", Doctors: map[string]string{"Dr. Joseph Licht": "yes", "Dr. Noel": "no"}},
+		{ID: "pending-plan", Label: "Pending Plan", Coverage: "medical", CarrierID: "car3", Doctors: map[string]string{"Dr. Austin Bach": "pending"}, CallerNotice: "Staff will call you back."},
+		{ID: "prior-auth-plan", Label: "Prior Auth Plan", Coverage: "medical", CarrierID: "car4", Doctors: bach("yes"), Requirements: []planRequirement{{Kind: "prior_authorization", Channel: "availity"}}},
+		{ID: "referral-plan", Label: "Referral Plan", Coverage: "medical", CarrierID: "car5", Doctors: bach("yes"), Requirements: []planRequirement{{Kind: "pcp_referral"}}},
+		{ID: "verify-plan", Label: "Verify Plan", Coverage: "medical", CarrierID: "car5", Doctors: bach("yes"), Requirements: []planRequirement{{Kind: "staff_verify"}}},
+		{ID: "otero-vision", Label: "Otero Vision", Coverage: "routine_vision", CarrierID: "car1", Doctors: map[string]string{"Dr. Melissa Otero": "yes"}, CallerNotice: "Bring your card."},
+	}
+}
+
+func TestDecidePlanFiltersOfficeDoctorsByThePlan(t *testing.T) {
+	useSyntheticCatalog(t, syntheticSouthFlorida(), springHillPlans(), nil)
+	springHill := office(t, "spring_hill")
+	tests := []struct {
+		name     string
+		planID   string
+		coverage string
+		office   string
+		dob      string
+		outcome  string
+		allowed  []string
+	}{
+		{"all medical doctors", "all-three", "medical", "spring_hill", adultDOB, "accepted", []string{"Dr. Bach", "Dr. Licht", "Dr. Noel"}},
+		{"plan doctors only", "licht-only", "medical", "spring_hill", adultDOB, "accepted", []string{"Dr. Licht"}},
+		{"pediatric routing keeps Bach", "all-three", "medical", "spring_hill", dobYearsAgo(10), "accepted", []string{"Dr. Bach"}},
+		{"pediatric routing without plan doctor", "licht-only", "medical", "spring_hill", dobYearsAgo(10), "needs_staff_task", []string{}},
+		{"no DOB keeps age-limited doctors", "vsp", "routine_vision", "hollywood", "", "accepted", []string{"Dr. Farnan", "Dr. Vidal"}},
+		{"no DOB keeps every medical doctor", "all-three", "medical", "spring_hill", "", "accepted", []string{"Dr. Bach", "Dr. Licht", "Dr. Noel"}},
+		{"child too young for every accepting doctor", "vsp", "routine_vision", "hollywood", dobYearsAgo(3), "needs_staff_task", []string{}},
+		{"routine vision uses optical doctors", "otero-vision", "routine_vision", "spring_hill", adultDOB, "accepted", []string{"Dr. Otero"}},
+		{"vision doctors with pending excluded", "vsp", "routine_vision", "hollywood", adultDOB, "accepted", []string{"Dr. Farnan", "Dr. Vidal"}},
+		{"doctor minimum age", "vsp", "routine_vision", "hollywood", dobYearsAgo(6), "accepted", []string{"Dr. Farnan"}},
+		{"other office doctors", "vsp", "routine_vision", "sweetwater", adultDOB, "accepted", []string{"Dr. Casas", "Dr. Farnan"}},
+		{"doctor says no", "aetna-commercial", "medical", "hollywood", adultDOB, "not_accepted", []string{}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			d := DecidePlan(tc.planID, tc.coverage, office(t, tc.office), tc.dob)
+			if d.Outcome != tc.outcome || d.PlanID != tc.planID || !slices.Equal(d.AllowedProviders, tc.allowed) {
+				t.Fatalf("decision = %+v", d)
 			}
-			if tc.kind != "" && (len(d.Requirements) != 1 || d.Requirements[0] != (InsuranceRequirement{tc.kind, tc.channel, "unverified"})) {
-				t.Fatalf("requirements=%+v", d.Requirements)
-			}
-			if d.CarrierID == "" {
-				t.Fatal("accepted plan lacks carrier mapping")
-			}
-			if tc.kind != "" && d.CanSchedule {
-				t.Fatal("requirement bypassed")
-			}
-			if tc.code == "PRE04" && (d.CarrierID != "car40916" || !d.CanSchedule) {
-				t.Fatalf("PRE04=%+v", d)
-			}
-			b, _ := json.Marshal(d)
-			if strings.Contains(string(b), "car40916") {
-				t.Fatal("internal carrier ID exposed")
+			if d.CanSchedule != (tc.outcome == "accepted") {
+				t.Fatalf("canSchedule = %v", d.CanSchedule)
 			}
 		})
 	}
-}
-
-func TestAmbiguousFamiliesNeverChooseProduct(t *testing.T) {
-	office, _ := domain.ResolveOffice("Hollywood")
-	for _, plan := range []string{"United Golden Rule or United Oxford", "HUM03", "Clear Spring Health"} {
-		d := DecideInsurance(plan, "medical", office, "")
-		if (d.Participation == "accepted") || d.CanSchedule || d.CarrierID != "" {
-			t.Fatalf("%s=%+v", plan, d)
-		}
-	}
-}
-
-func TestInsuranceOfficeScopeAndSimilarProducts(t *testing.T) {
-	for _, tc := range []struct{ office, plan, coverage, outcome string }{
-		{"Spring Hill", "Humana Gold Plus", "medical", "not_accepted"},
-		{"Crystal River", "Humana PPO", "medical", "not_accepted"},
-		{"Hollywood", "Humana Gold Plus", "medical", "accepted"},
-		{"Sweetwater", "Humana Gold Plus", "routine_vision", "accepted"},
-		{"Hollywood", "Florida Blue", "medical", "needs_clarification"},
-		{"Hollywood", "Florida Blue HMO", "medical", "needs_staff_task"},
-		{"Spring Hill", "Aetna EPO", "medical", "not_accepted"},
-		{"Spring Hill", "I have Aetna Medicare PPO", "routine_vision", "accepted"},
-		{"North Miami Beach Optical", "Aetna", "medical", "not_accepted"},
-		{"Crystal River", "Self Pay", "routine_vision", "not_accepted"},
-		{"Hollywood", "Preferred Care Partners", "routine_vision", "not_accepted"},
-		{"Crystal River", "United Golden Rule", "medical", "accepted"},
+	for _, tc := range []struct{ planID, coverage, office, dob string }{
+		{"licht-only", "medical", "spring_hill", dobYearsAgo(10)},
+		{"vsp", "routine_vision", "hollywood", dobYearsAgo(3)},
 	} {
-		office, _ := domain.ResolveOffice(tc.office)
-		d := DecideInsurance(tc.plan, tc.coverage, office, "")
-		if d.Outcome != tc.outcome {
-			t.Errorf("%+v => %+v", tc, d)
+		d := DecidePlan(tc.planID, tc.coverage, office(t, tc.office), tc.dob)
+		if d.Participation != "accepted" || d.Answer != answerNoDoctorForAge {
+			t.Fatalf("%+v: child decision = %+v", tc, d)
 		}
 	}
-	office, _ := domain.ResolveOffice("Hollywood")
-	nhp := DecideInsurance("United Healthcare NHP HMO Only", "medical", office, "")
-	access := DecideInsurance("United Healthcare NHP HMO Access", "medical", office, "")
-	if len(nhp.Requirements) != 0 || !nhp.CanSchedule || len(access.Requirements) != 0 {
-		t.Fatalf("NHP=%+v access=%+v", nhp, access)
+	if d := DecidePlan("otero-vision", "routine_vision", springHill, adultDOB); d.Answer != "success: Yes, we accept Otero Vision. Bring your card." {
+		t.Fatalf("answer = %q", d.Answer)
 	}
 }
 
-func TestPRE04CredentialingAndChartBinding(t *testing.T) {
-	for _, name := range []string{"Hollywood", "Sweetwater"} {
-		office, _ := domain.ResolveOffice(name)
-		d := DecideChartInsurance(domain.PatientDemographics{CarrierID: "car40916", CarrierName: "PREFERRED CARE PARTNERS"}, "", "medical", office, "01/02/1980")
-		if d.CarrierCode != "PRE04" || len(d.CredentialedProviders) != 3 || !d.CanSchedule || len(d.AllowedProviders) != 1 || d.AllowedProviders[0] != "Dr. Bach" {
-			t.Fatalf("%s=%+v", name, d)
+func TestDecidePlanSendsPendingAndRequirementsToStaff(t *testing.T) {
+	useSyntheticCatalog(t, syntheticSouthFlorida(), springHillPlans(), nil)
+	springHill := office(t, "spring_hill")
+
+	pending := DecidePlan("pending-plan", "medical", springHill, adultDOB)
+	if pending.Outcome != "needs_staff_task" || pending.Participation != "unknown" || pending.CanSchedule ||
+		pending.Answer != "blocked: The office needs to confirm this coverage. Staff will call you back." {
+		t.Fatalf("pending = %+v", pending)
+	}
+
+	auth := DecidePlan("prior-auth-plan", "medical", springHill, adultDOB)
+	want := []InsuranceRequirement{{Kind: "prior_authorization", Channel: "availity", Verification: "unverified"}}
+	if auth.Outcome != "needs_staff_task" || auth.Participation != "accepted" || auth.CanSchedule ||
+		!slices.Equal(auth.Requirements, want) || auth.Answer != answerPriorAuth {
+		t.Fatalf("prior auth = %+v", auth)
+	}
+
+	verify := DecidePlan("verify-plan", "medical", springHill, adultDOB)
+	if verify.Outcome != "needs_staff_task" || verify.Participation != "accepted" || verify.CanSchedule || verify.Answer != answerStaffVerify {
+		t.Fatalf("staff verify = %+v", verify)
+	}
+
+	referral := DecidePlan("referral-plan", "medical", springHill, adultDOB)
+	if referral.Outcome != "needs_staff_task" || referral.Answer != answerReferral {
+		t.Fatalf("referral = %+v", referral)
+	}
+}
+
+func TestDecidePlanHonorsOnlyOffices(t *testing.T) {
+	plans := append(syntheticSouthFlorida(), plan{ID: "miami-dade-plan", Label: "Miami Dade Plan", Coverage: "medical", CarrierID: "car1", Doctors: bach("yes"), OnlyOffices: []string{"sweetwater"}})
+	useSyntheticCatalog(t, plans, nil, nil)
+	if d := DecidePlan("miami-dade-plan", "medical", office(t, "sweetwater"), adultDOB); d.Outcome != "accepted" {
+		t.Fatalf("sweetwater = %+v", d)
+	}
+	if d := DecidePlan("miami-dade-plan", "medical", office(t, "hollywood"), adultDOB); d.Outcome != "not_accepted" || d.Answer != answerNotAccepted {
+		t.Fatalf("hollywood = %+v", d)
+	}
+}
+
+func TestDecidePlanRequiresThePlanInTheOfficeListAndCoverage(t *testing.T) {
+	useSyntheticCatalog(t, syntheticSouthFlorida(), springHillPlans(), nil)
+	for _, tc := range []struct{ planID, coverage, office string }{
+		{"all-three", "medical", "hollywood"},
+		{"vsp", "medical", "hollywood"},
+		{"missing", "medical", "hollywood"},
+		{"", "medical", "hollywood"},
+	} {
+		d := DecidePlan(tc.planID, tc.coverage, office(t, tc.office), adultDOB)
+		if d.Outcome != "needs_clarification" || d.PlanID != "" || d.Answer != answerAskCard {
+			t.Fatalf("%+v: decision = %+v", tc, d)
 		}
-		d = DecideChartInsurance(domain.PatientDemographics{CarrierID: "car40916", CarrierName: "Preferred Care Partners"}, "Aetna", "medical", office, "01/02/1980")
-		if d.CanSchedule {
-			t.Fatal("Caller correction silently scheduled against old PRE04 plan")
+	}
+}
+
+func TestDecisionsRejectUnsupportedCoverage(t *testing.T) {
+	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
+	d := DecideInsurance("Aetna Medicare", "medical", office(t, "north_miami_beach_optical"), adultDOB)
+	if d.Outcome != "not_accepted" || d.Answer != answerOfficeNoCoverage {
+		t.Fatalf("office without medical = %+v", d)
+	}
+	d = DecidePlan("aetna-medicare", "dental", office(t, "hollywood"), adultDOB)
+	if d.Outcome != "needs_clarification" || d.Answer != answerAskCoverage {
+		t.Fatalf("unknown coverage = %+v", d)
+	}
+}
+
+func TestInsuranceDecisionJSON(t *testing.T) {
+	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
+	accepted, err := json.Marshal(DecideInsurance("Aetna Medicare", "medical", office(t, "hollywood"), adultDOB))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{`"planId":"aetna-medicare"`, `"canonicalPlan":"Aetna Medicare"`, `"carrierCode":"AET07"`, `"carrierId":"car40887"`, `"allowedProviders":["Dr. Bach"]`, `"eligibility":"not_checked"`} {
+		if !strings.Contains(string(accepted), field) {
+			t.Fatalf("missing %s in %s", field, accepted)
 		}
-		d = DecideChartInsurance(domain.PatientDemographics{CarrierID: "car40923", CarrierName: "United Healthcare"}, "Preferred Care Partners", "medical", office, "01/02/1980")
-		if d.CanSchedule {
-			t.Fatal("mismatched chart scheduled")
+	}
+	asked, err := json.Marshal(DecideInsurance("Aetna", "medical", office(t, "hollywood"), adultDOB))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(asked), `"options":[{"planId":"aetna-medicare","label":"Aetna Medicare"}`) {
+		t.Fatalf("options missing in %s", asked)
+	}
+	for _, body := range []string{string(accepted), string(asked)} {
+		if strings.Contains(body, "routing") || strings.Contains(body, "credentialedProviders") {
+			t.Fatalf("dropped field present in %s", body)
 		}
+	}
+	if strings.Contains(string(accepted), "options") {
+		t.Fatalf("options present without a question: %s", accepted)
 	}
 }

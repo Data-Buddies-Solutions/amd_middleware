@@ -329,9 +329,8 @@ func applyDemographics(result *ResolveResult, demographics domain.PatientDemogra
 	if demographics.CarrierID == "" {
 		return
 	}
-	decision := insurance.DecideChartInsurance(demographics, "", "medical", office, patientDOB)
+	decision := insurance.DecideChartInsurance(demographics, "medical", office, patientDOB)
 	result.InsuranceDecision = &decision
-	result.Routing = decision.Routing
 	result.AllowedProviders = decision.AllowedProviders
 	result.RoutingAmbiguous = decision.Participation == "unknown"
 	result.PreauthRequired = len(decision.Requirements) > 0

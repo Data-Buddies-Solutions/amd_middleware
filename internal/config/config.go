@@ -1,13 +1,10 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
 	"strings"
-
-	"advancedmd-token-management/internal/eligibility"
 )
 
 type Config struct {
@@ -24,9 +21,7 @@ type Config struct {
 	Port                string
 	AllowRawSlotBooking bool
 
-	AMDEnv         string
-	StediAPIKey    string
-	StediProviders map[string]eligibility.Provider
+	AMDEnv string
 }
 
 func Load() (*Config, error) {
@@ -42,15 +37,6 @@ func Load() (*Config, error) {
 		Port:                          os.Getenv("PORT"),
 		AllowRawSlotBooking:           parseBoolEnv(os.Getenv("ALLOW_RAW_SLOT_BOOKING")),
 		AMDEnv:                        os.Getenv("AMD_ENV"),
-		StediAPIKey:                   os.Getenv("STEDI_API_KEY"),
-	}
-	if providers := os.Getenv("STEDI_PROVIDERS"); providers != "" {
-		if err := json.Unmarshal([]byte(providers), &cfg.StediProviders); err != nil {
-			return nil, fmt.Errorf("STEDI_PROVIDERS must be a JSON object of eligibility providers")
-		}
-		if cfg.StediProviders == nil {
-			cfg.StediProviders = map[string]eligibility.Provider{}
-		}
 	}
 
 	if cfg.Port == "" {

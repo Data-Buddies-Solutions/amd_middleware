@@ -1,0 +1,153 @@
+plan,Dr. Austin Bach,Dr. Miriam Bach,Dr. Gisselle Calero,Dr. Maria Casas,Dr. Lisbet Vidal,Dr. Kyler Farnan,requires,only_offices,notice,note
+aetna-medicare-medical,yes,yes,yes,yes,yes,yes,,,,
+aetna-commercial-medical,yes,yes,yes,yes,yes,yes,,,,
+aetna-qhp-individual-exchange,yes,no,no,no,no,no,,,,Not on the 2026-07-07 insurance list. Kept as main had it: medical visits with Dr. Austin Bach only.
+aetna-epo-university-of-miami,yes,yes,yes,yes,yes,yes,staff_verify,,,EPO University of Miami plan check w/Eligibility Team prior to appt for Limitations participating network
+aetna-epo-north-broward,yes,no,no,no,no,no,staff_verify,,,Dr. ABach ONLY -Check w/Eligibility Team prior to appt for Limitations participating network
+aetna-better-health-medicaid-medical,yes,yes,yes,yes,yes,yes,,sweetwater;north_miami_beach_optical,,effective 2/1/2025 ONLY in MiamiDade - NO LONGER Provided in Broward County
+aetna-healthy-kids-medical,yes,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+ambetter-medical,yes,yes,yes,yes,yes,yes,,,,Does Not Require Referral
+ambetter-select-medical,yes,yes,yes,yes,yes,yes,,,,
+ambetter-value-medical,yes,yes,yes,yes,yes,yes,pcp_referral,,,REQUIRES SIMPLE REFERRAL FROM THE PCP OFFICE
+ambetter-premier-medical,yes,no,no,no,no,no,,,,Not on the 2026-07-07 insurance list. Kept as main had it: medical visits with Dr. Austin Bach only.
+avmed-select,yes,no,no,no,no,no,,,,"Engage-Need referral from PCP unless 16 year old or under, not needed. Empower-We are par. Jackson First Network HMO-Non par."
+avmed-jackson-first-network-hmo,no,no,no,no,no,no,,,,AvMed note on the 2026-07-07 insurance list: Jackson First Network HMO-Non par.
+avmed-engage,yes,no,no,no,no,no,pcp_referral,,,"Engage-Need referral from PCP unless 16 year old or under, not needed. Empower-We are par. Jackson First Network HMO-Non par."
+avmed-entrust-medical,no,no,no,no,no,no,,,You can be seen as self-pay.,"We are non par, we can do self pay."
+careplus-medicare-medical,yes,yes,yes,yes,yes,yes,prior_authorization,hollywood,,HOLLYWOOD OFFICE ONLY - requires prior authorization from PCP
+childrens-medical-services-medical,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from Envolve for Benefits
+cigna-hmo,yes,yes,yes,yes,yes,yes,pcp_referral;staff_verify,,,Requires Referral/RX from PCP - Miami-Dade Public Schools - Dr. Austin Bach ONLY
+cigna-florida-connect-epo,no,no,no,no,no,no,,,You can be seen as self-pay.,NON-PAR with EPO Florida Connect (Exclusive Provider Organization) Can be self pay
+cigna-local-plus-non-par,no,no,no,no,no,no,,,You can be seen as self-pay.,"NON-PAR with Local Plus, Can be self pay"
+cigna-sure-fit,no,no,no,no,no,no,,,You can be seen as self-pay.,"NON-PAR with Sure Fit, Can be self pay"
+cigna-medicare-advantage-medical,yes,no,no,no,no,no,pcp_referral:availity,,,"Dr. Bach ONLY,  Healthspring HMO needs referral from the portal (Availity)"
+cigna-open-access,yes,yes,yes,yes,yes,yes,,,,
+cigna-miami-dade-public-schools,yes,no,yes,no,no,no,,,,
+cigna-ppo,yes,yes,yes,yes,yes,yes,,,,
+clear-spring-health-medicare-advantage,pending,pending,pending,pending,pending,pending,,,,ONLY Medical and Only Dr. Bach
+community-care-plan-medical,yes,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+eye-america-aao,yes,yes,yes,yes,yes,yes,staff_verify,,,"No Billing, No charge to the patient - $VISTA ONLY Dr. BACH"
+devoted-medicare-hmo-medical,yes,yes,yes,yes,yes,yes,,,,Effective 1/1/2025 Prior Auth are not required for Medical Office Visits & Diagnostic Testing. But are for SX & Injections
+devoted-medicare-ppo-medical,yes,yes,yes,yes,yes,yes,,,,Effective 1/1/2025 Prior Auth are not required for Medical Office Visits & Diagnostic Testing. But are for SX & Injections
+doctors-health-medicare-medical,yes,yes,yes,yes,yes,yes,,,,Effective 5/1/2026 w/iCare. Pull eligibility from ehealthdeck.com it will provide pre-certification
+florida-blue-hmo,yes,no,no,no,no,no,prior_authorization:emi_portal,,,Dr. ABach [Peds Auth from PCP & Adults ONLY for STRABISMUS-Auth from General Ophthalmologist] Requires Prior Auth through EMI portal
+florida-blue-medicare-ppo-medical,yes,yes,yes,yes,yes,yes,,,,
+florida-blue-medicare-hmo-medical,pending,pending,pending,pending,pending,pending,,,,Not on the 2026-07-07 sheet (no Florida Blue Medicare HMO medical row). Staff must confirm participation.
+florida-blue-ppo-out-of-state,yes,yes,yes,yes,yes,yes,,,,
+florida-blue-ppo-federal-employee,yes,yes,yes,yes,yes,yes,,,,
+florida-blue-select-non-par,no,no,no,no,no,no,,,You can be seen as self-pay.,"NON PAR - OUT OF NETWORK, Can be self pay"
+florida-blue-steward-tier-1,yes,no,no,no,no,no,,,,ONLY Dr. Austin Bach
+florida-complete-care-medicare,yes,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+florida-community-care,yes,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+freedom-health-medicare-medical,yes,no,no,no,no,no,,hollywood,,Dr. ABach only. Medical only in Broward (Hollywood)
+humana-medicaid-hmo,yes,yes,yes,yes,yes,yes,prior_authorization:availity,,,Requires Prior Auth/Referral through Availity with CPT codes specific and we need it with our tax ID 83-0653677
+humana-medicare-ppo,yes,yes,yes,yes,yes,yes,,,,
+humana-medicare-hmo,yes,yes,yes,yes,yes,yes,,,,effective 1/1/2026 will be administered by iCare for Medical services.
+humana-premier-hmo,yes,yes,yes,yes,yes,yes,,,,Does not require Prior Auth/Referral
+humana-ppo-pos,yes,yes,yes,yes,yes,yes,,,,Does not require Prior Auth/Referral
+imagine-health,yes,yes,yes,pending,pending,pending,staff_verify,,,Network (Participates with Multiple Insurances) call Individual Number listed on the back of the insurance card
+medical-center-international,pending,pending,pending,pending,pending,pending,,,,Dr. Austin Bach ONLY - Selfpays $75.00 All Visits
+florida-medicaid,yes,yes,yes,yes,yes,yes,,,,
+medicare-part-b,yes,yes,yes,yes,pending,pending,,,,
+icare-medical,yes,no,no,no,no,no,,,,Not on the 2026-07-07 insurance list. Kept as main had it: medical visits with Dr. Austin Bach only.
+meritain-health,yes,no,no,no,no,no,,,,Meritain Health Aetna - only Dr. Bach is participating
+miami-childrens-health-plan-medical,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from ehealthdeck.com it will provide pre-certification
+molina-marketplace-non-par,no,no,no,no,no,no,,,You can be seen as self-pay.,No Longer Accepting any patients for this plan - Can be self pay
+molina-medicaid-medical,yes,yes,yes,no,yes,yes,,sweetwater;north_miami_beach_optical,,effective 2/1/2025 ONLY in MiamiDade - NO LONGER Provided in Broward County ask patient for new insurance
+molina-medicare-medical,yes,no,no,no,no,no,pcp_referral,,,Dr. Austin Bach ONLY - Medical - Requires Referrals from PCP
+multiplan-phcs,yes,yes,yes,yes,yes,yes,,,,Multiplan is a Network (Participates with Multiple Insurances)
+optimum-healthplan-medicare-medical,yes,no,no,no,no,no,,hollywood,,"Dr. A Bach ONLY, Medical only in Broward (Hollywood)"
+oscar-health-medical,yes,no,no,no,no,no,,,,ODs cannot see Medical for Oscar
+partners-direct-health,yes,no,no,no,no,no,,,,ONLY Dr. A Bach
+preferred-care-partners-medical,yes,pending,yes,yes,no,no,,,,MEDICAL ONLY - We cannot render vision/routine eye care services.
+seminole-tribe-medical,yes,no,no,no,no,no,pcp_referral,,,Requires Referrals - Medical & Vision
+simply-medicaid-medical,yes,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+simply-medicare-medical,yes,pending,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+solis-medicare-medical,yes,yes,yes,yes,yes,yes,prior_authorization,,,Medical Requires Prior Auth
+staywell-medicare-medical,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from Envolve for Benefits
+sunhealth-discount-plan,yes,yes,yes,yes,yes,yes,,,,Discount Plan - Patient Pays for all examinations
+sunshine-medicaid-medical,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from Envolve for Benefits
+tricare-prime,yes,yes,no,yes,no,no,prior_authorization,,,Medical ONLY-Needs Prior Auth
+tricare-select,yes,yes,no,yes,no,no,,,,Does Not Require Auth
+tricare-for-life,yes,yes,no,yes,no,no,,,,Plan is the 2nd to Medicare ONLY (Medicare will Always be Primary)
+umr,yes,yes,yes,yes,yes,yes,staff_verify,,,Some require prior auth - we need to call to confirm
+united-healthcare-medical,yes,yes,yes,yes,yes,yes,,,,"WE ARE NON PAR WITH MEDICAID PLANS, can do self pay"
+united-healthcare-medicaid-non-par,no,no,no,no,no,no,,,You can be seen as self-pay.,"United Healthcare row on the 2026-07-07 insurance list: WE ARE NON PAR WITH MEDICAID PLANS, can do self pay"
+us-health-group,yes,yes,yes,yes,yes,yes,,,,
+united-healthcare-aarp-medicare,yes,yes,yes,yes,yes,yes,,,,
+united-healthcare-dual-complete-medical,yes,no,no,no,no,no,,,,Not on the 2026-07-07 insurance list. Kept as main had it: medical visits with Dr. Austin Bach only.
+united-healthcare-choice-medical,yes,no,no,no,no,no,,,,Not on the 2026-07-07 insurance list. Kept as main had it: medical visits with Dr. Austin Bach only.
+united-healthcare-all-savers,yes,yes,yes,yes,yes,yes,,,,
+united-healthcare-golden-rule,yes,yes,yes,yes,yes,yes,,,,No Auth Required - only for surgical procedures
+united-healthcare-individual-exchange,yes,yes,yes,yes,yes,yes,pcp_referral:uhc_portal,,,Effective 1/1/2024 NEW CONTRACT requires referral from PCP starting with R & in must be through UHC portal
+united-healthcare-nhp-hmo-access,yes,yes,yes,yes,yes,yes,,,,NO auths/referrals needed (access) only for surgical procedures
+united-healthcare-nhp-hmo-only,yes,yes,yes,yes,yes,yes,pcp_referral,,,Needs referral from PCP
+united-healthcare-oxford,yes,yes,yes,yes,yes,yes,,,,
+united-healthcare-shared-services,yes,yes,yes,yes,yes,yes,,,,NO Auth Required - only for surgical procedures
+united-healthcare-student-resources,yes,yes,yes,yes,yes,yes,,,,NO Auth Required - only for surgical procedures
+united-healthcare-surest,yes,yes,yes,yes,yes,yes,,,,
+united-healthcare-global,yes,yes,yes,yes,yes,yes,prior_authorization,,,Requires Prior Auth - Some plans cover Vision
+wellcare-medicaid-medical,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from Envolve for Benefits
+wellcare-medicare-lppo,yes,yes,yes,yes,yes,yes,prior_authorization,,,Wellcare LPPO MEDICARE MEDICAL ONLY requires prior-auth
+self-pay-medical,yes,yes,yes,yes,yes,yes,,,,
+envolve-vision-medical,yes,no,no,no,no,no,,,,Not on the 2026-07-07 insurance list. Kept as main had it: medical visits with Dr. Austin Bach only.
+eye-care-health-solutions-medical,yes,no,no,no,no,no,,,,Not on the 2026-07-07 insurance list. Kept as main had it: medical visits with Dr. Austin Bach only.
+aetna-medicare-ppo-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+aetna-medicare-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+aetna-better-health-medicaid-vision,no,yes,yes,yes,yes,yes,,sweetwater;north_miami_beach_optical,,effective 2/1/2025 ONLY in MiamiDade - NO LONGER Provided in Broward County
+aetna-healthy-kids-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+ambetter-vision,yes,yes,yes,yes,yes,yes,,,,Does Not Require Referral
+avmed-entrust-vision,no,yes,yes,yes,yes,yes,,,,VISION ONLY
+careplus-medicare-vision,no,pending,pending,pending,pending,pending,,hollywood;sweetwater,,"CarePlus Medicare Routine Vision, Sweetwater and Hollywood"
+childrens-medical-services-vision,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from Envolve for Benefits
+community-care-plan-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+devoted-medicare-hmo-vision,yes,yes,yes,yes,yes,yes,,,,
+devoted-medicare-ppo-vision,yes,yes,yes,yes,yes,yes,,,,
+doctors-health-medicare-vision,no,yes,yes,yes,yes,yes,,,,Routine Vision ONLY - Pull eligibility from ehealthdeck.com it will provide pre-certification
+florida-blue-medicare-vision,no,yes,yes,yes,yes,yes,,,,effective 1/1/2024 Premier will be managing the Routine Vision Plan
+freedom-health-medicare-vision,no,yes,yes,yes,yes,yes,,hollywood,,Routine/Vision only in Broward (Hollywood & Coral Springs) Indian River (VeroBeach)
+healthsun-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+humana-medicaid-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+humana-medicare-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+miami-childrens-health-plan-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibility from ehealthdeck.com it will provide pre-certification
+molina-medicaid-vision,no,yes,yes,yes,yes,yes,,sweetwater;north_miami_beach_optical,,effective 2/1/2025 ONLY in MiamiDade - NO LONGER Provided in Broward County ask patient for new insurance
+optimum-healthplan-medicare-vision,no,yes,yes,yes,yes,yes,,hollywood,,Routine/Vision only in Broward (Hollywood & Coral Springs) Indian River (VeroBeach)
+preferred-care-network-medica-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+seminole-tribe-vision,yes,yes,yes,yes,yes,yes,pcp_referral,,,Requires Referrals - Medical & Vision
+simply-medicaid-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+simply-medicare-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+solis-medicare-vision,yes,yes,yes,yes,yes,yes,,,,
+staywell-medicaid-vision,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from Envolve for Benefits
+sunshine-medicaid-vision,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from Envolve for Benefits
+wellcare-medicaid-vision,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from Envolve for Benefits
+wellcare-medicare-hmo-vision,yes,yes,yes,yes,yes,yes,,,,Vision - Routine ONLY - No Refferals/No Auths
+vsp,no,yes,yes,yes,yes,yes,,,,
+eyemed,no,yes,yes,yes,yes,yes,,,,
+nva,no,yes,yes,yes,yes,yes,,,,
+davis-vision,no,yes,yes,yes,yes,yes,,,,
+spectera,no,yes,yes,yes,yes,yes,,,,
+solstice,no,yes,yes,yes,yes,yes,,,,
+icare-routine-vision,no,yes,yes,yes,yes,yes,,,,
+guardian,no,yes,yes,yes,yes,yes,,,,
+alivi,no,yes,yes,yes,yes,yes,,,,
+premier-eye-care,no,yes,yes,yes,yes,yes,,,,
+envolve-routine-vision,no,yes,yes,yes,yes,yes,,,,
+sunhealth-routine-vision,no,yes,yes,yes,yes,yes,,,,
+oscar-routine-vision,no,yes,yes,yes,yes,yes,,,"For new patients with Oscar, Davis Vision coverage is automatic through age 18. For patients 19 and older, Davis Vision is included only if they selected Oscar's additional vision option. Without that option, the visit would be self-pay.",
+self-pay-routine-vision,no,yes,yes,yes,yes,yes,,,,
+metlife-vision,no,yes,yes,yes,yes,yes,,,,
+liberty-financial-vision,no,yes,yes,yes,yes,yes,,,,
+lincoln-financial-vision,no,yes,yes,yes,yes,yes,,,,
+humana-vision-through-work,no,yes,yes,yes,yes,yes,,,,
+aetna-vision-through-work,no,yes,yes,yes,yes,yes,,,,
+unum-vision,no,yes,yes,yes,yes,yes,,,,
+cigna-vision,no,yes,yes,yes,yes,yes,,,,
+cigna-florida-connect-epo-vision,no,no,no,no,no,no,,,You can be seen as self-pay.,NON-PAR with EPO Florida Connect (Exclusive Provider Organization) Can be self pay
+cigna-local-plus-non-par-vision,no,no,no,no,no,no,,,You can be seen as self-pay.,"NON-PAR with Local Plus, Can be self pay"
+cigna-sure-fit-vision,no,no,no,no,no,no,,,You can be seen as self-pay.,"NON-PAR with Sure Fit, Can be self pay"
+superior-vision,no,yes,yes,yes,yes,yes,,,,
+florida-blue-vision-through-work,no,yes,yes,yes,yes,yes,,,,
+blueview-vision,no,yes,yes,yes,yes,yes,,,,
+versant-vision,no,yes,yes,yes,yes,yes,,,,
+unitedhealthcare-vision,no,yes,yes,yes,yes,yes,,,,
+amerihealth-vision,no,yes,yes,yes,yes,yes,,,,

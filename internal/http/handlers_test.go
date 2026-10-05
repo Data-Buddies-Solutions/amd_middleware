@@ -33,7 +33,7 @@ func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
 		PatientID: patientID,
 	})
 
-	router := NewRouter(NewHandlers(nil, nil, nil, nil), "test-secret", nil)
+	router := NewRouter(NewHandlers(nil, nil, nil), "test-secret", nil)
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	w := httptest.NewRecorder()
 
@@ -53,7 +53,7 @@ func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
 
 func TestPatientResolveKeepsStableResponseWhenSessionUnavailable(t *testing.T) {
 	records := advancedmd.NewAdapter(unavailableSession{}, nil, nil)
-	handlers := NewHandlers(unavailableSession{}, patientmodule.New(records, testAppointmentTokens), nil, nil)
+	handlers := NewHandlers(unavailableSession{}, patientmodule.New(records, testAppointmentTokens), nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"patientId":"123"}`))
 	w := httptest.NewRecorder()
 
@@ -84,7 +84,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 		CarrierName: "HUMANA MEDICARE",
 		CarrierID:   "car40906",
 	}
-	handlers := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil, nil)
+	handlers := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil)
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -101,7 +101,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 	if body.Status != "verified" || body.PatientID != "123" || body.Phone != "850-373-3869" {
 		t.Fatalf("response = %+v", body)
 	}
-	if body.Routing != domain.RoutingBachOnly || len(body.AllowedProviders) != 1 || body.RoutingAmbiguous || body.InsuranceDecision == nil || !body.InsuranceDecision.CanSchedule {
+	if len(body.AllowedProviders) != 1 || body.RoutingAmbiguous || body.InsuranceDecision == nil || !body.InsuranceDecision.CanSchedule {
 		t.Fatalf("routing response = %+v", body)
 	}
 	if body.AppointmentsStatus != "none" || body.Appointments == nil {
@@ -662,7 +662,7 @@ func TestAuthMiddleware(t *testing.T) {
 }
 
 func TestRouter(t *testing.T) {
-	handlers := NewHandlers(nil, nil, nil, nil)
+	handlers := NewHandlers(nil, nil, nil)
 
 	router := NewRouter(handlers, "test-secret", nil)
 
@@ -816,35 +816,30 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 	tests := []struct {
 		name             string
 		body             string
-		wantRouting      string
 		wantProviders    []string
 		wantXMLRPCWrites int
 	}{
 		{
 			name:             "routine vision filters age-restricted providers",
 			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-6, 0, 0).Format("01/02/2006")),
-			wantRouting:      string(domain.RoutingOpticalOnly),
 			wantProviders:    []string{"Dr. Farnan", "Dr. Calero"},
 			wantXMLRPCWrites: 1,
 		},
 		{
 			name:             "routine vision accepts Sunshine Health alias",
 			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"Sunshine Health","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-16, 0, 0).Format("01/02/2006")),
-			wantRouting:      string(domain.RoutingOpticalOnly),
 			wantProviders:    []string{"Dr. Farnan", "Dr. Vidal", "Dr. Calero"},
 			wantXMLRPCWrites: 1,
 		},
 		{
 			name:             "north miami beach optical routine vision",
 			body:             `{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13055095333"}`,
-			wantRouting:      string(domain.RoutingOpticalOnly),
 			wantProviders:    []string{"Dr. Miriam Bach"},
 			wantXMLRPCWrites: 1,
 		},
 		{
 			name:             "medical minor uses pediatric routing",
 			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insPlanId":"ins123","oldInsurance":"Old","insurance":"Aetna Commercial","subscriberNum":"ABC123","office":"Spring Hill","dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
-			wantRouting:      string(domain.RoutingBachOnly),
 			wantProviders:    []string{"Dr. Bach"},
 			wantXMLRPCWrites: 2,
 		},
@@ -867,9 +862,6 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 			json.NewDecoder(w.Result().Body).Decode(&resp)
 			if resp.Status != "updated" {
 				t.Fatalf("expected updated response, got %#v", resp)
-			}
-			if string(resp.Routing) != tt.wantRouting {
-				t.Fatalf("routing = %q, want %q", resp.Routing, tt.wantRouting)
 			}
 			if len(resp.AllowedProviders) != len(tt.wantProviders) {
 				t.Fatalf("allowedProviders = %v, want %v", resp.AllowedProviders, tt.wantProviders)
@@ -935,7 +927,7 @@ func newProviderFailureTestHandlers(t *testing.T, fail func(*http.Request, []byt
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
 	)
-	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil, nil)
+	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil)
 }
 
 func newUpdateInsuranceTestHandlers(t *testing.T, dob, insPlanID string) (*Handlers, *[]string) {
@@ -984,7 +976,7 @@ func newUpdateInsuranceTestHandlers(t *testing.T, dob, insPlanID string) (*Handl
 		clients.NewAdvancedMDClient(httpClient),
 		clients.NewAdvancedMDRestClient(httpClient),
 	)
-	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil, nil), &writes
+	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil), &writes
 }
 
 func newPatientResolveTestHandlers(
@@ -1132,7 +1124,7 @@ func newPatientResolveTestHandlers(
 	amdRestClient := clients.NewAdvancedMDRestClient(httpClient)
 	records := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient)
 
-	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil, nil)
+	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens), nil)
 }
 
 func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListCommand) (schedulingmodule.AvailabilityResponse, error) {
@@ -1144,7 +1136,7 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true, Patients: []domain.Patient{{ID: "1", FirstName: "Jane", LastName: "Meyer", DOB: "01/01/1980"}}}
 	amd.Demographics["1"] = domain.PatientDemographics{InsuranceStateKnown: true, FullName: "MEYER,JANE", DOB: "01/01/1980"}
-	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil, nil)
+	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil)
 	for _, tc := range []struct {
 		body  string
 		valid bool
@@ -1189,7 +1181,7 @@ func TestFirstNameDOBUnresolvedHTTPContract(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: false}
-	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil, nil)
+	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens), nil)
 	writer := httptest.NewRecorder()
 	handler.HandlePatientResolve(writer, httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"firstName":"Jane","dob":"01/01/1980","office":"spring_hill"}`)))
 	var body patientmodule.ResolveResult

@@ -1,16 +1,21 @@
 package insurance
 
-import (
-	"embed"
-	"encoding/json"
-	"regexp"
-	"strings"
+import "advancedmd-token-management/internal/domain"
 
-	"advancedmd-token-management/internal/domain"
+const (
+	answerAskCard          = "needs_input: What insurance plan is listed on your card?"
+	answerAskFullName      = "needs_input: What is the full plan name on your card?"
+	answerAskCoverage      = "needs_input: Specify medical or routine vision coverage."
+	answerOfficeNoCoverage = "blocked: This office does not accept coverage for that visit type."
+	answerNotAccepted      = "blocked: This plan is not accepted for this visit type at this office."
+	answerConfirm          = "blocked: The office needs to confirm this coverage."
+	answerPriorAuth        = "blocked: This plan requires prior authorization before scheduling."
+	answerReferral         = "blocked: This plan requires a referral from your primary care doctor before scheduling."
+	answerStaffVerify      = "blocked: The office needs to verify this plan's coverage before scheduling."
+	answerChartStaff       = "blocked: Staff must verify the insurance on the chart before scheduling."
+	answerNoDoctorForAge   = "blocked: We accept this plan, but none of its doctors at this office can see a patient of this age. The office needs to arrange this visit."
+	maxOptions             = 4
 )
-
-//go:embed data/*.json
-var insuranceSources embed.FS
 
 type InsuranceRequirement struct {
 	Kind         string `json:"kind"`
@@ -18,267 +23,97 @@ type InsuranceRequirement struct {
 	Verification string `json:"verification"`
 }
 
+type InsuranceOption struct {
+	PlanID string `json:"planId"`
+	Label  string `json:"label"`
+}
+
 type InsuranceDecision struct {
-	Outcome               string                 `json:"outcome"`
-	Participation         string                 `json:"participation"`
-	CanonicalPlan         string                 `json:"canonicalPlan,omitempty"`
-	CarrierCode           string                 `json:"carrierCode,omitempty"`
-	CoverageType          string                 `json:"coverageType"`
-	OfficeID              string                 `json:"officeId"`
-	Routing               domain.RoutingRule     `json:"routing,omitempty"`
-	AllowedProviders      []string               `json:"allowedProviders"`
-	CredentialedProviders []string               `json:"credentialedProviders,omitempty"`
-	Requirements          []InsuranceRequirement `json:"requirements"`
-	Eligibility           string                 `json:"eligibility"`
-	CanSchedule           bool                   `json:"canSchedule"`
-	SelfPay               bool                   `json:"selfPay"`
-	Answer                string                 `json:"answer"`
-	CarrierID             string                 `json:"-"`
+	Outcome          string                 `json:"outcome"`
+	Participation    string                 `json:"participation"`
+	PlanID           string                 `json:"planId,omitempty"`
+	CanonicalPlan    string                 `json:"canonicalPlan,omitempty"`
+	CarrierCode      string                 `json:"carrierCode,omitempty"`
+	CarrierID        string                 `json:"carrierId,omitempty"`
+	CoverageType     string                 `json:"coverageType"`
+	OfficeID         string                 `json:"officeId"`
+	AllowedProviders []string               `json:"allowedProviders"`
+	Requirements     []InsuranceRequirement `json:"requirements"`
+	Eligibility      string                 `json:"eligibility"`
+	CanSchedule      bool                   `json:"canSchedule"`
+	SelfPay          bool                   `json:"selfPay"`
+	Answer           string                 `json:"answer"`
+	Options          []InsuranceOption      `json:"options,omitempty"`
 }
 
-type participationRule struct {
-	Status          string   `json:"status"`
-	Canonical       string   `json:"canonicalPlan"`
-	Display         string   `json:"displayName"`
-	Aliases         []string `json:"aliases"`
-	RequiredAliases []string `json:"requiredWordAliases"`
-	Notice          string   `json:"callerNotice"`
-	Clarification   string   `json:"clarificationNeeded"`
-	Preauth         bool     `json:"preauthRequired"`
-	CarrierID       string
-	CarrierCode     string
-	Routing         domain.RoutingRule
-	Requirements    []InsuranceRequirement
-	Providers       []string
-}
-
-var insuranceWords = regexp.MustCompile(`[^a-z0-9]+`)
-
-func insuranceNormalize(s string) string {
-	return strings.TrimSpace(insuranceWords.ReplaceAllString(strings.ReplaceAll(strings.ToLower(s), "&", " and "), " "))
-}
-func insuranceContains(s, term string) bool { return strings.Contains(" "+s+" ", " "+term+" ") }
-
-var participationSources = func() map[string][]participationRule {
-	result := medicalRules()
-	b, err := insuranceSources.ReadFile("data/INSURANCE_SPRING_HILL_ROUTINE_VISION.json")
-	if err != nil {
-		panic(err)
-	}
-	var doc struct {
-		Plans []participationRule `json:"plans"`
-	}
-	if err = json.Unmarshal(b, &doc); err != nil {
-		panic(err)
-	}
-	result["SPRING_HILL_ROUTINE_VISION"] = doc.Plans
-	return result
-}()
-
-func requirement(kind, channel string) InsuranceRequirement {
-	return InsuranceRequirement{kind, channel, "unverified"}
-}
-
-func medicalIdentityCode(name string) string {
-	n := insuranceNormalize(name)
-	n = strings.TrimSpace(strings.ReplaceAll(n, " medical ", " "))
-	n = strings.TrimSuffix(n, " medical")
-	for _, p := range medicalPlans {
-		switch p.CarrierCode {
-		case "UNI20":
-			if p.Name != "United Healthcare Individual Exchange" {
-				continue
-			}
-		case "AARPM", "GOL05", "OX04", "UNIT9", "UHC STU", "BIND1", "UNIT15", "PRE04", "HUM02":
-		default:
-			continue
-		}
-		for _, alias := range append([]string{p.Name, p.CarrierCode}, p.Aliases...) {
-			if n == insuranceNormalize(alias) {
-				return p.CarrierCode
-			}
-		}
-	}
-	return ""
-}
-
-func DecideInsurance(plan, coverage string, office *domain.OfficeConfig, dob string) InsuranceDecision {
-	return decideInsurance(plan, coverage, office, dob, false)
-}
-
-func DecideEligibilityInsurance(plan, coverage string, office *domain.OfficeConfig, dob string) InsuranceDecision {
-	return decideInsurance(plan, coverage, office, dob, true)
-}
-
-func decideInsurance(plan, coverage string, office *domain.OfficeConfig, dob string, exact bool) InsuranceDecision {
-	d := InsuranceDecision{Outcome: "needs_clarification", Participation: "unknown", CoverageType: coverage, OfficeID: office.ID, AllowedProviders: []string{}, Requirements: []InsuranceRequirement{}, Eligibility: "not_checked", Answer: "needs_input: What insurance plan is listed on your card?"}
-	if coverage != "medical" && coverage != "routine_vision" {
-		d.Answer = "needs_input: Specify medical or routine vision coverage."
+func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob string) InsuranceDecision {
+	d, list, ok := startDecision(coverage, office)
+	if !ok {
 		return d
 	}
-	source := "SPRING_HILL_MEDICAL"
-	switch office.ID {
-	case "hollywood", "sweetwater":
-		source = "HOLLYWOOD_SWEETWATER"
-	case "crystal_river":
-		source = "CRYSTAL_RIVER"
-	}
-	if coverage == "routine_vision" {
-		source = "SPRING_HILL_ROUTINE_VISION"
-	}
-	if (coverage == "medical" && !office.SupportsMedical()) || (coverage == "routine_vision" && !office.SupportsRouting(domain.RoutingOpticalOnly)) {
-		d.Outcome = "not_accepted"
-		d.Participation = "not_accepted"
-		d.Answer = "blocked: This office does not accept coverage for that visit type."
+	heardWords := tokens(heard)
+	words := callerWords(heardWords, list.vocabulary[coverage])
+	if len(words) < len(heardWords) && namesProgram(words) {
+		d.Answer = answerAskFullName
 		return d
 	}
-	r := participationMatch(source, plan)
-	if exact && r != nil {
-		known := false
-		for _, alias := range append(append([]string{r.Display, r.Canonical}, r.Aliases...), r.RequiredAliases...) {
-			if insuranceNormalize(alias) == insuranceNormalize(plan) {
-				known = true
-				break
-			}
-		}
-		if !known {
-			r = nil
-		}
+	if p, ok := exactPlan(list, coverage, words); ok {
+		return decidePlanAtOffice(p, office, dob)
 	}
-	if coverage == "routine_vision" {
-		code := medicalIdentityCode(plan)
-		if code == "" && r != nil {
-			code = medicalIdentityCode(r.Canonical)
-		}
-		if code != "" {
-			if code == "PRE04" {
-				d.Outcome = "not_accepted"
-				d.Participation = "not_accepted"
-				d.Answer = "blocked: Preferred Care Partners is medical only."
-			}
-			return d
-		}
-	}
-	if r == nil {
-		return d
-	}
-	if r.Status == "needs_clarification" {
-		if r.Clarification != "" {
-			d.Answer = "needs_input: " + r.Clarification
+	found := bestCandidates(list, coverage, words)
+	if len(found) == 0 {
+		if namesProgram(words) {
+			d.Answer = answerAskFullName
 		}
 		return d
 	}
-	if r.Status == "not_accepted" {
-		d.Outcome = "not_accepted"
-		d.Participation = "not_accepted"
-		d.Answer = "blocked: This plan is not accepted for this visit type at this office."
-		return d
-	}
-	if r.Status == "needs_staff_task" {
-		d.Outcome = "needs_staff_task"
-		d.Answer = "blocked: The office needs to confirm this coverage."
-		if r.Notice != "" {
-			d.Answer += " " + r.Notice
-		}
-		return d
-	}
-	d.CanonicalPlan = r.Canonical
-	if d.CanonicalPlan == "" {
-		d.CanonicalPlan = r.Display
-	}
-	var entry insuranceEntry
-	var ok bool
-	if coverage == "medical" {
-		entry = insuranceEntry{CarrierID: r.CarrierID, Routing: r.Routing}
-		ok = r.Routing != ""
-		d.CarrierCode = r.CarrierCode
-		d.Requirements = append([]InsuranceRequirement{}, r.Requirements...)
-		d.CredentialedProviders = r.Providers
-	} else {
-		entry, ok = lookupVisionInsurance(d.CanonicalPlan)
-		if entry.PreauthRequired || r.Preauth {
-			d.Requirements = append(d.Requirements, requirement("prior_authorization", ""))
-		}
-	}
-	d.CarrierID = entry.CarrierID
-	d.Routing = entry.Routing
-	d.SelfPay = IsSelfPayInsurance(d.CanonicalPlan)
+	return decideCandidates(d, found, office, dob)
+}
 
-	d.Participation = "accepted"
-	d.Outcome = "accepted"
-	if ok {
-		d.Routing = office.SchedulingRouting(d.Routing, dob)
-		d.AllowedProviders = append([]string{}, office.ProvidersForRoutingAndDOB(d.Routing, dob)...)
+func DecidePlan(planID, coverage string, office *domain.OfficeConfig, dob string) InsuranceDecision {
+	d, list, ok := startDecision(coverage, office)
+	if !ok {
+		return d
 	}
-	if len(d.CredentialedProviders) > 0 {
-		allowed := []string{}
-		for _, p := range d.AllowedProviders {
-			for _, a := range d.CredentialedProviders {
-				if p == a || p == "Dr. Bach" && a == "Dr. Austin Bach" {
-					allowed = append(allowed, p)
-					break
-				}
-			}
+	for _, p := range list.Plans {
+		if p.ID == planID && p.Coverage == coverage {
+			return decidePlanAtOffice(p, office, dob)
 		}
-		d.AllowedProviders = allowed
-	}
-	d.CanSchedule = len(d.Requirements) == 0 && len(d.AllowedProviders) > 0
-	d.Answer = "success: Yes, we accept " + d.CanonicalPlan + "."
-	if coverage == "routine_vision" {
-		d.Answer = "success: Yes, we take " + r.Display + "."
-	}
-	if len(d.Requirements) > 0 {
-		d.Outcome = "needs_staff_task"
-		d.Answer = "blocked: This plan requires prior authorization before scheduling."
-	}
-	if r.Notice != "" {
-		d.Answer += " " + r.Notice
 	}
 	return d
 }
 
-func DecideChartInsurance(chart domain.PatientDemographics, plan, coverage string, office *domain.OfficeConfig, dob string) InsuranceDecision {
-	recordedPlan := chart.CarrierName
-	if coverage == "routine_vision" {
-		recordedPlan = ""
-		for _, rule := range participationSources["SPRING_HILL_ROUTINE_VISION"] {
-			entry, ok := lookupVisionInsurance(rule.Canonical)
-			if ok && chart.CarrierID != "" && entry.CarrierID == chart.CarrierID {
-				recordedPlan = rule.Canonical
-				break
-			}
-		}
+func startDecision(coverage string, office *domain.OfficeConfig) (InsuranceDecision, planList, bool) {
+	d := newDecision(coverage, office)
+	if coverage != "medical" && coverage != "routine_vision" {
+		d.Answer = answerAskCoverage
+		return d, planList{}, false
 	}
-	if chart.CarrierID == "car40916" {
-		recordedPlan = "Preferred Care Partners"
+	if !officeSupports(office, coverage) {
+		d.Outcome = "not_accepted"
+		d.Participation = "not_accepted"
+		d.Answer = answerOfficeNoCoverage
+		return d, planList{}, false
 	}
-	decision := DecideInsurance(recordedPlan, coverage, office, dob)
-	if coverage == "medical" && plan != "" {
-		carrierName := medicalCatalog.CarrierNames[chart.CarrierID]
-		if carrierName != "" && insuranceNormalize(chart.CarrierName) == insuranceNormalize(carrierName) {
-			decision = DecideInsurance(plan, coverage, office, dob)
-		}
+	return d, listForOffice(office.ID), true
+}
+
+func newDecision(coverage string, office *domain.OfficeConfig) InsuranceDecision {
+	return InsuranceDecision{
+		Outcome:          "needs_clarification",
+		Participation:    "unknown",
+		CoverageType:     coverage,
+		OfficeID:         office.ID,
+		AllowedProviders: []string{},
+		Requirements:     []InsuranceRequirement{},
+		Eligibility:      "not_checked",
+		Answer:           answerAskCard,
 	}
-	if !decision.CanSchedule {
-		if decision.Outcome == "accepted" {
-			decision.Outcome = "needs_staff_task"
-			decision.Answer = "blocked: Staff must verify the insurance on the chart before scheduling."
-		}
-		return decision
+}
+
+func officeSupports(office *domain.OfficeConfig, coverage string) bool {
+	if coverage == "medical" {
+		return office.SupportsMedical()
 	}
-	matches := chart.CarrierID != "" && chart.CarrierID == decision.CarrierID
-	if plan != "" {
-		claimed := DecideInsurance(plan, coverage, office, dob)
-		if coverage == "routine_vision" {
-			matches = matches && claimed.CanSchedule && claimed.CarrierID == decision.CarrierID
-		} else {
-			matches = matches && claimed.CanSchedule && insuranceNormalize(claimed.CanonicalPlan) == insuranceNormalize(decision.CanonicalPlan)
-		}
-	}
-	if !matches {
-		decision.CanSchedule = false
-		decision.Outcome = "needs_staff_task"
-		decision.Answer = "blocked: Staff must verify the insurance on the chart before scheduling."
-	}
-	return decision
+	return office.SupportsRouting(domain.RoutingOpticalOnly)
 }

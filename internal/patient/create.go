@@ -19,7 +19,8 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 	if err != nil {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
 	}
-	command.SubscriberNum = subscriberNumber(command.Insurance, command.SubscriberNum)
+	decision := decideInsurance(command.Insurance, command.InsurancePlanID, command.CoverageType, office, command.DOB)
+	command.SubscriberNum = subscriberNumber(decision.SelfPay, command.SubscriberNum)
 	if missing := createMissingFields(command); len(missing) > 0 {
 		return CreateResult{
 			Status:  CreateStatusError,
@@ -27,7 +28,6 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 			Message: fmt.Sprintf("Missing required fields: %s", strings.Join(missing, ", ")),
 		}
 	}
-	decision := decidePlan(command.Insurance, command.CoverageType, office, command.DOB)
 	if decision.Participation != "accepted" {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
@@ -78,7 +78,6 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 		PatientID:         created.ID,
 		Name:              created.Name,
 		DOB:               domain.NormalizeDOB(command.DOB),
-		Routing:           decision.Routing,
 		AllowedProviders:  decision.AllowedProviders,
 		PreauthRequired:   len(decision.Requirements) > 0,
 		InsuranceDecision: &decision,

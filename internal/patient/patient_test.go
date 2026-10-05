@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"log"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -78,7 +79,6 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 		InsuranceCarrierID: "car40906",
 		InsPlanID:          "ins789",
 		RespPartyID:        "resp456",
-		Routing:            domain.RoutingBachOnly,
 		AllowedProviders:   []string{"Dr. Bach"},
 		RoutingAmbiguous:   false,
 		AppointmentsStatus: patient.AppointmentsFound,
@@ -718,7 +718,7 @@ func TestResolveRefreshesKnownPatientByID(t *testing.T) {
 		t.Fatalf("Name = %q, want DOE,JANE", got.Name)
 	}
 	if got.DOB != "01/15/1980" || got.RoutingAmbiguous || got.InsuranceDecision == nil || !got.InsuranceDecision.CanSchedule {
-		t.Fatalf("demographics = DOB %q routing %q", got.DOB, got.Routing)
+		t.Fatalf("demographics = %+v", got)
 	}
 	if got.AppointmentsStatus != patient.AppointmentsFound || len(got.Appointments) != 1 {
 		t.Fatalf("appointments = %q %+v", got.AppointmentsStatus, got.Appointments)
@@ -906,49 +906,56 @@ func TestResolveDoesNotVerifyPatientWithoutIdentity(t *testing.T) {
 
 func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) {
 	domain.InitRegistry("")
-	office, _ := domain.LookupOffice("Spring Hill")
 
 	tests := []struct {
-		name             string
-		officeName       string
-		demographics     domain.PatientDemographics
-		patientDOB       string
-		wantRouting      domain.RoutingRule
-		wantPreauth      bool
-		wantAmbiguous    bool
-		wantProviderList bool
+		name          string
+		officeName    string
+		demographics  domain.PatientDemographics
+		patientDOB    string
+		wantProviders []string
+		wantPreauth   bool
+		wantAmbiguous bool
 	}{
 		{
 			name:       "Spring Hill accepted carrier",
 			officeName: "Spring Hill",
 			demographics: domain.PatientDemographics{InsuranceStateKnown: true,
-				CarrierName: "CIGNA HMO",
-				CarrierID:   "car301345",
+				CarrierName: "UNITED HEALTHCARE AARP",
+				CarrierID:   "car302750",
 			},
-			patientDOB:       "01/01/1980",
-			wantRouting:      domain.RoutingAll,
-			wantPreauth:      false,
-			wantAmbiguous:    false,
-			wantProviderList: true,
+			patientDOB:    "01/01/1980",
+			wantProviders: []string{"Dr. Bach", "Dr. Licht", "Dr. Noel"},
+			wantPreauth:   false,
+			wantAmbiguous: false,
 		},
 		{
-			name: "Hollywood prior authorization", officeName: "Hollywood",
+			name:       "Spring Hill carrier with plans that end differently",
+			officeName: "Spring Hill",
+			demographics: domain.PatientDemographics{InsuranceStateKnown: true,
+				CarrierName: "AETNA",
+				CarrierID:   "car40887",
+			},
+			patientDOB:    "01/01/1980",
+			wantProviders: []string{},
+			wantAmbiguous: true,
+		},
+		{
+			name: "Hollywood referral requirement", officeName: "Hollywood",
 			demographics: domain.PatientDemographics{InsuranceStateKnown: true, CarrierName: "CIGNA HMO", CarrierID: "car301345"},
-			patientDOB:   "01/01/1980", wantRouting: domain.RoutingBachOnly,
-			wantPreauth: true, wantProviderList: true,
+			patientDOB:   "01/01/1980", wantProviders: []string{"Dr. Bach"},
+			wantPreauth: true,
 		},
 		{
 			name:       "minor uses pediatric routing",
 			officeName: "Spring Hill",
 			demographics: domain.PatientDemographics{InsuranceStateKnown: true,
-				CarrierName: "AETNA COMMERCIAL",
-				CarrierID:   "car40887",
+				CarrierName: "UNITED HEALTHCARE AARP",
+				CarrierID:   "car302750",
 			},
-			patientDOB:       "01/01/2015",
-			wantRouting:      office.PediatricRouting,
-			wantPreauth:      false,
-			wantAmbiguous:    false,
-			wantProviderList: true,
+			patientDOB:    "01/01/2015",
+			wantProviders: []string{"Dr. Bach"},
+			wantPreauth:   false,
+			wantAmbiguous: false,
 		},
 	}
 
@@ -968,13 +975,10 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 			if err != nil {
 				t.Fatalf("Resolve() error = %v", err)
 			}
-			if got.Routing != test.wantRouting ||
+			if !slices.Equal(got.AllowedProviders, test.wantProviders) ||
 				got.PreauthRequired != test.wantPreauth ||
 				got.RoutingAmbiguous != test.wantAmbiguous {
 				t.Fatalf("policy result = %+v", got)
-			}
-			if (len(got.AllowedProviders) > 0) != test.wantProviderList {
-				t.Fatalf("AllowedProviders = %v", got.AllowedProviders)
 			}
 		})
 	}
@@ -991,7 +995,6 @@ func assertResolveResult(t *testing.T, got, want patient.ResolveResult) {
 		got.InsuranceCarrierID != want.InsuranceCarrierID ||
 		got.InsPlanID != want.InsPlanID ||
 		got.RespPartyID != want.RespPartyID ||
-		got.Routing != want.Routing ||
 		got.RoutingAmbiguous != want.RoutingAmbiguous ||
 		got.PreauthRequired != want.PreauthRequired ||
 		got.AppointmentsStatus != want.AppointmentsStatus ||

@@ -1,0 +1,417 @@
+office	coverage	heard	outcome	planId	carrierId	options	answer
+crystal_river	medical		needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	health plan	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	cash	accepted	self-pay-medical	car301672		success: Yes, we accept Self Pay.
+crystal_river	medical	self pay	accepted	self-pay-medical	car301672		success: Yes, we accept Self Pay.
+crystal_river	medical	it's through my employer	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	commercial	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	the first one	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	military	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	I'm a student	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	I'm not sure	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	Clover Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+crystal_river	medical	Medicare please	needs_clarification				needs_input: What is the full plan name on your card?
+crystal_river	medical	the Medicare one I think	needs_clarification				needs_input: What is the full plan name on your card?
+crystal_river	medical	Medicare red white and blue card	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+crystal_river	medical	Aetna	needs_clarification			aetna-epo,aetna-hmo,aetna-medicare,aetna-healthy-kids	needs_input: Which of these is on your card: Aetna EPO, Aetna HMO, Aetna Medicare, or Aetna Healthy Kids?
+crystal_river	medical	Aetna Medicar	needs_clarification			aetna-epo,aetna-hmo,aetna-medicare,aetna-healthy-kids	needs_input: Which of these is on your card: Aetna EPO, Aetna HMO, Aetna Medicare, or Aetna Healthy Kids?
+crystal_river	medical	Humana	needs_clarification				needs_input: What is the full plan name on your card?
+crystal_river	medical	Humana Gold PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	Humana from work	needs_clarification				needs_input: What is the full plan name on your card?
+crystal_river	medical	Florida Blue	needs_clarification			florida-blue-hmo,florida-blue-select,florida-blue-medicare-hmo	needs_input: Which of these is on your card: Florida Blue HMO, Florida Blue Select, or Florida Blue Medicare HMO?
+crystal_river	medical	Florida Blue Medicare Advantage	accepted	florida-blue-medicare-hmo	car40897		success: Yes, we accept Florida Blue Medicare HMO.
+crystal_river	medical	Blue Cross	needs_clarification			florida-blue-hmo,florida-blue-medicare-hmo	needs_input: Which of these is on your card: Florida Blue HMO or Florida Blue Medicare HMO?
+crystal_river	medical	BCBS	needs_clarification			florida-blue-hmo,florida-blue-medicare-hmo	needs_input: Which of these is on your card: Florida Blue HMO or Florida Blue Medicare HMO?
+crystal_river	medical	BCBS HMO	not_accepted	florida-blue-hmo	car280750		blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	United	needs_clarification				needs_input: What is the full plan name on your card?
+crystal_river	medical	UHC	needs_clarification				needs_input: What is the full plan name on your card?
+crystal_river	medical	United Healthcare PPO	needs_clarification				needs_input: What is the full plan name on your card?
+crystal_river	medical	Cigna	needs_clarification				needs_input: What is the full plan name on your card?
+crystal_river	medical	Molina	needs_clarification			molina-medicaid,molina-medicare,molina-marketplace	needs_input: Which of these is on your card: Molina Medicaid, Molina Medicare, or Molina Marketplace?
+crystal_river	medical	Molina Medicade	needs_clarification			molina-medicaid,molina-medicare,molina-marketplace	needs_input: Which of these is on your card: Molina Medicaid, Molina Medicare, or Molina Marketplace?
+crystal_river	medical	Simply	needs_clarification			simply-medicaid,simply-medicare	needs_input: Which of these is on your card: Simply Medicaid or Simply Medicare?
+crystal_river	medical	Staywell Medicaid	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	Tier 1	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	Medicare	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+crystal_river	medical	Medicaid	not_accepted	medicaid-all-plans	car40899		blocked: This plan is not accepted for this visit type at this office.
+crystal_river	medical	Medicade	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	Medicare Advantage	needs_clarification				needs_input: What is the full plan name on your card?
+crystal_river	medical	Medicare Part B	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+crystal_river	medical	Medicare Health Insurance	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+crystal_river	medical	Original Medicare	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+crystal_river	medical	Traditional Medicare	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+crystal_river	medical	Regular Medicare	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+crystal_river	medical	Medicare Supplement	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+crystal_river	medical	iCare	needs_staff_task	icare	car40907		blocked: The office needs to confirm this coverage.
+crystal_river	medical	I care	needs_staff_task	icare	car40907		blocked: The office needs to confirm this coverage.
+crystal_river	medical	I-Care	needs_staff_task	icare	car40907		blocked: The office needs to confirm this coverage.
+crystal_river	medical	PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	HMO	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	that one	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	the second one	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	the EPO one	needs_clarification				needs_input: What insurance plan is listed on your card?
+crystal_river	medical	the Health one	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical		needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	health plan	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	cash	accepted	self-pay-medical	car301672		success: Yes, we accept Self Pay.
+hollywood	medical	self pay	accepted	self-pay-medical	car301672		success: Yes, we accept Self Pay.
+hollywood	medical	it's through my employer	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	commercial	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	the first one	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	military	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	I'm a student	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	I'm not sure	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	Clover Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	medical	Medicare please	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	medical	the Medicare one I think	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	medical	Medicare red white and blue card	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+hollywood	medical	Aetna	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-epo-university-of-miami,aetna-better-health-medicaid-medical	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, Aetna EPO University of Miami, or Aetna Better Health Medicaid MMA?
+hollywood	medical	Aetna Medicar	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-epo-university-of-miami,aetna-better-health-medicaid-medical	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, Aetna EPO University of Miami, or Aetna Better Health Medicaid MMA?
+hollywood	medical	Humana	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	medical	Humana Gold PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	Humana from work	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	medical	Florida Blue	needs_clarification			florida-blue-hmo,florida-blue-select-non-par,florida-blue-medicare-hmo-medical,florida-blue-medicare-ppo-medical	needs_input: Which of these is on your card: Florida Blue HMO, Florida BlueSelect, Florida Blue Medicare HMO, or Florida Blue Medicare PPO?
+hollywood	medical	Florida Blue Medicare Advantage	needs_clarification			florida-blue-medicare-hmo-medical,florida-blue-medicare-ppo-medical	needs_input: Which of these is on your card: Florida Blue Medicare HMO or Florida Blue Medicare PPO?
+hollywood	medical	Blue Cross	needs_clarification			florida-blue-hmo,florida-blue-medicare-hmo-medical,florida-blue-medicare-ppo-medical	needs_input: Which of these is on your card: Florida Blue HMO, Florida Blue Medicare HMO, or Florida Blue Medicare PPO?
+hollywood	medical	BCBS	needs_clarification			florida-blue-hmo,florida-blue-medicare-hmo-medical,florida-blue-medicare-ppo-medical	needs_input: Which of these is on your card: Florida Blue HMO, Florida Blue Medicare HMO, or Florida Blue Medicare PPO?
+hollywood	medical	BCBS HMO	needs_staff_task	florida-blue-hmo	car280750		blocked: This plan requires prior authorization before scheduling.
+hollywood	medical	United	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	medical	UHC	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	medical	United Healthcare PPO	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	medical	Cigna	needs_clarification			cigna-hmo,cigna-ppo,cigna-sure-fit,cigna-medicare-advantage-medical	needs_input: Which of these is on your card: Cigna HMO, Cigna PPO, Cigna Sure Fit, or Cigna Medicare Advantage (Healthspring)?
+hollywood	medical	Molina	needs_clarification			molina-medicaid-medical,molina-medicare-medical,molina-marketplace-non-par	needs_input: Which of these is on your card: Molina Medicaid, Molina Medicare, or Molina Marketplace?
+hollywood	medical	Molina Medicade	needs_clarification			molina-medicaid-medical,molina-medicare-medical,molina-marketplace-non-par	needs_input: Which of these is on your card: Molina Medicaid, Molina Medicare, or Molina Marketplace?
+hollywood	medical	Simply	accepted	simply-medicaid-medical	car40907		success: Yes, we accept Simply Medicaid/Healthy Kids.
+hollywood	medical	Staywell Medicaid	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	Tier 1	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	Medicare	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+hollywood	medical	Medicaid	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	medical	Medicade	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	Medicare Advantage	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	medical	Medicare Part B	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+hollywood	medical	Medicare Health Insurance	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+hollywood	medical	Original Medicare	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+hollywood	medical	Traditional Medicare	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+hollywood	medical	Regular Medicare	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+hollywood	medical	Medicare Supplement	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+hollywood	medical	iCare	accepted	icare-medical	car40907		success: Yes, we accept iCare.
+hollywood	medical	I care	accepted	icare-medical	car40907		success: Yes, we accept iCare.
+hollywood	medical	I-Care	accepted	icare-medical	car40907		success: Yes, we accept iCare.
+hollywood	medical	PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	HMO	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	that one	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	the second one	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	the EPO one	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	medical	the Health one	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision		needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	health plan	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	cash	accepted	self-pay-routine-vision	car301672		success: Yes, we accept Self Pay.
+hollywood	routine_vision	self pay	accepted	self-pay-routine-vision	car301672		success: Yes, we accept Self Pay.
+hollywood	routine_vision	it's through my employer	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	commercial	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	the first one	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	military	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	I'm a student	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	I'm not sure	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	Clover Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	routine_vision	Medicare please	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	routine_vision	the Medicare one I think	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	routine_vision	Medicare red white and blue card	accepted	florida-blue-medicare-vision	car281317		success: Yes, we accept Florida Blue Medicare HMO & PPO Vision.
+hollywood	routine_vision	Aetna	needs_clarification			aetna-medicare-ppo-vision,aetna-vision-through-work,aetna-better-health-medicaid-vision	needs_input: Which of these is on your card: Aetna Medicare PPO Vision, Aetna Vision (through work), or Aetna Better Health Medicaid MMA Vision?
+hollywood	routine_vision	Aetna Medicar	needs_clarification			aetna-medicare-ppo-vision,aetna-vision-through-work,aetna-better-health-medicaid-vision	needs_input: Which of these is on your card: Aetna Medicare PPO Vision, Aetna Vision (through work), or Aetna Better Health Medicaid MMA Vision?
+hollywood	routine_vision	Humana	needs_clarification			humana-medicaid-vision,humana-vision-through-work	needs_input: Which of these is on your card: Humana Medicaid Vision or Humana Vision (through work)?
+hollywood	routine_vision	Humana Gold PPO	accepted	humana-medicare-vision	car40907		success: Yes, we accept Humana Medicare Vision.
+hollywood	routine_vision	Humana from work	accepted	humana-vision-through-work	car280684		success: Yes, we accept Humana Vision (through work).
+hollywood	routine_vision	Florida Blue	needs_clarification			blueview-vision,florida-blue-medicare-vision	needs_input: Which of these is on your card: BlueView Vision or Florida Blue Medicare HMO & PPO Vision?
+hollywood	routine_vision	Florida Blue Medicare Advantage	accepted	florida-blue-medicare-vision	car281317		success: Yes, we accept Florida Blue Medicare HMO & PPO Vision.
+hollywood	routine_vision	Blue Cross	needs_clarification			florida-blue-vision-through-work,florida-blue-medicare-vision	needs_input: Which of these is on your card: Florida Blue Vision (through work) or Florida Blue Medicare HMO & PPO Vision?
+hollywood	routine_vision	BCBS	needs_clarification			florida-blue-vision-through-work,florida-blue-medicare-vision	needs_input: Which of these is on your card: Florida Blue Vision (through work) or Florida Blue Medicare HMO & PPO Vision?
+hollywood	routine_vision	BCBS HMO	accepted	florida-blue-vision-through-work	car280612		success: Yes, we accept Florida Blue Vision (through work).
+hollywood	routine_vision	United	accepted	unitedhealthcare-vision	car308790		success: Yes, we accept UnitedHealthcare Vision.
+hollywood	routine_vision	UHC	accepted	unitedhealthcare-vision	car308790		success: Yes, we accept UnitedHealthcare Vision.
+hollywood	routine_vision	United Healthcare PPO	accepted	unitedhealthcare-vision	car308790		success: Yes, we accept UnitedHealthcare Vision.
+hollywood	routine_vision	Cigna	needs_clarification			cigna-vision,cigna-sure-fit-vision	needs_input: Which of these is on your card: Cigna Vision or Cigna Sure Fit?
+hollywood	routine_vision	Molina	not_accepted	molina-medicaid-vision	car40907		blocked: This plan is not accepted for this visit type at this office.
+hollywood	routine_vision	Molina Medicade	not_accepted	molina-medicaid-vision	car40907		blocked: This plan is not accepted for this visit type at this office.
+hollywood	routine_vision	Simply	accepted	simply-medicaid-vision	car40907		success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+hollywood	routine_vision	Staywell Medicaid	accepted	staywell-medicaid-vision	car281245		success: Yes, we accept Staywell Medicaid Vision.
+hollywood	routine_vision	Tier 1	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	routine_vision	Medicaid	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	routine_vision	Medicade	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	Medicare Advantage	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	routine_vision	Medicare Part B	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	routine_vision	Medicare Health Insurance	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	routine_vision	Original Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	routine_vision	Traditional Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	routine_vision	Regular Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	routine_vision	Medicare Supplement	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	routine_vision	iCare	accepted	icare-routine-vision	car40907		success: Yes, we accept iCare.
+hollywood	routine_vision	I care	accepted	icare-routine-vision	car40907		success: Yes, we accept iCare.
+hollywood	routine_vision	I-Care	accepted	icare-routine-vision	car40907		success: Yes, we accept iCare.
+hollywood	routine_vision	PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	HMO	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	that one	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	the second one	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	the EPO one	needs_clarification				needs_input: What insurance plan is listed on your card?
+hollywood	routine_vision	the Health one	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision		needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	health plan	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	cash	accepted	self-pay-routine-vision	car301672		success: Yes, we accept Self Pay.
+north_miami_beach_optical	routine_vision	self pay	accepted	self-pay-routine-vision	car301672		success: Yes, we accept Self Pay.
+north_miami_beach_optical	routine_vision	it's through my employer	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	commercial	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	the first one	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	military	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	I'm a student	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	I'm not sure	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	Clover Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+north_miami_beach_optical	routine_vision	Medicare please	needs_clarification				needs_input: What is the full plan name on your card?
+north_miami_beach_optical	routine_vision	the Medicare one I think	needs_clarification				needs_input: What is the full plan name on your card?
+north_miami_beach_optical	routine_vision	Medicare red white and blue card	accepted	florida-blue-medicare-vision	car281317		success: Yes, we accept Florida Blue Medicare HMO & PPO Vision.
+north_miami_beach_optical	routine_vision	Aetna	needs_clarification			aetna-medicare-ppo-vision,aetna-vision-through-work	needs_input: Which of these is on your card: Aetna Medicare PPO Vision or Aetna Vision (through work)?
+north_miami_beach_optical	routine_vision	Aetna Medicar	needs_clarification			aetna-medicare-ppo-vision,aetna-vision-through-work	needs_input: Which of these is on your card: Aetna Medicare PPO Vision or Aetna Vision (through work)?
+north_miami_beach_optical	routine_vision	Humana	needs_clarification			humana-medicaid-vision,humana-vision-through-work	needs_input: Which of these is on your card: Humana Medicaid Vision or Humana Vision (through work)?
+north_miami_beach_optical	routine_vision	Humana Gold PPO	accepted	humana-medicare-vision	car40907		success: Yes, we accept Humana Medicare Vision.
+north_miami_beach_optical	routine_vision	Humana from work	accepted	humana-vision-through-work	car280684		success: Yes, we accept Humana Vision (through work).
+north_miami_beach_optical	routine_vision	Florida Blue	needs_clarification			blueview-vision,florida-blue-medicare-vision	needs_input: Which of these is on your card: BlueView Vision or Florida Blue Medicare HMO & PPO Vision?
+north_miami_beach_optical	routine_vision	Florida Blue Medicare Advantage	accepted	florida-blue-medicare-vision	car281317		success: Yes, we accept Florida Blue Medicare HMO & PPO Vision.
+north_miami_beach_optical	routine_vision	Blue Cross	needs_clarification			florida-blue-vision-through-work,florida-blue-medicare-vision	needs_input: Which of these is on your card: Florida Blue Vision (through work) or Florida Blue Medicare HMO & PPO Vision?
+north_miami_beach_optical	routine_vision	BCBS	needs_clarification			florida-blue-vision-through-work,florida-blue-medicare-vision	needs_input: Which of these is on your card: Florida Blue Vision (through work) or Florida Blue Medicare HMO & PPO Vision?
+north_miami_beach_optical	routine_vision	BCBS HMO	accepted	florida-blue-vision-through-work	car280612		success: Yes, we accept Florida Blue Vision (through work).
+north_miami_beach_optical	routine_vision	United	accepted	unitedhealthcare-vision	car308790		success: Yes, we accept UnitedHealthcare Vision.
+north_miami_beach_optical	routine_vision	UHC	accepted	unitedhealthcare-vision	car308790		success: Yes, we accept UnitedHealthcare Vision.
+north_miami_beach_optical	routine_vision	United Healthcare PPO	accepted	unitedhealthcare-vision	car308790		success: Yes, we accept UnitedHealthcare Vision.
+north_miami_beach_optical	routine_vision	Cigna	needs_clarification			cigna-vision,cigna-sure-fit-vision	needs_input: Which of these is on your card: Cigna Vision or Cigna Sure Fit?
+north_miami_beach_optical	routine_vision	Molina	accepted	molina-medicaid-vision	car40907		success: Yes, we accept Molina Medicaid Vision.
+north_miami_beach_optical	routine_vision	Molina Medicade	accepted	molina-medicaid-vision	car40907		success: Yes, we accept Molina Medicaid Vision.
+north_miami_beach_optical	routine_vision	Simply	accepted	simply-medicaid-vision	car40907		success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+north_miami_beach_optical	routine_vision	Staywell Medicaid	accepted	staywell-medicaid-vision	car281245		success: Yes, we accept Staywell Medicaid Vision.
+north_miami_beach_optical	routine_vision	Tier 1	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+north_miami_beach_optical	routine_vision	Medicaid	needs_clarification				needs_input: What is the full plan name on your card?
+north_miami_beach_optical	routine_vision	Medicade	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	Medicare Advantage	needs_clarification				needs_input: What is the full plan name on your card?
+north_miami_beach_optical	routine_vision	Medicare Part B	needs_clarification				needs_input: What is the full plan name on your card?
+north_miami_beach_optical	routine_vision	Medicare Health Insurance	needs_clarification				needs_input: What is the full plan name on your card?
+north_miami_beach_optical	routine_vision	Original Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+north_miami_beach_optical	routine_vision	Traditional Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+north_miami_beach_optical	routine_vision	Regular Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+north_miami_beach_optical	routine_vision	Medicare Supplement	needs_clarification				needs_input: What is the full plan name on your card?
+north_miami_beach_optical	routine_vision	iCare	accepted	icare-routine-vision	car40907		success: Yes, we accept iCare.
+north_miami_beach_optical	routine_vision	I care	accepted	icare-routine-vision	car40907		success: Yes, we accept iCare.
+north_miami_beach_optical	routine_vision	I-Care	accepted	icare-routine-vision	car40907		success: Yes, we accept iCare.
+north_miami_beach_optical	routine_vision	PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	HMO	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	that one	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	the second one	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	the EPO one	needs_clarification				needs_input: What insurance plan is listed on your card?
+north_miami_beach_optical	routine_vision	the Health one	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical		needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	health plan	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	cash	accepted	self-pay-medical	car301672		success: Yes, we accept Self Pay.
+spring_hill	medical	self pay	accepted	self-pay-medical	car301672		success: Yes, we accept Self Pay.
+spring_hill	medical	it's through my employer	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	commercial	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	the first one	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	military	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	I'm a student	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	I'm not sure	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	Clover Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	medical	Medicare please	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	medical	the Medicare one I think	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	medical	Medicare red white and blue card	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+spring_hill	medical	Aetna	needs_clarification			aetna-epo,aetna-hmo,aetna-medicare	needs_input: Which of these is on your card: Aetna EPO, Aetna HMO, or Aetna Medicare?
+spring_hill	medical	Aetna Medicar	needs_clarification			aetna-epo,aetna-hmo,aetna-medicare	needs_input: Which of these is on your card: Aetna EPO, Aetna HMO, or Aetna Medicare?
+spring_hill	medical	Humana	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	medical	Humana Gold PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	Humana from work	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	medical	Florida Blue	needs_clarification			florida-blue-hmo,florida-blue-select,florida-blue-medicare-hmo	needs_input: Which of these is on your card: Florida Blue HMO, Florida Blue Select, or Florida Blue Medicare HMO?
+spring_hill	medical	Florida Blue Medicare Advantage	accepted	florida-blue-medicare-hmo	car40897		success: Yes, we accept Florida Blue Medicare HMO.
+spring_hill	medical	Blue Cross	needs_clarification			florida-blue-hmo,florida-blue-medicare-hmo	needs_input: Which of these is on your card: Florida Blue HMO or Florida Blue Medicare HMO?
+spring_hill	medical	BCBS	needs_clarification			florida-blue-hmo,florida-blue-medicare-hmo	needs_input: Which of these is on your card: Florida Blue HMO or Florida Blue Medicare HMO?
+spring_hill	medical	BCBS HMO	not_accepted	florida-blue-hmo	car280750		blocked: This plan is not accepted for this visit type at this office.
+spring_hill	medical	United	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	medical	UHC	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	medical	United Healthcare PPO	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	medical	Cigna	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	medical	Molina	needs_clarification			molina-medicaid,molina-medicare,molina-marketplace	needs_input: Which of these is on your card: Molina Medicaid, Molina Medicare, or Molina Marketplace?
+spring_hill	medical	Molina Medicade	needs_clarification			molina-medicaid,molina-medicare,molina-marketplace	needs_input: Which of these is on your card: Molina Medicaid, Molina Medicare, or Molina Marketplace?
+spring_hill	medical	Simply	accepted	simply-health	car40907		success: Yes, we accept Simply Health.
+spring_hill	medical	Staywell Medicaid	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	Tier 1	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	Medicare	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+spring_hill	medical	Medicaid	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	medical	Medicade	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	Medicare Advantage	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	medical	Medicare Part B	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+spring_hill	medical	Medicare Health Insurance	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+spring_hill	medical	Original Medicare	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+spring_hill	medical	Traditional Medicare	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+spring_hill	medical	Regular Medicare	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+spring_hill	medical	Medicare Supplement	accepted	florida-medicare	car40900		success: Yes, we accept Florida Medicare.
+spring_hill	medical	iCare	accepted	icare	car40907		success: Yes, we accept iCare.
+spring_hill	medical	I care	accepted	icare	car40907		success: Yes, we accept iCare.
+spring_hill	medical	I-Care	accepted	icare	car40907		success: Yes, we accept iCare.
+spring_hill	medical	PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	HMO	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	that one	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	the second one	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	the EPO one	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	medical	the Health one	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision		needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	health plan	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	cash	accepted	self-pay-routine-vision	car301672		success: Yes, we accept Self Pay.
+spring_hill	routine_vision	self pay	accepted	self-pay-routine-vision	car301672		success: Yes, we accept Self Pay.
+spring_hill	routine_vision	it's through my employer	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	commercial	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	the first one	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	military	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	I'm a student	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	I'm not sure	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	Clover Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	routine_vision	Medicare please	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	routine_vision	the Medicare one I think	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	routine_vision	Medicare red white and blue card	accepted	florida-blue-medicare-vision	car281317		success: Yes, we accept Florida Blue Medicare HMO & PPO Vision.
+spring_hill	routine_vision	Aetna	needs_clarification			aetna-medicare-ppo-vision,aetna-vision-through-work	needs_input: Which of these is on your card: Aetna Medicare PPO Vision or Aetna Vision (through work)?
+spring_hill	routine_vision	Aetna Medicar	needs_clarification			aetna-medicare-ppo-vision,aetna-vision-through-work	needs_input: Which of these is on your card: Aetna Medicare PPO Vision or Aetna Vision (through work)?
+spring_hill	routine_vision	Humana	needs_clarification			humana-medicaid-vision,humana-vision-through-work	needs_input: Which of these is on your card: Humana Medicaid Vision or Humana Vision (through work)?
+spring_hill	routine_vision	Humana Gold PPO	accepted	humana-medicare-vision	car40907		success: Yes, we accept Humana Medicare Vision.
+spring_hill	routine_vision	Humana from work	accepted	humana-vision-through-work	car280684		success: Yes, we accept Humana Vision (through work).
+spring_hill	routine_vision	Florida Blue	needs_clarification			blueview-vision,florida-blue-medicare-vision	needs_input: Which of these is on your card: BlueView Vision or Florida Blue Medicare HMO & PPO Vision?
+spring_hill	routine_vision	Florida Blue Medicare Advantage	accepted	florida-blue-medicare-vision	car281317		success: Yes, we accept Florida Blue Medicare HMO & PPO Vision.
+spring_hill	routine_vision	Blue Cross	needs_clarification			florida-blue-vision-through-work,florida-blue-medicare-vision	needs_input: Which of these is on your card: Florida Blue Vision (through work) or Florida Blue Medicare HMO & PPO Vision?
+spring_hill	routine_vision	BCBS	needs_clarification			florida-blue-vision-through-work,florida-blue-medicare-vision	needs_input: Which of these is on your card: Florida Blue Vision (through work) or Florida Blue Medicare HMO & PPO Vision?
+spring_hill	routine_vision	BCBS HMO	accepted	florida-blue-vision-through-work	car280612		success: Yes, we accept Florida Blue Vision (through work).
+spring_hill	routine_vision	United	accepted	unitedhealthcare-vision	car308790		success: Yes, we accept UnitedHealthcare Vision.
+spring_hill	routine_vision	UHC	accepted	unitedhealthcare-vision	car308790		success: Yes, we accept UnitedHealthcare Vision.
+spring_hill	routine_vision	United Healthcare PPO	accepted	unitedhealthcare-vision	car308790		success: Yes, we accept UnitedHealthcare Vision.
+spring_hill	routine_vision	Cigna	accepted	cigna-vision	car280684		success: Yes, we accept Cigna Vision.
+spring_hill	routine_vision	Molina	accepted	molina-medicaid-vision	car40907		success: Yes, we accept Molina Medicaid Vision.
+spring_hill	routine_vision	Molina Medicade	accepted	molina-medicaid-vision	car40907		success: Yes, we accept Molina Medicaid Vision.
+spring_hill	routine_vision	Simply	accepted	simply-medicaid-vision	car40907		success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+spring_hill	routine_vision	Staywell Medicaid	accepted	staywell-medicaid-vision	car281245		success: Yes, we accept Staywell Medicaid Vision.
+spring_hill	routine_vision	Tier 1	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	routine_vision	Medicaid	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	routine_vision	Medicade	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	Medicare Advantage	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	routine_vision	Medicare Part B	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	routine_vision	Medicare Health Insurance	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	routine_vision	Original Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	routine_vision	Traditional Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	routine_vision	Regular Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	routine_vision	Medicare Supplement	needs_clarification				needs_input: What is the full plan name on your card?
+spring_hill	routine_vision	iCare	accepted	icare-routine-vision	car40907		success: Yes, we accept iCare.
+spring_hill	routine_vision	I care	accepted	icare-routine-vision	car40907		success: Yes, we accept iCare.
+spring_hill	routine_vision	I-Care	accepted	icare-routine-vision	car40907		success: Yes, we accept iCare.
+spring_hill	routine_vision	PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	HMO	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	that one	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	the second one	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	the EPO one	needs_clarification				needs_input: What insurance plan is listed on your card?
+spring_hill	routine_vision	the Health one	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical		needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	health plan	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	cash	accepted	self-pay-medical	car301672		success: Yes, we accept Self Pay.
+sweetwater	medical	self pay	accepted	self-pay-medical	car301672		success: Yes, we accept Self Pay.
+sweetwater	medical	it's through my employer	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	commercial	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	the first one	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	military	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	I'm a student	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	I'm not sure	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	Clover Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	medical	Medicare please	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	medical	the Medicare one I think	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	medical	Medicare red white and blue card	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+sweetwater	medical	Aetna	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-epo-university-of-miami	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, or Aetna EPO University of Miami?
+sweetwater	medical	Aetna Medicar	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-epo-university-of-miami	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, or Aetna EPO University of Miami?
+sweetwater	medical	Humana	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	medical	Humana Gold PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	Humana from work	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	medical	Florida Blue	needs_clarification			florida-blue-hmo,florida-blue-select-non-par,florida-blue-medicare-hmo-medical,florida-blue-medicare-ppo-medical	needs_input: Which of these is on your card: Florida Blue HMO, Florida BlueSelect, Florida Blue Medicare HMO, or Florida Blue Medicare PPO?
+sweetwater	medical	Florida Blue Medicare Advantage	needs_clarification			florida-blue-medicare-hmo-medical,florida-blue-medicare-ppo-medical	needs_input: Which of these is on your card: Florida Blue Medicare HMO or Florida Blue Medicare PPO?
+sweetwater	medical	Blue Cross	needs_clarification			florida-blue-hmo,florida-blue-medicare-hmo-medical,florida-blue-medicare-ppo-medical	needs_input: Which of these is on your card: Florida Blue HMO, Florida Blue Medicare HMO, or Florida Blue Medicare PPO?
+sweetwater	medical	BCBS	needs_clarification			florida-blue-hmo,florida-blue-medicare-hmo-medical,florida-blue-medicare-ppo-medical	needs_input: Which of these is on your card: Florida Blue HMO, Florida Blue Medicare HMO, or Florida Blue Medicare PPO?
+sweetwater	medical	BCBS HMO	needs_staff_task	florida-blue-hmo	car280750		blocked: This plan requires prior authorization before scheduling.
+sweetwater	medical	United	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	medical	UHC	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	medical	United Healthcare PPO	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	medical	Cigna	needs_clarification			cigna-hmo,cigna-ppo,cigna-sure-fit,cigna-medicare-advantage-medical	needs_input: Which of these is on your card: Cigna HMO, Cigna PPO, Cigna Sure Fit, or Cigna Medicare Advantage (Healthspring)?
+sweetwater	medical	Molina	needs_clarification			molina-medicaid-medical,molina-medicare-medical,molina-marketplace-non-par	needs_input: Which of these is on your card: Molina Medicaid, Molina Medicare, or Molina Marketplace?
+sweetwater	medical	Molina Medicade	needs_clarification			molina-medicaid-medical,molina-medicare-medical,molina-marketplace-non-par	needs_input: Which of these is on your card: Molina Medicaid, Molina Medicare, or Molina Marketplace?
+sweetwater	medical	Simply	accepted	simply-medicaid-medical	car40907		success: Yes, we accept Simply Medicaid/Healthy Kids.
+sweetwater	medical	Staywell Medicaid	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	Tier 1	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	Medicare	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+sweetwater	medical	Medicaid	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	medical	Medicade	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	Medicare Advantage	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	medical	Medicare Part B	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+sweetwater	medical	Medicare Health Insurance	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+sweetwater	medical	Original Medicare	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+sweetwater	medical	Traditional Medicare	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+sweetwater	medical	Regular Medicare	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+sweetwater	medical	Medicare Supplement	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
+sweetwater	medical	iCare	accepted	icare-medical	car40907		success: Yes, we accept iCare.
+sweetwater	medical	I care	accepted	icare-medical	car40907		success: Yes, we accept iCare.
+sweetwater	medical	I-Care	accepted	icare-medical	car40907		success: Yes, we accept iCare.
+sweetwater	medical	PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	HMO	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	that one	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	the second one	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	the EPO one	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	medical	the Health one	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision		needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	health plan	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	cash	accepted	self-pay-routine-vision	car301672		success: Yes, we accept Self Pay.
+sweetwater	routine_vision	self pay	accepted	self-pay-routine-vision	car301672		success: Yes, we accept Self Pay.
+sweetwater	routine_vision	it's through my employer	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	commercial	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	the first one	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	military	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	I'm a student	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	I'm not sure	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	Clover Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	routine_vision	Medicare please	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	routine_vision	the Medicare one I think	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	routine_vision	Medicare red white and blue card	accepted	florida-blue-medicare-vision	car281317		success: Yes, we accept Florida Blue Medicare HMO & PPO Vision.
+sweetwater	routine_vision	Aetna	needs_clarification			aetna-medicare-ppo-vision,aetna-vision-through-work	needs_input: Which of these is on your card: Aetna Medicare PPO Vision or Aetna Vision (through work)?
+sweetwater	routine_vision	Aetna Medicar	needs_clarification			aetna-medicare-ppo-vision,aetna-vision-through-work	needs_input: Which of these is on your card: Aetna Medicare PPO Vision or Aetna Vision (through work)?
+sweetwater	routine_vision	Humana	needs_clarification			humana-medicaid-vision,humana-vision-through-work	needs_input: Which of these is on your card: Humana Medicaid Vision or Humana Vision (through work)?
+sweetwater	routine_vision	Humana Gold PPO	accepted	humana-medicare-vision	car40907		success: Yes, we accept Humana Medicare Vision.
+sweetwater	routine_vision	Humana from work	accepted	humana-vision-through-work	car280684		success: Yes, we accept Humana Vision (through work).
+sweetwater	routine_vision	Florida Blue	needs_clarification			blueview-vision,florida-blue-medicare-vision	needs_input: Which of these is on your card: BlueView Vision or Florida Blue Medicare HMO & PPO Vision?
+sweetwater	routine_vision	Florida Blue Medicare Advantage	accepted	florida-blue-medicare-vision	car281317		success: Yes, we accept Florida Blue Medicare HMO & PPO Vision.
+sweetwater	routine_vision	Blue Cross	needs_clarification			florida-blue-vision-through-work,florida-blue-medicare-vision	needs_input: Which of these is on your card: Florida Blue Vision (through work) or Florida Blue Medicare HMO & PPO Vision?
+sweetwater	routine_vision	BCBS	needs_clarification			florida-blue-vision-through-work,florida-blue-medicare-vision	needs_input: Which of these is on your card: Florida Blue Vision (through work) or Florida Blue Medicare HMO & PPO Vision?
+sweetwater	routine_vision	BCBS HMO	accepted	florida-blue-vision-through-work	car280612		success: Yes, we accept Florida Blue Vision (through work).
+sweetwater	routine_vision	United	accepted	unitedhealthcare-vision	car308790		success: Yes, we accept UnitedHealthcare Vision.
+sweetwater	routine_vision	UHC	accepted	unitedhealthcare-vision	car308790		success: Yes, we accept UnitedHealthcare Vision.
+sweetwater	routine_vision	United Healthcare PPO	accepted	unitedhealthcare-vision	car308790		success: Yes, we accept UnitedHealthcare Vision.
+sweetwater	routine_vision	Cigna	needs_clarification			cigna-vision,cigna-sure-fit-vision	needs_input: Which of these is on your card: Cigna Vision or Cigna Sure Fit?
+sweetwater	routine_vision	Molina	accepted	molina-medicaid-vision	car40907		success: Yes, we accept Molina Medicaid Vision.
+sweetwater	routine_vision	Molina Medicade	accepted	molina-medicaid-vision	car40907		success: Yes, we accept Molina Medicaid Vision.
+sweetwater	routine_vision	Simply	accepted	simply-medicaid-vision	car40907		success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+sweetwater	routine_vision	Staywell Medicaid	accepted	staywell-medicaid-vision	car281245		success: Yes, we accept Staywell Medicaid Vision.
+sweetwater	routine_vision	Tier 1	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	routine_vision	Medicaid	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	routine_vision	Medicade	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	Medicare Advantage	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	routine_vision	Medicare Part B	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	routine_vision	Medicare Health Insurance	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	routine_vision	Original Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	routine_vision	Traditional Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	routine_vision	Regular Medicare	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	routine_vision	Medicare Supplement	needs_clarification				needs_input: What is the full plan name on your card?
+sweetwater	routine_vision	iCare	accepted	icare-routine-vision	car40907		success: Yes, we accept iCare.
+sweetwater	routine_vision	I care	accepted	icare-routine-vision	car40907		success: Yes, we accept iCare.
+sweetwater	routine_vision	I-Care	accepted	icare-routine-vision	car40907		success: Yes, we accept iCare.
+sweetwater	routine_vision	PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	HMO	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	that one	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	the second one	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	the EPO one	needs_clarification				needs_input: What insurance plan is listed on your card?
+sweetwater	routine_vision	the Health one	needs_clarification				needs_input: What insurance plan is listed on your card?
