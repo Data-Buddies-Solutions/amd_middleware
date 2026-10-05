@@ -49,7 +49,7 @@ imagine-health,yes,yes,yes,pending,pending,pending,staff_verify,,,Network (Parti
 medical-center-international,pending,pending,pending,pending,pending,pending,,,,Dr. Austin Bach ONLY - Selfpays $75.00 All Visits
 florida-medicaid,yes,yes,yes,yes,yes,yes,,,,
 medicare-part-b,yes,yes,yes,yes,pending,pending,,,,
-icare-medical,pending,pending,pending,pending,pending,pending,,,,Not on the 2026-07-07 insurance list. Staff confirms participation until the list includes it.
+icare-medical,yes,no,no,no,no,no,,,,Not on the 2026-07-07 insurance list. Kept as main had it: medical visits with Dr. Austin Bach only.
 meritain-health,yes,no,no,no,no,no,,,,Meritain Health Aetna - only Dr. Bach is participating
 miami-childrens-health-plan-medical,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from ehealthdeck.com it will provide pre-certification
 molina-marketplace-non-par,no,no,no,no,no,no,,,You can be seen as self-pay.,No Longer Accepting any patients for this plan - Can be self pay
@@ -90,8 +90,8 @@ united-healthcare-global,yes,yes,yes,yes,yes,yes,prior_authorization,,,Requires 
 wellcare-medicaid-medical,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from Envolve for Benefits
 wellcare-medicare-lppo,yes,yes,yes,yes,yes,yes,prior_authorization,,,Wellcare LPPO MEDICARE MEDICAL ONLY requires prior-auth
 self-pay-medical,yes,yes,yes,yes,yes,yes,,,,
-envolve-vision-medical,pending,pending,pending,pending,pending,pending,,,,Not on the 2026-07-07 insurance list. Staff confirms participation until the list includes it.
-eye-care-health-solutions-medical,pending,pending,pending,pending,pending,pending,,,,Not on the 2026-07-07 insurance list. Staff confirms participation until the list includes it.
+envolve-vision-medical,yes,no,no,no,no,no,,,,Not on the 2026-07-07 insurance list. Kept as main had it: medical visits with Dr. Austin Bach only.
+eye-care-health-solutions-medical,yes,no,no,no,no,no,,,,Not on the 2026-07-07 insurance list. Kept as main had it: medical visits with Dr. Austin Bach only.
 aetna-medicare-ppo-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
 aetna-medicare-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
 aetna-better-health-medicaid-vision,no,yes,yes,yes,yes,yes,,sweetwater;north_miami_beach_optical,,effective 2/1/2025 ONLY in MiamiDade - NO LONGER Provided in Broward County

@@ -162,7 +162,7 @@ hollywood	medical	imagine-health	needs_staff_task	car308142	staff_verify	Dr. Bac
 hollywood	medical	medical-center-international	needs_staff_task					blocked: The office needs to confirm this coverage.
 hollywood	medical	florida-medicaid	accepted	car40899		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Medicaid.
 hollywood	medical	medicare-part-b	accepted	car40900		Dr. Bach	Dr. Bach	success: Yes, we accept Medicare Part B.
-hollywood	medical	icare-medical	needs_staff_task	car40907				blocked: The office needs to confirm this coverage.
+hollywood	medical	icare-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept iCare.
 hollywood	medical	meritain-health	accepted	car301578		Dr. Bach	Dr. Bach	success: Yes, we accept Meritain Health.
 hollywood	medical	miami-childrens-health-plan-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Miami Children's Health Plan (Medicaid).
 hollywood	medical	molina-marketplace-non-par	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
@@ -203,8 +203,8 @@ hollywood	medical	united-healthcare-global	needs_staff_task	car284971	prior_auth
 hollywood	medical	wellcare-medicaid-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Wellcare Medicaid.
 hollywood	medical	wellcare-medicare-lppo	needs_staff_task	car281317	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
 hollywood	medical	self-pay-medical	accepted	car301672		Dr. Bach	Dr. Bach	success: Yes, we accept Self Pay.
-hollywood	medical	envolve-vision-medical	needs_staff_task	car281245				blocked: The office needs to confirm this coverage.
-hollywood	medical	eye-care-health-solutions-medical	needs_staff_task	car40907				blocked: The office needs to confirm this coverage.
+hollywood	medical	envolve-vision-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Envolve Vision.
+hollywood	medical	eye-care-health-solutions-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Eye Care Health Solutions.
 hollywood	routine_vision	aetna-medicare-ppo-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Aetna Medicare PPO Vision.
 hollywood	routine_vision	aetna-medicare-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	success: Yes, we accept Aetna Medicare HMO & PPO Vision.
 hollywood	routine_vision	aetna-better-health-medicaid-vision	not_accepted	car40907				blocked: This plan is not accepted for this visit type at this office.
@@ -540,7 +540,7 @@ sweetwater	medical	imagine-health	needs_staff_task	car308142	staff_verify	Dr. Ba
 sweetwater	medical	medical-center-international	needs_staff_task					blocked: The office needs to confirm this coverage.
 sweetwater	medical	florida-medicaid	accepted	car40899		Dr. Bach	Dr. Bach	success: Yes, we accept Florida Medicaid.
 sweetwater	medical	medicare-part-b	accepted	car40900		Dr. Bach	Dr. Bach	success: Yes, we accept Medicare Part B.
-sweetwater	medical	icare-medical	needs_staff_task	car40907				blocked: The office needs to confirm this coverage.
+sweetwater	medical	icare-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept iCare.
 sweetwater	medical	meritain-health	accepted	car301578		Dr. Bach	Dr. Bach	success: Yes, we accept Meritain Health.
 sweetwater	medical	miami-childrens-health-plan-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Miami Children's Health Plan (Medicaid).
 sweetwater	medical	molina-marketplace-non-par	not_accepted					blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
@@ -581,8 +581,8 @@ sweetwater	medical	united-healthcare-global	needs_staff_task	car284971	prior_aut
 sweetwater	medical	wellcare-medicaid-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Wellcare Medicaid.
 sweetwater	medical	wellcare-medicare-lppo	needs_staff_task	car281317	prior_authorization	Dr. Bach	Dr. Bach	blocked: This plan requires prior authorization before scheduling.
 sweetwater	medical	self-pay-medical	accepted	car301672		Dr. Bach	Dr. Bach	success: Yes, we accept Self Pay.
-sweetwater	medical	envolve-vision-medical	needs_staff_task	car281245				blocked: The office needs to confirm this coverage.
-sweetwater	medical	eye-care-health-solutions-medical	needs_staff_task	car40907				blocked: The office needs to confirm this coverage.
+sweetwater	medical	envolve-vision-medical	accepted	car281245		Dr. Bach	Dr. Bach	success: Yes, we accept Envolve Vision.
+sweetwater	medical	eye-care-health-solutions-medical	accepted	car40907		Dr. Bach	Dr. Bach	success: Yes, we accept Eye Care Health Solutions.
 sweetwater	routine_vision	aetna-medicare-ppo-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Aetna Medicare PPO Vision.
 sweetwater	routine_vision	aetna-medicare-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Aetna Medicare HMO & PPO Vision.
 sweetwater	routine_vision	aetna-better-health-medicaid-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	success: Yes, we accept Aetna Better Health Medicaid MMA Vision.

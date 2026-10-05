@@ -94,9 +94,9 @@ hollywood	medical	Original Medicare	accepted	medicare-part-b	car40900		success: 
 hollywood	medical	Traditional Medicare	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
 hollywood	medical	Regular Medicare	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
 hollywood	medical	Medicare Supplement	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
-hollywood	medical	iCare	needs_staff_task	icare-medical	car40907		blocked: The office needs to confirm this coverage.
-hollywood	medical	I care	needs_staff_task	icare-medical	car40907		blocked: The office needs to confirm this coverage.
-hollywood	medical	I-Care	needs_staff_task	icare-medical	car40907		blocked: The office needs to confirm this coverage.
+hollywood	medical	iCare	accepted	icare-medical	car40907		success: Yes, we accept iCare.
+hollywood	medical	I care	accepted	icare-medical	car40907		success: Yes, we accept iCare.
+hollywood	medical	I-Care	accepted	icare-medical	car40907		success: Yes, we accept iCare.
 hollywood	medical	PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
 hollywood	medical	HMO	needs_clarification				needs_input: What insurance plan is listed on your card?
 hollywood	medical	that one	needs_clarification				needs_input: What insurance plan is listed on your card?
@@ -354,9 +354,9 @@ sweetwater	medical	Original Medicare	accepted	medicare-part-b	car40900		success:
 sweetwater	medical	Traditional Medicare	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
 sweetwater	medical	Regular Medicare	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
 sweetwater	medical	Medicare Supplement	accepted	medicare-part-b	car40900		success: Yes, we accept Medicare Part B.
-sweetwater	medical	iCare	needs_staff_task	icare-medical	car40907		blocked: The office needs to confirm this coverage.
-sweetwater	medical	I care	needs_staff_task	icare-medical	car40907		blocked: The office needs to confirm this coverage.
-sweetwater	medical	I-Care	needs_staff_task	icare-medical	car40907		blocked: The office needs to confirm this coverage.
+sweetwater	medical	iCare	accepted	icare-medical	car40907		success: Yes, we accept iCare.
+sweetwater	medical	I care	accepted	icare-medical	car40907		success: Yes, we accept iCare.
+sweetwater	medical	I-Care	accepted	icare-medical	car40907		success: Yes, we accept iCare.
 sweetwater	medical	PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
 sweetwater	medical	HMO	needs_clarification				needs_input: What insurance plan is listed on your card?
 sweetwater	medical	that one	needs_clarification				needs_input: What insurance plan is listed on your card?
