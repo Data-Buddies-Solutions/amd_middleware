@@ -93,8 +93,11 @@ func notAccepted(d InsuranceDecision, notice string) InsuranceDecision {
 }
 
 func requirementAnswer(kind string) string {
-	if kind == "pcp_referral" {
+	switch kind {
+	case "pcp_referral":
 		return answerReferral
+	case "staff_verify":
+		return answerStaffVerify
 	}
 	return answerPriorAuth
 }

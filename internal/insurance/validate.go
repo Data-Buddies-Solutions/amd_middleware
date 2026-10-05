@@ -110,7 +110,7 @@ func validatePlan(p plan, list planList, doctors map[string]bool, carriers map[s
 		}
 	}
 	for _, r := range p.Requirements {
-		if r.Kind != "prior_authorization" && r.Kind != "pcp_referral" {
+		if r.Kind != "prior_authorization" && r.Kind != "pcp_referral" && r.Kind != "staff_verify" {
 			return fmt.Errorf("unknown requirement %q", r.Kind)
 		}
 	}

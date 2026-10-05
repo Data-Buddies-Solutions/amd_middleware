@@ -11,6 +11,7 @@ const (
 	answerConfirm          = "blocked: The office needs to confirm this coverage."
 	answerPriorAuth        = "blocked: This plan requires prior authorization before scheduling."
 	answerReferral         = "blocked: This plan requires a referral from your primary care doctor before scheduling."
+	answerStaffVerify      = "blocked: The office needs to verify this plan's coverage before scheduling."
 	answerChartStaff       = "blocked: Staff must verify the insurance on the chart before scheduling."
 	answerNoDoctorForAge   = "blocked: We accept this plan, but none of its doctors at this office can see a patient of this age. The office needs to arrange this visit."
 	maxOptions             = 4

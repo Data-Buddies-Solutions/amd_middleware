@@ -211,12 +211,16 @@ use which table, and `carriers.json` names the AdvancedMD carriers. The data is
 validated when the service starts; invalid data stops the process.
 `internal/insurance/testdata/decisions.golden.tsv` pins the decision for every plan
 name and common caller phrasing at every office. After a data change, run
-`go test ./internal/insurance -run Golden -update` and review its diff.
+`go test ./internal/insurance -run Golden -update` and review its diff. A test also
+fails when a sheet note states a rule (staff check, Dr. Bach only, referral, prior
+authorization, office limit) that the row doesn't encode; encode it, or add
+`staff_verify` to `requires`.
 
 The office registry decides which doctors can take a visit: medical uses the office's
 `all_three` tier, routine vision its optical tier, and the pediatric rule applies. The
 plan only filters those doctors. Any `yes` doctor means the plan is accepted
-(`needs_staff_task` when a prior authorization or referral is required); otherwise any
+(`needs_staff_task` when the plan requires a prior authorization, a PCP referral, or
+staff verification); otherwise any
 `pending` doctor sends the call to staff; otherwise it is not accepted.
 
 `POST /api/insurance/decision` takes whatever the caller said. An exact name wins.

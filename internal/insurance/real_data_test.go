@@ -35,15 +35,18 @@ func TestRealDataAetnaBetterAtSouthFloridaOffices(t *testing.T) {
 }
 
 func TestRealDataBareAetnaAsksWithResolvableOptions(t *testing.T) {
-	hollywood := office(t, "hollywood")
-	d := DecideInsurance("Aetna", "medical", hollywood, adultDOB)
+	sweetwater := office(t, "sweetwater")
+	d := DecideInsurance("Aetna", "medical", sweetwater, adultDOB)
 	if d.Outcome != "needs_clarification" || len(d.Options) < 2 {
 		t.Fatalf("decision = %+v", d)
 	}
 	for _, option := range d.Options {
-		if again := DecideInsurance(option.Label, "medical", hollywood, adultDOB); again.PlanID != option.PlanID {
+		if again := DecideInsurance(option.Label, "medical", sweetwater, adultDOB); again.PlanID != option.PlanID {
 			t.Fatalf("option %q resolved to %+v", option.Label, again)
 		}
+	}
+	if d := DecideInsurance("Aetna", "medical", office(t, "hollywood"), adultDOB); d.Answer != answerAskFullName {
+		t.Fatalf("hollywood has more than %d Aetna outcomes: %+v", maxOptions, d)
 	}
 }
 

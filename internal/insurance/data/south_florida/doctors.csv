@@ -2,8 +2,8 @@ plan,Dr. Austin Bach,Dr. Miriam Bach,Dr. Melissa Otero,Dr. Gisselle Calero,Dr. M
 aetna-medicare-medical,yes,yes,yes,yes,yes,yes,yes,,,,
 aetna-commercial-medical,yes,yes,yes,yes,yes,yes,yes,,,,
 aetna-qhp-individual-exchange,pending,pending,pending,pending,pending,pending,pending,,,,Not on the 2026-07-07 insurance list; main accepted it. Staff confirms until the list includes it.
-aetna-epo-university-of-miami,yes,yes,yes,yes,yes,yes,yes,,,,EPO University of Miami plan check w/Eligibility Team prior to appt for Limitations participating network
-aetna-epo-north-broward,yes,no,no,no,no,no,no,,,,Dr. ABach ONLY -Check w/Eligibility Team prior to appt for Limitations participating network
+aetna-epo-university-of-miami,yes,yes,yes,yes,yes,yes,yes,staff_verify,,,EPO University of Miami plan check w/Eligibility Team prior to appt for Limitations participating network
+aetna-epo-north-broward,yes,no,no,no,no,no,no,staff_verify,,,Dr. ABach ONLY -Check w/Eligibility Team prior to appt for Limitations participating network
 aetna-better-health-medicaid-medical,yes,yes,yes,yes,yes,yes,yes,,sweetwater;north_miami_beach_optical,,effective 2/1/2025 ONLY in MiamiDade - NO LONGER Provided in Broward County
 aetna-healthy-kids-medical,yes,yes,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
 ambetter-medical,yes,yes,yes,yes,yes,yes,yes,,,,Does Not Require Referral
@@ -16,7 +16,7 @@ avmed-engage,yes,no,no,no,no,no,no,pcp_referral,,,"Engage-Need referral from PCP
 avmed-entrust-medical,no,no,no,no,no,no,no,,,You can be seen as self-pay.,"We are non par, we can do self pay."
 careplus-medicare-medical,yes,yes,yes,yes,yes,yes,yes,prior_authorization,hollywood,,HOLLYWOOD OFFICE ONLY - requires prior authorization from PCP
 childrens-medical-services-medical,yes,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from Envolve for Benefits
-cigna-hmo,yes,yes,yes,yes,yes,yes,yes,pcp_referral,,,Requires Referral/RX from PCP - Miami-Dade Public Schools - Dr. Austin Bach ONLY
+cigna-hmo,yes,yes,yes,yes,yes,yes,yes,pcp_referral;staff_verify,,,Requires Referral/RX from PCP - Miami-Dade Public Schools - Dr. Austin Bach ONLY
 cigna-florida-connect-epo,no,no,no,no,no,no,no,,,You can be seen as self-pay.,NON-PAR with EPO Florida Connect (Exclusive Provider Organization) Can be self pay
 cigna-local-plus-non-par,no,no,no,no,no,no,no,,,You can be seen as self-pay.,"NON-PAR with Local Plus, Can be self pay"
 cigna-sure-fit,no,no,no,no,no,no,no,,,You can be seen as self-pay.,"NON-PAR with Sure Fit, Can be self pay"
@@ -26,7 +26,7 @@ cigna-miami-dade-public-schools,yes,no,no,yes,no,no,no,,,,
 cigna-ppo,yes,yes,yes,yes,yes,yes,yes,,,,
 clear-spring-health-medicare-advantage,pending,pending,pending,pending,pending,pending,pending,,,,ONLY Medical and Only Dr. Bach
 community-care-plan-medical,yes,yes,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
-eye-america-aao,yes,yes,yes,yes,yes,yes,yes,,,,"No Billing, No charge to the patient - $VISTA ONLY Dr. BACH"
+eye-america-aao,yes,yes,yes,yes,yes,yes,yes,staff_verify,,,"No Billing, No charge to the patient - $VISTA ONLY Dr. BACH"
 devoted-medicare-hmo-medical,yes,yes,yes,yes,yes,yes,yes,,,,Effective 1/1/2025 Prior Auth are not required for Medical Office Visits & Diagnostic Testing. But are for SX & Injections
 devoted-medicare-ppo-medical,yes,yes,yes,yes,yes,yes,yes,,,,Effective 1/1/2025 Prior Auth are not required for Medical Office Visits & Diagnostic Testing. But are for SX & Injections
 doctors-health-medicare-medical,yes,yes,yes,yes,yes,yes,yes,,,,Effective 5/1/2026 w/iCare. Pull eligibility from ehealthdeck.com it will provide pre-certification
@@ -45,7 +45,7 @@ humana-medicare-ppo,yes,yes,yes,yes,yes,yes,yes,,,,
 humana-medicare-hmo,yes,yes,yes,yes,yes,yes,yes,,,,effective 1/1/2026 will be administered by iCare for Medical services.
 humana-premier-hmo,yes,yes,yes,yes,yes,yes,yes,,,,Does not require Prior Auth/Referral
 humana-ppo-pos,yes,yes,yes,yes,yes,yes,yes,,,,Does not require Prior Auth/Referral
-imagine-health,yes,yes,yes,yes,pending,pending,pending,,,,Network (Participates with Multiple Insurances) call Individual Number listed on the back of the insurance card
+imagine-health,yes,yes,yes,yes,pending,pending,pending,staff_verify,,,Network (Participates with Multiple Insurances) call Individual Number listed on the back of the insurance card
 medical-center-international,pending,pending,pending,pending,pending,pending,pending,,,,Dr. Austin Bach ONLY - Selfpays $75.00 All Visits
 florida-medicaid,yes,yes,yes,yes,yes,yes,yes,,,,
 medicare-part-b,yes,yes,yes,yes,yes,pending,pending,,,,
@@ -70,7 +70,7 @@ sunshine-medicaid-medical,yes,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from E
 tricare-prime,yes,yes,yes,no,yes,no,no,prior_authorization,,,Medical ONLY-Needs Prior Auth
 tricare-select,yes,yes,yes,no,yes,no,no,,,,Does Not Require Auth
 tricare-for-life,yes,yes,yes,no,yes,no,no,,,,Plan is the 2nd to Medicare ONLY (Medicare will Always be Primary)
-umr,yes,yes,yes,yes,yes,yes,yes,,,,Some require prior auth - we need to call to confirm
+umr,yes,yes,yes,yes,yes,yes,yes,staff_verify,,,Some require prior auth - we need to call to confirm
 united-healthcare-medical,yes,yes,yes,yes,yes,yes,yes,,,,"WE ARE NON PAR WITH MEDICAID PLANS, can do self pay"
 us-health-group,yes,yes,yes,yes,yes,yes,yes,,,,
 united-healthcare-aarp-medicare,yes,yes,yes,yes,yes,yes,yes,,,,

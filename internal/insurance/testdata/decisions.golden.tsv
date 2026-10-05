@@ -321,8 +321,8 @@ hollywood	medical		needs_clarification				needs_input: What insurance plan is li
 hollywood	medical	health plan	needs_clarification				needs_input: What insurance plan is listed on your card?
 hollywood	medical	cash	accepted	self-pay-medical	car301672		success: Yes, we accept Self Pay.
 hollywood	medical	self pay	accepted	self-pay-medical	car301672		success: Yes, we accept Self Pay.
-hollywood	medical	Aetna	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-qhp-individual-exchange,aetna-better-health-medicaid-medical	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, Aetna QHP Individual Exchange, or Aetna Better Health Medicaid MMA?
-hollywood	medical	Aetna Medicar	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-qhp-individual-exchange,aetna-better-health-medicaid-medical	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, Aetna QHP Individual Exchange, or Aetna Better Health Medicaid MMA?
+hollywood	medical	Aetna	needs_clarification				needs_input: What is the full plan name on your card?
+hollywood	medical	Aetna Medicar	needs_clarification				needs_input: What is the full plan name on your card?
 hollywood	medical	Humana	needs_clarification				needs_input: What is the full plan name on your card?
 hollywood	medical	Humana Gold PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
 hollywood	medical	Humana from work	needs_clarification				needs_input: What is the full plan name on your card?
@@ -377,9 +377,9 @@ hollywood	medical	Aetna PPO	accepted	aetna-commercial-medical	car40887		success:
 hollywood	medical	Aetna Managed Choice	accepted	aetna-commercial-medical	car40887		success: Yes, we accept Aetna Commercial HMO & PPO.
 hollywood	medical	Aetna QHP Individual Exchange	needs_staff_task	aetna-qhp-individual-exchange	car40887		blocked: The office needs to confirm this coverage.
 hollywood	medical	Aetna QHP	needs_staff_task	aetna-qhp-individual-exchange	car40887		blocked: The office needs to confirm this coverage.
-hollywood	medical	Aetna EPO University of Miami	accepted	aetna-epo-university-of-miami	car40887		success: Yes, we accept Aetna EPO University of Miami.
-hollywood	medical	Aetna EPO North Broward Hospital	accepted	aetna-epo-north-broward	car40887		success: Yes, we accept Aetna EPO North Broward Hospital.
-hollywood	medical	Aetna EPO North Broward	accepted	aetna-epo-north-broward	car40887		success: Yes, we accept Aetna EPO North Broward Hospital.
+hollywood	medical	Aetna EPO University of Miami	needs_staff_task	aetna-epo-university-of-miami	car40887		blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	Aetna EPO North Broward Hospital	needs_staff_task	aetna-epo-north-broward	car40887		blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	Aetna EPO North Broward	needs_staff_task	aetna-epo-north-broward	car40887		blocked: The office needs to verify this plan's coverage before scheduling.
 hollywood	medical	Aetna Better Health Medicaid MMA	not_accepted	aetna-better-health-medicaid-medical	car40907		blocked: This plan is not accepted for this visit type at this office.
 hollywood	medical	Aetna Better Health Medicaid MMA (Medical)	not_accepted	aetna-better-health-medicaid-medical	car40907		blocked: This plan is not accepted for this visit type at this office.
 hollywood	medical	Aetna Better Health	not_accepted	aetna-better-health-medicaid-medical	car40907		blocked: This plan is not accepted for this visit type at this office.
@@ -460,11 +460,11 @@ hollywood	medical	Clear Spring Health	needs_staff_task	clear-spring-health-medic
 hollywood	medical	Clear Spring	needs_staff_task	clear-spring-health-medicare-advantage			blocked: The office needs to confirm this coverage.
 hollywood	medical	Community Care Plan	accepted	community-care-plan-medical	car40907		success: Yes, we accept Community Care Plan.
 hollywood	medical	Community Care Plan Medical	accepted	community-care-plan-medical	car40907		success: Yes, we accept Community Care Plan.
-hollywood	medical	Eye America AAO	accepted	eye-america-aao	car308627		success: Yes, we accept Eye America AAO.
-hollywood	medical	Eye America AAO (American Academy of Ophthalmology)	accepted	eye-america-aao	car308627		success: Yes, we accept Eye America AAO.
-hollywood	medical	Eye America	accepted	eye-america-aao	car308627		success: Yes, we accept Eye America AAO.
-hollywood	medical	EyeCare America	accepted	eye-america-aao	car308627		success: Yes, we accept Eye America AAO.
-hollywood	medical	American Academy of Ophthalmology	accepted	eye-america-aao	car308627		success: Yes, we accept Eye America AAO.
+hollywood	medical	Eye America AAO	needs_staff_task	eye-america-aao	car308627		blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	Eye America AAO (American Academy of Ophthalmology)	needs_staff_task	eye-america-aao	car308627		blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	Eye America	needs_staff_task	eye-america-aao	car308627		blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	EyeCare America	needs_staff_task	eye-america-aao	car308627		blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	American Academy of Ophthalmology	needs_staff_task	eye-america-aao	car308627		blocked: The office needs to verify this plan's coverage before scheduling.
 hollywood	medical	Devoted Medicare HMO	accepted	devoted-medicare-hmo-medical	car281317		success: Yes, we accept Devoted Medicare HMO.
 hollywood	medical	Devoted Medicare HMO (Medical)	accepted	devoted-medicare-hmo-medical	car281317		success: Yes, we accept Devoted Medicare HMO.
 hollywood	medical	Devoted	accepted	devoted-medicare-hmo-medical	car281317		success: Yes, we accept Devoted Medicare HMO.
@@ -544,8 +544,8 @@ hollywood	medical	Humana Premier	accepted	humana-premier-hmo	car303061		success:
 hollywood	medical	Humana PPO/POS	accepted	humana-ppo-pos	car303062		success: Yes, we accept Humana PPO/POS.
 hollywood	medical	Humana PPO	accepted	humana-ppo-pos	car303062		success: Yes, we accept Humana PPO/POS.
 hollywood	medical	Humana POS	accepted	humana-ppo-pos	car303062		success: Yes, we accept Humana PPO/POS.
-hollywood	medical	Imagine Health	accepted	imagine-health	car308142		success: Yes, we accept Imagine Health.
-hollywood	medical	Imagine	accepted	imagine-health	car308142		success: Yes, we accept Imagine Health.
+hollywood	medical	Imagine Health	needs_staff_task	imagine-health	car308142		blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	Imagine	needs_staff_task	imagine-health	car308142		blocked: The office needs to verify this plan's coverage before scheduling.
 hollywood	medical	Medical Center International (SouthBay Medical Center)	needs_staff_task	medical-center-international			blocked: The office needs to confirm this coverage.
 hollywood	medical	Medical Center International (SouthBay Medical Center) Only Medical	needs_staff_task	medical-center-international			blocked: The office needs to confirm this coverage.
 hollywood	medical	Medical Center International	needs_staff_task	medical-center-international			blocked: The office needs to confirm this coverage.
@@ -631,9 +631,9 @@ hollywood	medical	Tricare Select	accepted	tricare-select	car284327		success: Yes
 hollywood	medical	Tricare For Life	accepted	tricare-for-life	car40921		success: Yes, we accept Tricare For Life.
 hollywood	medical	Tricare for Life - Supplemental Insurance to Medicare	accepted	tricare-for-life	car40921		success: Yes, we accept Tricare For Life.
 hollywood	medical	Tricare Forever	accepted	tricare-for-life	car40921		success: Yes, we accept Tricare For Life.
-hollywood	medical	UMR	accepted	umr	car284838		success: Yes, we accept UMR.
-hollywood	medical	UMR (United Health One)	accepted	umr	car284838		success: Yes, we accept UMR.
-hollywood	medical	United Health One	accepted	umr	car284838		success: Yes, we accept UMR.
+hollywood	medical	UMR	needs_staff_task	umr	car284838		blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	UMR (United Health One)	needs_staff_task	umr	car284838		blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	United Health One	needs_staff_task	umr	car284838		blocked: The office needs to verify this plan's coverage before scheduling.
 hollywood	medical	United Healthcare Medical	accepted	united-healthcare-medical	car40923		success: Yes, we accept United Healthcare Medical.
 hollywood	medical	US Health Group	accepted	us-health-group	car284838		success: Yes, we accept US Health Group.
 hollywood	medical	US Health Group - A UnitedHealthcare Company	accepted	us-health-group	car284838		success: Yes, we accept US Health Group.
@@ -1758,8 +1758,8 @@ sweetwater	medical		needs_clarification				needs_input: What insurance plan is l
 sweetwater	medical	health plan	needs_clarification				needs_input: What insurance plan is listed on your card?
 sweetwater	medical	cash	accepted	self-pay-medical	car301672		success: Yes, we accept Self Pay.
 sweetwater	medical	self pay	accepted	self-pay-medical	car301672		success: Yes, we accept Self Pay.
-sweetwater	medical	Aetna	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-qhp-individual-exchange	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, or Aetna QHP Individual Exchange?
-sweetwater	medical	Aetna Medicar	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-qhp-individual-exchange	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, or Aetna QHP Individual Exchange?
+sweetwater	medical	Aetna	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-epo-university-of-miami,aetna-qhp-individual-exchange	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, Aetna EPO University of Miami, or Aetna QHP Individual Exchange?
+sweetwater	medical	Aetna Medicar	needs_clarification			aetna-medicare-medical,aetna-commercial-medical,aetna-epo-university-of-miami,aetna-qhp-individual-exchange	needs_input: Which of these is on your card: Aetna Medicare HMO & PPO, Aetna Commercial HMO & PPO, Aetna EPO University of Miami, or Aetna QHP Individual Exchange?
 sweetwater	medical	Humana	needs_clarification				needs_input: What is the full plan name on your card?
 sweetwater	medical	Humana Gold PPO	needs_clarification				needs_input: What insurance plan is listed on your card?
 sweetwater	medical	Humana from work	needs_clarification				needs_input: What is the full plan name on your card?
@@ -1814,9 +1814,9 @@ sweetwater	medical	Aetna PPO	accepted	aetna-commercial-medical	car40887		success
 sweetwater	medical	Aetna Managed Choice	accepted	aetna-commercial-medical	car40887		success: Yes, we accept Aetna Commercial HMO & PPO.
 sweetwater	medical	Aetna QHP Individual Exchange	needs_staff_task	aetna-qhp-individual-exchange	car40887		blocked: The office needs to confirm this coverage.
 sweetwater	medical	Aetna QHP	needs_staff_task	aetna-qhp-individual-exchange	car40887		blocked: The office needs to confirm this coverage.
-sweetwater	medical	Aetna EPO University of Miami	accepted	aetna-epo-university-of-miami	car40887		success: Yes, we accept Aetna EPO University of Miami.
-sweetwater	medical	Aetna EPO North Broward Hospital	accepted	aetna-epo-north-broward	car40887		success: Yes, we accept Aetna EPO North Broward Hospital.
-sweetwater	medical	Aetna EPO North Broward	accepted	aetna-epo-north-broward	car40887		success: Yes, we accept Aetna EPO North Broward Hospital.
+sweetwater	medical	Aetna EPO University of Miami	needs_staff_task	aetna-epo-university-of-miami	car40887		blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	Aetna EPO North Broward Hospital	needs_staff_task	aetna-epo-north-broward	car40887		blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	Aetna EPO North Broward	needs_staff_task	aetna-epo-north-broward	car40887		blocked: The office needs to verify this plan's coverage before scheduling.
 sweetwater	medical	Aetna Better Health Medicaid MMA	accepted	aetna-better-health-medicaid-medical	car40907		success: Yes, we accept Aetna Better Health Medicaid MMA.
 sweetwater	medical	Aetna Better Health Medicaid MMA (Medical)	accepted	aetna-better-health-medicaid-medical	car40907		success: Yes, we accept Aetna Better Health Medicaid MMA.
 sweetwater	medical	Aetna Better Health	accepted	aetna-better-health-medicaid-medical	car40907		success: Yes, we accept Aetna Better Health Medicaid MMA.
@@ -1897,11 +1897,11 @@ sweetwater	medical	Clear Spring Health	needs_staff_task	clear-spring-health-medi
 sweetwater	medical	Clear Spring	needs_staff_task	clear-spring-health-medicare-advantage			blocked: The office needs to confirm this coverage.
 sweetwater	medical	Community Care Plan	accepted	community-care-plan-medical	car40907		success: Yes, we accept Community Care Plan.
 sweetwater	medical	Community Care Plan Medical	accepted	community-care-plan-medical	car40907		success: Yes, we accept Community Care Plan.
-sweetwater	medical	Eye America AAO	accepted	eye-america-aao	car308627		success: Yes, we accept Eye America AAO.
-sweetwater	medical	Eye America AAO (American Academy of Ophthalmology)	accepted	eye-america-aao	car308627		success: Yes, we accept Eye America AAO.
-sweetwater	medical	Eye America	accepted	eye-america-aao	car308627		success: Yes, we accept Eye America AAO.
-sweetwater	medical	EyeCare America	accepted	eye-america-aao	car308627		success: Yes, we accept Eye America AAO.
-sweetwater	medical	American Academy of Ophthalmology	accepted	eye-america-aao	car308627		success: Yes, we accept Eye America AAO.
+sweetwater	medical	Eye America AAO	needs_staff_task	eye-america-aao	car308627		blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	Eye America AAO (American Academy of Ophthalmology)	needs_staff_task	eye-america-aao	car308627		blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	Eye America	needs_staff_task	eye-america-aao	car308627		blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	EyeCare America	needs_staff_task	eye-america-aao	car308627		blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	American Academy of Ophthalmology	needs_staff_task	eye-america-aao	car308627		blocked: The office needs to verify this plan's coverage before scheduling.
 sweetwater	medical	Devoted Medicare HMO	accepted	devoted-medicare-hmo-medical	car281317		success: Yes, we accept Devoted Medicare HMO.
 sweetwater	medical	Devoted Medicare HMO (Medical)	accepted	devoted-medicare-hmo-medical	car281317		success: Yes, we accept Devoted Medicare HMO.
 sweetwater	medical	Devoted	accepted	devoted-medicare-hmo-medical	car281317		success: Yes, we accept Devoted Medicare HMO.
@@ -1981,8 +1981,8 @@ sweetwater	medical	Humana Premier	accepted	humana-premier-hmo	car303061		success
 sweetwater	medical	Humana PPO/POS	accepted	humana-ppo-pos	car303062		success: Yes, we accept Humana PPO/POS.
 sweetwater	medical	Humana PPO	accepted	humana-ppo-pos	car303062		success: Yes, we accept Humana PPO/POS.
 sweetwater	medical	Humana POS	accepted	humana-ppo-pos	car303062		success: Yes, we accept Humana PPO/POS.
-sweetwater	medical	Imagine Health	accepted	imagine-health	car308142		success: Yes, we accept Imagine Health.
-sweetwater	medical	Imagine	accepted	imagine-health	car308142		success: Yes, we accept Imagine Health.
+sweetwater	medical	Imagine Health	needs_staff_task	imagine-health	car308142		blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	Imagine	needs_staff_task	imagine-health	car308142		blocked: The office needs to verify this plan's coverage before scheduling.
 sweetwater	medical	Medical Center International (SouthBay Medical Center)	needs_staff_task	medical-center-international			blocked: The office needs to confirm this coverage.
 sweetwater	medical	Medical Center International (SouthBay Medical Center) Only Medical	needs_staff_task	medical-center-international			blocked: The office needs to confirm this coverage.
 sweetwater	medical	Medical Center International	needs_staff_task	medical-center-international			blocked: The office needs to confirm this coverage.
@@ -2068,9 +2068,9 @@ sweetwater	medical	Tricare Select	accepted	tricare-select	car284327		success: Ye
 sweetwater	medical	Tricare For Life	accepted	tricare-for-life	car40921		success: Yes, we accept Tricare For Life.
 sweetwater	medical	Tricare for Life - Supplemental Insurance to Medicare	accepted	tricare-for-life	car40921		success: Yes, we accept Tricare For Life.
 sweetwater	medical	Tricare Forever	accepted	tricare-for-life	car40921		success: Yes, we accept Tricare For Life.
-sweetwater	medical	UMR	accepted	umr	car284838		success: Yes, we accept UMR.
-sweetwater	medical	UMR (United Health One)	accepted	umr	car284838		success: Yes, we accept UMR.
-sweetwater	medical	United Health One	accepted	umr	car284838		success: Yes, we accept UMR.
+sweetwater	medical	UMR	needs_staff_task	umr	car284838		blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	UMR (United Health One)	needs_staff_task	umr	car284838		blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	United Health One	needs_staff_task	umr	car284838		blocked: The office needs to verify this plan's coverage before scheduling.
 sweetwater	medical	United Healthcare Medical	accepted	united-healthcare-medical	car40923		success: Yes, we accept United Healthcare Medical.
 sweetwater	medical	US Health Group	accepted	us-health-group	car284838		success: Yes, we accept US Health Group.
 sweetwater	medical	US Health Group - A UnitedHealthcare Company	accepted	us-health-group	car284838		success: Yes, we accept US Health Group.

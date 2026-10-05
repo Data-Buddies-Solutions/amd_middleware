@@ -19,6 +19,7 @@ func springHillPlans() []plan {
 		{ID: "pending-plan", Label: "Pending Plan", Coverage: "medical", CarrierID: "car3", Doctors: map[string]string{"Dr. Austin Bach": "pending"}, CallerNotice: "Staff will call you back."},
 		{ID: "prior-auth-plan", Label: "Prior Auth Plan", Coverage: "medical", CarrierID: "car4", Doctors: bach("yes"), Requirements: []planRequirement{{Kind: "prior_authorization", Channel: "availity"}}},
 		{ID: "referral-plan", Label: "Referral Plan", Coverage: "medical", CarrierID: "car5", Doctors: bach("yes"), Requirements: []planRequirement{{Kind: "pcp_referral"}}},
+		{ID: "verify-plan", Label: "Verify Plan", Coverage: "medical", CarrierID: "car5", Doctors: bach("yes"), Requirements: []planRequirement{{Kind: "staff_verify"}}},
 		{ID: "otero-vision", Label: "Otero Vision", Coverage: "routine_vision", CarrierID: "car1", Doctors: map[string]string{"Dr. Melissa Otero": "yes"}, CallerNotice: "Bring your card."},
 	}
 }
@@ -88,6 +89,11 @@ func TestDecidePlanSendsPendingAndRequirementsToStaff(t *testing.T) {
 	if auth.Outcome != "needs_staff_task" || auth.Participation != "accepted" || auth.CanSchedule ||
 		!slices.Equal(auth.Requirements, want) || auth.Answer != answerPriorAuth {
 		t.Fatalf("prior auth = %+v", auth)
+	}
+
+	verify := DecidePlan("verify-plan", "medical", springHill, adultDOB)
+	if verify.Outcome != "needs_staff_task" || verify.Participation != "accepted" || verify.CanSchedule || verify.Answer != answerStaffVerify {
+		t.Fatalf("staff verify = %+v", verify)
 	}
 
 	referral := DecidePlan("referral-plan", "medical", springHill, adultDOB)
