@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [6.1.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.0.0...v6.1.0) (2026-10-06)
+
+
+### Features
+
+* **insurance:** list every plan's result at an office ([#240](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/240)) ([d1a621c](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/d1a621cb35bb3b2c480ac5b1914018d9cedbd8b4))
+
 ## [6.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v5.2.9...v6.0.0) (2026-10-05)
 
 
