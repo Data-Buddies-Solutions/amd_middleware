@@ -74,27 +74,36 @@ func TestListPlansMatchesPlanDecisionsAtEveryOffice(t *testing.T) {
 	}
 }
 
-func TestListPlansNamesOfficesThatAcceptAMiamiDadeOnlyPlan(t *testing.T) {
-	find := func(officeID string) PlanSummary {
-		summaries, _ := ListPlans("medical", office(t, officeID))
-		for _, s := range summaries {
-			if s.PlanID == "aetna-better-health-medicaid-medical" {
-				return s
-			}
+func findPlan(t *testing.T, officeID, planID string) PlanSummary {
+	t.Helper()
+	summaries, _ := ListPlans("medical", office(t, officeID))
+	for _, s := range summaries {
+		if s.PlanID == planID {
+			return s
 		}
-		t.Fatalf("%s: plan missing", officeID)
-		return PlanSummary{}
 	}
-	hollywood := find("hollywood")
+	t.Fatalf("%s: plan %s missing", officeID, planID)
+	return PlanSummary{}
+}
+
+func TestListPlansNamesOfficesThatAcceptAMiamiDadeOnlyPlan(t *testing.T) {
+	hollywood := findPlan(t, "hollywood", "aetna-better-health-medicaid-medical")
 	if hollywood.Outcome != "not_accepted" || !slices.Equal(hollywood.AcceptedAt, []string{"Sweetwater"}) {
 		t.Fatalf("hollywood = %+v", hollywood)
 	}
 	if hollywood.CarrierName != "ICARE HEALTH OPTIONS TPA" || hollywood.Note == "" || slices.Contains(hollywood.Names, hollywood.Label) {
 		t.Fatalf("hollywood = %+v", hollywood)
 	}
-	sweetwater := find("sweetwater")
+	sweetwater := findPlan(t, "sweetwater", "aetna-better-health-medicaid-medical")
 	if sweetwater.Outcome != "accepted" || len(sweetwater.AcceptedAt) != 0 {
 		t.Fatalf("sweetwater = %+v", sweetwater)
+	}
+}
+
+func TestListPlansNamesOfficesOnTheSameListInAnotherTable(t *testing.T) {
+	springHill := findPlan(t, "spring_hill", "careplus-medicare-medical")
+	if springHill.Outcome != "not_accepted" || !slices.Equal(springHill.AcceptedAt, []string{"Crystal River"}) {
+		t.Fatalf("spring hill = %+v", springHill)
 	}
 }
 

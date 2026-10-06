@@ -82,14 +82,6 @@ func TestInsurancePlansHTTPContract(t *testing.T) {
 	}
 }
 
-func TestInsurancePlansHollywoodListsWhereAMiamiDadeOnlyPlanIsAccepted(t *testing.T) {
-	w := getInsurancePlans(t, "office=hollywood&coverage=medical", "Bearer test-secret")
-	want := `{"planId":"aetna-better-health-medicaid-medical","label":"Aetna Better Health Medicaid MMA","names":["Aetna Better Health Medicaid MMA (Medical)","Aetna Better Health","Aetna Better Health of Florida","Aetna Better Health Medicaid","Aetna Medicaid"],"carrierCode":"ICA01","carrierId":"car40907","carrierName":"ICARE HEALTH OPTIONS TPA","outcome":"not_accepted","allowedProviders":[],"requirements":[],"callerNotice":"","note":"effective 2/1/2025 ONLY in MiamiDade - NO LONGER Provided in Broward County","acceptedAt":["Sweetwater"]}`
-	if !strings.HasPrefix(w.Body.String(), `{"officeId":"hollywood","coverage":"medical","plans":[`) || !strings.Contains(w.Body.String(), want) {
-		t.Fatalf("body = %s", w.Body.String())
-	}
-}
-
 func TestInsurancePlansOfficeWithoutTheCoverageReturnsNoPlans(t *testing.T) {
 	w := getInsurancePlans(t, "office=north-miami-beach-optical&coverage=medical", "Bearer test-secret")
 	if w.Code != http.StatusOK || strings.TrimSpace(w.Body.String()) != `{"officeId":"north_miami_beach_optical","coverage":"medical","plans":[]}` {

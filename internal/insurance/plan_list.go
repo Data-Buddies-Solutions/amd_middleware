@@ -2,6 +2,7 @@ package insurance
 
 import (
 	"cmp"
+	"path"
 	"slices"
 	"strings"
 
@@ -71,13 +72,15 @@ func compareLabels(a, b string) int {
 
 func acceptedElsewhere(p plan, list planList, office *domain.OfficeConfig) []string {
 	offices := []string{}
-	for _, id := range list.Offices {
-		other, ok := domain.LookupOfficeByID(id)
-		if !ok || id == office.ID {
+	for _, other := range catalog {
+		if path.Dir(other.Table) != path.Dir(list.Table) {
 			continue
 		}
-		if DecidePlan(p.ID, p.Coverage, other, "").Participation == "accepted" {
-			offices = append(offices, other.DisplayName)
+		for _, id := range other.Offices {
+			o, _ := domain.LookupOfficeByID(id)
+			if id != office.ID && DecidePlan(p.ID, p.Coverage, o, "").Participation == "accepted" {
+				offices = append(offices, o.DisplayName)
+			}
 		}
 	}
 	return offices
