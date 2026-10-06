@@ -70,7 +70,7 @@ func parseCatalog(files map[string][]byte) ([]planList, error) {
 	for _, table := range tables {
 		dir := path.Dir(table)
 		if plansByDir[dir] == nil {
-			plans, err := parsePlans(files[path.Join(dir, plansFile)])
+			plans, err := parsePlans(files[path.Join(dir, plansFile)], carriers)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", path.Join(dir, plansFile), err)
 			}
@@ -114,14 +114,14 @@ func checkEveryFileIsListed(files map[string][]byte, officeTables map[string][]s
 	return nil
 }
 
-func parsePlans(b []byte) (map[string]plan, error) {
+func parsePlans(b []byte, carriers map[string]string) (map[string]plan, error) {
 	rows, err := readCSV(b, planColumns)
 	if err != nil {
 		return nil, err
 	}
 	plans := map[string]plan{}
 	for _, row := range rows {
-		p := plan{ID: row[0], Label: row[1], Coverage: row[2], CarrierCode: row[3], CarrierID: row[4]}
+		p := plan{ID: row[0], Label: row[1], Coverage: row[2], CarrierCode: row[3], CarrierID: row[4], CarrierName: carriers[row[4]]}
 		switch row[5] {
 		case "yes":
 			p.SelfPay = true
