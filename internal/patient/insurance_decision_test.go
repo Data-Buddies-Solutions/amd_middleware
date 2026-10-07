@@ -81,7 +81,25 @@ func TestSelfPayPlanDefaultsTheSubscriberNumber(t *testing.T) {
 	create.SubscriberNum = ""
 	created := patient.New(records, testAppointmentTokens).Create(context.Background(), create)
 	if created.Status != patient.CreateStatusCreated || !created.InsuranceDecision.SelfPay ||
-		len(records.Insurances) != 1 || records.Insurances[0].SubscriberNum != "self pay" {
+		len(records.Insurances) != 1 || records.Insurances[0].SubscriberNum != "0000" {
 		t.Fatalf("create = %+v insurances = %+v", created, records.Insurances)
+	}
+}
+
+func TestSelfPayWithoutSubscriberNumberWritesZeros(t *testing.T) {
+	for _, tc := range []struct{ plan, subscriber, want string }{
+		{"Self Pay", "", "0000"},
+		{"cash", "  ", "0000"},
+		{"Self Pay", "ABC123", "ABC123"},
+		{"Humana PPO", "synthetic", "synthetic"},
+	} {
+		t.Run(tc.plan+"/"+tc.subscriber, func(t *testing.T) {
+			records := advancedmdtest.NewAdapter()
+			records.Demographics["123"] = domain.PatientDemographics{DOB: "01/02/1980", RespPartyID: "resp123", InsuranceStateKnown: true}
+			result := patient.New(records, testAppointmentTokens).UpdateInsurance(context.Background(), patient.UpdateInsuranceCommand{PatientID: "123", RespPartyID: "resp123", Insurance: tc.plan, SubscriberNum: tc.subscriber, Office: "Hollywood", DOB: "01/02/1980"})
+			if result.Status != patient.UpdateInsuranceStatusUpdated || len(records.Insurances) != 1 || records.Insurances[0].SubscriberNum != tc.want {
+				t.Fatalf("result=%+v records=%+v", result, records.Insurances)
+			}
+		})
 	}
 }

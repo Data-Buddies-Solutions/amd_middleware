@@ -98,7 +98,7 @@ func mutationLabel(outcome MutationOutcome, succeeded bool) string {
 
 func subscriberNumber(selfPay bool, subscriberNum string) string {
 	if selfPay && strings.TrimSpace(subscriberNum) == "" {
-		return "self pay"
+		return "0000"
 	}
 	return subscriberNum
 }
