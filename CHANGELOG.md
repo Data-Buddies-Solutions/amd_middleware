@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [6.1.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.1.0...v6.1.1) (2026-10-07)
+
+
+### Bug Fixes
+
+* **patient:** send 0000 as self-pay subscriber number ([#242](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/242)) ([7c9e2db](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/7c9e2dbd6763f351ee6660949975e297e0046899))
+
 ## [6.1.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.0.0...v6.1.0) (2026-10-06)
 
 
