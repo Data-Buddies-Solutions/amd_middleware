@@ -16,7 +16,7 @@ func DecideChartInsurance(chart domain.PatientDemographics, coverage string, off
 	groups := distinctOutcomes(plans, office, dob)
 	if len(groups) != 1 || groups[0].Participation != "accepted" {
 		d.Outcome = "needs_staff_task"
-		d.Answer = answerChartStaff
+		d.Reason, d.Answer = "chart_unverified", answerChartStaff
 		return d
 	}
 	return groups[0]

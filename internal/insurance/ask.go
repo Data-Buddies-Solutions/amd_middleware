@@ -15,7 +15,7 @@ func decideCandidates(d InsuranceDecision, plans []plan, office *domain.OfficeCo
 		return groups[0]
 	}
 	if len(groups) > maxOptions {
-		d.Answer = answerAskFullName
+		d.Reason, d.Answer = "ask_full_name", answerAskFullName
 		return d
 	}
 	labels := []string{}
@@ -23,6 +23,7 @@ func decideCandidates(d InsuranceDecision, plans []plan, office *domain.OfficeCo
 		d.Options = append(d.Options, InsuranceOption{PlanID: group.PlanID, Label: group.CanonicalPlan})
 		labels = append(labels, group.CanonicalPlan)
 	}
+	d.Reason = "choose_plan"
 	d.Answer = "needs_input: Which of these is on your card: " + joinWithOr(labels) + "?"
 	return d
 }
@@ -53,7 +54,7 @@ func outcomeKey(d InsuranceDecision) string {
 		kinds = append(kinds, r.Kind)
 	}
 	slices.Sort(kinds)
-	return strings.Join([]string{d.Outcome, d.CarrierID, strings.Join(doctors, ","), strings.Join(kinds, ","), fmt.Sprint(d.SelfPay)}, "|")
+	return strings.Join([]string{d.Outcome, d.Reason, d.CallerNotice, d.CarrierID, strings.Join(doctors, ","), strings.Join(kinds, ","), fmt.Sprint(d.SelfPay)}, "|")
 }
 
 func joinWithOr(items []string) string {
