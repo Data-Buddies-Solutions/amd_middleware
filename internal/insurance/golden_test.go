@@ -73,7 +73,7 @@ func row(rows []string, i int) string {
 
 func phrasingRows(t *testing.T) string {
 	var b strings.Builder
-	b.WriteString("office\tcoverage\theard\toutcome\tplanId\tcarrierId\toptions\tanswer\n")
+	b.WriteString("office\tcoverage\theard\toutcome\tplanId\tcarrierId\toptions\treason\tcallerNotice\tanswer\n")
 	forEachOfficeCoverage(t, func(o *domain.OfficeConfig, coverage string) {
 		for _, heard := range callerPhrasings {
 			d := DecideInsurance(heard, coverage, o, adultDOB)
@@ -81,7 +81,7 @@ func phrasingRows(t *testing.T) string {
 			for _, option := range d.Options {
 				options = append(options, option.PlanID)
 			}
-			fmt.Fprintf(&b, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", o.ID, coverage, heard, d.Outcome, d.PlanID, d.CarrierID, strings.Join(options, ","), d.Answer)
+			fmt.Fprintf(&b, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", o.ID, coverage, heard, d.Outcome, d.PlanID, d.CarrierID, strings.Join(options, ","), d.Reason, d.CallerNotice, d.Answer)
 		}
 	})
 	return b.String()
@@ -89,7 +89,7 @@ func phrasingRows(t *testing.T) string {
 
 func planRows(t *testing.T) string {
 	var b strings.Builder
-	b.WriteString("office\tcoverage\tplanId\toutcome\tcarrierId\trequirements\tadultDoctors\tchildDoctors\tanswer\n")
+	b.WriteString("office\tcoverage\tplanId\toutcome\tcarrierId\trequirements\tadultDoctors\tchildDoctors\treason\tcallerNotice\tanswer\n")
 	forEachOfficeCoverage(t, func(o *domain.OfficeConfig, coverage string) {
 		for _, p := range listForOffice(o.ID).Plans {
 			if p.Coverage != coverage {
@@ -101,7 +101,7 @@ func planRows(t *testing.T) string {
 			for _, r := range adult.Requirements {
 				kinds = append(kinds, r.Kind)
 			}
-			fmt.Fprintf(&b, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", o.ID, coverage, p.ID, adult.Outcome, adult.CarrierID, strings.Join(kinds, ","), strings.Join(adult.AllowedProviders, ","), strings.Join(child.AllowedProviders, ","), adult.Answer)
+			fmt.Fprintf(&b, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", o.ID, coverage, p.ID, adult.Outcome, adult.CarrierID, strings.Join(kinds, ","), strings.Join(adult.AllowedProviders, ","), strings.Join(child.AllowedProviders, ","), adult.Reason, adult.CallerNotice, adult.Answer)
 		}
 	})
 	return b.String()

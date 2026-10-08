@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 func dobYearsAgo(years int) string {
@@ -165,5 +167,41 @@ func TestInsuranceDecisionJSON(t *testing.T) {
 	}
 	if strings.Contains(string(accepted), "options") {
 		t.Fatalf("options present without a question: %s", accepted)
+	}
+}
+
+func TestDecisionsNameTheirReasonAndCallerNotice(t *testing.T) {
+	useSyntheticCatalog(t, syntheticSouthFlorida(), springHillPlans(), nil)
+	springHill, hollywood := office(t, "spring_hill"), office(t, "hollywood")
+	tests := []struct {
+		name   string
+		d      InsuranceDecision
+		reason string
+		notice string
+	}{
+		{"accepted", DecidePlan("all-three", "medical", springHill, adultDOB), "accepted", ""},
+		{"accepted with notice", DecidePlan("otero-vision", "routine_vision", springHill, adultDOB), "accepted", "Bring your card."},
+		{"pending", DecidePlan("pending-plan", "medical", springHill, adultDOB), "pending_confirmation", "Staff will call you back."},
+		{"requirement", DecidePlan("prior-auth-plan", "medical", springHill, adultDOB), "requirement", ""},
+		{"no doctor for age", DecidePlan("licht-only", "medical", springHill, dobYearsAgo(10)), "no_provider_for_age", ""},
+		{"not accepted", DecidePlan("aetna-commercial", "medical", hollywood, adultDOB), "not_accepted", ""},
+		{"unknown plan", DecidePlan("missing", "medical", hollywood, adultDOB), "ask_card", ""},
+		{"unknown coverage", DecidePlan("aetna-medicare", "dental", hollywood, adultDOB), "ask_coverage", ""},
+		{"office without coverage", DecideInsurance("Aetna Medicare", "medical", office(t, "north_miami_beach_optical"), adultDOB), "office_no_coverage", ""},
+		{"several plans", DecideInsurance("Aetna", "medical", hollywood, adultDOB), "choose_plan", ""},
+		{"program only", DecideInsurance("Medicare please", "medical", hollywood, adultDOB), "ask_full_name", ""},
+		{"chart carrier unknown", DecideChartInsurance(domain.PatientDemographics{CarrierID: "car999"}, "medical", hollywood, adultDOB), "chart_unverified", ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.d.Reason != tc.reason || tc.d.CallerNotice != tc.notice {
+				t.Fatalf("reason = %q, callerNotice = %q; decision = %+v", tc.d.Reason, tc.d.CallerNotice, tc.d)
+			}
+		})
+	}
+	noticed, _ := json.Marshal(tests[1].d)
+	plain, _ := json.Marshal(tests[0].d)
+	if !strings.Contains(string(noticed), `"reason":"accepted","callerNotice":"Bring your card."`) || strings.Contains(string(plain), "callerNotice") {
+		t.Fatalf("reason/callerNotice JSON: %s / %s", noticed, plain)
 	}
 }

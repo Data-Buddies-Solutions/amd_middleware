@@ -42,6 +42,8 @@ type InsuranceDecision struct {
 	Eligibility      string                 `json:"eligibility"`
 	CanSchedule      bool                   `json:"canSchedule"`
 	SelfPay          bool                   `json:"selfPay"`
+	Reason           string                 `json:"reason"`
+	CallerNotice     string                 `json:"callerNotice,omitempty"`
 	Answer           string                 `json:"answer"`
 	Options          []InsuranceOption      `json:"options,omitempty"`
 }
@@ -54,7 +56,7 @@ func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob st
 	heardWords := tokens(heard)
 	words := callerWords(heardWords, list.vocabulary[coverage])
 	if len(words) < len(heardWords) && namesProgram(words) {
-		d.Answer = answerAskFullName
+		d.Reason, d.Answer = "ask_full_name", answerAskFullName
 		return d
 	}
 	if p, ok := exactPlan(list, coverage, words); ok {
@@ -63,7 +65,7 @@ func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob st
 	found := bestCandidates(list, coverage, words)
 	if len(found) == 0 {
 		if namesProgram(words) {
-			d.Answer = answerAskFullName
+			d.Reason, d.Answer = "ask_full_name", answerAskFullName
 		}
 		return d
 	}
@@ -86,13 +88,13 @@ func DecidePlan(planID, coverage string, office *domain.OfficeConfig, dob string
 func startDecision(coverage string, office *domain.OfficeConfig) (InsuranceDecision, planList, bool) {
 	d := newDecision(coverage, office)
 	if coverage != "medical" && coverage != "routine_vision" {
-		d.Answer = answerAskCoverage
+		d.Reason, d.Answer = "ask_coverage", answerAskCoverage
 		return d, planList{}, false
 	}
 	if !officeSupports(office, coverage) {
 		d.Outcome = "not_accepted"
 		d.Participation = "not_accepted"
-		d.Answer = answerOfficeNoCoverage
+		d.Reason, d.Answer = "office_no_coverage", answerOfficeNoCoverage
 		return d, planList{}, false
 	}
 	return d, listForOffice(office.ID), true
@@ -107,6 +109,7 @@ func newDecision(coverage string, office *domain.OfficeConfig) InsuranceDecision
 		AllowedProviders: []string{},
 		Requirements:     []InsuranceRequirement{},
 		Eligibility:      "not_checked",
+		Reason:           "ask_card",
 		Answer:           answerAskCard,
 	}
 }
