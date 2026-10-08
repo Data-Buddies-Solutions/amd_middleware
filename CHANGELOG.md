@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [6.2.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.1.1...v6.2.0) (2026-10-08)
+
+
+### Features
+
+* **insurance:** add reason and callerNotice to insurance decisions ([#244](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/244)) ([8418897](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/841889706f6cc8820e5e031e8e59fc51976d2b19))
+
 ## [6.1.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.1.0...v6.1.1) (2026-10-07)
 
 
