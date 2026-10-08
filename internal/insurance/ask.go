@@ -54,7 +54,7 @@ func outcomeKey(d InsuranceDecision) string {
 		kinds = append(kinds, r.Kind)
 	}
 	slices.Sort(kinds)
-	return strings.Join([]string{d.Outcome, d.CarrierID, strings.Join(doctors, ","), strings.Join(kinds, ","), fmt.Sprint(d.SelfPay)}, "|")
+	return strings.Join([]string{d.Outcome, d.Reason, d.CallerNotice, d.CarrierID, strings.Join(doctors, ","), strings.Join(kinds, ","), fmt.Sprint(d.SelfPay)}, "|")
 }
 
 func joinWithOr(items []string) string {

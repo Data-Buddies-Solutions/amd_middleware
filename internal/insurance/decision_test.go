@@ -205,3 +205,16 @@ func TestDecisionsNameTheirReasonAndCallerNotice(t *testing.T) {
 		t.Fatalf("reason/callerNotice JSON: %s / %s", noticed, plain)
 	}
 }
+
+func TestCandidatesWithDifferentNoticesAreAskedNotMerged(t *testing.T) {
+	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
+	hollywood := office(t, "hollywood")
+	plans := []plan{
+		{ID: "blue-a", Label: "Blue A", Coverage: "medical", CarrierID: "car9", Doctors: bach("yes")},
+		{ID: "blue-b", Label: "Blue B", Coverage: "medical", CarrierID: "car9", Doctors: bach("yes"), CallerNotice: "Bring your referral."},
+	}
+	d := decideCandidates(newDecision("medical", hollywood), plans, hollywood, adultDOB)
+	if d.Reason != "choose_plan" || len(d.Options) != 2 {
+		t.Fatalf("decision = %+v", d)
+	}
+}
