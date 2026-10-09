@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [6.2.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.2.0...v6.2.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* **insurance:** ask Simply Medicaid callers for the subscriber number ([#246](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/246)) ([355184f](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/355184f2823bed1b87caa4278ae27cbeda968173))
+
 ## [6.2.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.1.1...v6.2.0) (2026-10-08)
 
 
