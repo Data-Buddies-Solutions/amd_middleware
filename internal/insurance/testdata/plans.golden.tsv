@@ -174,7 +174,7 @@ hollywood	medical	oscar-health-medical	accepted	car284233		Dr. Bach	Dr. Bach	acc
 hollywood	medical	partners-direct-health	accepted	car308142		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Partners Direct Health.
 hollywood	medical	preferred-care-partners-medical	accepted	car40916		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Preferred Care Partners.
 hollywood	medical	seminole-tribe-medical	needs_staff_task	car301427	pcp_referral	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
-hollywood	medical	simply-medicaid-medical	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Simply Medicaid/Healthy Kids.
+hollywood	medical	simply-medicaid-medical	accepted	car40907		Dr. Bach	Dr. Bach	accepted	For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.	success: Yes, we accept Simply Medicaid/Healthy Kids. For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.
 hollywood	medical	simply-medicare-medical	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Simply Medicare.
 hollywood	medical	solis-medicare-medical	needs_staff_task	car281317	prior_authorization	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires prior authorization before scheduling.
 hollywood	medical	staywell-medicare-medical	accepted	car281245		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Staywell Medicare.
@@ -227,7 +227,7 @@ hollywood	routine_vision	molina-medicaid-vision	not_accepted	car40907				not_acc
 hollywood	routine_vision	optimum-healthplan-medicare-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	accepted		success: Yes, we accept Optimum Healthplan Medicare Vision.
 hollywood	routine_vision	preferred-care-network-medica-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	accepted		success: Yes, we accept Medica Vision.
 hollywood	routine_vision	seminole-tribe-vision	needs_staff_task	car301427	pcp_referral	Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
-hollywood	routine_vision	simply-medicaid-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	accepted		success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+hollywood	routine_vision	simply-medicaid-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	accepted	For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.	success: Yes, we accept Simply Medicaid/Healthy Kids Vision. For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.
 hollywood	routine_vision	simply-medicare-vision	accepted	car40907		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	accepted		success: Yes, we accept Simply Medicare Vision.
 hollywood	routine_vision	solis-medicare-vision	accepted	car281317		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	accepted		success: Yes, we accept Solis Medicare Vision.
 hollywood	routine_vision	staywell-medicaid-vision	accepted	car281245		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	accepted		success: Yes, we accept Staywell Medicaid Vision.
@@ -286,7 +286,7 @@ north_miami_beach_optical	routine_vision	molina-medicaid-vision	accepted	car4090
 north_miami_beach_optical	routine_vision	optimum-healthplan-medicare-vision	not_accepted	car40907				not_accepted		blocked: This plan is not accepted for this visit type at this office.
 north_miami_beach_optical	routine_vision	preferred-care-network-medica-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	accepted		success: Yes, we accept Medica Vision.
 north_miami_beach_optical	routine_vision	seminole-tribe-vision	needs_staff_task	car301427	pcp_referral	Dr. Miriam Bach	Dr. Miriam Bach	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
-north_miami_beach_optical	routine_vision	simply-medicaid-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	accepted		success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+north_miami_beach_optical	routine_vision	simply-medicaid-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	accepted	For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.	success: Yes, we accept Simply Medicaid/Healthy Kids Vision. For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.
 north_miami_beach_optical	routine_vision	simply-medicare-vision	accepted	car40907		Dr. Miriam Bach	Dr. Miriam Bach	accepted		success: Yes, we accept Simply Medicare Vision.
 north_miami_beach_optical	routine_vision	solis-medicare-vision	accepted	car281317		Dr. Miriam Bach	Dr. Miriam Bach	accepted		success: Yes, we accept Solis Medicare Vision.
 north_miami_beach_optical	routine_vision	staywell-medicaid-vision	accepted	car281245		Dr. Miriam Bach	Dr. Miriam Bach	accepted		success: Yes, we accept Staywell Medicaid Vision.
@@ -404,7 +404,7 @@ spring_hill	medical	preferred-care-partners	not_accepted	car40916				not_accepte
 spring_hill	medical	self-pay-medical	accepted	car301672		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	accepted		success: Yes, we accept Self Pay.
 spring_hill	medical	seminole-tribe	needs_staff_task	car301427				pending_confirmation		blocked: The office needs to confirm this coverage.
 spring_hill	medical	simply-health	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	accepted		success: Yes, we accept Simply Health.
-spring_hill	medical	simply-medicaid	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	accepted		success: Yes, we accept Simply Medicaid.
+spring_hill	medical	simply-medicaid	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	accepted	For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.	success: Yes, we accept Simply Medicaid. For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.
 spring_hill	medical	simply-medicare	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	accepted		success: Yes, we accept Simply Medicare.
 spring_hill	medical	solis-medicare	accepted	car281317		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	accepted		success: Yes, we accept Solis Medicare.
 spring_hill	medical	southbay-medical-center	needs_staff_task					pending_confirmation		blocked: The office needs to confirm this coverage.
@@ -456,7 +456,7 @@ spring_hill	routine_vision	miami-childrens-health-plan-vision	accepted	car40907	
 spring_hill	routine_vision	molina-medicaid-vision	accepted	car40907		Dr. Otero	Dr. Otero	accepted		success: Yes, we accept Molina Medicaid Vision.
 spring_hill	routine_vision	optimum-healthplan-medicare-vision	accepted	car40907		Dr. Otero	Dr. Otero	accepted		success: Yes, we accept Optimum Healthplan Medicare Vision.
 spring_hill	routine_vision	preferred-care-network-medica-vision	accepted	car40907		Dr. Otero	Dr. Otero	accepted		success: Yes, we accept Medica Vision.
-spring_hill	routine_vision	simply-medicaid-vision	accepted	car40907		Dr. Otero	Dr. Otero	accepted		success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+spring_hill	routine_vision	simply-medicaid-vision	accepted	car40907		Dr. Otero	Dr. Otero	accepted	For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.	success: Yes, we accept Simply Medicaid/Healthy Kids Vision. For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.
 spring_hill	routine_vision	simply-medicare-vision	accepted	car40907		Dr. Otero	Dr. Otero	accepted		success: Yes, we accept Simply Medicare Vision.
 spring_hill	routine_vision	solis-medicare-vision	accepted	car281317		Dr. Otero	Dr. Otero	accepted		success: Yes, we accept Solis Medicare Vision.
 spring_hill	routine_vision	staywell-medicaid-vision	accepted	car281245		Dr. Otero	Dr. Otero	accepted		success: Yes, we accept Staywell Medicaid Vision.
@@ -552,7 +552,7 @@ sweetwater	medical	oscar-health-medical	accepted	car284233		Dr. Bach	Dr. Bach	ac
 sweetwater	medical	partners-direct-health	accepted	car308142		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Partners Direct Health.
 sweetwater	medical	preferred-care-partners-medical	accepted	car40916		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Preferred Care Partners.
 sweetwater	medical	seminole-tribe-medical	needs_staff_task	car301427	pcp_referral	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
-sweetwater	medical	simply-medicaid-medical	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Simply Medicaid/Healthy Kids.
+sweetwater	medical	simply-medicaid-medical	accepted	car40907		Dr. Bach	Dr. Bach	accepted	For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.	success: Yes, we accept Simply Medicaid/Healthy Kids. For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.
 sweetwater	medical	simply-medicare-medical	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Simply Medicare.
 sweetwater	medical	solis-medicare-medical	needs_staff_task	car281317	prior_authorization	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires prior authorization before scheduling.
 sweetwater	medical	staywell-medicare-medical	accepted	car281245		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Staywell Medicare.
@@ -605,7 +605,7 @@ sweetwater	routine_vision	molina-medicaid-vision	accepted	car40907		Dr. Casas,Dr
 sweetwater	routine_vision	optimum-healthplan-medicare-vision	not_accepted	car40907				not_accepted		blocked: This plan is not accepted for this visit type at this office.
 sweetwater	routine_vision	preferred-care-network-medica-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	accepted		success: Yes, we accept Medica Vision.
 sweetwater	routine_vision	seminole-tribe-vision	needs_staff_task	car301427	pcp_referral	Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
-sweetwater	routine_vision	simply-medicaid-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	accepted		success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+sweetwater	routine_vision	simply-medicaid-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	accepted	For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.	success: Yes, we accept Simply Medicaid/Healthy Kids Vision. For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.
 sweetwater	routine_vision	simply-medicare-vision	accepted	car40907		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	accepted		success: Yes, we accept Simply Medicare Vision.
 sweetwater	routine_vision	solis-medicare-vision	accepted	car281317		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	accepted		success: Yes, we accept Solis Medicare Vision.
 sweetwater	routine_vision	staywell-medicaid-vision	accepted	car281245		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	accepted		success: Yes, we accept Staywell Medicaid Vision.

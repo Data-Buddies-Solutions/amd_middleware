@@ -2,6 +2,7 @@ package insurance
 
 import (
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -68,3 +69,19 @@ func TestRealDataSpringHillHumanaMedicareKeepsItsCarrier(t *testing.T) {
 		t.Fatalf("decision = %+v", d)
 	}
 }
+
+func TestRealDataSimplyMedicaidAsksForTheSubscriberNumber(t *testing.T) {
+	for _, c := range []struct{ office, coverage string }{
+		{"hollywood", "medical"}, {"hollywood", "routine_vision"},
+		{"sweetwater", "medical"}, {"sweetwater", "routine_vision"},
+		{"north_miami_beach_optical", "routine_vision"},
+		{"spring_hill", "medical"}, {"spring_hill", "routine_vision"},
+	} {
+		d := DecideInsurance("Simply Medicaid", c.coverage, office(t, c.office), adultDOB)
+		if d.Outcome != "accepted" || d.CallerNotice != simplySubscriberNotice || !strings.HasSuffix(d.Answer, simplySubscriberNotice) {
+			t.Errorf("%s %s: decision = %+v", c.office, c.coverage, d)
+		}
+	}
+}
+
+const simplySubscriberNotice = "For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8."

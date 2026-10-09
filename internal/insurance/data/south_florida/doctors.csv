@@ -61,7 +61,7 @@ oscar-health-medical,yes,no,no,no,no,no,,,,ODs cannot see Medical for Oscar
 partners-direct-health,yes,no,no,no,no,no,,,,ONLY Dr. A Bach
 preferred-care-partners-medical,yes,pending,yes,yes,no,no,,,,MEDICAL ONLY - We cannot render vision/routine eye care services.
 seminole-tribe-medical,yes,no,no,no,no,no,pcp_referral,,,Requires Referrals - Medical & Vision
-simply-medicaid-medical,yes,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+simply-medicaid-medical,yes,yes,yes,yes,yes,yes,,,"For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.",Pull eligibilility from ehealthdeck.com it will provide pre-certification
 simply-medicare-medical,yes,pending,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
 solis-medicare-medical,yes,yes,yes,yes,yes,yes,prior_authorization,,,Medical Requires Prior Auth
 staywell-medicare-medical,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from Envolve for Benefits
@@ -114,7 +114,7 @@ molina-medicaid-vision,no,yes,yes,yes,yes,yes,,sweetwater;north_miami_beach_opti
 optimum-healthplan-medicare-vision,no,yes,yes,yes,yes,yes,,hollywood,,Routine/Vision only in Broward (Hollywood & Coral Springs) Indian River (VeroBeach)
 preferred-care-network-medica-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
 seminole-tribe-vision,yes,yes,yes,yes,yes,yes,pcp_referral,,,Requires Referrals - Medical & Vision
-simply-medicaid-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
+simply-medicaid-vision,no,yes,yes,yes,yes,yes,,,"For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.",Pull eligibilility from ehealthdeck.com it will provide pre-certification
 simply-medicare-vision,no,yes,yes,yes,yes,yes,,,,Pull eligibilility from ehealthdeck.com it will provide pre-certification
 solis-medicare-vision,yes,yes,yes,yes,yes,yes,,,,
 staywell-medicaid-vision,yes,yes,yes,yes,yes,yes,,,,Pull eligibility from Envolve for Benefits
