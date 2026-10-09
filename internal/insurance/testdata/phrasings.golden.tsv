@@ -81,7 +81,7 @@ hollywood	medical	United Healthcare PPO	needs_clarification				ask_full_name		ne
 hollywood	medical	Cigna	needs_clarification			cigna-hmo,cigna-ppo,cigna-sure-fit,cigna-medicare-advantage-medical	choose_plan		needs_input: Which of these is on your card: Cigna HMO, Cigna PPO, Cigna Sure Fit, or Cigna Medicare Advantage (Healthspring)?
 hollywood	medical	Molina	needs_clarification			molina-medicaid-medical,molina-medicare-medical,molina-marketplace-non-par	choose_plan		needs_input: Which of these is on your card: Molina Medicaid, Molina Medicare, or Molina Marketplace?
 hollywood	medical	Molina Medicade	needs_clarification			molina-medicaid-medical,molina-medicare-medical,molina-marketplace-non-par	choose_plan		needs_input: Which of these is on your card: Molina Medicaid, Molina Medicare, or Molina Marketplace?
-hollywood	medical	Simply	accepted	simply-medicaid-medical	car40907		accepted		success: Yes, we accept Simply Medicaid/Healthy Kids.
+hollywood	medical	Simply	accepted	simply-medicaid-medical	car40907		accepted	For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.	success: Yes, we accept Simply Medicaid/Healthy Kids. For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.
 hollywood	medical	Staywell Medicaid	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 hollywood	medical	Tier 1	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 hollywood	medical	Medicare	accepted	medicare-part-b	car40900		accepted		success: Yes, we accept Medicare Part B.
@@ -133,7 +133,7 @@ hollywood	routine_vision	United Healthcare PPO	accepted	unitedhealthcare-vision	
 hollywood	routine_vision	Cigna	needs_clarification			cigna-vision,cigna-sure-fit-vision	choose_plan		needs_input: Which of these is on your card: Cigna Vision or Cigna Sure Fit?
 hollywood	routine_vision	Molina	not_accepted	molina-medicaid-vision	car40907		not_accepted		blocked: This plan is not accepted for this visit type at this office.
 hollywood	routine_vision	Molina Medicade	not_accepted	molina-medicaid-vision	car40907		not_accepted		blocked: This plan is not accepted for this visit type at this office.
-hollywood	routine_vision	Simply	accepted	simply-medicaid-vision	car40907		accepted		success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+hollywood	routine_vision	Simply	accepted	simply-medicaid-vision	car40907		accepted	For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.	success: Yes, we accept Simply Medicaid/Healthy Kids Vision. For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.
 hollywood	routine_vision	Staywell Medicaid	accepted	staywell-medicaid-vision	car281245		accepted		success: Yes, we accept Staywell Medicaid Vision.
 hollywood	routine_vision	Tier 1	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 hollywood	routine_vision	Medicare	needs_clarification				ask_full_name		needs_input: What is the full plan name on your card?
@@ -185,7 +185,7 @@ north_miami_beach_optical	routine_vision	United Healthcare PPO	accepted	unitedhe
 north_miami_beach_optical	routine_vision	Cigna	needs_clarification			cigna-vision,cigna-sure-fit-vision	choose_plan		needs_input: Which of these is on your card: Cigna Vision or Cigna Sure Fit?
 north_miami_beach_optical	routine_vision	Molina	accepted	molina-medicaid-vision	car40907		accepted		success: Yes, we accept Molina Medicaid Vision.
 north_miami_beach_optical	routine_vision	Molina Medicade	accepted	molina-medicaid-vision	car40907		accepted		success: Yes, we accept Molina Medicaid Vision.
-north_miami_beach_optical	routine_vision	Simply	accepted	simply-medicaid-vision	car40907		accepted		success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+north_miami_beach_optical	routine_vision	Simply	accepted	simply-medicaid-vision	car40907		accepted	For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.	success: Yes, we accept Simply Medicaid/Healthy Kids Vision. For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.
 north_miami_beach_optical	routine_vision	Staywell Medicaid	accepted	staywell-medicaid-vision	car281245		accepted		success: Yes, we accept Staywell Medicaid Vision.
 north_miami_beach_optical	routine_vision	Tier 1	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 north_miami_beach_optical	routine_vision	Medicare	needs_clarification				ask_full_name		needs_input: What is the full plan name on your card?
@@ -289,7 +289,7 @@ spring_hill	routine_vision	United Healthcare PPO	accepted	unitedhealthcare-visio
 spring_hill	routine_vision	Cigna	accepted	cigna-vision	car280684		accepted		success: Yes, we accept Cigna Vision.
 spring_hill	routine_vision	Molina	accepted	molina-medicaid-vision	car40907		accepted		success: Yes, we accept Molina Medicaid Vision.
 spring_hill	routine_vision	Molina Medicade	accepted	molina-medicaid-vision	car40907		accepted		success: Yes, we accept Molina Medicaid Vision.
-spring_hill	routine_vision	Simply	accepted	simply-medicaid-vision	car40907		accepted		success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+spring_hill	routine_vision	Simply	accepted	simply-medicaid-vision	car40907		accepted	For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.	success: Yes, we accept Simply Medicaid/Healthy Kids Vision. For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.
 spring_hill	routine_vision	Staywell Medicaid	accepted	staywell-medicaid-vision	car281245		accepted		success: Yes, we accept Staywell Medicaid Vision.
 spring_hill	routine_vision	Tier 1	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 spring_hill	routine_vision	Medicare	needs_clarification				ask_full_name		needs_input: What is the full plan name on your card?
@@ -341,7 +341,7 @@ sweetwater	medical	United Healthcare PPO	needs_clarification				ask_full_name		n
 sweetwater	medical	Cigna	needs_clarification			cigna-hmo,cigna-ppo,cigna-sure-fit,cigna-medicare-advantage-medical	choose_plan		needs_input: Which of these is on your card: Cigna HMO, Cigna PPO, Cigna Sure Fit, or Cigna Medicare Advantage (Healthspring)?
 sweetwater	medical	Molina	needs_clarification			molina-medicaid-medical,molina-medicare-medical,molina-marketplace-non-par	choose_plan		needs_input: Which of these is on your card: Molina Medicaid, Molina Medicare, or Molina Marketplace?
 sweetwater	medical	Molina Medicade	needs_clarification			molina-medicaid-medical,molina-medicare-medical,molina-marketplace-non-par	choose_plan		needs_input: Which of these is on your card: Molina Medicaid, Molina Medicare, or Molina Marketplace?
-sweetwater	medical	Simply	accepted	simply-medicaid-medical	car40907		accepted		success: Yes, we accept Simply Medicaid/Healthy Kids.
+sweetwater	medical	Simply	accepted	simply-medicaid-medical	car40907		accepted	For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.	success: Yes, we accept Simply Medicaid/Healthy Kids. For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.
 sweetwater	medical	Staywell Medicaid	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 sweetwater	medical	Tier 1	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 sweetwater	medical	Medicare	accepted	medicare-part-b	car40900		accepted		success: Yes, we accept Medicare Part B.
@@ -393,7 +393,7 @@ sweetwater	routine_vision	United Healthcare PPO	accepted	unitedhealthcare-vision
 sweetwater	routine_vision	Cigna	needs_clarification			cigna-vision,cigna-sure-fit-vision	choose_plan		needs_input: Which of these is on your card: Cigna Vision or Cigna Sure Fit?
 sweetwater	routine_vision	Molina	accepted	molina-medicaid-vision	car40907		accepted		success: Yes, we accept Molina Medicaid Vision.
 sweetwater	routine_vision	Molina Medicade	accepted	molina-medicaid-vision	car40907		accepted		success: Yes, we accept Molina Medicaid Vision.
-sweetwater	routine_vision	Simply	accepted	simply-medicaid-vision	car40907		accepted		success: Yes, we accept Simply Medicaid/Healthy Kids Vision.
+sweetwater	routine_vision	Simply	accepted	simply-medicaid-vision	car40907		accepted	For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.	success: Yes, we accept Simply Medicaid/Healthy Kids Vision. For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8.
 sweetwater	routine_vision	Staywell Medicaid	accepted	staywell-medicaid-vision	car281245		accepted		success: Yes, we accept Staywell Medicaid Vision.
 sweetwater	routine_vision	Tier 1	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 sweetwater	routine_vision	Medicare	needs_clarification				ask_full_name		needs_input: What is the full plan name on your card?
