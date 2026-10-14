@@ -62,7 +62,7 @@ func availableSlots(
 	}
 
 	interval := time.Duration(column.Interval) * time.Minute
-	for slotTime := workStart; slotTime.Before(workEnd); slotTime = slotTime.Add(interval) {
+	for slotTime := workStart; slotFitsWorkHours(slotTime, interval, workStart, workEnd, interval); slotTime = slotTime.Add(interval) {
 		if date.Format("2006-01-02") == nowEastern.Format("2006-01-02") &&
 			slotTime.Before(nowEastern.Add(30*time.Minute)) {
 			continue
@@ -87,6 +87,14 @@ func availableSlots(
 		slots = append(slots, slot)
 	}
 	return slots
+}
+
+func slotFitsWorkHours(start time.Time, duration time.Duration, workStart, workEnd time.Time, interval time.Duration) bool {
+	return interval > 0 &&
+		duration == interval &&
+		!start.Before(workStart) &&
+		!start.Add(duration).After(workEnd) &&
+		start.Sub(workStart)%interval == 0
 }
 
 func hasDifferentStartOverlap(slotTime time.Time, duration time.Duration, appointments []domain.Appointment) bool {

@@ -459,10 +459,7 @@ func currentColumnSupportsSlot(column domain.SchedulerColumn, start time.Time, d
 		return false
 	}
 	interval := time.Duration(column.Interval) * time.Minute
-	return duration == interval &&
-		!start.Before(workStart) &&
-		!start.Add(duration).After(workEnd) &&
-		start.Sub(workStart)%interval == 0
+	return slotFitsWorkHours(start, duration, workStart, workEnd, interval)
 }
 
 func buildBookReceipt(command BookCommand, office *domain.OfficeConfig, appointmentID int) BookReceipt {
