@@ -48,8 +48,6 @@ def validate(service):
     require(len(spec["containers"]) == 1, "Unexpected sandbox containers")
     env = {item["name"]: item for item in spec["containers"][0]["env"]}
     require(env.get("AMD_ENV", {}).get("value") == "dev", "Sandbox must use AMD_ENV=dev")
-    require(env.get("ALLOW_RAW_SLOT_BOOKING", {}).get("value") == "false",
-            "Raw slot booking must remain disabled")
     for variable, name in SECRETS.items():
         ref = env.get(variable, {}).get("valueFrom", {}).get("secretKeyRef", {})
         require(ref.get("name") == name and re.fullmatch(r"[1-9][0-9]*", ref.get("key", "")),

@@ -23,7 +23,7 @@ func TestListLoadsEveryEligibleSlotAcrossCalendarWindow(t *testing.T) {
 			for i := 0; i < count; i++ {
 				records.ScheduleReads[first.AddDate(0, 0, i).Format("2006-01-02")] = completeRead("1513", nil, nil)
 			}
-			result, err := scheduling.New(records, "test-secret", func() time.Time { return now }, false).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only", RangeDays: days})
+			result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only", RangeDays: days})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -56,7 +56,7 @@ func TestListIncompleteCalendarCannotClaimCompleteInventory(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "10:00", 15))
 	records.ScheduleReads["2026-06-02"] = completeRead("1513", nil, nil)
-	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }, false).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only"})
+	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestListIncompleteCalendarCannotClaimCompleteInventory(t *testing.T) {
 func TestListRejectsUnsupportedRangeBeforeProviderRead(t *testing.T) {
 	for _, days := range []int{-1, 1, 15, 30, 31, 90, 91} {
 		records := recordsWithSetup()
-		_, err := scheduling.New(records, "test-secret", time.Now, false).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", RangeDays: days})
+		_, err := scheduling.New(records, "test-secret", time.Now).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", RangeDays: days})
 		if err == nil || records.SchedulerSetupCalls != 0 {
 			t.Fatalf("range %d: error=%v setup reads=%d", days, err, records.SchedulerSetupCalls)
 		}
@@ -84,7 +84,7 @@ func TestListReadsOnlyTheRequestedWindow(t *testing.T) {
 	for day := 0; day < 28; day++ {
 		records.ScheduleReads[first.AddDate(0, 0, day).Format("2006-01-02")] = completeRead("1513", nil, nil)
 	}
-	scheduler := scheduling.New(records, "test-secret", func() time.Time { return now }, false)
+	scheduler := scheduling.New(records, "test-secret", func() time.Time { return now })
 	for _, offset := range []int{0, 14} {
 		start := first.AddDate(0, 0, offset)
 		end := start.AddDate(0, 0, 13)
@@ -109,7 +109,7 @@ func TestListRejectsInvalidOrPastStartBeforeProviderRead(t *testing.T) {
 	now := time.Date(2026, 9, 8, 12, 0, 0, 0, time.UTC)
 	for _, start := range []string{"2026-09-08", "2026-09-07", "2026-02-30", "November"} {
 		records := recordsWithSetup()
-		_, err := scheduling.New(records, "test-secret", func() time.Time { return now }, false).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", StartDate: start})
+		_, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", StartDate: start})
 		if err == nil || records.SchedulerSetupCalls != 0 || len(records.ScheduleReadQueries) != 0 {
 			t.Fatalf("start %q: error=%v setup reads=%d schedule reads=%d", start, err, records.SchedulerSetupCalls, len(records.ScheduleReadQueries))
 		}
@@ -126,7 +126,7 @@ func TestListExcludesHeldAndFullSlots(t *testing.T) {
 			{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
 		}, []domain.BlockHold{{StartDateTime: day.Add(9*time.Hour + 30*time.Minute), EndDateTime: day.Add(10 * time.Hour)}})
 	}
-	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }, false).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only"})
+	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +157,7 @@ func TestPreauthInventoryExcludesOccupiedAndHeldWallClockSlots(t *testing.T) {
 					{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
 				}, []domain.BlockHold{{StartDateTime: day.Add(9*time.Hour + 30*time.Minute), EndDateTime: day.Add(10 * time.Hour)}})
 			}
-			result, err := scheduling.New(records, "test-secret", func() time.Time { return now }, false).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only", PreauthRequired: true})
+			result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only", PreauthRequired: true})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -186,7 +186,7 @@ func TestListSendsSpringHillUnderSevenRoutineVisionToMedical(t *testing.T) {
 		{"10/02/2019", false},
 	} {
 		records := recordsWithSetup()
-		_, err := scheduling.New(records, "test-secret", func() time.Time { return now }, false).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", VisitType: domain.AppointmentVisitRoutineVision, DOB: tt.dob})
+		_, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", VisitType: domain.AppointmentVisitRoutineVision, DOB: tt.dob})
 		blocked := err != nil && err.Error() == "Spring Hill does not schedule routine vision for children under 7. Search medical availability instead; Dr. Bach sees these children."
 		if blocked != tt.blocked || blocked && records.SchedulerSetupCalls != 0 {
 			t.Fatalf("dob %s: error=%v setup reads=%d, want blocked=%v", tt.dob, err, records.SchedulerSetupCalls, tt.blocked)

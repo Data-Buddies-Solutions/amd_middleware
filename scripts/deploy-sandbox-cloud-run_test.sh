@@ -31,7 +31,7 @@ export SANDBOX_APP_NAME_VERSION=4 SANDBOX_API_SECRET_VERSION=5 SANDBOX_BOOKING_S
 bash "$repo_root/scripts/deploy-sandbox-cloud-run.sh"
 for expected in \
   '--min=0 --max=1' '--cpu-throttling' \
-  'AMD_ENV=dev,ALLOW_RAW_SLOT_BOOKING=false' \
+  'AMD_ENV=dev' \
   'ADVANCEDMD_USERNAME=advancedmd-sandbox-username:1' \
   'ADVANCEDMD_PASSWORD=advancedmd-sandbox-password:2' \
   'ADVANCEDMD_OFFICE_KEY=advancedmd-sandbox-office-key:3' \

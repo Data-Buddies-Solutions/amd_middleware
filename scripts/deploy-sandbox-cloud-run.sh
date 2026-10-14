@@ -59,7 +59,7 @@ gcloud run deploy abita-middleware-sandbox \
   --startup-probe=httpGet.path=/live,httpGet.port=8080 \
   --readiness-probe=httpGet.path=/ready,httpGet.port=8080 \
   "--set-secrets=$secret_bindings" \
-  "--set-env-vars=AMD_ENV=dev,ALLOW_RAW_SLOT_BOOKING=false,MAINTENANCE_OIDC_AUDIENCE=$SANDBOX_MAINTENANCE_OIDC_AUDIENCE,MAINTENANCE_OIDC_SERVICE_ACCOUNT=$SANDBOX_MAINTENANCE_OIDC_SERVICE_ACCOUNT" \
+  "--set-env-vars=AMD_ENV=dev,MAINTENANCE_OIDC_AUDIENCE=$SANDBOX_MAINTENANCE_OIDC_AUDIENCE,MAINTENANCE_OIDC_SERVICE_ACCOUNT=$SANDBOX_MAINTENANCE_OIDC_SERVICE_ACCOUNT" \
   "--network=$SANDBOX_NETWORK" \
   "--subnet=$SANDBOX_SUBNET" \
   --vpc-egress=all-traffic --ingress=all --no-invoker-iam-check --quiet

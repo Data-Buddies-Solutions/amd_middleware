@@ -39,7 +39,7 @@ func TestCancellationTokenCancelsPairedOfficeAppointmentWithoutRediscovery(t *te
 	handlers := NewHandlers(
 		nil,
 		patient.New(records, tokens),
-		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 	)
 
 	resolveRecorder := postJSON(t, handlers.HandlePatientResolve, "/api/patient/resolve", map[string]any{
@@ -128,7 +128,7 @@ func TestPatientResolutionIssuesOneDistinctTokenPerAppointment(t *testing.T) {
 	handlers := NewHandlers(
 		nil,
 		patient.New(records, tokens),
-		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 	)
 
 	resolveRecorder := postJSON(t, handlers.HandlePatientResolve, "/api/patient/resolve", map[string]any{
@@ -190,7 +190,7 @@ func TestPresentEmptyCancellationTokenDoesNotFallBackToRediscovery(t *testing.T)
 	handlers := NewHandlers(
 		nil,
 		patient.New(records, testAppointmentTokens),
-		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 	)
 
 	recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{
@@ -282,7 +282,7 @@ func TestCancellationTokenRejectionsPerformNoProviderOperations(t *testing.T) {
 			handlers := NewHandlers(
 				nil,
 				patient.New(records, testAppointmentTokens),
-				scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+				scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 			)
 			body := test.body
 			if body == nil {
@@ -325,7 +325,7 @@ func TestCancellationAndBookingTokensAreNotInterchangeable(t *testing.T) {
 	handlers := NewHandlers(
 		nil,
 		patient.New(records, testAppointmentTokens),
-		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 	)
 
 	recorder := postJSON(t, handlers.HandleBookAppointment, "/api/appointment/book", map[string]any{
@@ -360,7 +360,7 @@ func TestCancellationTelemetryReportsOperationBudgetWithoutSensitiveValues(t *te
 	handlers := NewHandlers(
 		nil,
 		patient.New(records, testAppointmentTokens),
-		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 	)
 	router := NewRouter(handlers, "agent-secret", nil)
 	var logs bytes.Buffer
@@ -427,7 +427,7 @@ func TestLegacyCancellationTelemetryReportsProviderReadCount(t *testing.T) {
 	handlers := NewHandlers(
 		nil,
 		patient.New(records, testAppointmentTokens),
-		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 	)
 	router := NewRouter(handlers, "agent-secret", nil)
 	var logs bytes.Buffer
@@ -479,7 +479,7 @@ func TestCancellationHTTPContractSupportsTokenOnlyAndTokenlessLegacyRequests(t *
 		handlers := NewHandlers(
 			nil,
 			patient.New(records, testAppointmentTokens),
-			scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+			scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 		)
 		recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{
 			"cancellationToken": token,
@@ -507,7 +507,7 @@ func TestCancellationHTTPContractSupportsTokenOnlyAndTokenlessLegacyRequests(t *
 		handlers := NewHandlers(
 			nil,
 			patient.New(records, testAppointmentTokens),
-			scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+			scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 		)
 		recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{
 			"patientId":     "12345",
@@ -544,7 +544,7 @@ func TestTokenCancellationPreservesAmbiguousWriteReconciliation(t *testing.T) {
 	handlers := NewHandlers(
 		nil,
 		patient.New(records, testAppointmentTokens),
-		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }, false),
+		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
 	)
 
 	recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{

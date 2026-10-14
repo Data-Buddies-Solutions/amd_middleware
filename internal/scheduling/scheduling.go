@@ -112,7 +112,6 @@ type service struct {
 	records            advancedmd.SchedulingRecords
 	bookingTokenSecret string
 	appointmentTokens  *AppointmentTokens
-	allowRawBooking    bool
 	now                func() time.Time
 
 	setupMu        sync.Mutex
@@ -126,7 +125,6 @@ func New(
 	records advancedmd.SchedulingRecords,
 	bookingTokenSecret string,
 	now func() time.Time,
-	allowRawBooking bool,
 ) Scheduling {
 	if now == nil {
 		now = time.Now
@@ -135,7 +133,6 @@ func New(
 		records:            records,
 		bookingTokenSecret: bookingTokenSecret,
 		appointmentTokens:  NewAppointmentTokens(bookingTokenSecret, now),
-		allowRawBooking:    allowRawBooking,
 		now:                now,
 	}
 }
