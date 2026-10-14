@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [6.2.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.2.1...v6.2.2) (2026-10-14)
+
+
+### Bug Fixes
+
+* **scheduling:** exclude slots past provider work hours ([#249](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/249)) ([b18ab4f](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/b18ab4f96a8799981d581d67f4bb53c03920b147))
+
 ## [6.2.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.2.0...v6.2.1) (2026-10-09)
 
 
