@@ -18,8 +18,7 @@ type Config struct {
 	MaintenanceOIDCAudience       string
 	MaintenanceOIDCServiceAccount string
 
-	Port                string
-	AllowRawSlotBooking bool
+	Port string
 
 	AMDEnv string
 }
@@ -35,7 +34,6 @@ func Load() (*Config, error) {
 		MaintenanceOIDCAudience:       os.Getenv("MAINTENANCE_OIDC_AUDIENCE"),
 		MaintenanceOIDCServiceAccount: os.Getenv("MAINTENANCE_OIDC_SERVICE_ACCOUNT"),
 		Port:                          os.Getenv("PORT"),
-		AllowRawSlotBooking:           parseBoolEnv(os.Getenv("ALLOW_RAW_SLOT_BOOKING")),
 		AMDEnv:                        os.Getenv("AMD_ENV"),
 	}
 
@@ -89,13 +87,4 @@ func isServiceAccountEmail(value string) bool {
 	return strings.Count(value, "@") == 1 &&
 		!strings.ContainsAny(value, " \t\r\n") &&
 		strings.HasSuffix(value, ".iam.gserviceaccount.com")
-}
-
-func parseBoolEnv(value string) bool {
-	switch value {
-	case "1", "true", "TRUE", "True", "yes", "YES", "Yes", "on", "ON", "On":
-		return true
-	default:
-		return false
-	}
 }

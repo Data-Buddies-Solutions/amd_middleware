@@ -46,7 +46,7 @@ func TestSearchReturnsFoundSlotWithSignedSameStartCapacityPolicy(t *testing.T) {
 		},
 	}
 
-	scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false)
+	scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
 	result, err := scheduler.Search(context.Background(), scheduling.SearchCommand{
 		RequestedDate: searchDate,
 		Office:        "Spring Hill",
@@ -87,7 +87,7 @@ func TestSearchSignsCleanSlotCapacityWithoutChangingResponse(t *testing.T) {
 	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
 	records.ScheduleReads["2026-06-03"] = completeRead("1513", nil, nil)
 
-	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Search(context.Background(), scheduling.SearchCommand{
 			RequestedDate: "2026-06-03", Office: "Spring Hill", Routing: string(domain.RoutingBachOnly),
 		})
@@ -119,7 +119,7 @@ func TestSearchReturnsNoneOnlyAfterACompleteWindow(t *testing.T) {
 		}})
 	}
 
-	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Search(context.Background(), scheduling.SearchCommand{
 			RequestedDate: searchDate.Format("2006-01-02"),
 			Office:        "Spring Hill",
@@ -162,7 +162,7 @@ func TestSearchReportsIncompleteForUnusableColumnSchedule(t *testing.T) {
 		}
 		done := make(chan searchResult, 1)
 		go func() {
-			response, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+			response, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 				Search(context.Background(), scheduling.SearchCommand{
 					RequestedDate: searchDate.Format("2006-01-02"),
 					Office:        "Spring Hill",
@@ -206,7 +206,7 @@ func TestSearchReturnsClosestRealSlotsAcrossTheWindow(t *testing.T) {
 	}
 	minuteOfDay := 15 * 60
 
-	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Search(context.Background(), scheduling.SearchCommand{
 			RequestedDate: "2026-06-04",
 			PreferredTime: &scheduling.AvailabilityTimePreference{
@@ -248,7 +248,7 @@ func TestSearchComparesPreferenceDatesAsCalendarDays(t *testing.T) {
 		}})
 	}
 
-	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Search(context.Background(), scheduling.SearchCommand{
 			RequestedDate: "2026-06-04",
 			Office:        "Spring Hill",
@@ -279,7 +279,7 @@ func TestSearchReturnsClosestOfficeHourOptionsForBareClock(t *testing.T) {
 	}
 	threePM := 15 * 60
 
-	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Search(context.Background(), scheduling.SearchCommand{
 			PreferredTime: &scheduling.AvailabilityTimePreference{
 				MinuteOfDay: &threePM,
@@ -312,7 +312,7 @@ func TestSearchReturnsIncompleteWhenProviderReadsCannotProveNone(t *testing.T) {
 		}
 	}
 
-	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Search(context.Background(), scheduling.SearchCommand{
 			RequestedDate: searchDate.Format("2006-01-02"),
 			Office:        "Spring Hill",
@@ -359,7 +359,7 @@ func TestSearchReturnsIncompleteAfterPartialProviderFailure(t *testing.T) {
 		}
 	}
 
-	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Search(context.Background(), scheduling.SearchCommand{
 			RequestedDate: searchDate.Format("2006-01-02"),
 			Office:        "Spring Hill",
@@ -378,7 +378,7 @@ func TestSearchExcludesRestrictedProviders(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	records := recordsWithSetup(testColumn("1210", "1993", "670", "09:00", "09:15", 15))
 
-	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Search(context.Background(), scheduling.SearchCommand{
 			RequestedDate: "2026-06-03",
 			Office:        "Sweetwater",
@@ -402,7 +402,7 @@ func TestSearchBlocksSlotsOverlappedByMultiSlotAppointments(t *testing.T) {
 		Duration:      60,
 	}}, nil)
 
-	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Search(context.Background(), scheduling.SearchCommand{
 			RequestedDate: searchDate,
 			Office:        "Spring Hill",
@@ -429,7 +429,7 @@ func TestRequestedDateReturnsAtMostTwoRankedSlots(t *testing.T) {
 	)
 	records.ScheduleReads["2026-06-15"] = completeRead("1600", nil, nil)
 
-	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Search(context.Background(), scheduling.SearchCommand{
 			RequestedDate:   "2026-06-03",
 			Office:          "Spring Hill",
@@ -484,7 +484,7 @@ func TestSearchWithoutRequestedDateStartsTomorrowAndReturnsBroadSelection(t *tes
 	)
 	records.ScheduleReads["2026-06-15"] = completeRead("1600", nil, nil)
 
-	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Search(context.Background(), scheduling.SearchCommand{
 			Office:          "Spring Hill",
 			Routing:         string(domain.RoutingOpticalOnly),
@@ -512,7 +512,7 @@ func TestSearchUsesFreshSchedulerSetupCacheAndStaleFallback(t *testing.T) {
 	records.ScheduleReads["2026-06-03"] = completeRead("1513", nil, nil)
 	records.ScheduleReads["2026-06-04"] = completeRead("1513", nil, nil)
 	records.ScheduleReads["2026-06-05"] = completeRead("1513", nil, nil)
-	scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return currentTime }, false)
+	scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return currentTime })
 
 	if _, err := scheduler.Search(context.Background(), scheduling.SearchCommand{
 		RequestedDate: "2026-06-03", Office: "Spring Hill", Routing: string(domain.RoutingBachOnly),
@@ -559,7 +559,7 @@ func TestSearchRejectsInvalidDOBAndRequestedProviderOutsideRouting(t *testing.T)
 		testColumn("1513", "620", "1568", "09:00", "09:15", 15),
 		testColumn("1551", "2064", "1568", "09:00", "09:15", 15),
 	)
-	scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false)
+	scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
 
 	_, err := scheduler.Search(context.Background(), scheduling.SearchCommand{
 		RequestedDate: "2026-06-03", Office: "Spring Hill", Routing: string(domain.RoutingBachOnly), DOB: "not-a-date",
@@ -579,7 +579,7 @@ func TestSearchRejectsInvalidDOBAndRequestedProviderOutsideRouting(t *testing.T)
 func TestSearchRejectsInvalidPreferredTime(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	minuteOfDay := 25 * 60
-	_, err := scheduling.New(nil, "test-booking-secret", func() time.Time { return now }, false).
+	_, err := scheduling.New(nil, "test-booking-secret", func() time.Time { return now }).
 		Search(context.Background(), scheduling.SearchCommand{
 			RequestedDate: "2026-06-03",
 			PreferredTime: &scheduling.AvailabilityTimePreference{
@@ -614,7 +614,7 @@ func TestSearchStopsAfterTwoExactBookableMatches(t *testing.T) {
 	}
 	minuteOfDay := 9 * 60
 
-	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Search(context.Background(), scheduling.SearchCommand{
 			RequestedDate: "2026-06-03",
 			PreferredTime: &scheduling.AvailabilityTimePreference{
@@ -650,7 +650,7 @@ func TestSearchTreatsMissingBlockHoldsAsIncomplete(t *testing.T) {
 		}
 	}
 
-	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Search(context.Background(), scheduling.SearchCommand{
 			RequestedDate: searchDate.Format("2006-01-02"), Office: "Spring Hill", Routing: string(domain.RoutingBachOnly),
 		})
@@ -669,7 +669,7 @@ func TestSearchPreservesAuthenticationFailureContract(t *testing.T) {
 	t.Run("scheduler setup", func(t *testing.T) {
 		records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
 		records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryUnavailable)
-		_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+		_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 			Search(context.Background(), scheduling.SearchCommand{
 				RequestedDate: "2026-06-03", Office: "Spring Hill", Routing: string(domain.RoutingBachOnly),
 			})
@@ -684,7 +684,7 @@ func TestSearchPreservesAuthenticationFailureContract(t *testing.T) {
 	t.Run("schedule read", func(t *testing.T) {
 		records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
 		records.ScheduleReadErrors["2026-06-03"] = advancedmd.NewError(safeerrors.CategoryAuthentication)
-		_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }, false).
+		_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 			Search(context.Background(), scheduling.SearchCommand{
 				RequestedDate: "2026-06-03", Office: "Spring Hill", Routing: string(domain.RoutingBachOnly),
 			})

@@ -80,7 +80,6 @@ type bookingContext struct {
 	command                  BookCommand
 	office                   *domain.OfficeConfig
 	token                    SlotPolicy
-	signed                   bool
 	preservedAppointmentType int
 }
 
@@ -154,50 +153,42 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 	command.PatientID = domain.StripPatientPrefix(command.PatientID)
 	booking := bookingContext{
 		command: command,
-		signed:  command.BookingToken != "",
 	}
-	if !booking.signed && !s.allowRawBooking {
+	if command.BookingToken == "" {
 		return bookingContext{}, categorizedError(
 			CategoryBookingTokenRequired,
 			"bookingToken is required. Please check availability again and choose one of the returned slots.",
 		)
 	}
 
-	if booking.signed {
-		token, err := VerifySlotToken(s.bookingTokenSecret, command.BookingToken, s.now().UTC())
-		if err != nil {
-			return bookingContext{}, invalidBookingTokenError()
-		}
-		office, ok := domain.LookupOfficeByID(token.OfficeID)
-		if !ok {
-			return bookingContext{}, invalidBookingTokenError()
-		}
-		if command.Office != "" {
-			requestedOffice, err := domain.ResolveOffice(command.Office)
-			if err != nil || requestedOffice.ID != office.ID {
-				return bookingContext{}, invalidBookingTokenError()
-			}
-		}
-		if token.DOB != "" && command.DOB != "" && domain.NormalizeDOB(command.DOB) != token.DOB {
-			return bookingContext{}, invalidBookingTokenError()
-		}
-		if token.DOB != "" {
-			command.DOB = token.DOB
-		}
-		command.ColumnID = token.ColumnID
-		command.ProfileID = token.ProfileID
-		command.StartDatetime = token.StartDatetime
-		command.Duration = token.Duration
-		command.Routing = token.Routing
-		booking.token = token
-		booking.office = office
-	} else {
-		office, err := domain.ResolveOffice(command.Office)
-		if err != nil {
-			return bookingContext{}, schedulingError(err.Error())
-		}
-		booking.office = office
+	token, err := VerifySlotToken(s.bookingTokenSecret, command.BookingToken, s.now().UTC())
+	if err != nil {
+		return bookingContext{}, invalidBookingTokenError()
 	}
+	office, ok := domain.LookupOfficeByID(token.OfficeID)
+	if !ok {
+		return bookingContext{}, invalidBookingTokenError()
+	}
+	if command.Office != "" {
+		requestedOffice, err := domain.ResolveOffice(command.Office)
+		if err != nil || requestedOffice.ID != office.ID {
+			return bookingContext{}, invalidBookingTokenError()
+		}
+	}
+	if token.DOB != "" && command.DOB != "" && domain.NormalizeDOB(command.DOB) != token.DOB {
+		return bookingContext{}, invalidBookingTokenError()
+	}
+	if token.DOB != "" {
+		command.DOB = token.DOB
+	}
+	command.ColumnID = token.ColumnID
+	command.ProfileID = token.ProfileID
+	command.StartDatetime = token.StartDatetime
+	command.Duration = token.Duration
+	command.Routing = token.Routing
+	booking.token = token
+	booking.office = office
+
 	if command.RescheduleToken != "" {
 		policy, err := s.appointmentTokens.verifyReschedule(command.RescheduleToken, s.now().UTC())
 		if err != nil || command.PatientID != policy.PatientID {
@@ -210,18 +201,6 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 
 	if command.PatientID == "" {
 		return bookingContext{}, schedulingError("patientId is required")
-	}
-	if command.ColumnID == 0 {
-		return bookingContext{}, schedulingError("columnId is required")
-	}
-	if command.ProfileID == 0 {
-		return bookingContext{}, schedulingError("profileId is required")
-	}
-	if command.StartDatetime == "" {
-		return bookingContext{}, schedulingError("startDatetime is required")
-	}
-	if command.Duration == 0 {
-		return bookingContext{}, schedulingError("duration is required")
 	}
 	if _, err := strconv.Atoi(command.PatientID); err != nil {
 		return bookingContext{}, schedulingError("patientId must be numeric")
@@ -247,10 +226,7 @@ func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingCont
 		)
 	}
 	verifiedDOB := domain.NormalizeDOB(demographics.DOB)
-	expectedDOB := booking.command.DOB
-	if booking.signed {
-		expectedDOB = booking.token.DOB
-	}
+	expectedDOB := booking.token.DOB
 	if expectedDOB != "" && verifiedDOB != domain.NormalizeDOB(expectedDOB) {
 		return 0, categorizedError(
 			CategoryPatientContextMismatch,
@@ -309,8 +285,7 @@ func applyBookingPolicy(booking *bookingContext) (
 			missing:  append([]string(nil), policyErr.Missing...),
 		}
 	}
-	if booking.signed &&
-		booking.preservedAppointmentType == 0 &&
+	if booking.preservedAppointmentType == 0 &&
 		!slices.Contains(booking.token.AppointmentTypeIDs, decision.AppointmentTypeID) {
 		return schedulingPolicy{}, bookingPolicyDecision{}, "", invalidBookingTokenError()
 	}
@@ -350,10 +325,7 @@ func (s *service) revalidateBookingSlot(
 
 	start, err := time.Parse(domain.SlotDateTimeLayout, command.StartDatetime)
 	if err != nil {
-		if booking.signed {
-			return time.Time{}, false, invalidBookingTokenError()
-		}
-		return time.Time{}, false, schedulingError("startDatetime must use YYYY-MM-DDTHH:MM format")
+		return time.Time{}, false, invalidBookingTokenError()
 	}
 	duration := time.Duration(command.Duration) * time.Minute
 	if !currentColumnSupportsSlot(column, start, duration) {
@@ -387,13 +359,9 @@ func (s *service) revalidateBookingSlot(
 	if !sameStart.Bookable {
 		return time.Time{}, false, slotUnavailableError()
 	}
-	if booking.signed {
-		if booking.token.SameStartBooked != booked ||
-			booking.token.SameStartCapacity != sameStart.Capacity ||
-			booking.token.RequiresForce != sameStart.RequiresForce {
-			return time.Time{}, false, slotUnavailableError()
-		}
-	} else if sameStart.RequiresForce {
+	if booking.token.SameStartBooked != booked ||
+		booking.token.SameStartCapacity != sameStart.Capacity ||
+		booking.token.RequiresForce != sameStart.RequiresForce {
 		return time.Time{}, false, slotUnavailableError()
 	}
 

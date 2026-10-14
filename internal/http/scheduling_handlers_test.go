@@ -130,9 +130,9 @@ func TestBookingAndCancellationRoutesRetainAuthenticationAndSuccessContracts(t *
 
 func TestSchedulingHandlersMapStableErrorCategories(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	_, bookingErr := schedulingmodule.New(nil, "test-secret", func() time.Time { return now }, false).
+	_, bookingErr := schedulingmodule.New(nil, "test-secret", func() time.Time { return now }).
 		Book(context.Background(), schedulingmodule.BookCommand{})
-	_, cancellationErr := schedulingmodule.New(nil, "test-secret", func() time.Time { return now }, false).
+	_, cancellationErr := schedulingmodule.New(nil, "test-secret", func() time.Time { return now }).
 		Cancel(context.Background(), schedulingmodule.CancelCommand{})
 	scheduler := &recordingScheduling{bookErr: bookingErr, cancelErr: cancellationErr}
 	handlers := &Handlers{scheduling: scheduler}
@@ -249,7 +249,7 @@ func TestListSlotsErrorsPreserveInventoryContract(t *testing.T) {
 			if tc.readFailure {
 				records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryUnavailable)
 			}
-			scheduler := schedulingmodule.New(records, "secret", func() time.Time { return time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC) }, false)
+			scheduler := schedulingmodule.New(records, "secret", func() time.Time { return time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC) })
 			handlers := NewHandlers(nil, nil, scheduler)
 			response := httptest.NewRecorder()
 			handlers.HandleListAppointmentSlots(response, httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(tc.body)))

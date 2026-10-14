@@ -139,13 +139,13 @@ case "$DEPLOY_MODE" in
     fi
     deploy_args+=(
       "--cpu-throttling"
-      "--set-env-vars=AMD_ENV=prod,ALLOW_RAW_SLOT_BOOKING=false,MAINTENANCE_OIDC_AUDIENCE=$MAINTENANCE_OIDC_AUDIENCE,MAINTENANCE_OIDC_SERVICE_ACCOUNT=$MAINTENANCE_OIDC_SERVICE_ACCOUNT"
+      "--set-env-vars=AMD_ENV=prod,MAINTENANCE_OIDC_AUDIENCE=$MAINTENANCE_OIDC_AUDIENCE,MAINTENANCE_OIDC_SERVICE_ACCOUNT=$MAINTENANCE_OIDC_SERVICE_ACCOUNT"
     )
     ;;
   legacy-rollback)
     deploy_args+=(
       "--no-cpu-throttling"
-      "--set-env-vars=AMD_ENV=prod,ALLOW_RAW_SLOT_BOOKING=false"
+      "--set-env-vars=AMD_ENV=prod"
     )
     ;;
   *)
