@@ -31,7 +31,7 @@ func TestRequestLogPreservesRescheduleReceiptFailure(t *testing.T) {
 			records := advancedmdtest.NewAdapter()
 			records.SchedulerSetupError = advancedmd.NewError(tc.category)
 			now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-			scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now }, false)
+			scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now })
 			_, failure := scheduler.Search(context.Background(), schedulingmodule.SearchCommand{Office: "Spring Hill", RequestedDate: "2026-06-03", Routing: "bach_only"})
 			if failure == nil {
 				t.Fatal("expected scheduling provider failure")
@@ -249,7 +249,7 @@ func TestRequestLogPreservesAvailabilityProviderFailureCategory(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	records := advancedmdtest.NewAdapter()
 	records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryAuthentication)
-	scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now }, false)
+	scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now })
 	router := NewRouter(&Handlers{scheduling: scheduler}, "test-secret", nil)
 	req := httptest.NewRequest(
 		http.MethodPost,

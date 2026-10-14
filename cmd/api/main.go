@@ -60,7 +60,6 @@ func main() {
 		patientRecords,
 		cfg.BookingTokenSecret,
 		time.Now,
-		cfg.AllowRawSlotBooking,
 	)
 
 	handlers := apphttp.NewHandlers(amdSession, patients, scheduler)

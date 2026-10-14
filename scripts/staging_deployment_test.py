@@ -14,7 +14,6 @@ def service():
             "serviceAccountName": f"{staging.SERVICE}@{staging.PROJECT}.iam.gserviceaccount.com",
             "containers": [{"image": "old-image", "env": [
                 {"name": "AMD_ENV", "value": "dev"},
-                {"name": "ALLOW_RAW_SLOT_BOOKING", "value": "false"},
             ] + [{"name": key, "valueFrom": {"secretKeyRef": {"name": value, "key": "1"}}}
                  for key, value in staging.SECRETS.items()]}],
         }}},
@@ -30,7 +29,7 @@ def service():
 
 class StagingDeploymentTest(unittest.TestCase):
     def test_rejects_production_config_and_mutable_secrets(self):
-        for field, value in [("AMD_ENV", "prod"), ("ALLOW_RAW_SLOT_BOOKING", "true")]:
+        for field, value in [("AMD_ENV", "prod")]:
             candidate = service()
             env = candidate["spec"]["template"]["spec"]["containers"][0]["env"]
             next(item for item in env if item["name"] == field)["value"] = value
@@ -38,7 +37,7 @@ class StagingDeploymentTest(unittest.TestCase):
                 staging.validate(candidate)
         for key, value in [("name", "advancedmd-password"), ("key", "latest")]:
             candidate = service()
-            candidate["spec"]["template"]["spec"]["containers"][0]["env"][2]["valueFrom"]["secretKeyRef"][key] = value
+            candidate["spec"]["template"]["spec"]["containers"][0]["env"][1]["valueFrom"]["secretKeyRef"][key] = value
             with self.subTest(field=key), self.assertRaises(RuntimeError):
                 staging.validate(candidate)
 

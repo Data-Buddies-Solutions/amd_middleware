@@ -44,7 +44,7 @@ func TestSetupLiveWaiterRecoversAfterInitiatingRequestCancels(t *testing.T) {
 	}
 	scheduler := scheduling.New(records, "secret", func() time.Time {
 		return time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
-	}, false)
+	})
 	leaderCtx, cancelLeader := context.WithCancel(context.Background())
 	defer cancelLeader()
 	leader := make(chan error, 1)
