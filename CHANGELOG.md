@@ -4,6 +4,14 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [6.2.3](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.2.2...v6.2.3) (2026-10-15)
+
+
+### Bug Fixes
+
+* **domain:** read appointment types from one catalog ([ed832be](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/ed832be1d8a9b560ed2dfae287103fe198fbae49))
+* **scheduling:** remove unused scheduler availability Search mode ([4e9deee](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/4e9deeebb8428f301c0cc9bb6af4e36023961082))
+
 ## [6.2.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.2.1...v6.2.2) (2026-10-14)
 
 
