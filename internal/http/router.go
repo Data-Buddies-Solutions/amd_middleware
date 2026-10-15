@@ -28,7 +28,6 @@ func NewRouter(handlers *Handlers, apiSecret string, maintenanceAuthorizer Maint
 		r.Get("/insurance/plans", handlers.HandleInsurancePlans)
 		r.Post("/patient/resolve", handlers.HandlePatientResolve)
 		r.Post("/add-patient", handlers.HandleAddPatient)
-		r.Post("/scheduler/availability", handlers.HandleGetAvailability)
 		r.Post("/scheduler/slots", handlers.HandleListAppointmentSlots)
 		r.Post("/appointment/reschedule", handlers.HandleRescheduleAppointment)
 		r.Post("/appointment/book", handlers.HandleBookAppointment)

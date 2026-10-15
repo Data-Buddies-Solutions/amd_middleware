@@ -49,7 +49,7 @@ func TestSetupLiveWaiterRecoversAfterInitiatingRequestCancels(t *testing.T) {
 	defer cancelLeader()
 	leader := make(chan error, 1)
 	go func() {
-		_, err := scheduler.Search(leaderCtx, scheduling.SearchCommand{RequestedDate: "2026-06-10"})
+		_, err := scheduler.List(leaderCtx, scheduling.ListCommand{StartDate: "2026-06-10"})
 		leader <- err
 	}()
 	select {
@@ -62,7 +62,7 @@ func TestSetupLiveWaiterRecoversAfterInitiatingRequestCancels(t *testing.T) {
 	observed := &observedSetupWaitContext{Context: waitCtx, waiting: make(chan struct{})}
 	waiter := make(chan error, 1)
 	go func() {
-		_, err := scheduler.Search(observed, scheduling.SearchCommand{RequestedDate: "2026-06-10"})
+		_, err := scheduler.List(observed, scheduling.ListCommand{StartDate: "2026-06-10"})
 		waiter <- err
 	}()
 	select {

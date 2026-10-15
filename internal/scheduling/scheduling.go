@@ -12,40 +12,12 @@ import (
 )
 
 const (
-	searchForwardDays      = 14
 	schedulerSetupCacheTTL = 6 * time.Hour
 )
 
 var eastern = domain.EasternLocation()
 
-type SearchCommand struct {
-	PatientID       string                      `json:"patientId,omitempty"`
-	InsurancePlan   string                      `json:"insurancePlan,omitempty"`
-	CoverageType    string                      `json:"coverageType,omitempty"`
-	VisitType       string                      `json:"visitType,omitempty"`
-	RequestedDate   string                      `json:"requestedDate,omitempty"`
-	PreferredTime   *AvailabilityTimePreference `json:"preferredTime,omitempty"`
-	Provider        string                      `json:"provider"`
-	Office          string                      `json:"office"`
-	Routing         string                      `json:"routing"`
-	DOB             string                      `json:"dob,omitempty"`
-	PreauthRequired bool                        `json:"preauthRequired"`
-}
-
-type AvailabilityTimeKind string
-
-const (
-	AvailabilityTimeMorning   AvailabilityTimeKind = "morning"
-	AvailabilityTimeAfternoon AvailabilityTimeKind = "afternoon"
-)
-
-type AvailabilityTimePreference struct {
-	Kind        AvailabilityTimeKind `json:"kind,omitempty"`
-	MinuteOfDay *int                 `json:"minuteOfDay,omitempty"`
-}
-
 type Scheduling interface {
-	Search(ctx context.Context, command SearchCommand) (AvailabilityResponse, error)
 	List(ctx context.Context, command ListCommand) (AvailabilityResponse, error)
 	Book(ctx context.Context, command BookCommand) (BookReceipt, error)
 	Cancel(ctx context.Context, command CancelCommand) (CancelReceipt, error)

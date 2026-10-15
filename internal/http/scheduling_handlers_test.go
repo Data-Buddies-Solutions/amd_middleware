@@ -16,58 +16,6 @@ import (
 	schedulingmodule "advancedmd-token-management/internal/scheduling"
 )
 
-func TestAvailabilityHandlerPreservesRequestedDateAndPreferredTime(t *testing.T) {
-	scheduler := &recordingScheduling{
-		searchResponse: schedulingmodule.AvailabilityResponse{
-			Status:  schedulingmodule.AvailabilityStatusSuccess,
-			Outcome: schedulingmodule.AvailabilityOutcomeNoAvailability,
-			Slots:   []schedulingmodule.AvailabilitySlotOption{},
-		},
-	}
-	handlers := &Handlers{scheduling: scheduler}
-	request := httptest.NewRequest(
-		http.MethodPost,
-		"/api/scheduler/availability",
-		strings.NewReader(`{"requestedDate":"2026-06-03","office":"Spring Hill","preferredTime":{"minuteOfDay":900}}`),
-	)
-	response := httptest.NewRecorder()
-
-	handlers.HandleGetAvailability(response, request)
-
-	var body schedulingmodule.AvailabilityResponse
-	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
-		t.Fatalf("decode availability response: %v", err)
-	}
-	if scheduler.searchCommand.RequestedDate != "2026-06-03" ||
-		scheduler.searchCommand.PreferredTime == nil ||
-		scheduler.searchCommand.PreferredTime.Kind != "" ||
-		scheduler.searchCommand.PreferredTime.MinuteOfDay == nil ||
-		*scheduler.searchCommand.PreferredTime.MinuteOfDay != 900 {
-		t.Fatalf("search command = %#v, response = %#v", scheduler.searchCommand, body)
-	}
-}
-
-func TestAvailabilityHandlerRejectsLegacyDate(t *testing.T) {
-	scheduler := &recordingScheduling{}
-	handlers := &Handlers{scheduling: scheduler}
-	request := httptest.NewRequest(
-		http.MethodPost,
-		"/api/scheduler/availability",
-		strings.NewReader(`{"date":"2026-06-03","office":"Spring Hill"}`),
-	)
-	response := httptest.NewRecorder()
-
-	handlers.HandleGetAvailability(response, request)
-
-	var body errorResponse
-	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
-		t.Fatalf("decode availability response: %v", err)
-	}
-	if body.Status != "error" || scheduler.searchCalls != 0 {
-		t.Fatalf("response = %#v, search calls = %d", body, scheduler.searchCalls)
-	}
-}
-
 func TestBookingAndCancellationRoutesRetainAuthenticationAndSuccessContracts(t *testing.T) {
 	scheduler := &recordingScheduling{
 		bookReceipt: schedulingmodule.BookReceipt{
@@ -163,21 +111,13 @@ func TestSchedulingHandlersMapStableErrorCategories(t *testing.T) {
 type recordingScheduling struct {
 	listCommand    schedulingmodule.ListCommand
 	listCalls      int
-	searchCommand  schedulingmodule.SearchCommand
 	searchResponse schedulingmodule.AvailabilityResponse
-	searchCalls    int
 	bookCommand    schedulingmodule.BookCommand
 	bookReceipt    schedulingmodule.BookReceipt
 	bookErr        error
 	cancelCommand  schedulingmodule.CancelCommand
 	cancelReceipt  schedulingmodule.CancelReceipt
 	cancelErr      error
-}
-
-func (s *recordingScheduling) Search(_ context.Context, command schedulingmodule.SearchCommand) (schedulingmodule.AvailabilityResponse, error) {
-	s.searchCalls++
-	s.searchCommand = command
-	return s.searchResponse, nil
 }
 
 func (s *recordingScheduling) Book(_ context.Context, command schedulingmodule.BookCommand) (schedulingmodule.BookReceipt, error) {

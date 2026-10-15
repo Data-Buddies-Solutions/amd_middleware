@@ -5,15 +5,12 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	"advancedmd-token-management/internal/domain"
 )
 
-func (s *service) Search(ctx context.Context, command SearchCommand) (AvailabilityResponse, error) {
-	return s.search(ctx, command, 0)
-}
+const availabilityWindowDays = 14
 
 type ListCommand struct {
 	PatientID       string `json:"patientId,omitempty"`
@@ -34,21 +31,19 @@ func (s *service) List(ctx context.Context, command ListCommand) (AvailabilityRe
 	}
 	days := command.RangeDays
 	if days == 0 {
-		days = 14
+		days = availabilityWindowDays
 	}
-	if days != 14 {
+	if days != availabilityWindowDays {
 		return AvailabilityResponse{}, schedulingError("rangeDays must be 14; use startDate to search a different window")
 	}
-	return s.search(ctx, SearchCommand{VisitType: command.VisitType, Office: command.Office, DOB: command.DOB,
-		PatientID: command.PatientID, InsurancePlan: command.InsurancePlan, CoverageType: command.CoverageType,
-		RequestedDate: command.StartDate, Routing: command.Routing, PreauthRequired: command.PreauthRequired}, days)
+	return s.list(ctx, command)
 }
 
-func (s *service) search(ctx context.Context, command SearchCommand, inventoryDays int) (AvailabilityResponse, error) {
+func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityResponse, error) {
 	empty := AvailabilityResponse{}
 	now := s.now()
 	nowEastern := now.In(eastern)
-	requestedDate := command.RequestedDate
+	requestedDate := command.StartDate
 	if requestedDate == "" {
 		requestedDate = nowEastern.AddDate(0, 0, 1).Format("2006-01-02")
 	}
@@ -58,10 +53,6 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 	if err != nil {
 		return empty, schedulingError("Invalid date format. Use YYYY-MM-DD.")
 	}
-	if err := validatePreferredTime(command.PreferredTime); err != nil {
-		return empty, schedulingError(err.Error())
-	}
-	hasPreference := inventoryDays == 0 && (command.RequestedDate != "" || command.PreferredTime != nil)
 	if err := domain.ValidateOptionalDOB(command.DOB); err != nil {
 		return empty, schedulingError(err.Error())
 	}
@@ -73,10 +64,7 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 		startDate = enforcePreauthMinDate(startDate, nowEastern)
 	}
 	searchStartDate := startDate.Format("2006-01-02")
-	maxDate := startDate.AddDate(0, 0, searchForwardDays)
-	if inventoryDays > 0 {
-		maxDate = startDate.AddDate(0, 0, inventoryDays-1)
-	}
+	maxDate := startDate.AddDate(0, 0, availabilityWindowDays-1)
 	searchEndDate := maxDate.Format("2006-01-02")
 
 	office, err := domain.ResolveOffice(command.Office)
@@ -124,15 +112,8 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 	for _, profile := range setup.Profiles {
 		profileMap[profile.ID] = profile
 	}
-	allowedColumns := policy.EligibleColumns(setup.Columns, profileMap, routing, command.DOB, command.Provider)
+	allowedColumns := policy.EligibleColumns(setup.Columns, routing, command.DOB)
 	if len(allowedColumns) == 0 {
-		if command.Provider != "" {
-			return empty, schedulingError(fmt.Sprintf(
-				"No provider found matching %q. Valid providers: %s",
-				command.Provider,
-				strings.Join(office.ValidProviderNames(), ", "),
-			))
-		}
 		return AvailabilityResponse{
 			Status:                AvailabilityStatusSuccess,
 			Outcome:               AvailabilityOutcomeNoEligibleProviders,
@@ -145,19 +126,15 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 		}, nil
 	}
 
-	var inventory map[string]domain.ScheduleReadResult
-	if inventoryDays > 0 {
-		inventory, err = s.readInventory(ctx, allowedColumns, startDate, maxDate)
-		if err != nil {
-			return empty, providerError(err, "Appointment scheduling is temporarily unavailable. Please try again.")
-		}
+	inventory, err := s.readInventory(ctx, allowedColumns, startDate, maxDate)
+	if err != nil {
+		return empty, providerError(err, "Appointment scheduling is temporarily unavailable. Please try again.")
 	}
 	var slots []AvailabilitySlotOption
 	searchIncomplete := false
 	unavailableDataChecks := 0
 	searchDate := startDate
 	searchedThrough := searchStartDate
-	var candidates []rankedAvailabilitySlot
 	for _, column := range allowedColumns {
 		if !column.HasUsableSchedule() {
 			searchIncomplete = true
@@ -182,18 +159,6 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 		}
 
 		read := inventory[date]
-		var err error
-		if inventoryDays == 0 {
-			read, err = s.records.ReadSchedule(ctx, domain.ScheduleReadQuery{ColumnIDs: workingColumnIDs, Date: date})
-		}
-		if err != nil {
-			log.Printf("availability: schedule read failed category=%s", providerCategory(err))
-			return empty, providerError(
-				err,
-				"Appointment scheduling is temporarily unavailable. Please try again.",
-			)
-		}
-
 		var daySlots []AvailabilitySlotOption
 		for _, column := range allowedColumns {
 			if !workingColumnSet[column.ID] {
@@ -240,36 +205,11 @@ func (s *service) search(ctx context.Context, command SearchCommand, inventoryDa
 		}
 
 		sortAvailabilitySlots(daySlots)
-		if inventoryDays > 0 {
-			slots = append(slots, daySlots...)
-		} else if !hasPreference {
-			if len(daySlots) > 0 {
-				slots = selectBroadAvailabilitySlots(daySlots)
-				break
-			}
-		} else {
-			for _, slot := range daySlots {
-				ranked, err := rankedSlot(
-					slot,
-					command.RequestedDate,
-					command.PreferredTime,
-				)
-				if err != nil {
-					return empty, schedulingError("Failed to rank availability: " + err.Error())
-				}
-				candidates = append(candidates, ranked)
-			}
-			if !searchIncomplete && hasTwoExactAvailabilityMatches(candidates) {
-				break
-			}
-		}
+		slots = append(slots, daySlots...)
 		searchDate = searchDate.AddDate(0, 0, 1)
 	}
 
-	if hasPreference {
-		slots = selectPreferredAvailabilitySlots(candidates)
-	}
-	if inventoryDays > 0 && searchIncomplete {
+	if searchIncomplete {
 		return incompleteResponse(originalRequestedDate, searchStartDate, searchEndDate, unavailableDataChecks), nil
 	}
 	if len(slots) == 0 {

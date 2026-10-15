@@ -224,25 +224,6 @@ func schedulingOutcome(err error) string {
 	return string(category)
 }
 
-func (h *Handlers) HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
-	var req schedulingmodule.SearchCommand
-	if err := decodeStrict(r, &req); err != nil {
-		rejectInvalidRequest(w, r, errorResponse{Status: "error", Message: "Invalid JSON body"})
-		return
-	}
-
-	response, err := h.scheduling.Search(r.Context(), req)
-	if err != nil {
-		recordSchedulingError(r.Context(), err)
-		respond(w, errorResponse{Status: "error", Message: err.Error()})
-		return
-	}
-	if response.Status == schedulingmodule.AvailabilityStatusError {
-		recordRequestOutcome(r.Context(), outcomeProviderFailure, safeerrors.CategoryInvalidResponse)
-	}
-	respond(w, response)
-}
-
 func (h *Handlers) HandleListAppointmentSlots(w http.ResponseWriter, r *http.Request) {
 	var req schedulingmodule.ListCommand
 	if err := decodeStrict(r, &req); err != nil {
