@@ -1,7 +1,6 @@
 package scheduling
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -9,13 +8,15 @@ import (
 )
 
 func TestAppointmentTypeMatchesDOBUsesCatalogAgeBand(t *testing.T) {
+	pediatricDOB := time.Now().AddDate(-10, 0, 0).Format("01/02/2006")
+	adultDOB := time.Now().AddDate(-40, 0, 0).Format("01/02/2006")
 	for id, appointmentType := range domain.AppointmentTypes {
 		wantPediatric := appointmentType.AgeBand != domain.AppointmentAgeAdult
 		wantAdult := appointmentType.AgeBand != domain.AppointmentAgePediatric
-		if got := appointmentTypeMatchesDOB(id, "01/01/2015"); got != wantPediatric {
+		if got := appointmentTypeMatchesDOB(id, pediatricDOB); got != wantPediatric {
 			t.Errorf("appointmentTypeMatchesDOB(%d, pediatric DOB) = %v, want %v", id, got, wantPediatric)
 		}
-		if got := appointmentTypeMatchesDOB(id, "01/01/1980"); got != wantAdult {
+		if got := appointmentTypeMatchesDOB(id, adultDOB); got != wantAdult {
 			t.Errorf("appointmentTypeMatchesDOB(%d, adult DOB) = %v, want %v", id, got, wantAdult)
 		}
 	}
@@ -31,7 +32,7 @@ func TestInvalidAppointmentTypeMessageUsesCatalog(t *testing.T) {
 	_, policyErr := policy.PrepareBooking(bookingPolicyRequest{
 		ColumnID: columnID, ProfileID: profileID, AppointmentTypeID: 9999, Routing: domain.RoutingAll,
 	})
-	want := fmt.Sprintf("Invalid appointment type ID: 9999. Valid types: %s", domain.ValidAppointmentTypeIDs())
+	const want = "Invalid appointment type ID: 9999. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169"
 	if policyErr == nil || policyErr.Message != want {
 		t.Fatalf("PrepareBooking invalid-type error = %+v, want %q", policyErr, want)
 	}

@@ -37,9 +37,6 @@ func TestAppointmentTypeCatalog(t *testing.T) {
 			if got.Name != test.name || got.Color != test.color || got.VisitType != test.visitType || got.AgeBand != test.ageBand || got.CrystalRiver != test.crystalRiver {
 				t.Errorf("AppointmentTypes[%d] = %+v", test.id, got)
 			}
-			if DefaultAppointmentTypeNames[test.id] != test.name || DefaultAppointmentTypeColors[test.id] != test.color {
-				t.Errorf("derived name/color maps do not match AppointmentTypes[%d]", test.id)
-			}
 			if AppointmentVisitType(test.id) != test.visitType {
 				t.Errorf("AppointmentVisitType(%d) = %q, want %q", test.id, AppointmentVisitType(test.id), test.visitType)
 			}

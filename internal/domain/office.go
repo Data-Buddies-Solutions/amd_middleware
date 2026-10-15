@@ -201,13 +201,13 @@ func (o *OfficeConfig) FriendlyProviderName(amdName string) string {
 }
 
 func (o *OfficeConfig) AppointmentColor(typeID int) (string, bool) {
-	color, ok := DefaultAppointmentTypeColors[typeID]
-	return color, ok
+	appointmentType, ok := AppointmentTypes[typeID]
+	return appointmentType.Color, ok
 }
 
 func (o *OfficeConfig) AppointmentTypeName(typeID int) (string, bool) {
-	name, ok := DefaultAppointmentTypeNames[typeID]
-	return name, ok
+	appointmentType, ok := AppointmentTypes[typeID]
+	return appointmentType.Name, ok
 }
 
 func OfficeIDs() []string {
@@ -269,7 +269,7 @@ const PreservedAppointmentTypeFallbackColor = "TEAL"
 var isDevEnv bool
 
 func ResolveAppointmentTypeID(typeID int) (int, bool) {
-	if _, ok := DefaultAppointmentTypeColors[typeID]; !ok {
+	if _, ok := AppointmentTypes[typeID]; !ok {
 		return 0, false
 	}
 	if isDevEnv {
@@ -281,7 +281,7 @@ func ResolveAppointmentTypeID(typeID int) (int, bool) {
 
 func CanonicalAppointmentTypeID(typeID int) (int, bool) {
 	if !isDevEnv {
-		if _, ok := DefaultAppointmentTypeColors[typeID]; !ok {
+		if _, ok := AppointmentTypes[typeID]; !ok {
 			return 0, false
 		}
 		return typeID, true

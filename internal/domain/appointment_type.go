@@ -19,7 +19,6 @@ const (
 	AppointmentAgePediatric = "pediatric"
 )
 
-// AppointmentType describes one canonical AdvancedMD appointment type.
 type AppointmentType struct {
 	Name              string
 	Color             string
@@ -29,7 +28,6 @@ type AppointmentType struct {
 	DevelopmentTypeID int
 }
 
-// AppointmentTypes is the single catalog of appointment-type metadata.
 var AppointmentTypes = map[int]AppointmentType{
 	1004: {Name: "New Pediatric Medical", Color: "GREEN", VisitType: AppointmentVisitMedical, AgeBand: AppointmentAgePediatric, DevelopmentTypeID: 20},
 	1005: {Name: "Established Pediatric Medical (Follow Up)", Color: "PINK", VisitType: AppointmentVisitMedical, AgeBand: AppointmentAgePediatric, DevelopmentTypeID: 8},
@@ -45,30 +43,12 @@ var AppointmentTypes = map[int]AppointmentType{
 	6169: {Name: "Crystal River Established Patient", Color: "RED", VisitType: AppointmentVisitMedical, AgeBand: AppointmentAgeAny, CrystalRiver: true},
 }
 
-var (
-	DefaultAppointmentTypeColors = appointmentTypeStrings(func(t AppointmentType) string { return t.Color })
-	DefaultAppointmentTypeNames  = appointmentTypeStrings(func(t AppointmentType) string { return t.Name })
-)
-
-func appointmentTypeStrings(value func(AppointmentType) string) map[int]string {
-	result := make(map[int]string, len(AppointmentTypes))
-	for id, appointmentType := range AppointmentTypes {
-		result[id] = value(appointmentType)
-	}
-	return result
-}
-
-func AppointmentTypeIDs() []int {
+func ValidAppointmentTypeIDs() string {
 	ids := make([]int, 0, len(AppointmentTypes))
 	for id := range AppointmentTypes {
 		ids = append(ids, id)
 	}
 	sort.Ints(ids)
-	return ids
-}
-
-func ValidAppointmentTypeIDs() string {
-	ids := AppointmentTypeIDs()
 	values := make([]string, len(ids))
 	for i, id := range ids {
 		values[i] = strconv.Itoa(id)
