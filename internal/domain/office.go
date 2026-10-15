@@ -266,57 +266,6 @@ func AppointmentLookupOfficeIDs(office *OfficeConfig) []string {
 
 const PreservedAppointmentTypeFallbackColor = "TEAL"
 
-var DefaultAppointmentTypeColors = map[int]string{
-	1006: "RED",
-	1004: "GREEN",
-	1007: "ORANGE",
-	1005: "PINK",
-	1008: "BLUE",
-	1010: "TEAL",
-	3364: "ROSE",
-	4244: "BROWN",
-	4245: "GRAY",
-	6167: "ORANGE",
-	6168: "TEAL",
-	6169: "RED",
-}
-
-var DefaultAppointmentTypeNames = map[int]string{
-	1006: "New Adult Medical",
-	1004: "New Pediatric Medical",
-	1007: "Established Adult Medical (Follow Up)",
-	1005: "Established Pediatric Medical (Follow Up)",
-	1008: "Post Op",
-	1010: "New Adult Vision",
-	3364: "Established Adult Vision",
-	4244: "New Pediatric Vision",
-	4245: "Established Pediatric Vision",
-	6167: "Crystal River New Patient",
-	6168: "Crystal River Post Op",
-	6169: "Crystal River Established Patient",
-}
-
-var opticalAppointmentTypes = map[int]bool{
-	1010: true,
-	3364: true,
-	4244: true,
-	4245: true,
-}
-
-var crystalRiverAppointmentTypes = map[int]bool{
-	6167: true,
-	6168: true,
-	6169: true,
-}
-
-var devAppointmentTypes = map[int]int{
-	1006: 12,
-	1004: 20,
-	1007: 18,
-	1005: 8,
-	1008: 1627,
-}
-
 var isDevEnv bool
 
 func ResolveAppointmentTypeID(typeID int) (int, bool) {
@@ -324,8 +273,8 @@ func ResolveAppointmentTypeID(typeID int) (int, bool) {
 		return 0, false
 	}
 	if isDevEnv {
-		devID, ok := devAppointmentTypes[typeID]
-		return devID, ok
+		devID := AppointmentTypes[typeID].DevelopmentTypeID
+		return devID, devID != 0
 	}
 	return typeID, true
 }
@@ -338,8 +287,8 @@ func CanonicalAppointmentTypeID(typeID int) (int, bool) {
 		return typeID, true
 	}
 
-	for canonicalID, devID := range devAppointmentTypes {
-		if devID == typeID {
+	for canonicalID, appointmentType := range AppointmentTypes {
+		if appointmentType.DevelopmentTypeID != 0 && appointmentType.DevelopmentTypeID == typeID {
 			return canonicalID, true
 		}
 	}
@@ -347,23 +296,24 @@ func CanonicalAppointmentTypeID(typeID int) (int, bool) {
 }
 
 func (o *OfficeConfig) AllowsAppointmentType(typeID int, routing RoutingRule) bool {
-	if _, ok := DefaultAppointmentTypeColors[typeID]; !ok {
+	appointmentType, ok := AppointmentTypes[typeID]
+	if !ok {
 		return false
 	}
 
 	if routing == RoutingOpticalOnly {
-		return len(o.RoutingTiers[RoutingOpticalOnly]) > 0 && opticalAppointmentTypes[typeID]
+		return len(o.RoutingTiers[RoutingOpticalOnly]) > 0 && appointmentType.VisitType == AppointmentVisitRoutineVision
 	}
 	if len(o.ColumnsForRouting(routing)) == 0 {
 		return false
 	}
 	if o.ID == "crystal_river" {
-		return crystalRiverAppointmentTypes[typeID]
+		return appointmentType.CrystalRiver
 	}
-	if opticalAppointmentTypes[typeID] {
+	if appointmentType.VisitType == AppointmentVisitRoutineVision {
 		return false
 	}
-	if crystalRiverAppointmentTypes[typeID] {
+	if appointmentType.CrystalRiver {
 		return false
 	}
 
