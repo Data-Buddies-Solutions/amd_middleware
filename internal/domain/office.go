@@ -115,19 +115,6 @@ func (o *OfficeConfig) ProvidersForRoutingAndDOB(rule RoutingRule, dob string) [
 	return o.providerNamesForColumnIDs(colIDs, colMap)
 }
 
-func (o *OfficeConfig) ValidProviderNames() []string {
-	names := make([]string, 0, len(o.Columns))
-	seen := make(map[string]bool)
-	for _, col := range o.Columns {
-		if seen[col.ShortName] {
-			continue
-		}
-		seen[col.ShortName] = true
-		names = append(names, col.ShortName)
-	}
-	return names
-}
-
 func (o *OfficeConfig) ColumnAllowsDOB(columnID, dob string) bool {
 	col, ok := o.Columns[columnID]
 	if !ok {

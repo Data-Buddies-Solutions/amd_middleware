@@ -429,16 +429,10 @@ func currentBookingColumn(
 	if setup == nil {
 		return domain.SchedulerColumn{}, false
 	}
-	profiles := make(map[string]domain.SchedulerProfile, len(setup.Profiles))
-	for _, profile := range setup.Profiles {
-		profiles[profile.ID] = profile
-	}
 	eligible := newSchedulingPolicy(office).EligibleColumns(
 		setup.Columns,
-		profiles,
 		domain.ParseRoutingRule(command.Routing),
 		command.DOB,
-		"",
 	)
 	for _, column := range eligible {
 		if column.ID == strconv.Itoa(command.ColumnID) &&
