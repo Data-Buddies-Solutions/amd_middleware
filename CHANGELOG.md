@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [6.3.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.2.3...v6.3.0) (2026-10-15)
+
+
+### Features
+
+* **domain:** include North Miami Beach Optical in Hollywood appointment lookups ([#254](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/254)) ([bfea96c](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/bfea96c6de42f97900d1ede2a0063f35f190a2fc))
+
 ## [6.2.3](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.2.2...v6.2.3) (2026-10-15)
 
 
