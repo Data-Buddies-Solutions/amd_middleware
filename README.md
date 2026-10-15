@@ -315,7 +315,6 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/patient/update-insurance` | Replace primary insurance | `patient.UpdateInsurance` |
 | `POST /api/insurance/decision` | Decide plan participation for an office | `insurance.DecideInsurance` |
 | `GET /api/insurance/plans?office=&coverage=` | List an office's plans for one coverage with each plan's decision, carrier, sheet note, and other offices on the same insurance list that accept it (read-only) | `insurance.ListPlans` |
-| `POST /api/scheduler/availability` | Find policy-valid slots and sign them | `scheduling.Search` |
 | `POST /api/scheduler/slots` | List openings as an inventory envelope | `scheduling.List` |
 | `POST /api/appointment/book` | Revalidate and book a signed slot | `scheduling.Book` |
 | `POST /api/appointment/cancel` | Verify ownership and cancel an appointment | `scheduling.Cancel` |
@@ -438,4 +437,3 @@ caller sends it once and retains the returned receipt. A replacement is booked
 before the original is cancelled. `partial` and `uncertain` receipts require
 reconciliation and must not be presented as completed moves. See
 [rescheduling](internal/scheduling/reschedule.go) and its tests.
-

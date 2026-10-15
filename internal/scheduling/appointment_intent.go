@@ -116,7 +116,7 @@ func routineVisionTooYoung(office *domain.OfficeConfig, age int) bool {
 func resolvedAppointmentType(typeID int) appointmentTypeResolution {
 	return appointmentTypeResolution{
 		AppointmentTypeID:   typeID,
-		AppointmentTypeName: domain.DefaultAppointmentTypeNames[typeID],
+		AppointmentTypeName: domain.AppointmentTypes[typeID].Name,
 	}
 }
 

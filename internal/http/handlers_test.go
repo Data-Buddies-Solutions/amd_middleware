@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -111,78 +110,6 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 
 type unavailableSession struct{}
 
-func (unavailableSession) Get(context.Context) (*session.TokenData, error) {
-	return nil, session.ErrSessionUnavailable
-}
-
-func (unavailableSession) Maintain(context.Context) error {
-	return session.ErrSessionUnavailable
-}
-
-func (unavailableSession) Status() session.SessionStatus {
-	return session.SessionStatus{State: session.SessionUnavailable}
-}
-
-func TestHandleGetAvailability_InvalidDOB(t *testing.T) {
-	handlers := &Handlers{scheduling: schedulingStub{err: errors.New("dob must be a valid date")}}
-	date := time.Now().AddDate(0, 0, 2).Format("2006-01-02")
-	body := fmt.Sprintf(`{"requestedDate":%q,"office":"Hollywood","routing":"optical_only","dob":"not-a-date"}`, date)
-	req := httptest.NewRequest("POST", "/api/scheduler/availability", bytes.NewBufferString(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-
-	handlers.HandleGetAvailability(w, req)
-
-	var resp errorResponse
-	json.NewDecoder(w.Result().Body).Decode(&resp)
-	if resp.Status != "error" {
-		t.Fatalf("expected status error, got %q", resp.Status)
-	}
-	if resp.Message != "dob must be a valid date" {
-		t.Fatalf("expected invalid DOB message, got %q", resp.Message)
-	}
-}
-
-func TestAvailabilityRouteRetainsAuthenticationAndResponseContract(t *testing.T) {
-	handlers := &Handlers{scheduling: schedulingStub{
-		result: schedulingmodule.AvailabilityResponse{
-			Status:                schedulingmodule.AvailabilityStatusSuccess,
-			Outcome:               schedulingmodule.AvailabilityOutcomeNoAvailability,
-			AvailabilityFound:     false,
-			RequestedDate:         "2026-06-03",
-			SearchedFrom:          "2026-06-03",
-			SearchedThrough:       "2026-06-17",
-			ShouldRetrySameSearch: false,
-			NextAction:            schedulingmodule.AvailabilityNextActionAskDifferentPreferences,
-			Slots:                 []schedulingmodule.AvailabilitySlotOption{},
-		},
-	}}
-	router := NewRouter(handlers, "agent-secret", nil)
-	body := `{"requestedDate":"2026-06-03","office":"Spring Hill","routing":"bach_only"}`
-
-	unauthenticated := httptest.NewRequest(http.MethodPost, "/api/scheduler/availability", strings.NewReader(body))
-	unauthenticatedResponse := httptest.NewRecorder()
-	router.ServeHTTP(unauthenticatedResponse, unauthenticated)
-	if unauthenticatedResponse.Code != http.StatusUnauthorized {
-		t.Fatalf("unauthenticated status = %d", unauthenticatedResponse.Code)
-	}
-
-	authenticated := httptest.NewRequest(http.MethodPost, "/api/scheduler/availability", strings.NewReader(body))
-	authenticated.Header.Set("Authorization", "Bearer agent-secret")
-	authenticatedResponse := httptest.NewRecorder()
-	router.ServeHTTP(authenticatedResponse, authenticated)
-	var response schedulingmodule.AvailabilityResponse
-	if err := json.NewDecoder(authenticatedResponse.Body).Decode(&response); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if authenticatedResponse.Code != http.StatusOK ||
-		response.Outcome != schedulingmodule.AvailabilityOutcomeNoAvailability ||
-		response.ShouldRetrySameSearch ||
-		response.Slots == nil {
-		t.Fatalf("authenticated response = %d %#v", authenticatedResponse.Code, response)
-	}
-}
-
 type schedulingStub struct {
 	result           schedulingmodule.AvailabilityResponse
 	err              error
@@ -193,8 +120,16 @@ type schedulingStub struct {
 	rescheduleResult schedulingmodule.RescheduleReceipt
 }
 
-func (s schedulingStub) Search(context.Context, schedulingmodule.SearchCommand) (schedulingmodule.AvailabilityResponse, error) {
-	return s.result, s.err
+func (unavailableSession) Get(context.Context) (*session.TokenData, error) {
+	return nil, session.ErrSessionUnavailable
+}
+
+func (unavailableSession) Maintain(context.Context) error {
+	return session.ErrSessionUnavailable
+}
+
+func (unavailableSession) Status() session.SessionStatus {
+	return session.SessionStatus{State: session.SessionUnavailable}
 }
 
 func (s schedulingStub) Book(context.Context, schedulingmodule.BookCommand) (schedulingmodule.BookReceipt, error) {
@@ -1128,7 +1063,7 @@ func newPatientResolveTestHandlers(
 }
 
 func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListCommand) (schedulingmodule.AvailabilityResponse, error) {
-	return s.Search(ctx, schedulingmodule.SearchCommand{Office: command.Office})
+	return s.result, s.err
 }
 
 func TestFirstNameDOBHTTPContract(t *testing.T) {

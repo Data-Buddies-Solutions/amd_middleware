@@ -140,6 +140,29 @@ func TestListExcludesHeldAndFullSlots(t *testing.T) {
 	}
 }
 
+func TestListBlocksSlotsOverlappedByMultiSlotAppointments(t *testing.T) {
+	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	records := recordsWithSetup(testColumn("1550", "2076", "1568", "08:30", "10:30", 30))
+	for i := 1; i <= 14; i++ {
+		day := time.Date(2026, 6, 1+i, 0, 0, 0, 0, time.UTC)
+		records.ScheduleReads[day.Format("2006-01-02")] = completeRead("1550", []domain.Appointment{
+			{StartDateTime: day.Add(9 * time.Hour), Duration: 60},
+		}, nil)
+	}
+	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "all"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Outcome != scheduling.AvailabilityOutcomeFound {
+		t.Fatalf("outcome=%s", result.Outcome)
+	}
+	for _, slot := range result.Slots {
+		if slot.Time == "9:30 AM" {
+			t.Fatalf("offered slot overlapped by a 60-minute appointment: %s", slot.DateTime)
+		}
+	}
+}
+
 func TestPreauthInventoryExcludesOccupiedAndHeldWallClockSlots(t *testing.T) {
 	for _, date := range []string{"2026-01-05", "2026-06-01", "2026-02-23", "2026-10-19"} {
 		t.Run(date, func(t *testing.T) {
