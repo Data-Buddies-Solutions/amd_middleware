@@ -109,15 +109,15 @@ func TestSchedulingHandlersMapStableErrorCategories(t *testing.T) {
 }
 
 type recordingScheduling struct {
-	listCommand    schedulingmodule.ListCommand
-	listCalls      int
-	searchResponse schedulingmodule.AvailabilityResponse
-	bookCommand    schedulingmodule.BookCommand
-	bookReceipt    schedulingmodule.BookReceipt
-	bookErr        error
-	cancelCommand  schedulingmodule.CancelCommand
-	cancelReceipt  schedulingmodule.CancelReceipt
-	cancelErr      error
+	listCommand   schedulingmodule.ListCommand
+	listCalls     int
+	listResponse  schedulingmodule.AvailabilityResponse
+	bookCommand   schedulingmodule.BookCommand
+	bookReceipt   schedulingmodule.BookReceipt
+	bookErr       error
+	cancelCommand schedulingmodule.CancelCommand
+	cancelReceipt schedulingmodule.CancelReceipt
+	cancelErr     error
 }
 
 func (s *recordingScheduling) Book(_ context.Context, command schedulingmodule.BookCommand) (schedulingmodule.BookReceipt, error) {
@@ -133,11 +133,11 @@ func (s *recordingScheduling) Cancel(_ context.Context, command schedulingmodule
 func (s *recordingScheduling) List(ctx context.Context, command schedulingmodule.ListCommand) (schedulingmodule.AvailabilityResponse, error) {
 	s.listCommand = command
 	s.listCalls++
-	return s.searchResponse, nil
+	return s.listResponse, nil
 }
 
 func TestListSlotsRouteRequiresAuthenticationAndPreservesWindow(t *testing.T) {
-	scheduler := &recordingScheduling{searchResponse: schedulingmodule.AvailabilityResponse{Status: "success", Outcome: "no_availability", Slots: []schedulingmodule.AvailabilitySlotOption{}}}
+	scheduler := &recordingScheduling{listResponse: schedulingmodule.AvailabilityResponse{Status: "success", Outcome: "no_availability", Slots: []schedulingmodule.AvailabilitySlotOption{}}}
 	router := NewRouter(&Handlers{scheduling: scheduler}, "test-api-secret", nil)
 	for _, authenticated := range []bool{false, true} {
 		request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"startDate":"2026-11-02","rangeDays":14,"office":"Spring Hill","routing":"bach_only","dob":"01/15/1980","preauthRequired":true}`))

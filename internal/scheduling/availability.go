@@ -121,7 +121,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 			RequestedDate:         originalRequestedDate,
 			ShouldRetrySameSearch: false,
 			NextAction:            AvailabilityNextActionAskDifferentPreferences,
-			Message:               "No eligible providers found for this office, routing, provider, and DOB.",
+			Message:               "No eligible providers found for this office, routing, and DOB.",
 			Slots:                 []AvailabilitySlotOption{},
 		}, nil
 	}
@@ -134,7 +134,6 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 	searchIncomplete := false
 	unavailableDataChecks := 0
 	searchDate := startDate
-	searchedThrough := searchStartDate
 	for _, column := range allowedColumns {
 		if !column.HasUsableSchedule() {
 			searchIncomplete = true
@@ -144,16 +143,13 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 
 	for !searchDate.After(maxDate) {
 		date := searchDate.Format("2006-01-02")
-		searchedThrough = date
-		workingColumnIDs := make([]string, 0, len(allowedColumns))
 		workingColumnSet := make(map[string]bool, len(allowedColumns))
 		for _, column := range allowedColumns {
 			if column.WorksOnDay(searchDate.Weekday()) {
-				workingColumnIDs = append(workingColumnIDs, column.ID)
 				workingColumnSet[column.ID] = true
 			}
 		}
-		if len(workingColumnIDs) == 0 {
+		if len(workingColumnSet) == 0 {
 			searchDate = searchDate.AddDate(0, 0, 1)
 			continue
 		}
@@ -213,14 +209,6 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 		return incompleteResponse(originalRequestedDate, searchStartDate, searchEndDate, unavailableDataChecks), nil
 	}
 	if len(slots) == 0 {
-		if searchIncomplete {
-			return incompleteResponse(
-				originalRequestedDate,
-				searchStartDate,
-				searchEndDate,
-				unavailableDataChecks,
-			), nil
-		}
 		return noneResponse(originalRequestedDate, searchStartDate, searchEndDate), nil
 	}
 
@@ -238,9 +226,9 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 		ShouldRetrySameSearch: false,
 		NextAction:            AvailabilityNextActionOfferSlots,
 		ActualDate:            actualDate,
-		DateShifted:           availabilityDateShifted(originalRequestedDate, searchStartDate, actualDate),
+		DateShifted:           actualDate != originalRequestedDate,
 		SearchedFrom:          searchStartDate,
-		SearchedThrough:       searchedThrough,
+		SearchedThrough:       searchEndDate,
 		BookingTokenExpiresAt: tokenExpiresAt.Format(time.RFC3339),
 		Slots:                 slots,
 	}, nil
@@ -252,13 +240,6 @@ func enforcePreauthMinDate(requestedDate, now time.Time) time.Time {
 		return minDate
 	}
 	return requestedDate
-}
-
-func availabilityDateShifted(requestedDate, searchStartDate, actualDate string) bool {
-	if actualDate != "" {
-		return actualDate != requestedDate
-	}
-	return searchStartDate != requestedDate
 }
 
 func noneResponse(requestedDate, searchStartDate, searchEndDate string) AvailabilityResponse {

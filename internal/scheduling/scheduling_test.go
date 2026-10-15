@@ -90,14 +90,10 @@ func TestListReportsIncompleteForUnusableColumnSchedule(t *testing.T) {
 	}
 }
 
-func TestListComparesPreferenceDatesAsCalendarDays(t *testing.T) {
+func TestListStartsAtStartDate(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	searchDate := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC)
 	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "16:00", 60))
-	records.ScheduleReads["2026-06-03"] = completeRead("1513", nil, []domain.BlockHold{{
-		StartDateTime: time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
-		EndDateTime:   time.Date(2026, 6, 3, 15, 0, 0, 0, time.UTC),
-	}})
 	records.ScheduleReads["2026-06-04"] = completeRead("1513", nil, []domain.BlockHold{{
 		StartDateTime: time.Date(2026, 6, 4, 10, 0, 0, 0, time.UTC),
 		EndDateTime:   time.Date(2026, 6, 4, 16, 0, 0, 0, time.UTC),
@@ -120,7 +116,7 @@ func TestListComparesPreferenceDatesAsCalendarDays(t *testing.T) {
 		t.Fatalf("List error = %v", err)
 	}
 	if result.Slots[0].DateTime != "2026-06-04T09:00" {
-		t.Fatalf("first slot = %q, want real slot on preferred calendar date", result.Slots[0].DateTime)
+		t.Fatalf("first slot = %q, want first slot on the start date", result.Slots[0].DateTime)
 	}
 }
 

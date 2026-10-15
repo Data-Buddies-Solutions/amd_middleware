@@ -11,17 +11,6 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-func NormalizeForLookup(input string) string {
-	s := strings.ToLower(strings.TrimSpace(input))
-	s = strings.ReplaceAll(s, ".", "")
-	s = strings.ReplaceAll(s, ",", "")
-	s = strings.ReplaceAll(s, "/", " ")
-	for strings.Contains(s, "  ") {
-		s = strings.ReplaceAll(s, "  ", " ")
-	}
-	return strings.TrimSpace(s)
-}
-
 func StripDiacritics(s string) string {
 	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 	result, _, err := transform.String(t, s)
