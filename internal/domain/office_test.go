@@ -52,7 +52,7 @@ func TestAppointmentLookupOfficeIDs(t *testing.T) {
 	}{
 		{"spring hill includes crystal river", springHillOffice, []string{"spring_hill", "crystal_river"}},
 		{"crystal river includes spring hill", crystalRiverOffice, []string{"spring_hill", "crystal_river"}},
-		{"hollywood includes sweetwater", hollywoodOffice, []string{"hollywood", "sweetwater"}},
+		{"hollywood includes sweetwater and north miami beach optical", hollywoodOffice, []string{"hollywood", "sweetwater", "north_miami_beach_optical"}},
 		{"sweetwater includes hollywood", sweetwaterOffice, []string{"hollywood", "sweetwater"}},
 		{"north miami beach optical stays scoped", northMiamiBeachOpticalOffice, []string{"north_miami_beach_optical"}},
 		{"unknown office stays scoped", &OfficeConfig{ID: "other"}, []string{"other"}},

@@ -241,7 +241,9 @@ func AppointmentLookupOfficeIDs(office *OfficeConfig) []string {
 	switch office.ID {
 	case "spring_hill", "crystal_river":
 		officeIDs = []string{"spring_hill", "crystal_river"}
-	case "hollywood", "sweetwater":
+	case "hollywood":
+		officeIDs = []string{"hollywood", "sweetwater", "north_miami_beach_optical"}
+	case "sweetwater":
 		officeIDs = []string{"hollywood", "sweetwater"}
 	}
 
