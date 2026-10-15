@@ -32,7 +32,7 @@ func TestRequestLogPreservesRescheduleReceiptFailure(t *testing.T) {
 			records.SchedulerSetupError = advancedmd.NewError(tc.category)
 			now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 			scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now })
-			_, failure := scheduler.Search(context.Background(), schedulingmodule.SearchCommand{Office: "Spring Hill", RequestedDate: "2026-06-03", Routing: "bach_only"})
+			_, failure := scheduler.List(context.Background(), schedulingmodule.ListCommand{Office: "Spring Hill", StartDate: "2026-06-03", Routing: "bach_only"})
 			if failure == nil {
 				t.Fatal("expected scheduling provider failure")
 			}
@@ -206,7 +206,7 @@ func TestRequestLogRecordsInvalidJSONWithoutInspectingBodies(t *testing.T) {
 	paths := []string{
 		"/api/patient/resolve",
 		"/api/add-patient",
-		"/api/scheduler/availability",
+		"/api/scheduler/slots",
 		"/api/appointment/book",
 		"/api/appointment/reschedule",
 		"/api/appointment/cancel",
@@ -253,8 +253,8 @@ func TestRequestLogPreservesAvailabilityProviderFailureCategory(t *testing.T) {
 	router := NewRouter(&Handlers{scheduling: scheduler}, "test-secret", nil)
 	req := httptest.NewRequest(
 		http.MethodPost,
-		"/api/scheduler/availability",
-		strings.NewReader(`{"requestedDate":"2026-06-03","office":"Spring Hill","routing":"bach_only"}`),
+		"/api/scheduler/slots",
+		strings.NewReader(`{"startDate":"2026-06-03","office":"Spring Hill","routing":"bach_only"}`),
 	)
 	req.Header.Set("Authorization", "Bearer test-secret")
 	w := httptest.NewRecorder()

@@ -5,7 +5,6 @@ import (
 	"slices"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"advancedmd-token-management/internal/domain"
@@ -52,7 +51,7 @@ func appointmentTypeMatchesDOB(typeID int, dob string) bool {
 	}
 }
 
-func (p schedulingPolicy) EligibleColumns(columns []domain.SchedulerColumn, profiles map[string]domain.SchedulerProfile, routing domain.RoutingRule, dob, requestedProvider string) []domain.SchedulerColumn {
+func (p schedulingPolicy) EligibleColumns(columns []domain.SchedulerColumn, routing domain.RoutingRule, dob string) []domain.SchedulerColumn {
 	if p.office == nil {
 		return nil
 	}
@@ -67,30 +66,9 @@ func (p schedulingPolicy) EligibleColumns(columns []domain.SchedulerColumn, prof
 		if column.FacilityID != p.office.FacilityID || !routingColumns[column.ID] || !p.office.ColumnAllowsDOB(column.ID, dob) {
 			continue
 		}
-		if requestedProvider != "" && !p.matchesProvider(column, profiles[column.ProfileID], requestedProvider) {
-			continue
-		}
 		eligible = append(eligible, column)
 	}
 	return eligible
-}
-
-func (p schedulingPolicy) matchesProvider(column domain.SchedulerColumn, profile domain.SchedulerProfile, requested string) bool {
-	needle := strings.ToUpper(domain.NormalizeForLookup(requested))
-	if needle == "" {
-		return true
-	}
-
-	candidates := []string{profile.Name, column.Name}
-	if officeColumn, ok := p.office.Columns[column.ID]; ok {
-		candidates = append(candidates, officeColumn.DisplayName, officeColumn.ShortName)
-	}
-	for _, candidate := range candidates {
-		if strings.Contains(strings.ToUpper(domain.NormalizeForLookup(candidate)), needle) {
-			return true
-		}
-	}
-	return false
 }
 
 type bookingPolicyRequest struct {
