@@ -25,8 +25,8 @@ func (p schedulingPolicy) AllowedAppointmentTypeIDs(routing domain.RoutingRule, 
 		return nil
 	}
 
-	typeIDs := make([]int, 0, len(domain.DefaultAppointmentTypeColors))
-	for typeID := range domain.DefaultAppointmentTypeColors {
+	typeIDs := make([]int, 0, len(domain.AppointmentTypes))
+	for typeID := range domain.AppointmentTypes {
 		if p.office.AllowsAppointmentType(typeID, routing) && appointmentTypeMatchesDOB(typeID, dob) {
 			typeIDs = append(typeIDs, typeID)
 		}
@@ -41,10 +41,10 @@ func appointmentTypeMatchesDOB(typeID int, dob string) bool {
 		return true
 	}
 
-	switch typeID {
-	case 1004, 1005, 4244, 4245:
+	switch domain.AppointmentTypes[typeID].AgeBand {
+	case domain.AppointmentAgePediatric:
 		return age < 18
-	case 1006, 1007, 1010, 3364:
+	case domain.AppointmentAgeAdult:
 		return age >= 18
 	default:
 		return true
@@ -140,7 +140,7 @@ func (p schedulingPolicy) PrepareBooking(req bookingPolicyRequest) (bookingPolic
 
 	environmentTypeID, ok := domain.ResolveAppointmentTypeID(typeID)
 	if !ok && !preservesExistingType {
-		return bookingPolicyDecision{}, &schedulingPolicyError{Message: fmt.Sprintf("Invalid appointment type ID: %d. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169", typeID)}
+		return bookingPolicyDecision{}, &schedulingPolicyError{Message: fmt.Sprintf("Invalid appointment type ID: %d. Valid types: %s", typeID, domain.ValidAppointmentTypeIDs())}
 	}
 	if !ok {
 		environmentTypeID = typeID
