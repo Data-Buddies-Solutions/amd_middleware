@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [6.3.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.3.0...v6.3.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **insurance:** recognize Emboss Specialty carrier rename ([#258](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/258)) ([34f73c5](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/34f73c5afc2aeca82eafb60bbd8131dcab89553e))
+
 ## [6.3.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.2.3...v6.3.0) (2026-10-15)
 
 
