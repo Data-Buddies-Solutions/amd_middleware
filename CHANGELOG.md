@@ -4,6 +4,17 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [7.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.3.1...v7.0.0) (2026-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **scheduling:** remove unused request fields ([#260](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/260))
+
+### Code Refactoring
+
+* **scheduling:** remove unused request fields ([#260](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/260)) ([499d31a](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/499d31aa0a326f62b0be003466f61966447b7f63))
+
 ## [6.3.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.3.0...v6.3.1) (2026-10-16)
 
 
