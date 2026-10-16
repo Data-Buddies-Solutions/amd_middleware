@@ -1,13 +1,13 @@
 package scheduling_test
 
 import (
-	"advancedmd-token-management/internal/domain"
 	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
 
+	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/scheduling"
 )
 
