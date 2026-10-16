@@ -384,8 +384,8 @@ func TestBookReconcilesAmbiguousWriteToSuccess(t *testing.T) {
 	records := bookingRecords()
 	records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryNetwork)
 	records.AppointmentResultSequence["12345"] = []advancedmdtest.AppointmentResult{
-		appointmentResult(nil, true),
-		appointmentResult([]domain.PatientAppointment{matchingAppointment(98765)}, true),
+		appointmentResult([]domain.PatientAppointment{matchingAppointment(11111)}, true),
+		appointmentResult([]domain.PatientAppointment{matchingAppointment(11111), matchingAppointment(98765)}, true),
 	}
 
 	receipt, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
@@ -447,19 +447,25 @@ func TestBookReconciliationDoesNotClaimPreexistingMatchingAppointment(t *testing
 }
 
 func TestBookDoesNotWriteWhenReconciliationBaselineFails(t *testing.T) {
-	now := mutationTestNow()
-	records := bookingRecords()
-	records.AppointmentResults["12345"] = advancedmdtest.AppointmentResult{
-		Err: advancedmd.NewError(safeerrors.CategoryUnavailable),
-	}
-
-	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-		Book(context.Background(), signedBookCommand(t, now))
-	if scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed {
-		t.Fatalf("Book error = %v, category = %q; want write_failed", err, scheduling.CategoryOf(err))
-	}
-	if len(records.Bookings) != 0 {
-		t.Fatalf("provider bookings = %d, want none", len(records.Bookings))
+	for _, tc := range []struct {
+		name   string
+		result advancedmdtest.AppointmentResult
+	}{
+		{name: "read error", result: advancedmdtest.AppointmentResult{Err: advancedmd.NewError(safeerrors.CategoryUnavailable)}},
+		{name: "incomplete read", result: appointmentResult(nil, false)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			now := mutationTestNow()
+			records := bookingRecords()
+			records.AppointmentResults["12345"] = tc.result
+			_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).Book(context.Background(), signedBookCommand(t, now))
+			if scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed {
+				t.Fatalf("Book error = %v, category = %q; want write_failed", err, scheduling.CategoryOf(err))
+			}
+			if len(records.Bookings) != 0 {
+				t.Fatalf("provider bookings = %d, want none", len(records.Bookings))
+			}
+		})
 	}
 }
 
