@@ -14,11 +14,8 @@ const availabilityWindowDays = 14
 
 type ListCommand struct {
 	PatientID       string `json:"patientId,omitempty"`
-	InsurancePlan   string `json:"insurancePlan,omitempty"`
-	CoverageType    string `json:"coverageType,omitempty"`
 	VisitType       string `json:"visitType,omitempty"`
 	StartDate       string `json:"startDate,omitempty"`
-	RangeDays       int    `json:"rangeDays,omitempty"`
 	Office          string `json:"office"`
 	DOB             string `json:"dob,omitempty"`
 	Routing         string `json:"routing"`
@@ -28,13 +25,6 @@ type ListCommand struct {
 func (s *service) List(ctx context.Context, command ListCommand) (AvailabilityResponse, error) {
 	if command.Routing == "" && command.VisitType == domain.AppointmentVisitRoutineVision {
 		command.Routing = string(domain.RoutingOpticalOnly)
-	}
-	days := command.RangeDays
-	if days == 0 {
-		days = availabilityWindowDays
-	}
-	if days != availabilityWindowDays {
-		return AvailabilityResponse{}, schedulingError("rangeDays must be 14; use startDate to search a different window")
 	}
 	return s.list(ctx, command)
 }
@@ -88,9 +78,6 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 	}
 	if age, ok := domain.AgeYearsOn(command.DOB, nowEastern); ok && command.VisitType == domain.AppointmentVisitRoutineVision && routineVisionTooYoung(office, age) {
 		return empty, schedulingError(underSevenRoutineVisionMessage)
-	}
-	if command.PatientID != "" && command.VisitType != "" && command.CoverageType != "" && command.CoverageType != command.VisitType {
-		return empty, schedulingError("coverageType must match visitType")
 	}
 
 	routing := office.SchedulingRouting(domain.ParseRoutingRule(command.Routing), command.DOB)

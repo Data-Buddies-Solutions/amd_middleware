@@ -20,18 +20,12 @@ import (
 const maxAppointmentCommentLength = 1000
 
 type BookCommand struct {
-	InsurancePlan     string `json:"insurancePlan,omitempty"`
 	PatientID         string `json:"patientId"`
 	PatientName       string `json:"patientName,omitempty"`
 	DOB               string `json:"dob,omitempty"`
 	BookingToken      string `json:"bookingToken,omitempty"`
 	RescheduleToken   string `json:"rescheduleToken,omitempty"`
-	ColumnID          int    `json:"columnId"`
-	ProfileID         int    `json:"profileId"`
-	StartDatetime     string `json:"startDatetime"`
-	Duration          int    `json:"duration"`
 	AppointmentTypeID int    `json:"appointmentTypeId"`
-	Routing           string `json:"routing,omitempty"`
 	Office            string `json:"office,omitempty"`
 	VisitCategory     string `json:"visitCategory,omitempty"`
 	VisitKind         string `json:"visitKind,omitempty"`
@@ -66,6 +60,7 @@ type BookReceipt struct {
 }
 
 type preparedBooking struct {
+	token                   SlotPolicy
 	command                 BookCommand
 	office                  *domain.OfficeConfig
 	patientID               int
@@ -100,10 +95,10 @@ func (s *service) book(ctx context.Context, booking bookingContext) (BookReceipt
 	appointmentID, err := s.records.BookAppointment(ctx, advancedmd.Booking{
 		PatientID:                 prepared.patientID,
 		OfficeID:                  prepared.office.ID,
-		ColumnID:                  prepared.command.ColumnID,
-		ProfileID:                 prepared.command.ProfileID,
+		ColumnID:                  prepared.token.ColumnID,
+		ProfileID:                 prepared.token.ProfileID,
 		Start:                     prepared.start,
-		Duration:                  prepared.command.Duration,
+		Duration:                  prepared.token.Duration,
 		AppointmentTypeID:         prepared.command.AppointmentTypeID,
 		ProviderAppointmentTypeID: prepared.providerAppointmentType,
 		AppointmentColor:          prepared.appointmentColor,
@@ -139,6 +134,7 @@ func (s *service) prepareBooking(ctx context.Context, booking bookingContext) (p
 	}
 	return preparedBooking{
 		command:                 booking.command,
+		token:                   booking.token,
 		office:                  booking.office,
 		patientID:               patientID,
 		start:                   start,
@@ -181,11 +177,6 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 	if token.DOB != "" {
 		command.DOB = token.DOB
 	}
-	command.ColumnID = token.ColumnID
-	command.ProfileID = token.ProfileID
-	command.StartDatetime = token.StartDatetime
-	command.Duration = token.Duration
-	command.Routing = token.Routing
 	booking.token = token
 	booking.office = office
 
@@ -258,10 +249,10 @@ func applyBookingPolicy(booking *bookingContext) (
 
 	policy := newSchedulingPolicy(booking.office)
 	decision, policyErr := policy.PrepareBooking(bookingPolicyRequest{
-		ColumnID:          command.ColumnID,
-		ProfileID:         command.ProfileID,
+		ColumnID:          booking.token.ColumnID,
+		ProfileID:         booking.token.ProfileID,
 		AppointmentTypeID: command.AppointmentTypeID,
-		Routing:           domain.ParseRoutingRule(command.Routing),
+		Routing:           domain.ParseRoutingRule(booking.token.Routing),
 		DOB:               command.DOB,
 		Intent: appointmentIntent{
 			VisitCategory: command.VisitCategory,
@@ -289,7 +280,7 @@ func applyBookingPolicy(booking *bookingContext) (
 		!slices.Contains(booking.token.AppointmentTypeIDs, decision.AppointmentTypeID) {
 		return schedulingPolicy{}, bookingPolicyDecision{}, "", invalidBookingTokenError()
 	}
-	command.Routing = string(decision.Routing)
+	booking.token.Routing = string(decision.Routing)
 	command.AppointmentTypeID = decision.AppointmentTypeID
 	booking.command = command
 	return policy, decision, comments, nil
@@ -307,7 +298,6 @@ func (s *service) revalidateBookingSlot(
 	booking bookingContext,
 	policy schedulingPolicy,
 ) (time.Time, bool, error) {
-	command := booking.command
 	setup, err := s.schedulerSetup(ctx, s.now().UTC())
 	if err != nil {
 		return time.Time{}, false, categorizedError(
@@ -315,7 +305,7 @@ func (s *service) revalidateBookingSlot(
 			"Unable to revalidate the selected provider. Please check availability again.",
 		)
 	}
-	column, ok := currentBookingColumn(setup, booking.office, command)
+	column, ok := currentBookingColumn(setup, booking)
 	if !ok {
 		return time.Time{}, false, categorizedError(
 			CategorySlotUnavailable,
@@ -323,16 +313,16 @@ func (s *service) revalidateBookingSlot(
 		)
 	}
 
-	start, err := time.Parse(domain.SlotDateTimeLayout, command.StartDatetime)
+	start, err := time.Parse(domain.SlotDateTimeLayout, booking.token.StartDatetime)
 	if err != nil {
 		return time.Time{}, false, invalidBookingTokenError()
 	}
-	duration := time.Duration(command.Duration) * time.Minute
+	duration := time.Duration(booking.token.Duration) * time.Minute
 	if !currentColumnSupportsSlot(column, start, duration) {
 		return time.Time{}, false, slotUnavailableError()
 	}
 	read, err := s.records.ReadSchedule(ctx, domain.ScheduleReadQuery{
-		ColumnIDs: []string{strconv.Itoa(command.ColumnID)},
+		ColumnIDs: []string{strconv.Itoa(booking.token.ColumnID)},
 		Date:      start.Format("2006-01-02"),
 	})
 	if err != nil {
@@ -341,7 +331,7 @@ func (s *service) revalidateBookingSlot(
 			"Unable to revalidate the selected slot. Please check availability again.",
 		)
 	}
-	schedule := read.Columns[strconv.Itoa(command.ColumnID)]
+	schedule := read.Columns[strconv.Itoa(booking.token.ColumnID)]
 	if !schedule.Complete() {
 		return time.Time{}, false, categorizedProviderError(
 			CategoryWriteFailed,
@@ -355,7 +345,7 @@ func (s *service) revalidateBookingSlot(
 	}
 
 	booked := countSameStart(start, schedule.Appointments)
-	sameStart := policy.SameStart(strconv.Itoa(command.ColumnID), start, booked)
+	sameStart := policy.SameStart(strconv.Itoa(booking.token.ColumnID), start, booked)
 	if !sameStart.Bookable {
 		return time.Time{}, false, slotUnavailableError()
 	}
@@ -382,7 +372,7 @@ func (s *service) reconcileBooking(ctx context.Context, prepared preparedBooking
 		)
 	}
 
-	provider := prepared.office.Columns[strconv.Itoa(prepared.command.ColumnID)].DisplayName
+	provider := prepared.office.Columns[strconv.Itoa(prepared.token.ColumnID)].DisplayName
 	for _, appointment := range read.Appointments {
 		if appointment.Start.Equal(prepared.start) &&
 			appointment.OfficeID == prepared.office.ID &&
@@ -423,21 +413,20 @@ func slotUnavailableError() error {
 
 func currentBookingColumn(
 	setup *domain.SchedulerSetup,
-	office *domain.OfficeConfig,
-	command BookCommand,
+	booking bookingContext,
 ) (domain.SchedulerColumn, bool) {
 	if setup == nil {
 		return domain.SchedulerColumn{}, false
 	}
-	eligible := newSchedulingPolicy(office).EligibleColumns(
+	eligible := newSchedulingPolicy(booking.office).EligibleColumns(
 		setup.Columns,
-		domain.ParseRoutingRule(command.Routing),
-		command.DOB,
+		domain.ParseRoutingRule(booking.token.Routing),
+		booking.command.DOB,
 	)
 	for _, column := range eligible {
-		if column.ID == strconv.Itoa(command.ColumnID) &&
-			column.ProfileID == strconv.Itoa(command.ProfileID) &&
-			column.FacilityID == office.FacilityID {
+		if column.ID == strconv.Itoa(booking.token.ColumnID) &&
+			column.ProfileID == strconv.Itoa(booking.token.ProfileID) &&
+			column.FacilityID == booking.office.FacilityID {
 			return column, true
 		}
 	}
@@ -456,8 +445,9 @@ func currentColumnSupportsSlot(column domain.SchedulerColumn, start time.Time, d
 	return slotFitsWorkHours(start, duration, workStart, workEnd, interval)
 }
 
-func buildBookReceipt(command BookCommand, office *domain.OfficeConfig, appointmentID int) BookReceipt {
-	column := office.Columns[strconv.Itoa(command.ColumnID)]
+func buildBookReceipt(prepared preparedBooking, appointmentID int) BookReceipt {
+	command, office := prepared.command, prepared.office
+	column := office.Columns[strconv.Itoa(prepared.token.ColumnID)]
 	appointmentTypeName, _ := office.AppointmentTypeName(command.AppointmentTypeID)
 	return BookReceipt{
 		Status:              "booked",
@@ -468,10 +458,10 @@ func buildBookReceipt(command BookCommand, office *domain.OfficeConfig, appointm
 		PatientID:           command.PatientID,
 		PatientName:         normalizePatientName(command.PatientName),
 		ProviderName:        column.DisplayName,
-		ProfileID:           strconv.Itoa(command.ProfileID),
+		ProfileID:           strconv.Itoa(prepared.token.ProfileID),
 		LocationName:        office.DisplayName,
-		StartDatetime:       command.StartDatetime,
-		Duration:            command.Duration,
+		StartDatetime:       prepared.token.StartDatetime,
+		Duration:            prepared.token.Duration,
 		AppointmentTypeID:   command.AppointmentTypeID,
 		AppointmentTypeName: appointmentTypeName,
 		Message:             "Appointment booked successfully",
@@ -479,7 +469,7 @@ func buildBookReceipt(command BookCommand, office *domain.OfficeConfig, appointm
 }
 
 func (s *service) buildBookReceipt(prepared preparedBooking, appointmentID int) BookReceipt {
-	receipt := buildBookReceipt(prepared.command, prepared.office, appointmentID)
+	receipt := buildBookReceipt(prepared, appointmentID)
 	appointment := domain.PatientAppointment{
 		ID: appointmentID, Start: prepared.start,
 		AppointmentTypeID: prepared.command.AppointmentTypeID, OfficeID: prepared.office.ID,
