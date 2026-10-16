@@ -1,10 +1,34 @@
 package insurance
 
 import (
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
 )
+
+func TestRealDataEmbossSpecialtyKeepsPremierCarrier(t *testing.T) {
+	for _, officeID := range []string{"hollywood", "sweetwater", "north_miami_beach_optical", "spring_hill"} {
+		t.Run(officeID, func(t *testing.T) {
+			o := office(t, officeID)
+			want := DecidePlan("premier-eye-care", "routine_vision", o, adultDOB)
+			if want.Outcome != "accepted" || want.CanonicalPlan != "Emboss Specialty" || want.CarrierCode != "PREM1" || want.CarrierID != "car281317" {
+				t.Errorf("renamed plan = %+v", want)
+			}
+			for _, name := range []string{"Emboss Specialty", "Premier Eye Care", "Premier"} {
+				if got := DecideInsurance(name, "routine_vision", o, adultDOB); !reflect.DeepEqual(got, want) {
+					t.Errorf("%q: got %+v, want %+v", name, got, want)
+				}
+			}
+			summaries, _ := ListPlans("routine_vision", o)
+			for _, s := range summaries {
+				if s.CarrierID == "car281317" && s.CarrierName != "EMBOSS SPECIALTY" {
+					t.Errorf("%s: carrier name = %q", s.PlanID, s.CarrierName)
+				}
+			}
+		})
+	}
+}
 
 func TestEveryPlanNameResolvesToItsPlan(t *testing.T) {
 	for _, list := range catalog {
