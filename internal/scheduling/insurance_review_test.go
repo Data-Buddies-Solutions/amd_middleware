@@ -25,7 +25,7 @@ func TestBookingUsesDirectoryRoundTripAndNormalizedMedicalCategory(t *testing.T)
 				t.Fatalf("SignSlotToken error = %v", err)
 			}
 			svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
-			_, err = svc.Book(context.Background(), scheduling.BookCommand{PatientID: "12345", DOB: "01/15/1980", Office: "Hollywood", InsurancePlan: "Aetna Commercial", VisitCategory: category, AppointmentTypeID: 1007, BookingToken: token})
+			_, err = svc.Book(context.Background(), scheduling.BookCommand{PatientID: "12345", DOB: "01/15/1980", Office: "Hollywood", VisitCategory: category, AppointmentTypeID: 1007, BookingToken: token})
 			if err != nil || len(records.Bookings) != 1 {
 				t.Fatalf("confirmed product failed after AMD-shaped read: err=%v writes=%d", err, len(records.Bookings))
 			}

@@ -140,7 +140,7 @@ func TestListSlotsRouteRequiresAuthenticationAndPreservesWindow(t *testing.T) {
 	scheduler := &recordingScheduling{listResponse: schedulingmodule.AvailabilityResponse{Status: "success", Outcome: "no_availability", Slots: []schedulingmodule.AvailabilitySlotOption{}}}
 	router := NewRouter(&Handlers{scheduling: scheduler}, "test-api-secret", nil)
 	for _, authenticated := range []bool{false, true} {
-		request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"startDate":"2026-11-02","rangeDays":14,"office":"Spring Hill","routing":"bach_only","dob":"01/15/1980","preauthRequired":true}`))
+		request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"startDate":"2026-11-02","office":"Spring Hill","routing":"bach_only","dob":"01/15/1980","preauthRequired":true}`))
 		if authenticated {
 			request.Header.Set("Authorization", "test-api-secret")
 		}
@@ -152,7 +152,7 @@ func TestListSlotsRouteRequiresAuthenticationAndPreservesWindow(t *testing.T) {
 			}
 			continue
 		}
-		if response.Code != http.StatusOK || scheduler.listCalls != 1 || scheduler.listCommand.RangeDays != 14 || scheduler.listCommand.StartDate != "2026-11-02" || scheduler.listCommand.DOB != "01/15/1980" || !scheduler.listCommand.PreauthRequired {
+		if response.Code != http.StatusOK || scheduler.listCalls != 1 || scheduler.listCommand.StartDate != "2026-11-02" || scheduler.listCommand.DOB != "01/15/1980" || !scheduler.listCommand.PreauthRequired {
 			t.Fatalf("status=%d command=%#v", response.Code, scheduler.listCommand)
 		}
 	}
@@ -179,9 +179,7 @@ func TestListSlotsErrorsPreserveInventoryContract(t *testing.T) {
 		readFailure         bool
 	}{
 		{name: "invalid JSON", body: `{`, outcome: "invalid_input"},
-		{name: "invalid range", body: `{"office":"Spring Hill","rangeDays":2}`, outcome: "invalid_input"},
 		{name: "provider read", body: `{"office":"Spring Hill","startDate":"2026-06-03"}`, outcome: "availability_search_incomplete", readFailure: true},
-		{name: "coverage mismatch", body: `{"office":"Spring Hill","startDate":"2026-06-03","patientId":"123","dob":"01/15/1980","visitType":"medical","coverageType":"routine_vision"}`, outcome: "invalid_input"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			records := advancedmdtest.NewAdapter()
@@ -202,6 +200,24 @@ func TestListSlotsErrorsPreserveInventoryContract(t *testing.T) {
 			}
 			if len(records.Bookings) != 0 || len(records.Cancellations) != 0 {
 				t.Fatal("unexpected write")
+			}
+		})
+	}
+}
+
+func TestListSlotsRejectsRemovedFieldsBeforeScheduling(t *testing.T) {
+	for _, field := range []string{`"insurancePlan":"ignored"`, `"coverageType":"medical"`, `"rangeDays":14`} {
+		t.Run(field, func(t *testing.T) {
+			scheduler := &recordingScheduling{}
+			handlers := &Handlers{scheduling: scheduler}
+			response := httptest.NewRecorder()
+			handlers.HandleListAppointmentSlots(response, httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"office":"Spring Hill",`+field+`}`)))
+			var got schedulingmodule.AvailabilityResponse
+			if err := json.Unmarshal(response.Body.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			if scheduler.listCalls != 0 || got.Outcome != "invalid_input" || got.Slots == nil {
+				t.Fatalf("obsolete field reached scheduling: calls=%d body=%s", scheduler.listCalls, response.Body.String())
 			}
 		})
 	}

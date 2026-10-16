@@ -176,6 +176,16 @@ routine vision defaults to optical routing. Booking verifies patient identity,
 the signed slot, appointment policy, and live occupancy without re-triaging chart
 insurance. Insurance acceptance remains part of registration and insurance updates.
 
+Slots accept `patientId`, `visitType`, `startDate`, `office`, `dob`, `routing`, and
+`preauthRequired`. Each search covers 14 days; use `startDate` to move the window.
+The removed `insurancePlan`, `coverageType`, and `rangeDays` fields are rejected
+by the strict slots decoder. Deploy the Abita request cleanup (ACU-145) before
+deploying this contract change (ACU-146).
+
+Booking and rescheduling obtain column, profile, start, duration, and routing
+from the verified `bookingToken`. Those fields and `insurancePlan` are no longer
+part of the booking request contract.
+
 `POST /api/scheduler/slots` errors preserve the inventory envelope with `slots: []`.
 `invalid_input` requires corrected input and never retries the same search.
 `availability_search_incomplete` is a read failure, permits one retry, and then

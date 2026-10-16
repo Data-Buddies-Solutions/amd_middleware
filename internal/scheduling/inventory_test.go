@@ -2,7 +2,6 @@ package scheduling_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -12,43 +11,36 @@ import (
 
 func TestListLoadsEveryEligibleSlotAcrossCalendarWindow(t *testing.T) {
 	now := time.Date(2026, 10, 25, 15, 0, 0, 0, time.UTC)
-	for _, days := range []int{0, 14} {
-		t.Run(fmt.Sprint(days), func(t *testing.T) {
-			count := days
-			if count == 0 {
-				count = 14
-			}
-			records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "10:00", 15))
-			first := time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC)
-			for i := 0; i < count; i++ {
-				records.ScheduleReads[first.AddDate(0, 0, i).Format("2006-01-02")] = completeRead("1513", nil, nil)
-			}
-			result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only", RangeDays: days})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if result.Outcome != scheduling.AvailabilityOutcomeFound || len(result.Slots) != count*4 {
-				t.Fatalf("outcome=%s slots=%d want=%d", result.Outcome, len(result.Slots), count*4)
-			}
-			if result.SearchedFrom != "2026-10-26" || result.SearchedThrough != first.AddDate(0, 0, count-1).Format("2006-01-02") {
-				t.Fatalf("wrong coverage: %s..%s", result.SearchedFrom, result.SearchedThrough)
-			}
-			if len(records.ScheduleRangeQueries) != 1 || len(records.ScheduleReadQueries) != 0 {
-				t.Fatalf("range reads=%d day reads=%d, want one range read", len(records.ScheduleRangeQueries), len(records.ScheduleReadQueries))
-			}
-			if query := records.ScheduleRangeQueries[0]; !query.Start.Equal(first) || !query.End.Equal(first.AddDate(0, 0, count-1)) {
-				t.Fatalf("range read %s..%s", query.Start.Format("2006-01-02"), query.End.Format("2006-01-02"))
-			}
-			for i, slot := range result.Slots {
-				if i > 0 && slot.DateTime < result.Slots[i-1].DateTime {
-					t.Fatal("inventory not chronological")
-				}
-				policy, err := scheduling.VerifySlotToken("test-secret", slot.BookingToken, now)
-				if err != nil || policy.StartDatetime != slot.DateTime || policy.ColumnID != 1513 {
-					t.Fatalf("invalid slot authorization: %v", err)
-				}
-			}
-		})
+	const count = 14
+	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "10:00", 15))
+	first := time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC)
+	for i := 0; i < count; i++ {
+		records.ScheduleReads[first.AddDate(0, 0, i).Format("2006-01-02")] = completeRead("1513", nil, nil)
+	}
+	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Outcome != scheduling.AvailabilityOutcomeFound || len(result.Slots) != count*4 {
+		t.Fatalf("outcome=%s slots=%d want=%d", result.Outcome, len(result.Slots), count*4)
+	}
+	if result.SearchedFrom != "2026-10-26" || result.SearchedThrough != first.AddDate(0, 0, count-1).Format("2006-01-02") {
+		t.Fatalf("wrong coverage: %s..%s", result.SearchedFrom, result.SearchedThrough)
+	}
+	if len(records.ScheduleRangeQueries) != 1 || len(records.ScheduleReadQueries) != 0 {
+		t.Fatalf("range reads=%d day reads=%d, want one range read", len(records.ScheduleRangeQueries), len(records.ScheduleReadQueries))
+	}
+	if query := records.ScheduleRangeQueries[0]; !query.Start.Equal(first) || !query.End.Equal(first.AddDate(0, 0, count-1)) {
+		t.Fatalf("range read %s..%s", query.Start.Format("2006-01-02"), query.End.Format("2006-01-02"))
+	}
+	for i, slot := range result.Slots {
+		if i > 0 && slot.DateTime < result.Slots[i-1].DateTime {
+			t.Fatal("inventory not chronological")
+		}
+		policy, err := scheduling.VerifySlotToken("test-secret", slot.BookingToken, now)
+		if err != nil || policy.StartDatetime != slot.DateTime || policy.ColumnID != 1513 {
+			t.Fatalf("invalid slot authorization: %v", err)
+		}
 	}
 }
 
@@ -62,16 +54,6 @@ func TestListIncompleteCalendarCannotClaimCompleteInventory(t *testing.T) {
 	}
 	if result.Outcome != scheduling.AvailabilityOutcomeSearchIncomplete || len(result.Slots) != 0 {
 		t.Fatalf("outcome=%s slots=%d", result.Outcome, len(result.Slots))
-	}
-}
-
-func TestListRejectsUnsupportedRangeBeforeProviderRead(t *testing.T) {
-	for _, days := range []int{-1, 1, 15, 30, 31, 90, 91} {
-		records := recordsWithSetup()
-		_, err := scheduling.New(records, "test-secret", time.Now).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", RangeDays: days})
-		if err == nil || records.SchedulerSetupCalls != 0 {
-			t.Fatalf("range %d: error=%v setup reads=%d", days, err, records.SchedulerSetupCalls)
-		}
 	}
 }
 
