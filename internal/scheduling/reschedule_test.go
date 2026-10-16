@@ -41,7 +41,12 @@ func TestRescheduleOutcomes(t *testing.T) {
 				cancellations = 0
 			case "ambiguous booking success":
 				records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryTimeout)
-				records.AppointmentResults["12345"] = appointmentResult([]domain.PatientAppointment{old, matchingAppointment(98765)}, true)
+				records.AppointmentResultSequence["12345"] = []advancedmdtest.AppointmentResult{
+					appointmentResult([]domain.PatientAppointment{old}, true),
+					appointmentResult([]domain.PatientAppointment{old}, true),
+					appointmentResult([]domain.PatientAppointment{old, matchingAppointment(98765)}, true),
+					appointmentResult([]domain.PatientAppointment{old, matchingAppointment(98765)}, true),
+				}
 			case "ambiguous booking absent":
 				records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryTimeout)
 				expected = "failed"
@@ -100,7 +105,7 @@ type failReconciliation struct {
 
 func (a *failReconciliation) ReadPatientAppointmentsForMonth(ctx context.Context, q advancedmd.AppointmentMonthQuery) (advancedmd.AppointmentRead, error) {
 	a.reads++
-	if a.reads > 1 {
+	if a.reads > 2 {
 		return advancedmd.AppointmentRead{}, advancedmd.NewError(safeerrors.CategoryUnavailable)
 	}
 	return a.Adapter.ReadPatientAppointmentsForMonth(ctx, q)

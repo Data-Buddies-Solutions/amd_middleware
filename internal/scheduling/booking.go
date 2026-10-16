@@ -96,6 +96,10 @@ func (s *service) book(ctx context.Context, booking bookingContext) (BookReceipt
 	if err != nil {
 		return BookReceipt{}, err
 	}
+	baseline, err := s.bookingReconciliationBaseline(ctx, prepared)
+	if err != nil {
+		return BookReceipt{}, err
+	}
 
 	appointmentID, err := s.records.BookAppointment(ctx, advancedmd.Booking{
 		PatientID:                 prepared.patientID,
@@ -114,7 +118,7 @@ func (s *service) book(ctx context.Context, booking bookingContext) (BookReceipt
 		return s.buildBookReceipt(prepared, appointmentID), nil
 	}
 	if advancedmd.IsAmbiguousWrite(err) {
-		return s.reconcileBooking(ctx, prepared)
+		return s.reconcileBooking(ctx, prepared, baseline)
 	}
 
 	return BookReceipt{}, providerWriteError(err, CategorySlotUnavailable,
@@ -122,6 +126,22 @@ func (s *service) book(ctx context.Context, booking bookingContext) (BookReceipt
 		"AdvancedMD rejected the booking. Please check availability again or contact the office.",
 		"Failed to book appointment in AdvancedMD. Please try again or contact the office.",
 	)
+}
+
+func (s *service) bookingReconciliationBaseline(ctx context.Context, prepared preparedBooking) (map[int]struct{}, error) {
+	read, err := s.records.ReadPatientAppointmentsForMonth(ctx, bookingAppointmentMonthQuery(prepared))
+	if err != nil || !read.Complete {
+		return nil, categorizedError(
+			CategoryWriteFailed,
+			"Unable to verify existing appointments before booking. Please try again.",
+		)
+	}
+
+	baseline := make(map[int]struct{}, len(read.Appointments))
+	for _, appointment := range read.Appointments {
+		baseline[appointment.ID] = struct{}{}
+	}
+	return baseline, nil
 }
 
 func (s *service) prepareBooking(ctx context.Context, booking bookingContext) (preparedBooking, error) {
@@ -368,12 +388,16 @@ func (s *service) revalidateBookingSlot(
 	return start, sameStart.RequiresForce, nil
 }
 
-func (s *service) reconcileBooking(ctx context.Context, prepared preparedBooking) (BookReceipt, error) {
-	read, err := s.records.ReadPatientAppointmentsForMonth(ctx, advancedmd.AppointmentMonthQuery{
+func bookingAppointmentMonthQuery(prepared preparedBooking) advancedmd.AppointmentMonthQuery {
+	return advancedmd.AppointmentMonthQuery{
 		PatientID: prepared.command.PatientID,
 		OfficeIDs: domain.AppointmentLookupOfficeIDs(prepared.office),
 		Month:     prepared.start,
-	})
+	}
+}
+
+func (s *service) reconcileBooking(ctx context.Context, prepared preparedBooking, baseline map[int]struct{}) (BookReceipt, error) {
+	read, err := s.records.ReadPatientAppointmentsForMonth(ctx, bookingAppointmentMonthQuery(prepared))
 	if err != nil {
 		log.Printf("booking: reconciliation outcome=indeterminate category=%s", providerCategory(err))
 		return BookReceipt{}, categorizedError(
@@ -384,7 +408,8 @@ func (s *service) reconcileBooking(ctx context.Context, prepared preparedBooking
 
 	provider := prepared.office.Columns[strconv.Itoa(prepared.command.ColumnID)].DisplayName
 	for _, appointment := range read.Appointments {
-		if appointment.Start.Equal(prepared.start) &&
+		_, existed := baseline[appointment.ID]
+		if !existed && appointment.Start.Equal(prepared.start) &&
 			appointment.OfficeID == prepared.office.ID &&
 			appointment.Provider == provider &&
 			appointment.AppointmentTypeID == prepared.command.AppointmentTypeID {

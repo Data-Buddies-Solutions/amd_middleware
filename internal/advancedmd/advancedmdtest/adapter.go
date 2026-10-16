@@ -29,65 +29,67 @@ type CandidateQuery struct {
 }
 
 type Adapter struct {
-	scheduleMu               sync.Mutex
-	CandidateReads           map[string]domain.PatientCandidateRead
-	CandidateReadErrors      map[string]error
-	CandidateQueries         []CandidateQuery
-	PatientSearches          map[domain.PatientSearch][]domain.Patient
-	PatientErrors            map[domain.PatientSearch]error
-	PatientSearchSequence    map[domain.PatientSearch][]PatientSearchStep
-	Demographics             map[string]domain.PatientDemographics
-	DemographicErrors        map[string]error
-	DemographicErrorSequence map[string][]error
-	DemographicsStarted      chan<- struct{}
-	DemographicsRelease      <-chan struct{}
-	AppointmentResults       map[string]AppointmentResult
-	AppointmentsStarted      chan<- struct{}
-	AppointmentsRelease      <-chan struct{}
-	AppointmentQueries       []domain.PatientAppointmentsQuery
-	AppointmentMonthQueries  []advancedmd.AppointmentMonthQuery
-	AppointmentStateResults  map[int]AppointmentStateResult
-	AppointmentStateQueries  []advancedmd.AppointmentStateQuery
-	CreatedPatient           domain.CreatedPatient
-	CreatePatientError       error
-	AddInsuranceError        error
-	EndInsuranceError        error
-	CreatePatientCalls       int
-	SearchPatientCalls       int
-	Insurances               []domain.PatientInsurance
-	InsuranceEnds            []domain.PatientInsuranceEnd
-	AddInsuranceCalls        int
-	DemographicCalls         int
-	AppointmentReadCalls     int
-	EndInsuranceCalls        int
-	SchedulerSetup           domain.SchedulerSetup
-	SchedulerSetupError      error
-	SchedulerSetupCalls      int
-	ScheduleReads            map[string]domain.ScheduleReadResult
-	ScheduleReadErrors       map[string]error
-	ScheduleRangeQueries     []domain.ScheduleRangeQuery
-	ScheduleReadQueries      []domain.ScheduleReadQuery
-	BookAppointmentID        int
-	BookAppointmentErr       error
-	Bookings                 []advancedmd.Booking
-	CancelAppointmentErr     error
-	Cancellations            []advancedmd.Cancellation
+	scheduleMu                sync.Mutex
+	CandidateReads            map[string]domain.PatientCandidateRead
+	CandidateReadErrors       map[string]error
+	CandidateQueries          []CandidateQuery
+	PatientSearches           map[domain.PatientSearch][]domain.Patient
+	PatientErrors             map[domain.PatientSearch]error
+	PatientSearchSequence     map[domain.PatientSearch][]PatientSearchStep
+	Demographics              map[string]domain.PatientDemographics
+	DemographicErrors         map[string]error
+	DemographicErrorSequence  map[string][]error
+	DemographicsStarted       chan<- struct{}
+	DemographicsRelease       <-chan struct{}
+	AppointmentResults        map[string]AppointmentResult
+	AppointmentResultSequence map[string][]AppointmentResult
+	AppointmentsStarted       chan<- struct{}
+	AppointmentsRelease       <-chan struct{}
+	AppointmentQueries        []domain.PatientAppointmentsQuery
+	AppointmentMonthQueries   []advancedmd.AppointmentMonthQuery
+	AppointmentStateResults   map[int]AppointmentStateResult
+	AppointmentStateQueries   []advancedmd.AppointmentStateQuery
+	CreatedPatient            domain.CreatedPatient
+	CreatePatientError        error
+	AddInsuranceError         error
+	EndInsuranceError         error
+	CreatePatientCalls        int
+	SearchPatientCalls        int
+	Insurances                []domain.PatientInsurance
+	InsuranceEnds             []domain.PatientInsuranceEnd
+	AddInsuranceCalls         int
+	DemographicCalls          int
+	AppointmentReadCalls      int
+	EndInsuranceCalls         int
+	SchedulerSetup            domain.SchedulerSetup
+	SchedulerSetupError       error
+	SchedulerSetupCalls       int
+	ScheduleReads             map[string]domain.ScheduleReadResult
+	ScheduleReadErrors        map[string]error
+	ScheduleRangeQueries      []domain.ScheduleRangeQuery
+	ScheduleReadQueries       []domain.ScheduleReadQuery
+	BookAppointmentID         int
+	BookAppointmentErr        error
+	Bookings                  []advancedmd.Booking
+	CancelAppointmentErr      error
+	Cancellations             []advancedmd.Cancellation
 }
 
 func NewAdapter() *Adapter {
 	return &Adapter{
-		CandidateReads:           make(map[string]domain.PatientCandidateRead),
-		CandidateReadErrors:      make(map[string]error),
-		PatientSearches:          make(map[domain.PatientSearch][]domain.Patient),
-		PatientErrors:            make(map[domain.PatientSearch]error),
-		PatientSearchSequence:    make(map[domain.PatientSearch][]PatientSearchStep),
-		Demographics:             make(map[string]domain.PatientDemographics),
-		DemographicErrors:        make(map[string]error),
-		DemographicErrorSequence: make(map[string][]error),
-		AppointmentResults:       make(map[string]AppointmentResult),
-		AppointmentStateResults:  make(map[int]AppointmentStateResult),
-		ScheduleReads:            make(map[string]domain.ScheduleReadResult),
-		ScheduleReadErrors:       make(map[string]error),
+		CandidateReads:            make(map[string]domain.PatientCandidateRead),
+		CandidateReadErrors:       make(map[string]error),
+		PatientSearches:           make(map[domain.PatientSearch][]domain.Patient),
+		PatientErrors:             make(map[domain.PatientSearch]error),
+		PatientSearchSequence:     make(map[domain.PatientSearch][]PatientSearchStep),
+		Demographics:              make(map[string]domain.PatientDemographics),
+		DemographicErrors:         make(map[string]error),
+		DemographicErrorSequence:  make(map[string][]error),
+		AppointmentResults:        make(map[string]AppointmentResult),
+		AppointmentResultSequence: make(map[string][]AppointmentResult),
+		AppointmentStateResults:   make(map[int]AppointmentStateResult),
+		ScheduleReads:             make(map[string]domain.ScheduleReadResult),
+		ScheduleReadErrors:        make(map[string]error),
 	}
 }
 
@@ -142,7 +144,20 @@ func (a *Adapter) ReadPatientAppointmentsForMonth(_ context.Context, query advan
 }
 
 func (a *Adapter) nextAppointmentRead(patientID string) (advancedmd.AppointmentRead, error) {
+	if sequence := a.AppointmentResultSequence[patientID]; len(sequence) > 0 {
+		result := sequence[0]
+		a.AppointmentResultSequence[patientID] = sequence[1:]
+		return cloneAppointmentResult(result)
+	}
 	result, configured := a.AppointmentResults[patientID]
+	read, err := cloneAppointmentResult(result)
+	if !configured {
+		read.Complete = true
+	}
+	return read, err
+}
+
+func cloneAppointmentResult(result AppointmentResult) (advancedmd.AppointmentRead, error) {
 	read := result.Read
 	if read.ProviderReads == 0 {
 		read.ProviderReads = 1
@@ -151,9 +166,6 @@ func (a *Adapter) nextAppointmentRead(patientID string) (advancedmd.AppointmentR
 		return read, result.Err
 	}
 	read.Appointments = append([]domain.PatientAppointment(nil), read.Appointments...)
-	if !configured {
-		read.Complete = true
-	}
 	return read, nil
 }
 

@@ -383,10 +383,10 @@ func TestBookReconcilesAmbiguousWriteToSuccess(t *testing.T) {
 	now := mutationTestNow()
 	records := bookingRecords()
 	records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryNetwork)
-	records.AppointmentResults["12345"] = appointmentResult(
-		[]domain.PatientAppointment{matchingAppointment(98765)},
-		true,
-	)
+	records.AppointmentResultSequence["12345"] = []advancedmdtest.AppointmentResult{
+		appointmentResult(nil, true),
+		appointmentResult([]domain.PatientAppointment{matchingAppointment(98765)}, true),
+	}
 
 	receipt, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Book(context.Background(), signedBookCommand(t, now))
@@ -407,10 +407,10 @@ func TestBookReconcilesAmbiguousWriteInIntendedMonth(t *testing.T) {
 	records := bookingRecords()
 	records.ScheduleReads[start.Format("2006-01-02")] = completeRead("1513", nil, nil)
 	records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryNetwork)
-	records.AppointmentResults["12345"] = appointmentResult(
-		[]domain.PatientAppointment{matchingAppointmentAt(98766, start)},
-		true,
-	)
+	records.AppointmentResultSequence["12345"] = []advancedmdtest.AppointmentResult{
+		appointmentResult(nil, true),
+		appointmentResult([]domain.PatientAppointment{matchingAppointmentAt(98766, start)}, true),
+	}
 
 	receipt, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Book(context.Background(), signedBookCommandAt(t, now, start))
@@ -420,9 +420,46 @@ func TestBookReconcilesAmbiguousWriteInIntendedMonth(t *testing.T) {
 	if receipt.AppointmentID != 98766 {
 		t.Fatalf("receipt = %#v", receipt)
 	}
-	if len(records.AppointmentMonthQueries) != 1 ||
-		!records.AppointmentMonthQueries[0].Month.Equal(start) {
+	if len(records.AppointmentMonthQueries) != 2 ||
+		!records.AppointmentMonthQueries[0].Month.Equal(start) ||
+		!records.AppointmentMonthQueries[1].Month.Equal(start) {
 		t.Fatalf("appointment month queries = %#v, want %v", records.AppointmentMonthQueries, start)
+	}
+}
+
+func TestBookReconciliationDoesNotClaimPreexistingMatchingAppointment(t *testing.T) {
+	now := mutationTestNow()
+	records := bookingRecords()
+	records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryNetwork)
+	records.AppointmentResults["12345"] = appointmentResult(
+		[]domain.PatientAppointment{matchingAppointment(98765)},
+		true,
+	)
+
+	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
+		Book(context.Background(), signedBookCommand(t, now))
+	if scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed {
+		t.Fatalf("Book error = %v, category = %q; want write_failed", err, scheduling.CategoryOf(err))
+	}
+	if len(records.Bookings) != 1 {
+		t.Fatalf("provider bookings = %d, want exactly one", len(records.Bookings))
+	}
+}
+
+func TestBookDoesNotWriteWhenReconciliationBaselineFails(t *testing.T) {
+	now := mutationTestNow()
+	records := bookingRecords()
+	records.AppointmentResults["12345"] = advancedmdtest.AppointmentResult{
+		Err: advancedmd.NewError(safeerrors.CategoryUnavailable),
+	}
+
+	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
+		Book(context.Background(), signedBookCommand(t, now))
+	if scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed {
+		t.Fatalf("Book error = %v, category = %q; want write_failed", err, scheduling.CategoryOf(err))
+	}
+	if len(records.Bookings) != 0 {
+		t.Fatalf("provider bookings = %d, want none", len(records.Bookings))
 	}
 }
 
@@ -430,36 +467,39 @@ func TestBookReconciliationRequiresEveryIntendedField(t *testing.T) {
 	now := mutationTestNow()
 	records := bookingRecords()
 	records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryNetwork)
-	records.AppointmentResults["12345"] = appointmentResult([]domain.PatientAppointment{
-		{
-			ID:                1,
-			Start:             time.Date(2026, 6, 3, 10, 0, 0, 0, time.UTC),
-			Provider:          "Dr. Austin Bach",
-			AppointmentTypeID: 1007,
-			OfficeID:          "spring_hill",
-		},
-		{
-			ID:                2,
-			Start:             time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
-			Provider:          "Dr. Joseph Licht",
-			AppointmentTypeID: 1007,
-			OfficeID:          "spring_hill",
-		},
-		{
-			ID:                3,
-			Start:             time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
-			Provider:          "Dr. Austin Bach",
-			AppointmentTypeID: 1006,
-			OfficeID:          "spring_hill",
-		},
-		{
-			ID:                4,
-			Start:             time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
-			Provider:          "Dr. Austin Bach",
-			AppointmentTypeID: 1007,
-			OfficeID:          "crystal_river",
-		},
-	}, true)
+	records.AppointmentResultSequence["12345"] = []advancedmdtest.AppointmentResult{
+		appointmentResult(nil, true),
+		appointmentResult([]domain.PatientAppointment{
+			{
+				ID:                1,
+				Start:             time.Date(2026, 6, 3, 10, 0, 0, 0, time.UTC),
+				Provider:          "Dr. Austin Bach",
+				AppointmentTypeID: 1007,
+				OfficeID:          "spring_hill",
+			},
+			{
+				ID:                2,
+				Start:             time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
+				Provider:          "Dr. Joseph Licht",
+				AppointmentTypeID: 1007,
+				OfficeID:          "spring_hill",
+			},
+			{
+				ID:                3,
+				Start:             time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
+				Provider:          "Dr. Austin Bach",
+				AppointmentTypeID: 1006,
+				OfficeID:          "spring_hill",
+			},
+			{
+				ID:                4,
+				Start:             time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
+				Provider:          "Dr. Austin Bach",
+				AppointmentTypeID: 1007,
+				OfficeID:          "crystal_river",
+			},
+		}, true),
+	}
 
 	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Book(context.Background(), signedBookCommand(t, now))
@@ -475,8 +515,9 @@ func TestBookReturnsIndeterminateWhenReconciliationCannotProveOutcome(t *testing
 	now := mutationTestNow()
 	records := bookingRecords()
 	records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryTimeout)
-	records.AppointmentResults["12345"] = advancedmdtest.AppointmentResult{
-		Err: advancedmd.NewError(safeerrors.CategoryUnavailable),
+	records.AppointmentResultSequence["12345"] = []advancedmdtest.AppointmentResult{
+		appointmentResult(nil, true),
+		{Err: advancedmd.NewError(safeerrors.CategoryUnavailable)},
 	}
 
 	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
@@ -493,7 +534,10 @@ func TestBookReturnsIndeterminateWhenReconciliationReadIsIncomplete(t *testing.T
 	now := mutationTestNow()
 	records := bookingRecords()
 	records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryTimeout)
-	records.AppointmentResults["12345"] = appointmentResult(nil, false)
+	records.AppointmentResultSequence["12345"] = []advancedmdtest.AppointmentResult{
+		appointmentResult(nil, true),
+		appointmentResult(nil, false),
+	}
 
 	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Book(context.Background(), signedBookCommand(t, now))
