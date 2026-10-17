@@ -136,41 +136,20 @@ type cancelAppointmentRequest struct {
 	PatientID         string `json:"patientId,omitempty"`
 	Office            string `json:"office,omitempty"`
 	CancellationToken string `json:"cancellationToken,omitempty"`
-
-	cancellationTokenProvided bool
-}
-
-func (r *cancelAppointmentRequest) UnmarshalJSON(data []byte) error {
-	type request cancelAppointmentRequest
-	var decoded request
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		return err
-	}
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(data, &fields); err != nil {
-		return err
-	}
-	*r = cancelAppointmentRequest(decoded)
-	_, r.cancellationTokenProvided = fields["cancellationToken"]
-	return nil
 }
 
 func (r cancelAppointmentRequest) command() schedulingmodule.CancelCommand {
-	var cancellationToken *string
-	if r.cancellationTokenProvided {
-		cancellationToken = &r.CancellationToken
-	}
 	return schedulingmodule.CancelCommand{
 		AppointmentID:     r.AppointmentID,
 		PatientID:         r.PatientID,
 		Office:            r.Office,
-		CancellationToken: cancellationToken,
+		CancellationToken: r.CancellationToken,
 	}
 }
 
 func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Request) {
 	var req cancelAppointmentRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := decodeStrict(r, &req); err != nil {
 		rejectInvalidRequest(w, r, schedulingmodule.CancelReceipt{
 			Status:  "error",
 			Message: "Invalid JSON body",

@@ -48,7 +48,6 @@ type requestLogState struct {
 }
 
 type cancellationLogEntry struct {
-	Path              string `json:"path"`
 	Outcome           string `json:"outcome"`
 	ScheduleReads     int    `json:"schedule_reads"`
 	ProviderMutations int    `json:"provider_mutations"`
@@ -198,7 +197,6 @@ func recordCancellationObservation(
 		return
 	}
 	state.cancellation = &cancellationLogEntry{
-		Path:              observation.Path,
 		Outcome:           observation.Outcome,
 		ScheduleReads:     observation.ScheduleReads,
 		ProviderMutations: observation.ProviderMutations,

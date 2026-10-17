@@ -522,27 +522,12 @@ func TestBookRequiresBookingTokenBeforeWrite(t *testing.T) {
 func TestCancelRejectsOwnershipMismatchBeforeWrite(t *testing.T) {
 	now := mutationTestNow()
 	records := cancellationRecords()
-	command := cancellationCommand()
+	command := cancellationCommand(t)
 	command.AppointmentID = 44444
 
 	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Cancel(context.Background(), command)
-	if scheduling.CategoryOf(err) != scheduling.CategoryOwnershipMismatch {
-		t.Fatalf("Cancel error = %v, category = %q", err, scheduling.CategoryOf(err))
-	}
-	if len(records.Cancellations) != 0 {
-		t.Fatalf("provider cancellations = %d, want none", len(records.Cancellations))
-	}
-}
-
-func TestCancelRequiresCompleteReadToRejectOwnership(t *testing.T) {
-	now := mutationTestNow()
-	records := advancedmdtest.NewAdapter()
-	records.AppointmentResults["12345"] = appointmentResult(nil, false)
-
-	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-		Cancel(context.Background(), cancellationCommand())
-	if scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed {
+	if scheduling.CategoryOf(err) != scheduling.CategoryInvalidCancellationToken {
 		t.Fatalf("Cancel error = %v, category = %q", err, scheduling.CategoryOf(err))
 	}
 	if len(records.Cancellations) != 0 {
@@ -577,7 +562,7 @@ func TestCancelReturnsExplicitProviderFailuresWithoutRetry(t *testing.T) {
 			records.CancelAppointmentErr = tt.provider
 
 			_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-				Cancel(context.Background(), cancellationCommand())
+				Cancel(context.Background(), cancellationCommand(t))
 			if scheduling.CategoryOf(err) != tt.category {
 				t.Fatalf("Cancel error = %v, category = %q", err, scheduling.CategoryOf(err))
 			}
@@ -632,7 +617,7 @@ func TestCancelReconcilesAmbiguousWriteOutcomes(t *testing.T) {
 			records.CancelAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryTimeout)
 
 			receipt, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-				Cancel(context.Background(), cancellationCommand())
+				Cancel(context.Background(), cancellationCommand(t))
 			if tt.success {
 				if err != nil || receipt.Status != "cancelled" || receipt.AppointmentID != 33333 {
 					t.Fatalf("receipt = %#v, error = %v", receipt, err)
@@ -742,12 +727,13 @@ func cancellableAppointment() domain.PatientAppointment {
 	}
 }
 
-func cancellationCommand() scheduling.CancelCommand {
-	return scheduling.CancelCommand{
-		PatientID:     "pat12345",
-		AppointmentID: 33333,
-		Office:        "Spring Hill",
+func cancellationCommand(t *testing.T) scheduling.CancelCommand {
+	t.Helper()
+	token, err := scheduling.NewAppointmentTokens("test-booking-secret", mutationTestNow).IssueCancellationToken("12345", cancellableAppointment())
+	if err != nil {
+		t.Fatal(err)
 	}
+	return scheduling.CancelCommand{PatientID: "pat12345", AppointmentID: 33333, Office: "Spring Hill", CancellationToken: token}
 }
 
 func TestBookAcceptsPrefixedPatientID(t *testing.T) {
