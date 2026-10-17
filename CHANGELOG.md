@@ -4,6 +4,17 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v7.0.0...v8.0.0) (2026-10-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **scheduling:** require cancellation tokens ([#262](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/262))
+
+### Code Refactoring
+
+* **scheduling:** require cancellation tokens ([#262](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/262)) ([b4e05c6](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/b4e05c6940bb8bbdfbfc6734af5c1a8739385215))
+
 ## [7.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v6.3.1...v7.0.0) (2026-10-16)
 
 
