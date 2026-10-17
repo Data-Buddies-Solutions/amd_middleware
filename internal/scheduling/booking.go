@@ -28,10 +28,7 @@ type BookCommand struct {
 	AppointmentTypeID int    `json:"appointmentTypeId"`
 	Office            string `json:"office,omitempty"`
 	VisitCategory     string `json:"visitCategory,omitempty"`
-	VisitKind         string `json:"visitKind,omitempty"`
 	PatientStatus     string `json:"patientStatus,omitempty"`
-	AgeBand           string `json:"ageBand,omitempty"`
-	IsPostOp          bool   `json:"isPostOp,omitempty"`
 	VisitReason       string `json:"visitReason,omitempty"`
 	AppointmentReason string `json:"appointmentReason,omitempty"`
 	ReferringDoctor   string `json:"referringDoctor,omitempty"`
@@ -199,6 +196,12 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 	if err := domain.ValidateOptionalDOB(command.DOB); err != nil {
 		return bookingContext{}, schedulingError(err.Error())
 	}
+	if (command.VisitCategory != "" || command.AppointmentTypeID == 0) && command.VisitCategory != domain.AppointmentVisitMedical && command.VisitCategory != domain.AppointmentVisitRoutineVision {
+		return bookingContext{}, schedulingError("visitCategory must be medical or routine_vision")
+	}
+	if (command.PatientStatus != "" || command.AppointmentTypeID == 0) && command.PatientStatus != domain.AppointmentPatientNew && command.PatientStatus != domain.AppointmentPatientEstablished {
+		return bookingContext{}, schedulingError("patientStatus must be new or established")
+	}
 	return booking, nil
 }
 
@@ -256,11 +259,8 @@ func applyBookingPolicy(booking *bookingContext) (
 		DOB:               command.DOB,
 		Intent: appointmentIntent{
 			VisitCategory: command.VisitCategory,
-			VisitKind:     command.VisitKind,
 			PatientStatus: command.PatientStatus,
-			AgeBand:       command.AgeBand,
 			DOB:           command.DOB,
-			IsPostOp:      command.IsPostOp,
 			VisitReason:   command.VisitReason,
 		},
 		PreservedAppointmentTypeID: booking.preservedAppointmentType,

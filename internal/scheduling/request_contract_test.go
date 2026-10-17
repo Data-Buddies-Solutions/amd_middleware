@@ -12,7 +12,7 @@ import (
 )
 
 func TestBookingRequestDoesNotDecodeServerOwnedFields(t *testing.T) {
-	for _, field := range []string{`"insurancePlan":"ignored"`, `"columnId":999`, `"profileId":999`, `"startDatetime":"2026-06-03T10:00"`, `"duration":60`, `"routing":"optical_only"`} {
+	for _, field := range []string{`"visitKind":"post_op"`, `"ageBand":"adult"`, `"isPostOp":true`, `"insurancePlan":"ignored"`, `"columnId":999`, `"profileId":999`, `"startDatetime":"2026-06-03T10:00"`, `"duration":60`, `"routing":"optical_only"`} {
 		t.Run(field, func(t *testing.T) {
 			decoder := json.NewDecoder(strings.NewReader("{" + field + "}"))
 			decoder.DisallowUnknownFields()
@@ -56,5 +56,88 @@ func TestBookingAndRescheduleUseSignedSlotFields(t *testing.T) {
 				t.Fatalf("receipt changed: %+v", receipt)
 			}
 		})
+	}
+}
+
+func TestBookRejectsUnknownIntentBeforeProviderCall(t *testing.T) {
+	for _, field := range []string{"visitCategory", "patientStatus"} {
+		values := []string{"", "unknown", "Medical", " medical ", "medical visit", "follow up", "optical", "routine vision", "created", "matched", "new patient", "Established"}
+		for _, value := range values {
+			t.Run(field+"/"+value, func(t *testing.T) {
+				command := signedBookCommand(t, mutationTestNow())
+				command.AppointmentTypeID = 0
+				command.VisitCategory = "medical"
+				command.PatientStatus = "established"
+				if field == "visitCategory" {
+					command.VisitCategory = value
+				} else {
+					command.PatientStatus = value
+				}
+				_, err := scheduling.New(nil, "test-booking-secret", mutationTestNow).Book(context.Background(), command)
+				if scheduling.CategoryOf(err) != scheduling.CategoryValidation || !strings.Contains(err.Error(), field) {
+					t.Fatalf("error=%v category=%s, want validation naming %s", err, scheduling.CategoryOf(err), field)
+				}
+			})
+		}
+	}
+}
+
+func TestBookAllowsOmittedIntentWithExplicitOrPreservedType(t *testing.T) {
+	for _, mode := range []string{"explicit", "preserved_on_book", "reschedule"} {
+		t.Run(mode, func(t *testing.T) {
+			records, command, _ := rescheduleFixture(t)
+			command.VisitCategory = ""
+			command.PatientStatus = ""
+			if mode == "explicit" {
+				command.RescheduleToken = ""
+			} else {
+				command.AppointmentTypeID = 0
+			}
+			svc := scheduling.New(records, "test-booking-secret", mutationTestNow)
+			if mode == "reschedule" {
+				result, err := svc.Reschedule(context.Background(), command)
+				if err != nil || result.Status != "completed" {
+					t.Fatalf("reschedule=%+v error=%v", result, err)
+				}
+			} else {
+				_, err := svc.Book(context.Background(), command)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			if len(records.Bookings) != 1 || records.Bookings[0].AppointmentTypeID != 1007 {
+				t.Fatalf("bookings=%+v", records.Bookings)
+			}
+		})
+	}
+}
+
+func TestBookRejectsUnknownIntentEvenWithExplicitOrPreservedType(t *testing.T) {
+	for _, mode := range []string{"explicit", "preserved_on_book", "reschedule"} {
+		for _, field := range []string{"visitCategory", "patientStatus"} {
+			t.Run(mode+"/"+field, func(t *testing.T) {
+				_, command, _ := rescheduleFixture(t)
+				if mode == "explicit" {
+					command.RescheduleToken = ""
+				} else {
+					command.AppointmentTypeID = 0
+				}
+				if field == "visitCategory" {
+					command.VisitCategory = "unknown"
+				} else {
+					command.PatientStatus = "unknown"
+				}
+				svc := scheduling.New(nil, "test-booking-secret", mutationTestNow)
+				var err error
+				if mode == "reschedule" {
+					_, err = svc.Reschedule(context.Background(), command)
+				} else {
+					_, err = svc.Book(context.Background(), command)
+				}
+				if scheduling.CategoryOf(err) != scheduling.CategoryValidation || !strings.Contains(err.Error(), field) {
+					t.Fatalf("error=%v, want validation naming %s", err, field)
+				}
+			})
+		}
 	}
 }

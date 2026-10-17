@@ -54,7 +54,7 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitMedical,
 				PatientStatus: domain.AppointmentPatientEstablished,
-				AgeBand:       domain.AppointmentAgeAdult,
+				DOB:           "01/01/1980",
 			},
 			wantID: 1007,
 		},
@@ -63,9 +63,9 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			office:  springHill,
 			routing: domain.RoutingBachOnly,
 			intent: appointmentIntent{
+				DOB:           "01/01/2015",
 				VisitCategory: domain.AppointmentVisitMedical,
 				PatientStatus: domain.AppointmentPatientEstablished,
-				AgeBand:       domain.AppointmentAgePediatric,
 			},
 			wantID: 1005,
 		},
@@ -74,7 +74,7 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			office:  springHill,
 			routing: domain.RoutingBachOnly,
 			intent: appointmentIntent{
-				VisitKind:     domain.AppointmentVisitPostOp,
+				VisitReason:   "post-op",
 				PatientStatus: domain.AppointmentPatientEstablished,
 				DOB:           "01/01/1980",
 			},
@@ -98,7 +98,7 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitRoutineVision,
 				PatientStatus: domain.AppointmentPatientNew,
-				AgeBand:       domain.AppointmentAgeAdult,
+				DOB:           "01/01/1980",
 			},
 			wantID: 1010,
 		},
@@ -109,7 +109,7 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitRoutineVision,
 				PatientStatus: domain.AppointmentPatientEstablished,
-				AgeBand:       domain.AppointmentAgeAdult,
+				DOB:           "01/01/1980",
 			},
 			wantID: 3364,
 		},
@@ -120,7 +120,6 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitRoutineVision,
 				PatientStatus: domain.AppointmentPatientNew,
-				AgeBand:       domain.AppointmentAgePediatric,
 				DOB:           "01/01/2018",
 			},
 			wantID: 4244,
@@ -132,7 +131,6 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitRoutineVision,
 				PatientStatus: domain.AppointmentPatientEstablished,
-				AgeBand:       domain.AppointmentAgePediatric,
 				DOB:           "01/01/2018",
 			},
 			wantID: 4245,
@@ -162,16 +160,17 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			office:  crystalRiver,
 			routing: domain.RoutingAll,
 			intent: appointmentIntent{
-				VisitKind:     domain.AppointmentVisitPostOp,
+				VisitReason:   "post-op",
 				PatientStatus: domain.AppointmentPatientEstablished,
 			},
 			wantID: 6168,
 		},
 		{
-			name:    "routine vision defaults from optical routing",
+			name:    "routine vision with optical routing",
 			office:  springHill,
 			routing: domain.RoutingOpticalOnly,
 			intent: appointmentIntent{
+				VisitCategory: domain.AppointmentVisitRoutineVision,
 				PatientStatus: domain.AppointmentPatientEstablished,
 				DOB:           "01/01/1980",
 			},
@@ -184,7 +183,7 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitRoutineVision,
 				PatientStatus: domain.AppointmentPatientEstablished,
-				AgeBand:       domain.AppointmentAgeAdult,
+				DOB:           "01/01/1980",
 			},
 			wantID: 3364,
 		},
@@ -204,7 +203,7 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitMedical,
 				PatientStatus: domain.AppointmentPatientEstablished,
-				AgeBand:       domain.AppointmentAgeAdult,
+				DOB:           "01/01/1980",
 			},
 			missing: []string{"routing"},
 		},
@@ -215,7 +214,7 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitRoutineVision,
 				PatientStatus: domain.AppointmentPatientEstablished,
-				AgeBand:       domain.AppointmentAgeAdult,
+				DOB:           "01/01/1980",
 			},
 			missing: []string{"routeToSpringHill"},
 		},
@@ -241,7 +240,6 @@ func TestResolveAppointmentTypeForIntent_SpringHillUnderSevenRoutineVision(t *te
 	got := resolveAppointmentTypeForIntent(domain.DefaultOffice(), domain.RoutingOpticalOnly, appointmentIntent{
 		VisitCategory: domain.AppointmentVisitRoutineVision,
 		PatientStatus: domain.AppointmentPatientNew,
-		AgeBand:       domain.AppointmentAgePediatric,
 		DOB:           "01/01/2021",
 	})
 
