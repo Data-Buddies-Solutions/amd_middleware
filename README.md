@@ -331,17 +331,16 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/appointment/reschedule` | Book a replacement, then cancel the confirmed original | `scheduling.Reschedule` |
 
 Each appointment returned by patient resolution may include a private,
-short-lived `cancellationToken`. A cancellation request may send that token
-with the legacy patient, appointment, and office fields; supplied legacy fields
-must match the signed context. A valid token cancels without appointment
-rediscovery. A supplied invalid token returns `invalid_cancellation_token`
-without falling back or mutating the provider. Requests without the field keep
-the legacy ownership-read path during the mixed-version rollout. The token is
+short-lived `cancellationToken`. Cancellation requires that token; a missing
+or empty token returns a validation error without provider calls. Optional
+patient, appointment, and office fields must match the signed context. A valid
+token cancels without appointment rediscovery. An invalid token returns
+`invalid_cancellation_token` without mutating the provider. The token is
 an agent-to-middleware value and must not enter model prompts, speech, logs, or
 analytics.
 
 The structured request log adds a PHI-free `cancellation` object for this route
-with path, semantic outcome, actual provider schedule-read count, cancellation
+with semantic outcome, actual provider schedule-read count, cancellation
 mutation count, and duration.
 
 Operational routes have separate contracts:
