@@ -9,11 +9,8 @@ import (
 
 type appointmentIntent struct {
 	VisitCategory string
-	VisitKind     string
 	PatientStatus string
-	AgeBand       string
 	DOB           string
-	IsPostOp      bool
 	VisitReason   string
 }
 
@@ -29,11 +26,10 @@ func resolveAppointmentTypeForIntent(office *domain.OfficeConfig, routing domain
 		return unresolvedAppointmentType([]string{"office"}, "Office is required to resolve appointment type.")
 	}
 
-	visitKind := normalizeAppointmentVisitKind(intent.VisitKind)
-	postOp := intent.IsPostOp || visitKind == domain.AppointmentVisitPostOp || appointmentReasonLooksPostOp(intent.VisitReason)
-	category := normalizeAppointmentVisitCategory(intent.VisitCategory, visitKind, routing)
-	status := normalizeAppointmentPatientStatus(intent.PatientStatus)
-	ageBand := normalizeAppointmentAgeBand(intent.AgeBand, intent.DOB)
+	postOp := appointmentReasonLooksPostOp(intent.VisitReason)
+	category := intent.VisitCategory
+	status := intent.PatientStatus
+	ageBand := appointmentAgeBand(intent.DOB)
 
 	if postOp {
 		if routing == domain.RoutingOpticalOnly {
@@ -162,57 +158,7 @@ func appointmentTypeMissingFactsMessage(missing []string) string {
 	}
 }
 
-func normalizeAppointmentVisitCategory(category, visitKind string, routing domain.RoutingRule) string {
-	kind := normalizeAppointmentVisitKind(visitKind)
-	if kind == domain.AppointmentVisitRoutineVision {
-		return domain.AppointmentVisitRoutineVision
-	}
-
-	switch normalizeAppointmentToken(category) {
-	case "routine vision", "routine eye exam", "vision", "optical", "optical only":
-		return domain.AppointmentVisitRoutineVision
-	case "medical", "medical visit", "follow up", "followup":
-		return domain.AppointmentVisitMedical
-	}
-
-	if routing == domain.RoutingOpticalOnly {
-		return domain.AppointmentVisitRoutineVision
-	}
-	return domain.AppointmentVisitMedical
-}
-
-func normalizeAppointmentVisitKind(kind string) string {
-	switch normalizeAppointmentToken(kind) {
-	case "post op", "postop", "post operative", "postoperative":
-		return domain.AppointmentVisitPostOp
-	case "routine vision", "routine eye exam", "vision", "optical", "optical only":
-		return domain.AppointmentVisitRoutineVision
-	case "medical", "medical visit", "follow up", "followup":
-		return domain.AppointmentVisitMedical
-	default:
-		return ""
-	}
-}
-
-func normalizeAppointmentPatientStatus(status string) string {
-	switch normalizeAppointmentToken(status) {
-	case "new", "created", "new patient":
-		return domain.AppointmentPatientNew
-	case "established", "existing", "current", "current patient", "matched", "verified":
-		return domain.AppointmentPatientEstablished
-	default:
-		return ""
-	}
-}
-
-func normalizeAppointmentAgeBand(ageBand, dob string) string {
-	switch normalizeAppointmentToken(ageBand) {
-	case "adult":
-		return domain.AppointmentAgeAdult
-	case "pediatric", "paediatric", "minor", "child":
-		return domain.AppointmentAgePediatric
-	}
-
+func appointmentAgeBand(dob string) string {
 	if age, ok := domain.AgeYears(dob); ok {
 		if age < 18 {
 			return domain.AppointmentAgePediatric
