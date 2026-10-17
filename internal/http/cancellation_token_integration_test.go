@@ -203,7 +203,7 @@ func TestPresentEmptyCancellationTokenDoesNotFallBackToRediscovery(t *testing.T)
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 		t.Fatalf("decode cancellation: %v", err)
 	}
-	if response.Status != "error" || response.Outcome != string(scheduling.CategoryInvalidCancellationToken) {
+	if response.Status != "error" || response.Message != "cancellationToken is required" {
 		t.Fatalf("cancellation response = %#v", response)
 	}
 	if records.appointmentReads != 0 {
@@ -384,7 +384,6 @@ func TestCancellationTelemetryReportsOperationBudgetWithoutSensitiveValues(t *te
 
 	var entry struct {
 		Cancellation struct {
-			Path              string `json:"path"`
 			Outcome           string `json:"outcome"`
 			ScheduleReads     int    `json:"schedule_reads"`
 			ProviderMutations int    `json:"provider_mutations"`
@@ -394,8 +393,7 @@ func TestCancellationTelemetryReportsOperationBudgetWithoutSensitiveValues(t *te
 	if err := json.Unmarshal(bytes.TrimSpace(logs.Bytes()), &entry); err != nil {
 		t.Fatalf("decode cancellation telemetry %q: %v", logs.String(), err)
 	}
-	if entry.Cancellation.Path != "token" ||
-		entry.Cancellation.Outcome != "invalid_cancellation_token" ||
+	if entry.Cancellation.Outcome != "invalid_cancellation_token" ||
 		entry.Cancellation.ScheduleReads != 0 ||
 		entry.Cancellation.ProviderMutations != 0 ||
 		entry.Cancellation.DurationMS < 0 {
@@ -409,62 +407,7 @@ func TestCancellationTelemetryReportsOperationBudgetWithoutSensitiveValues(t *te
 	}
 }
 
-func TestLegacyCancellationTelemetryReportsProviderReadCount(t *testing.T) {
-	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	records := newCancellationTokenRecords()
-	records.AppointmentResults["12345"] = advancedmdtest.AppointmentResult{
-		Read: advancedmd.AppointmentRead{
-			Appointments: []domain.PatientAppointment{{
-				ID:       33333,
-				Start:    time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
-				OfficeID: "spring_hill",
-				Office:   "Spring Hill",
-			}},
-			Complete:      true,
-			ProviderReads: 12,
-		},
-	}
-	handlers := NewHandlers(
-		nil,
-		patient.New(records, testAppointmentTokens),
-		scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
-	)
-	router := NewRouter(handlers, "agent-secret", nil)
-	var logs bytes.Buffer
-	previousOutput := log.Writer()
-	log.SetOutput(&logs)
-	defer log.SetOutput(previousOutput)
-
-	recorder := postAuthenticatedJSON(t, router, "/api/appointment/cancel", map[string]any{
-		"patientId":     "12345",
-		"appointmentId": 33333,
-		"office":        "Spring Hill",
-	})
-	var response scheduling.CancelReceipt
-	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
-		t.Fatalf("decode cancellation: %v", err)
-	}
-	if response.Status != "cancelled" {
-		t.Fatalf("cancellation response = %#v", response)
-	}
-	var entry struct {
-		Cancellation struct {
-			Path              string `json:"path"`
-			ScheduleReads     int    `json:"schedule_reads"`
-			ProviderMutations int    `json:"provider_mutations"`
-		} `json:"cancellation"`
-	}
-	if err := json.Unmarshal(bytes.TrimSpace(logs.Bytes()), &entry); err != nil {
-		t.Fatalf("decode cancellation telemetry %q: %v", logs.String(), err)
-	}
-	if entry.Cancellation.Path != "legacy" ||
-		entry.Cancellation.ScheduleReads != 12 ||
-		entry.Cancellation.ProviderMutations != 1 {
-		t.Fatalf("cancellation telemetry = %#v", entry.Cancellation)
-	}
-}
-
-func TestCancellationHTTPContractSupportsTokenOnlyAndTokenlessLegacyRequests(t *testing.T) {
+func TestCancellationHTTPContractSupportsTokenOnlyRequests(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	appointment := domain.PatientAppointment{
 		ID:       33333,
@@ -496,35 +439,6 @@ func TestCancellationHTTPContractSupportsTokenOnlyAndTokenlessLegacyRequests(t *
 		}
 	})
 
-	t.Run("tokenless legacy", func(t *testing.T) {
-		records := newCancellationTokenRecords()
-		records.AppointmentResults["12345"] = advancedmdtest.AppointmentResult{
-			Read: advancedmd.AppointmentRead{
-				Appointments: []domain.PatientAppointment{appointment},
-				Complete:     true,
-			},
-		}
-		handlers := NewHandlers(
-			nil,
-			patient.New(records, testAppointmentTokens),
-			scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }),
-		)
-		recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{
-			"patientId":     "12345",
-			"appointmentId": 33333,
-			"office":        "Spring Hill",
-		})
-		var response scheduling.CancelReceipt
-		if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
-			t.Fatalf("decode cancellation: %v", err)
-		}
-		if response.Status != "cancelled" || response.AppointmentID != 33333 {
-			t.Fatalf("cancellation response = %#v", response)
-		}
-		if records.appointmentReads != 1 || len(records.Cancellations) != 1 {
-			t.Fatalf("provider operations = reads %d, cancellations %#v", records.appointmentReads, records.Cancellations)
-		}
-	})
 }
 
 func TestTokenCancellationPreservesAmbiguousWriteReconciliation(t *testing.T) {
@@ -637,4 +551,39 @@ func postAuthenticatedJSON(
 	recorder := httptest.NewRecorder()
 	handler.ServeHTTP(recorder, request)
 	return recorder
+}
+
+func TestCancellationRequiresTokenBeforeProviderCalls(t *testing.T) {
+	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	records := newCancellationTokenRecords()
+	handlers := NewHandlers(nil, patient.New(records, testAppointmentTokens), scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }))
+	recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{"patientId": "12345", "appointmentId": 33333, "office": "Spring Hill"})
+	var response scheduling.CancelReceipt
+	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Status != "error" || response.Message != "cancellationToken is required" {
+		t.Errorf("response = %#v, want token-required validation error", response)
+	}
+	if records.appointmentReads != 0 || len(records.Cancellations) != 0 || len(records.AppointmentStateQueries) != 0 {
+		t.Fatalf("provider calls: reads %d, cancellations %d, state reads %d", records.appointmentReads, len(records.Cancellations), len(records.AppointmentStateQueries))
+	}
+}
+
+func TestCancellationRejectsUnknownFieldsBeforeProviderCalls(t *testing.T) {
+	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	records := newCancellationTokenRecords()
+	token := issueCancellationToken(t, "test-scheduling-secret", now, "12345", domain.PatientAppointment{ID: 33333, Start: now.Add(time.Hour), OfficeID: "spring_hill"})
+	handlers := NewHandlers(nil, nil, scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }))
+	recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{"cancellationToken": token, "unexpected": true})
+	var response scheduling.CancelReceipt
+	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Status != "error" || response.Message != "Invalid JSON body" {
+		t.Fatalf("response = %#v", response)
+	}
+	if records.appointmentReads != 0 || len(records.Cancellations) != 0 || len(records.AppointmentStateQueries) != 0 {
+		t.Fatal("unexpected provider call")
+	}
 }

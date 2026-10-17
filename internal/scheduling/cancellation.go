@@ -3,7 +3,6 @@ package scheduling
 import (
 	"context"
 	"log"
-	"strconv"
 	"time"
 
 	"advancedmd-token-management/internal/advancedmd"
@@ -14,7 +13,7 @@ type CancelCommand struct {
 	AppointmentID     int
 	PatientID         string
 	Office            string
-	CancellationToken *string
+	CancellationToken string
 }
 
 type CancelReceipt struct {
@@ -25,14 +24,12 @@ type CancelReceipt struct {
 }
 
 type cancellationTelemetry struct {
-	path              string
 	scheduleReads     int
 	providerMutations int
 	startedAt         time.Time
 }
 
 type CancellationObservation struct {
-	Path              string
 	Outcome           string
 	ScheduleReads     int
 	ProviderMutations int
@@ -58,7 +55,6 @@ func (t cancellationTelemetry) record(ctx context.Context, err error) {
 		outcome = string(CategoryOf(err))
 	}
 	observer(CancellationObservation{
-		Path:              t.path,
 		Outcome:           outcome,
 		ScheduleReads:     t.scheduleReads,
 		ProviderMutations: t.providerMutations,
@@ -67,69 +63,12 @@ func (t cancellationTelemetry) record(ctx context.Context, err error) {
 }
 
 func (s *service) Cancel(ctx context.Context, command CancelCommand) (receipt CancelReceipt, err error) {
-	tokenProvided := command.CancellationToken != nil
-	telemetry := cancellationTelemetry{path: "legacy", startedAt: time.Now()}
-	if tokenProvided {
-		telemetry.path = "token"
+	telemetry := cancellationTelemetry{startedAt: time.Now()}
+	defer func() { telemetry.record(ctx, err) }()
+	if command.CancellationToken == "" {
+		return CancelReceipt{}, schedulingError("cancellationToken is required")
 	}
-	defer func() {
-		telemetry.record(ctx, err)
-	}()
-
-	if tokenProvided {
-		return s.cancelWithToken(ctx, command, &telemetry)
-	}
-	if command.AppointmentID == 0 {
-		return CancelReceipt{}, schedulingError("appointmentId is required")
-	}
-	command.PatientID = domain.StripPatientPrefix(command.PatientID)
-	if command.PatientID == "" {
-		return CancelReceipt{}, schedulingError("patientId is required")
-	}
-	if _, err := strconv.Atoi(command.PatientID); err != nil {
-		return CancelReceipt{}, schedulingError("patientId must be numeric")
-	}
-	office, err := domain.ResolveOffice(command.Office)
-	if err != nil {
-		return CancelReceipt{}, schedulingError(err.Error())
-	}
-	read, err := s.records.ReadPatientAppointments(ctx, domain.PatientAppointmentsQuery{
-		PatientID: command.PatientID,
-		OfficeIDs: domain.AppointmentLookupOfficeIDs(office),
-	})
-	telemetry.scheduleReads += read.ProviderReads
-	if err != nil {
-		return CancelReceipt{}, ownershipCheckError()
-	}
-	appointment, owningOffice, found, knownOffice := ownedAppointment(
-		read.Appointments,
-		command.AppointmentID,
-		office,
-	)
-	if !knownOffice {
-		return CancelReceipt{}, ownershipCheckError()
-	}
-	if !found {
-		if !read.Complete {
-			return CancelReceipt{}, ownershipCheckError()
-		}
-		return CancelReceipt{}, categorizedError(
-			CategoryOwnershipMismatch,
-			"No upcoming appointment matches that patient and appointment ID. Please load appointments again and choose the appointment to cancel.",
-		)
-	}
-
-	return s.cancelVerifiedAppointment(
-		ctx,
-		advancedmd.Cancellation{
-			PatientID:     command.PatientID,
-			AppointmentID: command.AppointmentID,
-			OfficeID:      owningOffice.ID,
-		},
-		appointment,
-		owningOffice,
-		&telemetry,
-	)
+	return s.cancelWithToken(ctx, command, &telemetry)
 }
 
 func (s *service) cancelWithToken(
@@ -137,7 +76,7 @@ func (s *service) cancelWithToken(
 	command CancelCommand,
 	telemetry *cancellationTelemetry,
 ) (CancelReceipt, error) {
-	policy, err := s.appointmentTokens.verifyCancellation(*command.CancellationToken, s.now().UTC())
+	policy, err := s.appointmentTokens.verifyCancellation(command.CancellationToken, s.now().UTC())
 	if err != nil {
 		return CancelReceipt{}, invalidCancellationTokenError()
 	}
@@ -258,24 +197,6 @@ func ownershipCheckError() error {
 		CategoryWriteFailed,
 		"Unable to verify appointment before cancellation. Please load appointments again and choose the appointment to cancel.",
 	)
-}
-
-func ownedAppointment(
-	appointments []domain.PatientAppointment,
-	appointmentID int,
-	requestedOffice *domain.OfficeConfig,
-) (domain.PatientAppointment, *domain.OfficeConfig, bool, bool) {
-	for _, appointment := range appointments {
-		if appointment.ID != appointmentID {
-			continue
-		}
-		if appointment.OfficeID == "" {
-			return appointment, requestedOffice, true, true
-		}
-		office, ok := domain.LookupOfficeByID(appointment.OfficeID)
-		return appointment, office, true, ok
-	}
-	return domain.PatientAppointment{}, nil, false, true
 }
 
 func cancellationReceipt(appointmentID int) CancelReceipt {
