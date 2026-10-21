@@ -25,12 +25,12 @@ func TestBookingRequestDoesNotDecodeServerOwnedFields(t *testing.T) {
 
 func TestBookingCommentIncludesReferringDoctorContact(t *testing.T) {
 	for _, scenario := range []struct {
-		phone, address, expected string
+		name, phone, address, expected string
 	}{
-		{" 352-555-0100 ", "12 Main St", "Appointment reason: Eye follow-up\nReferring doctor: Dr. Lee\nReferring doctor phone: 352-555-0100\nReferring doctor address: 12 Main St\n- AI"},
-		{"", "", "Appointment reason: Eye follow-up\nReferring doctor: Dr. Lee\n- AI"},
+		{"with contact", " 352-555-0100 ", "12 Main St", "Appointment reason: Eye follow-up\nReferring doctor: Dr. Lee\nReferring doctor phone: 352-555-0100\nReferring doctor address: 12 Main St\n- AI"},
+		{"name only", "", "", "Appointment reason: Eye follow-up\nReferring doctor: Dr. Lee\n- AI"},
 	} {
-		t.Run(scenario.expected, func(t *testing.T) {
+		t.Run(scenario.name, func(t *testing.T) {
 			records, command, _ := rescheduleFixture(t)
 			command.RescheduleToken = ""
 			command.AppointmentReason = "Eye follow-up"
