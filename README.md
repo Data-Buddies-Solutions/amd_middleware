@@ -323,11 +323,11 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/patient/resolve` | Resolve identity, demographics, chart insurance, and upcoming appointments | `patient.Resolve` |
 | `POST /api/add-patient` | Create a patient and attach primary insurance | `patient.Create` |
 | `POST /api/patient/update-insurance` | Replace primary insurance | `patient.UpdateInsurance` |
-| `POST /api/insurance/decision` | Decide plan participation for an office | `insurance.DecideInsurance` |
+| `POST /api/insurance/decision` | Decide plan participation for an office from the caller's answer, matching offered plans first | `insurance.DecideOfferedAnswer` |
 | `GET /api/insurance/plans?office=&coverage=` | List an office's plans for one coverage with each plan's decision, carrier, sheet note, and other offices on the same insurance list that accept it (read-only) | `insurance.ListPlans` |
 | `POST /api/scheduler/slots` | List openings as an inventory envelope | `scheduling.List` |
 | `POST /api/appointment/book` | Revalidate and book a signed slot | `scheduling.Book` |
-| `POST /api/appointment/cancel` | Verify ownership and cancel an appointment | `scheduling.Cancel` |
+| `POST /api/appointment/cancel` | Cancel the appointment a signed cancellation token names | `scheduling.Cancel` |
 | `POST /api/appointment/reschedule` | Book a replacement, then cancel the confirmed original | `scheduling.Reschedule` |
 
 Each appointment returned by patient resolution may include a private,
