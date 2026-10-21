@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.1.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.0.0...v8.1.0) (2026-10-21)
+
+
+### Features
+
+* **scheduling:** record referring doctor phone and address in booking comments ([#265](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/265)) ([f73e419](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/f73e41930c0f2753078990b88fe6818ba30279ee))
+
 ## [8.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v7.0.0...v8.0.0) (2026-10-17)
 
 
