@@ -20,18 +20,20 @@ import (
 const maxAppointmentCommentLength = 1000
 
 type BookCommand struct {
-	PatientID         string `json:"patientId"`
-	PatientName       string `json:"patientName,omitempty"`
-	DOB               string `json:"dob,omitempty"`
-	BookingToken      string `json:"bookingToken,omitempty"`
-	RescheduleToken   string `json:"rescheduleToken,omitempty"`
-	AppointmentTypeID int    `json:"appointmentTypeId"`
-	Office            string `json:"office,omitempty"`
-	VisitCategory     string `json:"visitCategory,omitempty"`
-	PatientStatus     string `json:"patientStatus,omitempty"`
-	VisitReason       string `json:"visitReason,omitempty"`
-	AppointmentReason string `json:"appointmentReason,omitempty"`
-	ReferringDoctor   string `json:"referringDoctor,omitempty"`
+	PatientID              string `json:"patientId"`
+	PatientName            string `json:"patientName,omitempty"`
+	DOB                    string `json:"dob,omitempty"`
+	BookingToken           string `json:"bookingToken,omitempty"`
+	RescheduleToken        string `json:"rescheduleToken,omitempty"`
+	AppointmentTypeID      int    `json:"appointmentTypeId"`
+	Office                 string `json:"office,omitempty"`
+	VisitCategory          string `json:"visitCategory,omitempty"`
+	PatientStatus          string `json:"patientStatus,omitempty"`
+	VisitReason            string `json:"visitReason,omitempty"`
+	AppointmentReason      string `json:"appointmentReason,omitempty"`
+	ReferringDoctor        string `json:"referringDoctor,omitempty"`
+	ReferringDoctorPhone   string `json:"referringDoctorPhone,omitempty"`
+	ReferringDoctorAddress string `json:"referringDoctorAddress,omitempty"`
 }
 
 type BookReceipt struct {
@@ -243,7 +245,7 @@ func applyBookingPolicy(booking *bookingContext) (
 	error,
 ) {
 	command := booking.command
-	comments := buildAppointmentComment(command.AppointmentReason, command.ReferringDoctor)
+	comments := buildAppointmentComment(command)
 	if len([]rune(comments)) > maxAppointmentCommentLength {
 		return schedulingPolicy{}, bookingPolicyDecision{}, "", schedulingError(
 			fmt.Sprintf("appointment comments must be %d characters or fewer", maxAppointmentCommentLength),
@@ -494,9 +496,9 @@ func normalizePatientName(name string) string {
 	return name
 }
 
-func buildAppointmentComment(reason, referringDoctor string) string {
-	reason = strings.TrimSpace(reason)
-	referringDoctor = strings.TrimSpace(referringDoctor)
+func buildAppointmentComment(command BookCommand) string {
+	reason := strings.TrimSpace(command.AppointmentReason)
+	referringDoctor := strings.TrimSpace(command.ReferringDoctor)
 	if reason == "" && referringDoctor == "" {
 		return ""
 	}
@@ -506,9 +508,15 @@ func buildAppointmentComment(reason, referringDoctor string) string {
 	if referringDoctor == "" {
 		referringDoctor = "none"
 	}
-	return strings.Join([]string{
+	lines := []string{
 		"Appointment reason: " + reason,
 		"Referring doctor: " + referringDoctor,
-		"- AI",
-	}, "\n")
+	}
+	if phone := strings.TrimSpace(command.ReferringDoctorPhone); phone != "" {
+		lines = append(lines, "Referring doctor phone: "+phone)
+	}
+	if address := strings.TrimSpace(command.ReferringDoctorAddress); address != "" {
+		lines = append(lines, "Referring doctor address: "+address)
+	}
+	return strings.Join(append(lines, "- AI"), "\n")
 }

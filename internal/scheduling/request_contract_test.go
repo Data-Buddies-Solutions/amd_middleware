@@ -23,6 +23,30 @@ func TestBookingRequestDoesNotDecodeServerOwnedFields(t *testing.T) {
 	}
 }
 
+func TestBookingCommentIncludesReferringDoctorContact(t *testing.T) {
+	for _, scenario := range []struct {
+		phone, address, expected string
+	}{
+		{" 352-555-0100 ", "12 Main St", "Appointment reason: Eye follow-up\nReferring doctor: Dr. Lee\nReferring doctor phone: 352-555-0100\nReferring doctor address: 12 Main St\n- AI"},
+		{"", "", "Appointment reason: Eye follow-up\nReferring doctor: Dr. Lee\n- AI"},
+	} {
+		t.Run(scenario.expected, func(t *testing.T) {
+			records, command, _ := rescheduleFixture(t)
+			command.RescheduleToken = ""
+			command.AppointmentReason = "Eye follow-up"
+			command.ReferringDoctor = "Dr. Lee"
+			command.ReferringDoctorPhone = scenario.phone
+			command.ReferringDoctorAddress = scenario.address
+			if _, err := scheduling.New(records, "test-booking-secret", mutationTestNow).Book(context.Background(), command); err != nil {
+				t.Fatal(err)
+			}
+			if len(records.Bookings) != 1 || records.Bookings[0].Comments != scenario.expected {
+				t.Fatalf("bookings=%+v", records.Bookings)
+			}
+		})
+	}
+}
+
 func TestBookingAndRescheduleUseSignedSlotFields(t *testing.T) {
 	for _, reschedule := range []bool{false, true} {
 		t.Run(fmt.Sprintf("reschedule=%t", reschedule), func(t *testing.T) {
