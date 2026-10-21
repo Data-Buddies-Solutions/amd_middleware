@@ -560,23 +560,6 @@ func TestAdvancedMDClient_GetSchedulerSetup(t *testing.T) {
 	if col.Interval != 15 {
 		t.Errorf("Expected interval 15, got %d", col.Interval)
 	}
-
-	if len(setup.Profiles) != 1 {
-		t.Fatalf("Expected 1 profile, got %d", len(setup.Profiles))
-	}
-	if setup.Profiles[0].ID != "620" {
-		t.Errorf("Expected profile ID '620', got %q", setup.Profiles[0].ID)
-	}
-	if setup.Profiles[0].Name != "BACH, AUSTIN" {
-		t.Errorf("Expected profile name 'BACH, AUSTIN', got %q", setup.Profiles[0].Name)
-	}
-
-	if len(setup.Facilities) != 1 {
-		t.Fatalf("Expected 1 facility, got %d", len(setup.Facilities))
-	}
-	if setup.Facilities[0].ID != "1568" {
-		t.Errorf("Expected facility ID '1568', got %q", setup.Facilities[0].ID)
-	}
 }
 
 func TestConvertPatients_PrefersCellPhone(t *testing.T) {

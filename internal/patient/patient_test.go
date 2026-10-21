@@ -585,9 +585,6 @@ func validUpdateInsuranceCommand() patient.UpdateInsuranceCommand {
 	return patient.UpdateInsuranceCommand{
 		PatientID:      "123",
 		DOB:            "01/15/1980",
-		InsPlanID:      "ins123",
-		RespPartyID:    "resp123",
-		OldInsurance:   "Old",
 		Insurance:      writableMedicalPlan,
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",

@@ -9,7 +9,6 @@ import (
 const (
 	AppointmentVisitMedical       = "medical"
 	AppointmentVisitRoutineVision = "routine_vision"
-	AppointmentVisitPostOp        = "post_op"
 
 	AppointmentPatientNew         = "new"
 	AppointmentPatientEstablished = "established"

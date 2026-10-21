@@ -42,21 +42,15 @@ func NewAdvancedMDRestClient(httpClient *http.Client) *AdvancedMDRestClient {
 }
 
 type AMDAppointmentResponse struct {
-	ID               int     `json:"id"`
-	StartDateTime    string  `json:"startdatetime"`
-	Duration         int     `json:"duration"`
-	ColumnID         int     `json:"columnid"`
-	ProfileID        int     `json:"profileid"`
-	Provider         string  `json:"provider"`
-	Heading          string  `json:"heading"`
-	Facility         string  `json:"facility"`
-	FacilityID       int     `json:"facilityid"`
-	AppointmentTypes []int   `json:"appointmenttypeids"`
-	PatientID        int     `json:"patientid"`
-	FirstName        string  `json:"firstname"`
-	LastName         string  `json:"lastname"`
-	ConfirmDate      *string `json:"confirmdate"`
-	ConfirmMethod    *string `json:"confirmmethod"`
+	ID               int    `json:"id"`
+	StartDateTime    string `json:"startdatetime"`
+	Duration         int    `json:"duration"`
+	ColumnID         int    `json:"columnid"`
+	ProfileID        int    `json:"profileid"`
+	Provider         string `json:"provider"`
+	Facility         string `json:"facility"`
+	AppointmentTypes []int  `json:"appointmenttypeids"`
+	PatientID        int    `json:"patientid"`
 }
 
 func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *session.TokenData, columnID string, startDate string) (appointmentsResult []domain.Appointment, resultErr error) {
@@ -108,7 +102,6 @@ type AMDBlockHoldResponse struct {
 	Column        struct {
 		ID int `json:"id"`
 	} `json:"column"`
-	Note       string `json:"note"`
 	Recurrence struct {
 		RecurrenceType int `json:"recurrencetype"`
 	} `json:"recurrence"`
@@ -158,7 +151,6 @@ func (c *AdvancedMDRestClient) getBlockHolds(ctx context.Context, tokenData *ses
 			StartDateTime: startTime,
 			EndDateTime:   endTime,
 			ColumnID:      blockHoldColumnID(h),
-			Note:          h.Note,
 		})
 	}
 

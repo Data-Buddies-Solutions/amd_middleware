@@ -162,15 +162,6 @@ func (o *OfficeConfig) providerNamesForColumnIDs(colIDs []string, allowed map[st
 	return names
 }
 
-func (o *OfficeConfig) ProviderDisplayName(profileID string) string {
-	for _, col := range o.Columns {
-		if col.ProfileID == profileID {
-			return col.DisplayName
-		}
-	}
-	return ""
-}
-
 func (o *OfficeConfig) FriendlyProviderName(amdName string) string {
 	upper := strings.ToUpper(amdName)
 	match := ""

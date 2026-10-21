@@ -1,6 +1,10 @@
 package scheduling_test
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
 	"testing"
 	"time"
 
@@ -62,5 +66,23 @@ func TestSlotTokenRejectsTamperingWrongSecretAndUnsafeTimes(t *testing.T) {
 	}
 	if _, err := scheduling.VerifySlotToken("test-booking-secret", futureToken, now); err == nil {
 		t.Fatal("VerifySlotToken accepted future issuance")
+	}
+}
+
+func TestSlotTokenFromPreviousBuildWithProviderStillVerifies(t *testing.T) {
+	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	body := fmt.Sprintf(`{"v":1,"officeId":"spring_hill","routing":"all_three","columnId":1513,"profileId":620,"provider":"Dr. Austin Bach","startDatetime":"2026-06-02T09:00","duration":15,"iat":%d,"exp":%d}`,
+		now.Unix(), now.Add(15*time.Minute).Unix())
+	encodedBody := base64.RawURLEncoding.EncodeToString([]byte(body))
+	mac := hmac.New(sha256.New, []byte("test-booking-secret"))
+	mac.Write([]byte(encodedBody))
+	token := encodedBody + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+
+	policy, err := scheduling.VerifySlotToken("test-booking-secret", token, now)
+	if err != nil {
+		t.Fatalf("VerifySlotToken rejected a slot token issued before SlotPolicy.Provider was removed: %v", err)
+	}
+	if policy.ColumnID != 1513 || policy.StartDatetime != "2026-06-02T09:00" {
+		t.Fatalf("policy = %+v", policy)
 	}
 }

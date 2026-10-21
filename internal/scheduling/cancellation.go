@@ -101,11 +101,7 @@ func (s *service) cancelWithToken(
 	}
 	return s.cancelVerifiedAppointment(
 		ctx,
-		advancedmd.Cancellation{
-			PatientID:     policy.PatientID,
-			AppointmentID: policy.AppointmentID,
-			OfficeID:      policy.OfficeID,
-		},
+		advancedmd.Cancellation{AppointmentID: policy.AppointmentID},
 		domain.PatientAppointment{
 			ID:       policy.AppointmentID,
 			Start:    policy.start,

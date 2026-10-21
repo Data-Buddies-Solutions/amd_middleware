@@ -95,10 +95,6 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 		)
 	}
 
-	profileMap := make(map[string]domain.SchedulerProfile, len(setup.Profiles))
-	for _, profile := range setup.Profiles {
-		profileMap[profile.ID] = profile
-	}
 	allowedColumns := policy.EligibleColumns(setup.Columns, routing, command.DOB)
 	if len(allowedColumns) == 0 {
 		return AvailabilityResponse{
@@ -154,19 +150,8 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 				continue
 			}
 
-			profile := profileMap[column.ProfileID]
-			displayName := ""
-			if officeColumn, ok := office.Columns[column.ID]; ok {
-				displayName = officeColumn.DisplayName
-			}
-			if displayName == "" {
-				displayName = office.ProviderDisplayName(column.ProfileID)
-			}
-			if displayName == "" {
-				displayName = profile.Name
-			}
-
-			allSlots := availableSlots(policy, column, columnSchedule.Appointments, columnSchedule.BlockHolds, searchDate, nowEastern)
+			displayName := office.Columns[column.ID].DisplayName
+			allSlots := availableSlots(policy, column, columnSchedule.Appointments, columnSchedule.BlockHolds, searchDate)
 			if len(allSlots) == 0 {
 				continue
 			}

@@ -162,40 +162,11 @@ func TestGetAppointmentsByMonth_ReturnsAppointments(t *testing.T) {
 			t.Errorf("Expected startDate=2026-03-01, got %s", r.URL.Query().Get("startDate"))
 		}
 
-		confirm := "2026-03-10T14:00:00"
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]AMDAppointmentResponse{
-			{
-				ID:               1001,
-				StartDateTime:    "2026-03-12T09:00:00",
-				Duration:         15,
-				ColumnID:         1513,
-				ProfileID:        620,
-				Provider:         "BACH, AUSTIN",
-				Facility:         "ABITA EYE GROUP SPRING HILL",
-				FacilityID:       1568,
-				AppointmentTypes: []int{1006},
-				PatientID:        12345,
-				FirstName:        "John",
-				LastName:         "Smith",
-				ConfirmDate:      &confirm,
-			},
-			{
-				ID:               1002,
-				StartDateTime:    "2026-03-12T10:00:00",
-				Duration:         30,
-				ColumnID:         1550,
-				ProfileID:        2076,
-				Provider:         "NOEL, DON HERSHELSON",
-				Facility:         "ABITA EYE GROUP SPRING HILL",
-				FacilityID:       1568,
-				AppointmentTypes: []int{1007},
-				PatientID:        67890,
-				FirstName:        "Jane",
-				LastName:         "Doe",
-				ConfirmDate:      nil,
-			},
-		})
+		w.Write([]byte(`[
+			{"id":1001,"startdatetime":"2026-03-12T09:00:00","duration":15,"columnid":1513,"profileid":620,"provider":"BACH, AUSTIN","heading":"BACH","facility":"ABITA EYE GROUP SPRING HILL","facilityid":1568,"appointmenttypeids":[1006],"patientid":12345,"firstname":"John","lastname":"Smith","confirmdate":"2026-03-10T14:00:00","confirmmethod":"phone"},
+			{"id":1002,"startdatetime":"2026-03-12T10:00:00","duration":30,"columnid":1550,"profileid":2076,"provider":"NOEL, DON HERSHELSON","facility":"ABITA EYE GROUP SPRING HILL","facilityid":1568,"appointmenttypeids":[1007],"patientid":67890,"firstname":"Jane","lastname":"Doe","confirmdate":null}
+		]`))
 	})
 
 	client, tokenData, cleanup := newTestRestClient(t, handler)
@@ -219,12 +190,8 @@ func TestGetAppointmentsByMonth_ReturnsAppointments(t *testing.T) {
 	if appts[0].Facility != "ABITA EYE GROUP SPRING HILL" {
 		t.Errorf("Expected facility, got %q", appts[0].Facility)
 	}
-	if appts[0].ConfirmDate == nil {
-		t.Error("Expected ConfirmDate to be non-nil for first appointment")
-	}
-
-	if appts[1].ConfirmDate != nil {
-		t.Error("Expected ConfirmDate to be nil for second appointment")
+	if appts[1].ID != 1002 || appts[1].PatientID != 67890 || appts[1].AppointmentTypes[0] != 1007 {
+		t.Errorf("second appointment = %+v", appts[1])
 	}
 }
 

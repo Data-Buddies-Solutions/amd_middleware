@@ -105,7 +105,6 @@ func TestBookPreservesAnyAppointmentTypeFromSignedRescheduleToken(t *testing.T) 
 		t.Fatal("receipt reschedule token is empty")
 	}
 	if len(records.Bookings) != 1 ||
-		records.Bookings[0].AppointmentTypeID != 9999 ||
 		records.Bookings[0].ProviderAppointmentTypeID != 9999 ||
 		records.Bookings[0].AppointmentColor != domain.PreservedAppointmentTypeFallbackColor {
 		t.Fatalf("provider bookings = %#v", records.Bookings)
@@ -121,7 +120,7 @@ func TestBookPreservesAnyAppointmentTypeFromSignedRescheduleToken(t *testing.T) 
 	).Book(context.Background(), corrected); err != nil {
 		t.Fatalf("corrected Book error = %v", err)
 	}
-	if len(records.Bookings) != 2 || records.Bookings[1].AppointmentTypeID != 9999 {
+	if len(records.Bookings) != 2 || records.Bookings[1].ProviderAppointmentTypeID != 9999 {
 		t.Fatalf("corrected provider bookings = %#v", records.Bookings)
 	}
 }
@@ -315,7 +314,6 @@ func TestBookUsesVerifiedPatientDOBWhenSignedSlotOmittedIt(t *testing.T) {
 		Duration:           15,
 		AppointmentTypeIDs: []int{1007},
 		SameStartCapacity:  2,
-		Provider:           "Dr. Austin Bach",
 		IssuedAt:           now.Unix(),
 		ExpiresAt:          now.Add(15 * time.Minute).Unix(),
 	})
@@ -665,7 +663,6 @@ func signedBookCommandAt(t *testing.T, now, start time.Time) scheduling.BookComm
 		SameStartBooked:    0,
 		SameStartCapacity:  2,
 		RequiresForce:      false,
-		Provider:           "Dr. Austin Bach",
 		IssuedAt:           now.Unix(),
 		ExpiresAt:          now.Add(15 * time.Minute).Unix(),
 	})

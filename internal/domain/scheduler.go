@@ -31,22 +31,8 @@ type SchedulerColumn struct {
 	Workweek        int
 }
 
-type SchedulerProfile struct {
-	ID   string
-	Code string
-	Name string
-}
-
-type SchedulerFacility struct {
-	ID   string
-	Code string
-	Name string
-}
-
 type SchedulerSetup struct {
-	Columns    []SchedulerColumn
-	Profiles   []SchedulerProfile
-	Facilities []SchedulerFacility
+	Columns []SchedulerColumn
 }
 
 type ScheduleReadQuery struct {
@@ -89,7 +75,6 @@ type BlockHold struct {
 	StartDateTime time.Time
 	EndDateTime   time.Time
 	ColumnID      int
-	Note          string
 }
 
 func (c *SchedulerColumn) WorksOnDay(weekday time.Weekday) bool {

@@ -293,12 +293,8 @@ func (h *Handlers) HandleRescheduleAppointment(w http.ResponseWriter, r *http.Re
 		recordSchedulingError(r.Context(), err)
 		receipt = schedulingmodule.RescheduleReceipt{Status: "failed", Outcome: schedulingOutcome(err), Message: err.Error()}
 	}
-	if err == nil && receipt.Status != "completed" {
-		if receipt.Failure != nil {
-			recordSchedulingError(r.Context(), receipt.Failure)
-		} else {
-			recordRequestOutcome(r.Context(), outcomeCategory("reschedule_"+receipt.Status), safeerrors.CategoryNone)
-		}
+	if err == nil && receipt.Failure != nil {
+		recordSchedulingError(r.Context(), receipt.Failure)
 	}
 	respond(w, receipt)
 }

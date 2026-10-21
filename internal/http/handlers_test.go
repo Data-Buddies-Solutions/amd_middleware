@@ -751,6 +751,7 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 	tests := []struct {
 		name             string
 		body             string
+		chartInsPlanID   string
 		wantProviders    []string
 		wantXMLRPCWrites int
 	}{
@@ -775,6 +776,7 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 		{
 			name:             "medical minor uses pediatric routing",
 			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insPlanId":"ins123","oldInsurance":"Old","insurance":"Aetna Commercial","subscriberNum":"ABC123","office":"Spring Hill","dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
+			chartInsPlanID:   "ins123",
 			wantProviders:    []string{"Dr. Bach"},
 			wantXMLRPCWrites: 2,
 		},
@@ -786,7 +788,7 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 			if err := json.Unmarshal([]byte(tt.body), &input); err != nil {
 				t.Fatal(err)
 			}
-			handlers, writes := newUpdateInsuranceTestHandlers(t, input.DOB, input.InsPlanID)
+			handlers, writes := newUpdateInsuranceTestHandlers(t, input.DOB, tt.chartInsPlanID)
 			req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(tt.body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()

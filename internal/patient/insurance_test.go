@@ -89,11 +89,7 @@ func TestInsuranceReplacementOwnsReferencesAndWriteEffects(t *testing.T) {
 			}
 			records.EndInsuranceError = tc.endErr
 			records.AddInsuranceError = tc.addErr
-			command := validUpdateInsuranceCommand()
-			command.InsPlanID = "stale-plan"
-			command.RespPartyID = "stale-party"
-			command.OldInsurance = "stale name"
-			got := patient.New(records, testAppointmentTokens).UpdateInsurance(context.Background(), command)
+			got := patient.New(records, testAppointmentTokens).UpdateInsurance(context.Background(), validUpdateInsuranceCommand())
 			if got.Effect != tc.effect || got.Outcome != tc.outcome {
 				t.Fatalf("result=%+v, want %s/%s", got, tc.effect, tc.outcome)
 			}

@@ -93,8 +93,6 @@ type ResolveResult struct {
 	Status              Status                       `json:"status"`
 	ProviderFailure     safeerrors.Category          `json:"-"`
 	PatientID           string                       `json:"patientId,omitempty"`
-	FirstName           string                       `json:"-"`
-	LastName            string                       `json:"-"`
 	Name                string                       `json:"name,omitempty"`
 	DOB                 string                       `json:"dob,omitempty"`
 	Phone               string                       `json:"phone,omitempty"`
@@ -162,9 +160,6 @@ type CreateResult struct {
 type UpdateInsuranceCommand struct {
 	PatientID       string `json:"patientId"`
 	DOB             string `json:"dob"`
-	InsPlanID       string `json:"insPlanId"`
-	RespPartyID     string `json:"respPartyId"`
-	OldInsurance    string `json:"oldInsurance"`
 	Insurance       string `json:"insurance"`
 	InsurancePlanID string `json:"insurancePlanId"`
 	CoverageType    string `json:"coverageType"`
@@ -182,7 +177,6 @@ type UpdateInsuranceResult struct {
 	OldInsurance      string                       `json:"oldInsurance,omitempty"`
 	NewInsurance      string                       `json:"newInsurance,omitempty"`
 	AllowedProviders  []string                     `json:"allowedProviders,omitempty"`
-	RoutingAmbiguous  bool                         `json:"routingAmbiguous,omitempty"`
 	PreauthRequired   bool                         `json:"preauthRequired,omitempty"`
 	Message           string                       `json:"message,omitempty"`
 }

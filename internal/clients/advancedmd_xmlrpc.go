@@ -32,8 +32,6 @@ type AMDPatient struct {
 	ID          string         `json:"@id"`
 	Name        string         `json:"@name"`
 	DOB         string         `json:"@dob"`
-	Gender      string         `json:"@gender"`
-	Chart       string         `json:"@chart"`
 	RespParty   string         `json:"@respparty"`
 	ContactInfo AMDContactInfo `json:"contactinfo"`
 }
@@ -684,12 +682,6 @@ type amdColumnSetting struct {
 	Workweek        amdAttribute `json:"@workweek"`
 }
 
-type amdSetupItem struct {
-	ID   amdAttribute `json:"@id"`
-	Code amdAttribute `json:"@code"`
-	Name amdAttribute `json:"@name"`
-}
-
 func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *session.TokenData) (setupResult *domain.SchedulerSetup, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "getschedulersetup")
 	defer func() { finish(resultErr) }()
@@ -715,12 +707,6 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *ses
 		ColumnList *struct {
 			Columns json.RawMessage `json:"column"`
 		} `json:"columnlist"`
-		ProfileList struct {
-			Profiles json.RawMessage `json:"profile"`
-		} `json:"profilelist"`
-		FacilityList struct {
-			Facilities json.RawMessage `json:"facility"`
-		} `json:"facilitylist"`
 	}
 	if err := json.Unmarshal(results, &parsed); err != nil {
 		return nil, fmt.Errorf("failed to parse scheduler setup response: %w", err)
@@ -732,22 +718,10 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *ses
 	if err != nil {
 		return nil, fmt.Errorf("scheduler setup returned invalid column collection")
 	}
-	profiles, _ := oneOrMany[amdSetupItem](parsed.ProfileList.Profiles)
-	facilities, _ := oneOrMany[amdSetupItem](parsed.FacilityList.Facilities)
 
 	setup := &domain.SchedulerSetup{}
 	for _, column := range columns {
 		setup.Columns = append(setup.Columns, schedulerColumn(column))
-	}
-	for _, profile := range profiles {
-		setup.Profiles = append(setup.Profiles, domain.SchedulerProfile{
-			ID: strings.TrimPrefix(string(profile.ID), "prof"), Code: string(profile.Code), Name: string(profile.Name),
-		})
-	}
-	for _, facility := range facilities {
-		setup.Facilities = append(setup.Facilities, domain.SchedulerFacility{
-			ID: strings.TrimPrefix(string(facility.ID), "fac"), Code: string(facility.Code), Name: string(facility.Name),
-		})
 	}
 	return setup, nil
 }
