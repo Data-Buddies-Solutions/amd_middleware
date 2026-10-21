@@ -842,6 +842,58 @@ func TestResolveKeepsVerifiedPatientWhenAppointmentsFail(t *testing.T) {
 	}
 }
 
+type stalledAppointmentRecords struct {
+	*advancedmdtest.Adapter
+	appointmentsAbandoned chan struct{}
+}
+
+func (r stalledAppointmentRecords) ReadPatientAppointments(ctx context.Context, _ domain.PatientAppointmentsQuery) (advancedmd.AppointmentRead, error) {
+	<-ctx.Done()
+	close(r.appointmentsAbandoned)
+	return advancedmd.AppointmentRead{}, advancedmd.NewError(safeerrors.Classify(ctx.Err()))
+}
+
+func (r stalledAppointmentRecords) GetPatientDemographics(ctx context.Context, patientID string) (domain.PatientDemographics, error) {
+	select {
+	case <-r.appointmentsAbandoned:
+	case <-ctx.Done():
+	}
+	if err := ctx.Err(); err != nil {
+		return domain.PatientDemographics{}, advancedmd.NewError(safeerrors.Classify(err))
+	}
+	return r.Adapter.GetPatientDemographics(ctx, patientID)
+}
+
+func TestResolveReturnsVerifiedPatientBeforeDeadlineWhenAppointmentsStall(t *testing.T) {
+	domain.InitRegistry("")
+	office, _ := domain.LookupOffice("Spring Hill")
+	amd := advancedmdtest.NewAdapter()
+	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true}
+	amd.PatientSearches[domain.PatientSearch{Phone: "9542872010"}] = []domain.Patient{{
+		ID: "123", FullName: "DOE,JANE", DOB: "01/15/1980",
+	}}
+	records := stalledAppointmentRecords{Adapter: amd, appointmentsAbandoned: make(chan struct{})}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1250*time.Millisecond)
+	defer cancel()
+	got, err := patient.New(records, testAppointmentTokens).Resolve(ctx, patient.ResolveCommand{
+		Phone:    "9542872010",
+		OfficeID: office.ID,
+	})
+	if ctx.Err() != nil {
+		t.Fatalf("Resolve() returned after the request deadline with status %q reason %q", got.Status, got.Reason)
+	}
+	if err != nil {
+		t.Fatalf("Resolve() error = %v", err)
+	}
+	if got.Status != patient.StatusVerified || got.PatientID != "123" {
+		t.Fatalf("Resolve() = %+v, want verified patient 123", got)
+	}
+	if got.AppointmentsStatus != patient.AppointmentsError || got.ProviderFailure != safeerrors.CategoryTimeout {
+		t.Fatalf("appointments = %q failure = %q, want error after appointment timeout", got.AppointmentsStatus, got.ProviderFailure)
+	}
+}
+
 func TestResolveKnownPatientReturnsUnavailableWhenAdvancedMDCannotAuthenticate(t *testing.T) {
 	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Spring Hill")
