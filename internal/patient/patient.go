@@ -69,7 +69,7 @@ type ResolveQuery struct {
 	Phone     domain.Phone
 	FirstName domain.PersonName
 	LastName  domain.PersonName
-	DOB       string
+	DOB       domain.DOB
 	OfficeID  string
 }
 

@@ -25,9 +25,6 @@ func (p *patient) Resolve(ctx context.Context, query ResolveQuery) (ResolveResul
 	}
 
 	if query.Phone == "" && query.LastName == "" && query.FirstName != "" && query.DOB != "" {
-		if err := domain.ValidateOptionalDOB(query.DOB, p.now()); err != nil {
-			return ResolveResult{}, advancedmd.NewError(safeerrors.CategoryRejected)
-		}
 		return p.resolveFirstNameDOB(ctx, query, office)
 	}
 
@@ -99,10 +96,9 @@ func patientSearch(query ResolveQuery) domain.PatientSearch {
 func selectPatients(patients []domain.Patient, query ResolveQuery) []domain.Patient {
 	matches := patients
 	if query.DOB != "" {
-		normalizedDOB := domain.NormalizeDOB(query.DOB)
 		matches = nil
 		for _, candidate := range patients {
-			if domain.NormalizeDOB(candidate.DOB) == normalizedDOB {
+			if query.DOB.Matches(candidate.DOB) {
 				matches = append(matches, candidate)
 			}
 		}
@@ -379,21 +375,18 @@ func (c ResolveCommand) Parse(officeID string, asOf time.Time) (ResolveQuery, st
 	if err != nil {
 		return ResolveQuery{}, err.Error()
 	}
-	query := ResolveQuery{
+	if phone == "" && (c.FirstName == "" && c.LastName == "" || c.DOB == "") {
+		return ResolveQuery{}, "Provide patientId, phone, phone + firstName, phone + dob, firstName + dob, or lastName + dob"
+	}
+	dob, err := domain.ParseDOB(c.DOB, asOf)
+	if err != nil {
+		return ResolveQuery{}, err.Error()
+	}
+	return ResolveQuery{
 		Phone:     phone,
 		FirstName: domain.NewPersonName(c.FirstName),
 		LastName:  domain.NewPersonName(c.LastName),
-		DOB:       c.DOB,
+		DOB:       dob,
 		OfficeID:  officeID,
-	}
-	if phone != "" {
-		return query, ""
-	}
-	if (c.FirstName != "" || c.LastName != "") && c.DOB != "" {
-		if err := domain.ValidateOptionalDOB(c.DOB, asOf); err != nil {
-			return ResolveQuery{}, err.Error()
-		}
-		return query, ""
-	}
-	return ResolveQuery{}, "Provide patientId, phone, phone + firstName, phone + dob, firstName + dob, or lastName + dob"
+	}, ""
 }

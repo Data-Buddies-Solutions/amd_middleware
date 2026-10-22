@@ -54,7 +54,11 @@ func TestFirstNameDOBResolution(t *testing.T) {
 			amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Patients: tc.rows, Complete: !tc.incomplete}
 			amd.Demographics["1"] = domain.PatientDemographics{InsuranceStateKnown: true, FullName: valid.FullName, DOB: valid.DOB}
 			amd.Demographics["2"] = tc.ignoredDemographics
-			result, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveQuery{FirstName: "Jane", DOB: "1980-01-01", OfficeID: "spring_hill"})
+			query, message := patient.ResolveCommand{FirstName: "Jane", DOB: "1980-01-01"}.Parse("spring_hill", testNow())
+			if message != "" {
+				t.Fatal(message)
+			}
+			result, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), query)
 			if err != nil || result.Status != tc.want || result.Reason != tc.reason {
 				t.Fatalf("status=%s reason=%s err=%v", result.Status, result.Reason, err)
 			}

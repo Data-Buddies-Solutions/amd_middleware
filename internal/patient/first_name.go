@@ -2,7 +2,6 @@ package patient
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"advancedmd-token-management/internal/advancedmd"
@@ -10,13 +9,9 @@ import (
 	"advancedmd-token-management/internal/safeerrors"
 )
 
-func usableDOB(dob string, asOf time.Time) bool {
-	return strings.TrimSpace(dob) != "" && domain.ValidateOptionalDOB(dob, asOf) == nil
-}
-
 func (p *patient) resolveFirstNameDOB(ctx context.Context, query ResolveQuery, office *domain.OfficeConfig) (ResolveResult, error) {
 	started := time.Now()
-	read, err := p.advancedMD.ReadPatientCandidates(ctx, string(query.FirstName), domain.NormalizeDOB(query.DOB))
+	read, err := p.advancedMD.ReadPatientCandidates(ctx, string(query.FirstName), string(query.DOB))
 	observation := ResolutionObservation{
 		Recorded: true, PatientSearchReads: 1,
 		PatientSearchDurationMS: time.Since(started).Milliseconds(),
@@ -38,15 +33,13 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, query ResolveQuery, o
 	if !read.Complete {
 		return unresolved("incomplete_search", safeerrors.CategoryInvalidResponse)
 	}
-	dob := domain.NormalizeDOB(query.DOB)
-	now := p.now()
 	if query.FirstName.Key() == "" {
 		return unresolved("invalid_identity", safeerrors.CategoryRejected)
 	}
 	matches := []domain.Patient{}
 	seen := map[string]bool{}
 	for _, row := range read.Patients {
-		if !row.Name().MatchesFirstName(query.FirstName) || !usableDOB(row.DOB, now) || domain.NormalizeDOB(row.DOB) != dob {
+		if !row.Name().MatchesFirstName(query.FirstName) || !query.DOB.Matches(row.DOB) {
 			continue
 		}
 		if row.ID == "" || seen[row.ID] {
@@ -63,7 +56,7 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, query ResolveQuery, o
 		candidates := make([]Candidate, 0, len(matches))
 		for _, row := range matches {
 			name := row.Name()
-			candidates = append(candidates, Candidate{Status: statusCandidate, PatientID: row.ID, FirstName: name.First(), LastName: name.Last, DOB: domain.NormalizeDOB(row.DOB)})
+			candidates = append(candidates, Candidate{Status: statusCandidate, PatientID: row.ID, FirstName: name.First(), LastName: name.Last, DOB: string(query.DOB)})
 		}
 		return ResolveResult{Status: StatusMultipleMatches, Matches: candidates, Appointments: []Appointment{}, Message: "More than one patient matches this first name and date of birth. Ask office staff to resolve the identity.", Observation: observation}, nil
 	}
@@ -81,7 +74,7 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, query ResolveQuery, o
 		}
 		selected.FullName = demographics.FullName
 	}
-	if demographics.DOB != "" && (!usableDOB(demographics.DOB, now) || domain.NormalizeDOB(demographics.DOB) != dob) {
+	if demographics.DOB != "" && !query.DOB.Matches(demographics.DOB) {
 		return unresolved("identity_not_verified", safeerrors.CategoryInvalidResponse)
 	}
 	result, err := p.resolvePatientWithDemographics(ctx, selected, "", office, &demographics)

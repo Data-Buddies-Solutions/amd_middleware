@@ -59,3 +59,20 @@ func TestEveryPatientRouteReadsPhonesAsTheSameDigits(t *testing.T) {
 		t.Errorf("resolve phone echo = %v", resolved)
 	}
 }
+
+func TestEveryDOBRouteRejectsAnInvalidDOB(t *testing.T) {
+	for _, raw := range []string{"garbage", "13/45/1980", "2099-01-01"} {
+		resolved, calls := postIdentity(t, "/api/patient/resolve", map[string]any{"office": "Spring Hill", "phone": "9545550100", "dob": raw})
+		if resolved["status"] != "error" || resolved["message"] != "dob must be a valid date" || calls != "" {
+			t.Errorf("resolve phone + dob %q = %v, calls %s", raw, resolved, calls)
+		}
+		decided, _ := postIdentity(t, "/api/insurance/decision", map[string]any{"office": "Hollywood", "plan": "VSP", "coverageType": "routine_vision", "dob": raw})
+		if decided["status"] != "error" || decided["message"] != "dob must be a valid date" {
+			t.Errorf("insurance decision dob %q = %v", raw, decided)
+		}
+	}
+	decided, _ := postIdentity(t, "/api/insurance/decision", map[string]any{"office": "Hollywood", "plan": "VSP", "coverageType": "routine_vision", "dob": "May 1, 2020"})
+	if decided["outcome"] != "accepted" || len(decided["allowedProviders"].([]any)) != 2 {
+		t.Errorf("insurance decision for a six-year-old = %v", decided)
+	}
+}

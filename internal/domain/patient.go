@@ -1,9 +1,6 @@
 package domain
 
-import (
-	"fmt"
-	"time"
-)
+import "time"
 
 type Patient struct {
 	ID       string
@@ -54,16 +51,6 @@ type PatientAppointmentsQuery struct {
 	OfficeIDs []string
 }
 
-func ValidateOptionalDOB(dob string, asOf time.Time) error {
-	if dob == "" {
-		return nil
-	}
-	if _, ok := AgeYearsOn(dob, asOf); !ok {
-		return fmt.Errorf("dob must be a valid date")
-	}
-	return nil
-}
-
 type PatientCreate struct {
 	FirstName string
 	LastName  string
@@ -96,31 +83,6 @@ type PatientInsurance struct {
 type PatientInsuranceEnd struct {
 	PatientID string
 	InsPlanID string
-}
-
-func NormalizeDOB(dob string) string {
-	if len(dob) == 10 && dob[2] == '/' && dob[5] == '/' {
-		return dob
-	}
-
-	formats := []string{
-		"2006-01-02",
-		"01-02-2006",
-		"1/2/2006",
-		"01/02/2006",
-		"January 2 2006",
-		"January 2, 2006",
-		"Jan 2 2006",
-		"Jan 2, 2006",
-	}
-
-	for _, format := range formats {
-		if t, err := time.Parse(format, dob); err == nil {
-			return t.Format("01/02/2006")
-		}
-	}
-
-	return dob
 }
 
 func isMinor(dob string, asOf time.Time) bool {
