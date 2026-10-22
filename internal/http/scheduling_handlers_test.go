@@ -264,33 +264,47 @@ func TestListSlotsRejectsRemovedFieldsBeforeScheduling(t *testing.T) {
 func TestListSlotsIncompleteSearchCarriesTheRetryHint(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	searchDate := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC)
-	records := advancedmdtest.NewAdapter()
-	records.SchedulerSetup = domain.SchedulerSetup{Columns: []domain.SchedulerColumn{{
-		ID: "1513", Name: "TEST COLUMN", ProfileID: "620", FacilityID: "1568",
-		StartTime: "09:00", EndTime: "09:15", Interval: 15, Workweek: 127,
-	}}}
-	for day := 0; day <= 14; day++ {
-		records.ScheduleReads[searchDate.AddDate(0, 0, day).Format("2006-01-02")] = domain.ScheduleReadResult{
-			Columns: map[string]domain.ColumnSchedule{"1513": {AppointmentsComplete: false, BlockHoldsComplete: true}},
-		}
-	}
-	scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now })
-	router := NewRouter(&Handlers{scheduling: scheduler}, "test-secret", nil)
-	request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"startDate":"2026-06-03","office":"Spring Hill","routing":"bach_only","dob":"01/15/1980"}`))
-	request.Header.Set("Authorization", "Bearer test-secret")
-	response := httptest.NewRecorder()
+	for _, tc := range []struct {
+		name   string
+		inject func(*advancedmdtest.Adapter)
+	}{
+		{"incomplete schedule reads", func(records *advancedmdtest.Adapter) {
+			for day := 0; day <= 14; day++ {
+				records.ScheduleReads[searchDate.AddDate(0, 0, day).Format("2006-01-02")] = domain.ScheduleReadResult{
+					Columns: map[string]domain.ColumnSchedule{"1513": {AppointmentsComplete: false, BlockHoldsComplete: true}},
+				}
+			}
+		}},
+		{"failed scheduler setup read", func(records *advancedmdtest.Adapter) {
+			records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryTimeout)
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			records := advancedmdtest.NewAdapter()
+			records.SchedulerSetup = domain.SchedulerSetup{Columns: []domain.SchedulerColumn{{
+				ID: "1513", Name: "TEST COLUMN", ProfileID: "620", FacilityID: "1568",
+				StartTime: "09:00", EndTime: "09:15", Interval: 15, Workweek: 127,
+			}}}
+			tc.inject(records)
+			scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now })
+			router := NewRouter(&Handlers{scheduling: scheduler}, "test-secret", nil)
+			request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"startDate":"2026-06-03","office":"Spring Hill","routing":"bach_only","dob":"01/15/1980"}`))
+			request.Header.Set("Authorization", "Bearer test-secret")
+			response := httptest.NewRecorder()
 
-	router.ServeHTTP(response, request)
+			router.ServeHTTP(response, request)
 
-	var got map[string]any
-	if err := json.Unmarshal(response.Body.Bytes(), &got); err != nil {
-		t.Fatal(err)
-	}
-	if response.Code != http.StatusOK ||
-		got["status"] != "error" ||
-		got["outcome"] != "availability_search_incomplete" ||
-		got["shouldRetrySameSearch"] != true ||
-		got["nextAction"] != "retry_once_then_ask_preferences" {
-		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+			var got map[string]any
+			if err := json.Unmarshal(response.Body.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			if response.Code != http.StatusOK ||
+				got["status"] != "error" ||
+				got["outcome"] != "availability_search_incomplete" ||
+				got["shouldRetrySameSearch"] != true ||
+				got["nextAction"] != "retry_once_then_ask_preferences" {
+				t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+			}
+		})
 	}
 }
