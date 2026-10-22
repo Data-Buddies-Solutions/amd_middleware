@@ -40,7 +40,7 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 	observation := ResolutionObservation{
 		Recorded: true, PatientSearchReads: 1,
 		PatientSearchDurationMS: time.Since(started).Milliseconds(),
-		OfficeGroupSize:         len(domain.AppointmentLookupOfficeIDs(office)),
+		OfficeGroupSize:         len(office.AppointmentLookupOfficeIDs),
 		CandidateCountBucket:    candidateCountBucket(len(read.Patients)),
 		AppointmentOutcome:      "not_requested",
 	}

@@ -137,7 +137,7 @@ func goldenOfficeID(office *OfficeConfig, ok bool) string {
 func writeGoldenOffice(b *strings.Builder, office *OfficeConfig) {
 	fmt.Fprintf(b, "office\t%s\tdisplay=%s\tfacility=%s\tdefaultProfile=%s\tpediatric=%s\tsupportsMedical=%t\tlookupGroup=%s\n",
 		office.ID, office.DisplayName, office.FacilityID, office.DefaultProfileID, office.PediatricRouting,
-		office.SupportsMedical(), strings.Join(AppointmentLookupOfficeIDs(office), ","))
+		office.SupportsMedical(), strings.Join(office.AppointmentLookupOfficeIDs, ","))
 	columnIDs := goldenSortedKeys(office.Columns)
 	for _, id := range columnIDs {
 		c := office.Columns[id]

@@ -246,7 +246,7 @@ func TestResolveAppointmentTypeForIntent_SpringHillUnderSevenRoutineVision(t *te
 	if got.AppointmentTypeID != 0 {
 		t.Fatalf("AppointmentTypeID = %d, want unresolved", got.AppointmentTypeID)
 	}
-	if got.Message != underSevenRoutineVisionMessage {
+	if got.Message != "Spring Hill does not schedule routine vision for children under 7. Search medical availability instead; Dr. Bach sees these children." {
 		t.Fatalf("Message = %q", got.Message)
 	}
 	if len(got.Missing) != 1 || got.Missing[0] != "appointmentLane" {

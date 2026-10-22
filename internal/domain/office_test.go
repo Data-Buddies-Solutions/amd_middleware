@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"slices"
 	"testing"
 	"time"
 )
@@ -47,30 +48,36 @@ func TestLookupOffice(t *testing.T) {
 func TestAppointmentLookupOfficeIDs(t *testing.T) {
 	tests := []struct {
 		name   string
-		office *OfficeConfig
+		env    string
+		office string
 		want   []string
 	}{
-		{"spring hill includes crystal river", springHillOffice, []string{"spring_hill", "crystal_river"}},
-		{"crystal river includes spring hill", crystalRiverOffice, []string{"spring_hill", "crystal_river"}},
-		{"hollywood includes sweetwater and north miami beach optical", hollywoodOffice, []string{"hollywood", "sweetwater", "north_miami_beach_optical"}},
-		{"sweetwater includes hollywood", sweetwaterOffice, []string{"hollywood", "sweetwater"}},
-		{"north miami beach optical stays scoped", northMiamiBeachOpticalOffice, []string{"north_miami_beach_optical"}},
-		{"unknown office stays scoped", &OfficeConfig{ID: "other"}, []string{"other"}},
+		{"spring hill includes crystal river", "prod", "spring_hill", []string{"spring_hill", "crystal_river"}},
+		{"crystal river includes spring hill", "prod", "crystal_river", []string{"spring_hill", "crystal_river"}},
+		{"hollywood includes sweetwater and north miami beach optical", "prod", "hollywood", []string{"hollywood", "sweetwater", "north_miami_beach_optical"}},
+		{"sweetwater includes hollywood", "prod", "sweetwater", []string{"hollywood", "sweetwater"}},
+		{"north miami beach optical stays scoped", "prod", "north_miami_beach_optical", []string{"north_miami_beach_optical"}},
+		{"sandbox spring hill skips unavailable crystal river", "dev", "spring_hill", []string{"spring_hill"}},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := AppointmentLookupOfficeIDs(tt.office)
-			if len(got) != len(tt.want) {
-				t.Fatalf("AppointmentLookupOfficeIDs() len = %d, want %d: %+v", len(got), len(tt.want), got)
-			}
-			for i, wantID := range tt.want {
-				if got[i] != wantID {
-					t.Fatalf("AppointmentLookupOfficeIDs()[%d] = %q, want %q", i, got[i], wantID)
-				}
+			t.Cleanup(func() { InitRegistry("prod") })
+			InitRegistry(tt.env)
+			if got := mustOffice(t, tt.office).AppointmentLookupOfficeIDs; !slices.Equal(got, tt.want) {
+				t.Fatalf("AppointmentLookupOfficeIDs = %v, want %v", got, tt.want)
 			}
 		})
 	}
+}
+
+func mustOffice(t *testing.T, id string) *OfficeConfig {
+	t.Helper()
+	office, ok := LookupOfficeByID(id)
+	if !ok {
+		t.Fatalf("office %s is not in the selected registry", id)
+	}
+	return office
 }
 
 func TestCanonicalAppointmentTypeID(t *testing.T) {
@@ -99,7 +106,7 @@ func TestCanonicalAppointmentTypeID(t *testing.T) {
 func TestSandboxRejectsUnmappedProductionIDs(t *testing.T) {
 	defer InitRegistry("prod")
 	InitRegistry("dev")
-	if office, ok := LookupOffice("spring_hill"); !ok || office != devSpringHillOffice {
+	if office, ok := LookupOffice("spring_hill"); !ok || office.FacilityID != "1032" {
 		t.Fatal("sandbox office ID must resolve to the sandbox Spring Hill config")
 	}
 	for _, selector := range []string{"crystal_river", "+13523202007"} {
@@ -127,16 +134,16 @@ func TestSandboxRejectsUnmappedProductionIDs(t *testing.T) {
 			t.Errorf("production mapping changed for type %d", id)
 		}
 	}
-	if office, ok := LookupOffice("crystal_river"); !ok || office != crystalRiverOffice {
+	if office, ok := LookupOffice("crystal_river"); !ok || office.FacilityID != "1576" {
 		t.Fatal("production Crystal River mapping changed")
 	}
 }
 
 func TestOfficeConfig_AllowsAppointmentType(t *testing.T) {
-	springHill := prodOffices["+17275919997"]
-	crystalRiver := prodOffices["+13523202007"]
-	hollywood := prodOffices["+19542872010"]
-	sweetwater := prodOffices["+17864657475"]
+	springHill := mustOffice(t, "spring_hill")
+	crystalRiver := mustOffice(t, "crystal_river")
+	hollywood := mustOffice(t, "hollywood")
+	sweetwater := mustOffice(t, "sweetwater")
 
 	tests := []struct {
 		name    string
@@ -160,8 +167,8 @@ func TestOfficeConfig_AllowsAppointmentType(t *testing.T) {
 		{"hollywood medical rejects vision type", hollywood, 1010, RoutingAll, false},
 		{"sweetwater routine accepts vision type", sweetwater, 3364, RoutingOpticalOnly, true},
 		{"sweetwater medical rejects crystal river type", sweetwater, 6167, RoutingAll, false},
-		{"north miami beach optical routine accepts vision type", northMiamiBeachOpticalOffice, 1010, RoutingOpticalOnly, true},
-		{"north miami beach optical rejects medical type", northMiamiBeachOpticalOffice, 1006, RoutingAll, false},
+		{"north miami beach optical routine accepts vision type", mustOffice(t, "north_miami_beach_optical"), 1010, RoutingOpticalOnly, true},
+		{"north miami beach optical rejects medical type", mustOffice(t, "north_miami_beach_optical"), 1006, RoutingAll, false},
 		{"unknown type rejected", springHill, 9999, RoutingAll, false},
 	}
 
@@ -185,14 +192,14 @@ func TestOfficeConfig_HollywoodAndSweetwaterColumns(t *testing.T) {
 	}{
 		{
 			name:       "hollywood",
-			office:     prodOffices["+19542872010"],
+			office:     mustOffice(t, "hollywood"),
 			facilityID: "1480",
 			columns:    []string{"1268", "1478", "1555", "1510", "1305"},
 			optical:    []string{"1555", "1510", "1305"},
 		},
 		{
 			name:       "sweetwater",
-			office:     prodOffices["+17864657475"],
+			office:     mustOffice(t, "sweetwater"),
 			facilityID: "670",
 			columns:    []string{"682", "1307", "1296", "1554", "1210"},
 			optical:    []string{"1296", "1554", "1210"},
@@ -220,7 +227,7 @@ func TestOfficeConfig_HollywoodAndSweetwaterColumns(t *testing.T) {
 }
 
 func TestOfficeConfig_NorthMiamiBeachOpticalColumn(t *testing.T) {
-	office := prodOffices["+13055095333"]
+	office := mustOffice(t, "north_miami_beach_optical")
 	if office == nil {
 		t.Fatal("expected North Miami Beach Optical office")
 	}
@@ -252,42 +259,51 @@ func TestOfficeConfig_NorthMiamiBeachOpticalColumn(t *testing.T) {
 func TestOfficeConfig_SameStartCapacityScope(t *testing.T) {
 	tests := []struct {
 		name       string
-		office     *OfficeConfig
+		env        string
+		office     string
 		doubleBook []string
 		singleBook []string
 	}{
 		{
 			name:       "spring hill medical columns double-bookable",
-			office:     springHillOffice,
+			env:        "prod",
+			office:     "spring_hill",
 			doubleBook: []string{"1513", "1598", "1551", "1550"},
 			singleBook: []string{"1600"},
 		},
 		{
 			name:       "crystal river remains single-booked",
-			office:     crystalRiverOffice,
+			env:        "prod",
+			office:     "crystal_river",
 			singleBook: []string{"1593"},
 		},
 		{
 			name:       "sweetwater all columns have same-start capacity",
-			office:     sweetwaterOffice,
+			env:        "prod",
+			office:     "sweetwater",
 			doubleBook: []string{"682", "1307", "1296", "1554", "1210"},
 		},
 		{
 			name:       "hollywood all columns have same-start capacity",
-			office:     hollywoodOffice,
+			env:        "prod",
+			office:     "hollywood",
 			doubleBook: []string{"1268", "1478", "1555", "1510", "1305"},
 		},
 		{
 			name:       "dev spring hill all columns double-bookable",
-			office:     devSpringHillOffice,
+			env:        "dev",
+			office:     "spring_hill",
 			doubleBook: []string{"1716", "1723", "1726"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Cleanup(func() { InitRegistry("prod") })
+			InitRegistry(tt.env)
+			office := mustOffice(t, tt.office)
 			for _, columnID := range tt.doubleBook {
-				col, ok := tt.office.Columns[columnID]
+				col, ok := office.Columns[columnID]
 				if !ok {
 					t.Fatalf("missing column %s", columnID)
 				}
@@ -296,7 +312,7 @@ func TestOfficeConfig_SameStartCapacityScope(t *testing.T) {
 				}
 			}
 			for _, columnID := range tt.singleBook {
-				col, ok := tt.office.Columns[columnID]
+				col, ok := office.Columns[columnID]
 				if !ok {
 					t.Fatalf("missing column %s", columnID)
 				}
@@ -317,13 +333,13 @@ func TestOfficeConfig_HollywoodSweetwaterRoutineSameStartWindows(t *testing.T) {
 	}{
 		{
 			name:       "sweetwater",
-			office:     sweetwaterOffice,
+			office:     mustOffice(t, "sweetwater"),
 			routineIDs: []string{"1296", "1554", "1210"},
 			medicalIDs: []string{"682", "1307"},
 		},
 		{
 			name:       "hollywood",
-			office:     hollywoodOffice,
+			office:     mustOffice(t, "hollywood"),
 			routineIDs: []string{"1555", "1510", "1305"},
 			medicalIDs: []string{"1268", "1478"},
 		},
@@ -370,7 +386,7 @@ func TestOfficeConfig_HollywoodSweetwaterRoutineSameStartWindows(t *testing.T) {
 }
 
 func TestOfficeConfig_RoutineAgeRules(t *testing.T) {
-	office := prodOffices["+17864657475"]
+	office := mustOffice(t, "sweetwater")
 	if got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, "", testNow); len(got) != 3 {
 		t.Fatalf("missing DOB routine providers = %v, want all without an age filter", got)
 	}
@@ -465,11 +481,13 @@ func TestInitRegistry(t *testing.T) {
 }
 
 func TestEveryOfficeColumnHasDisplayName(t *testing.T) {
-	for _, registry := range []map[string]*OfficeConfig{prodOffices, devOffices} {
-		for _, office := range registry {
-			for id, column := range office.Columns {
+	t.Cleanup(func() { InitRegistry("prod") })
+	for _, env := range []string{"prod", "dev"} {
+		InitRegistry(env)
+		for _, id := range OfficeIDs() {
+			for columnID, column := range mustOffice(t, id).Columns {
 				if column.DisplayName == "" {
-					t.Errorf("office %s column %s has no display name", office.ID, id)
+					t.Errorf("%s office %s column %s has no display name", env, id, columnID)
 				}
 			}
 		}

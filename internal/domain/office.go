@@ -9,13 +9,21 @@ import (
 )
 
 type OfficeConfig struct {
-	ID               string
-	DisplayName      string
-	FacilityID       string
-	DefaultProfileID string
-	Columns          map[string]OfficeColumn
-	RoutingTiers     map[RoutingRule][]string
-	PediatricRouting RoutingRule
+	ID                         string
+	DisplayName                string
+	FacilityID                 string
+	DefaultProfileID           string
+	Columns                    map[string]OfficeColumn
+	RoutingTiers               map[RoutingRule][]string
+	PediatricRouting           RoutingRule
+	AppointmentLookupOfficeIDs []string
+	AppointmentTypes           OfficeAppointmentTypes
+	RoutineVisionMinimumAge    MinimumAge
+}
+
+type MinimumAge struct {
+	Years   int
+	Message string
 }
 
 type OfficeColumn struct {
@@ -197,20 +205,16 @@ func (o *OfficeConfig) AppointmentTypeName(typeID int) (string, bool) {
 }
 
 func OfficeIDs() []string {
-	seen := make(map[string]bool)
-	ids := make([]string, 0, len(officeRegistry))
-	for _, office := range officeRegistry {
-		if !seen[office.ID] {
-			seen[office.ID] = true
-			ids = append(ids, office.ID)
-		}
+	ids := make([]string, 0, len(current.offices))
+	for _, office := range current.offices {
+		ids = append(ids, office.ID)
 	}
 	sort.Strings(ids)
 	return ids
 }
 
 func LookupOfficeByID(officeID string) (*OfficeConfig, bool) {
-	for _, office := range officeRegistry {
+	for _, office := range current.offices {
 		if office.ID == officeID {
 			return office, true
 		}
@@ -218,299 +222,135 @@ func LookupOfficeByID(officeID string) (*OfficeConfig, bool) {
 	return nil, false
 }
 
-func AppointmentLookupOfficeIDs(office *OfficeConfig) []string {
-	if office == nil {
-		return nil
-	}
-
-	officeIDs := []string{office.ID}
-	switch office.ID {
-	case "spring_hill", "crystal_river":
-		officeIDs = []string{"spring_hill", "crystal_river"}
-	case "hollywood":
-		officeIDs = []string{"hollywood", "sweetwater", "north_miami_beach_optical"}
-	case "sweetwater":
-		officeIDs = []string{"hollywood", "sweetwater"}
-	}
-
-	lookupIDs := make([]string, 0, len(officeIDs))
-	seen := make(map[*OfficeConfig]bool, len(officeIDs))
-	for _, officeID := range officeIDs {
-		lookupOffice, ok := LookupOfficeByID(officeID)
-		if !ok {
-			continue
-		}
-		if seen[lookupOffice] {
-			continue
-		}
-		seen[lookupOffice] = true
-		lookupIDs = append(lookupIDs, lookupOffice.ID)
-	}
-	if len(lookupIDs) == 0 {
-		return []string{office.ID}
-	}
-	return lookupIDs
-}
-
 const PreservedAppointmentTypeFallbackColor = "TEAL"
 
-var isDevEnv bool
-
 func ResolveAppointmentTypeID(typeID int) (int, bool) {
-	if _, ok := AppointmentTypes[typeID]; !ok {
-		return 0, false
-	}
-	if isDevEnv {
-		devID := AppointmentTypes[typeID].DevelopmentTypeID
-		return devID, devID != 0
-	}
-	return typeID, true
+	providerTypeID, ok := current.providerTypeIDs[typeID]
+	return providerTypeID, ok
 }
 
 func CanonicalAppointmentTypeID(typeID int) (int, bool) {
-	if !isDevEnv {
-		if _, ok := AppointmentTypes[typeID]; !ok {
-			return 0, false
-		}
-		return typeID, true
-	}
-
-	for canonicalID, appointmentType := range AppointmentTypes {
-		if appointmentType.DevelopmentTypeID != 0 && appointmentType.DevelopmentTypeID == typeID {
-			return canonicalID, true
-		}
-	}
-	return 0, false
+	canonicalID, ok := current.canonicalTypeIDs[typeID]
+	return canonicalID, ok
 }
 
 func (o *OfficeConfig) AllowsAppointmentType(typeID int, routing RoutingRule) bool {
-	appointmentType, ok := AppointmentTypes[typeID]
-	if !ok {
+	if _, ok := AppointmentTypes[typeID]; !ok {
 		return false
 	}
-
 	if routing == RoutingOpticalOnly {
-		return len(o.RoutingTiers[RoutingOpticalOnly]) > 0 && appointmentType.VisitType == AppointmentVisitRoutineVision
+		return len(o.RoutingTiers[RoutingOpticalOnly]) > 0 && o.AppointmentTypes.RoutineVision.includes(typeID)
 	}
 	if len(o.ColumnsForRouting(routing)) == 0 {
 		return false
 	}
-	if o.ID == "crystal_river" {
-		return appointmentType.CrystalRiver
+	return typeID == o.AppointmentTypes.PostOp || o.AppointmentTypes.Medical.includes(typeID)
+}
+
+type registry struct {
+	offices          []*OfficeConfig
+	byPhone          map[string]*OfficeConfig
+	defaultOffice    *OfficeConfig
+	providerTypeIDs  map[int]int
+	canonicalTypeIDs map[int]int
+}
+
+var registries = buildRegistries(newOfficeTable())
+
+var current = registries[Prod]
+
+func buildRegistries(table officeTable) map[Environment]*registry {
+	built := make(map[Environment]*registry, len(table.Environments))
+	for env, binding := range table.Environments {
+		built[env] = buildRegistry(table.Offices, binding)
 	}
-	if appointmentType.VisitType == AppointmentVisitRoutineVision {
-		return false
+	return built
+}
+
+func buildRegistry(definitions []officeDefinition, binding environmentBinding) *registry {
+	r := &registry{
+		byPhone:          map[string]*OfficeConfig{},
+		providerTypeIDs:  make(map[int]int, len(binding.AppointmentTypes)),
+		canonicalTypeIDs: make(map[int]int, len(binding.AppointmentTypes)),
 	}
-	if appointmentType.CrystalRiver {
-		return false
+	byID := map[string]*OfficeConfig{}
+	for _, definition := range definitions {
+		officeBinding, ok := binding.Offices[definition.ID]
+		if !ok {
+			continue
+		}
+		office := bindOffice(definition, officeBinding)
+		r.offices = append(r.offices, office)
+		byID[office.ID] = office
+		for _, phone := range officeBinding.Phones {
+			r.byPhone[phone] = office
+		}
 	}
-
-	return true
+	for _, definition := range definitions {
+		office, ok := byID[definition.ID]
+		if !ok {
+			continue
+		}
+		for _, id := range definition.AppointmentLookupOfficeIDs {
+			if _, available := byID[id]; available {
+				office.AppointmentLookupOfficeIDs = append(office.AppointmentLookupOfficeIDs, id)
+			}
+		}
+	}
+	r.defaultOffice = byID[defaultOfficeID]
+	for canonicalID, providerID := range binding.AppointmentTypes {
+		r.providerTypeIDs[canonicalID] = providerID
+		r.canonicalTypeIDs[providerID] = canonicalID
+	}
+	return r
 }
 
-var springHillOffice = &OfficeConfig{
-	ID:               "spring_hill",
-	DisplayName:      "Spring Hill",
-	FacilityID:       "1568",
-	DefaultProfileID: "620",
-	Columns: map[string]OfficeColumn{
-		"1513": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
-		"1598": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
-		"1551": {ProfileID: "2064", DisplayName: "Dr. Joseph Licht", ShortName: "Dr. Licht", MatchKey: "LICHT", SameStartCapacity: 2},
-		"1550": {ProfileID: "2076", DisplayName: "Dr. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL", SameStartCapacity: 2},
-		"1600": {ProfileID: "1983", DisplayName: "Dr. Melissa Otero", ShortName: "Dr. Otero", MatchKey: "OTERO"},
-	},
-	RoutingTiers: map[RoutingRule][]string{
-		RoutingBachOnly:    {"1513", "1598"},
-		RoutingBachLicht:   {"1513", "1598", "1551"},
-		RoutingAll:         {"1513", "1598", "1551", "1550"},
-		RoutingOpticalOnly: {"1600"},
-	},
-	PediatricRouting: RoutingBachOnly,
+func bindOffice(definition officeDefinition, binding officeBinding) *OfficeConfig {
+	office := &OfficeConfig{
+		ID:                      definition.ID,
+		DisplayName:             definition.DisplayName,
+		FacilityID:              binding.FacilityID,
+		DefaultProfileID:        binding.DefaultProfileID,
+		Columns:                 make(map[string]OfficeColumn, len(binding.Columns)),
+		RoutingTiers:            make(map[RoutingRule][]string, len(definition.RoutingTiers)),
+		PediatricRouting:        definition.PediatricRouting,
+		AppointmentTypes:        definition.AppointmentTypes,
+		RoutineVisionMinimumAge: definition.RoutineVisionMinimumAge,
+	}
+	for key, column := range definition.Columns {
+		columnBinding, ok := binding.Columns[key]
+		if !ok {
+			continue
+		}
+		office.Columns[columnBinding.ColumnID] = OfficeColumn{
+			ProfileID:         columnBinding.ProfileID,
+			DisplayName:       column.Provider.DisplayName,
+			ShortName:         column.Provider.ShortName,
+			MatchKey:          column.Provider.MatchKey,
+			MinAgeYears:       column.MinAgeYears,
+			SameStartCapacity: column.SameStartCapacity,
+			SameStartWindows:  column.SameStartWindows,
+		}
+	}
+	for rule, keys := range definition.RoutingTiers {
+		columnIDs := make([]string, 0, len(keys))
+		for _, key := range keys {
+			if columnBinding, ok := binding.Columns[key]; ok {
+				columnIDs = append(columnIDs, columnBinding.ColumnID)
+			}
+		}
+		office.RoutingTiers[rule] = columnIDs
+	}
+	return office
 }
-
-var crystalRiverOffice = &OfficeConfig{
-	ID:               "crystal_river",
-	DisplayName:      "Crystal River",
-	FacilityID:       "1576",
-	DefaultProfileID: "2064",
-	Columns: map[string]OfficeColumn{
-		"1593": {ProfileID: "2064", DisplayName: "Dr. Joseph Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"},
-	},
-	RoutingTiers: map[RoutingRule][]string{
-		RoutingBachOnly:  {"1593"},
-		RoutingBachLicht: {"1593"},
-		RoutingAll:       {"1593"},
-	},
-	PediatricRouting: RoutingNotAccepted,
-}
-
-var hollywoodSweetwaterRoutineDoubleBookWindows = []SameStartWindow{
-	sameStartWindow(time.Monday, 8, 30, 10, 45),
-	sameStartWindow(time.Monday, 13, 30, 14, 30),
-	sameStartWindow(time.Tuesday, 8, 30, 10, 45),
-	sameStartWindow(time.Tuesday, 13, 30, 14, 30),
-	sameStartWindow(time.Wednesday, 8, 30, 10, 45),
-	sameStartWindow(time.Wednesday, 13, 30, 14, 30),
-	sameStartWindow(time.Thursday, 8, 30, 10, 45),
-	sameStartWindow(time.Thursday, 13, 30, 14, 30),
-	sameStartWindow(time.Friday, 8, 30, 11, 45),
-}
-
-var sweetwaterOffice = &OfficeConfig{
-	ID:               "sweetwater",
-	DisplayName:      "Sweetwater",
-	FacilityID:       "670",
-	DefaultProfileID: "620",
-	Columns: map[string]OfficeColumn{
-		"682":  {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
-		"1307": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
-		"1296": {
-			ProfileID:         "1996",
-			DisplayName:       "Dr. Maria Casas",
-			ShortName:         "Dr. Casas",
-			MatchKey:          "CASAS",
-			MinAgeYears:       7,
-			SameStartCapacity: 2,
-			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
-		},
-		"1554": {
-			ProfileID:         "2075",
-			DisplayName:       "Dr. Kyler Farnan",
-			ShortName:         "Dr. Farnan",
-			MatchKey:          "FARNAN",
-			MinAgeYears:       5,
-			SameStartCapacity: 2,
-			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
-		},
-		"1210": {
-			ProfileID:         "1993",
-			DisplayName:       "Dr. Gisselle Calero",
-			ShortName:         "Dr. Calero",
-			MatchKey:          "CALERO",
-			MinAgeYears:       4,
-			SameStartCapacity: 2,
-			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
-		},
-	},
-	RoutingTiers: map[RoutingRule][]string{
-		RoutingBachOnly:    {"682", "1307"},
-		RoutingBachLicht:   {"682", "1307"},
-		RoutingAll:         {"682", "1307"},
-		RoutingOpticalOnly: {"1296", "1554", "1210"},
-	},
-	PediatricRouting: RoutingBachOnly,
-}
-
-var hollywoodOffice = &OfficeConfig{
-	ID:               "hollywood",
-	DisplayName:      "Hollywood",
-	FacilityID:       "1480",
-	DefaultProfileID: "620",
-	Columns: map[string]OfficeColumn{
-		"1268": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
-		"1478": {ProfileID: "620", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
-		"1555": {
-			ProfileID:         "2075",
-			DisplayName:       "Dr. Kyler Farnan",
-			ShortName:         "Dr. Farnan",
-			MatchKey:          "FARNAN",
-			MinAgeYears:       5,
-			SameStartCapacity: 2,
-			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
-		},
-		"1510": {
-			ProfileID:         "2057",
-			DisplayName:       "Dr. Lisbet Vidal",
-			ShortName:         "Dr. Vidal",
-			MatchKey:          "VIDAL",
-			MinAgeYears:       7,
-			SameStartCapacity: 2,
-			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
-		},
-		"1305": {
-			ProfileID:         "1993",
-			DisplayName:       "Dr. Gisselle Calero",
-			ShortName:         "Dr. Calero",
-			MatchKey:          "CALERO",
-			MinAgeYears:       4,
-			SameStartCapacity: 2,
-			SameStartWindows:  hollywoodSweetwaterRoutineDoubleBookWindows,
-		},
-	},
-	RoutingTiers: map[RoutingRule][]string{
-		RoutingBachOnly:    {"1268", "1478"},
-		RoutingBachLicht:   {"1268", "1478"},
-		RoutingAll:         {"1268", "1478"},
-		RoutingOpticalOnly: {"1555", "1510", "1305"},
-	},
-	PediatricRouting: RoutingBachOnly,
-}
-
-var northMiamiBeachOpticalOffice = &OfficeConfig{
-	ID:               "north_miami_beach_optical",
-	DisplayName:      "North Miami Beach Optical",
-	FacilityID:       "1582",
-	DefaultProfileID: "621",
-	Columns: map[string]OfficeColumn{
-		"1601": {ProfileID: "621", DisplayName: "Dr. Miriam Bach", ShortName: "Dr. Miriam Bach", MatchKey: "BACH"},
-	},
-	RoutingTiers: map[RoutingRule][]string{
-		RoutingOpticalOnly: {"1601"},
-	},
-	PediatricRouting: RoutingNotAccepted,
-}
-
-var devSpringHillOffice = &OfficeConfig{
-	ID:               "spring_hill",
-	DisplayName:      "Spring Hill",
-	FacilityID:       "1032",
-	DefaultProfileID: "1135",
-	Columns: map[string]OfficeColumn{
-		"1716": {ProfileID: "1135", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH", SameStartCapacity: 2},
-		"1723": {ProfileID: "1141", DisplayName: "Dr. Joseph Licht", ShortName: "Dr. Licht", MatchKey: "LICHT", SameStartCapacity: 2},
-		"1726": {ProfileID: "1137", DisplayName: "Dr. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL", SameStartCapacity: 2},
-	},
-	RoutingTiers: map[RoutingRule][]string{
-		RoutingBachOnly:  {"1716"},
-		RoutingBachLicht: {"1716", "1723"},
-		RoutingAll:       {"1716", "1723", "1726"},
-	},
-	PediatricRouting: RoutingBachOnly,
-}
-
-var prodOffices = map[string]*OfficeConfig{
-	"+17275919997": springHillOffice,
-	"+13523202007": crystalRiverOffice,
-	"+19542872010": hollywoodOffice,
-	"+17864657475": sweetwaterOffice,
-	"+17864654845": sweetwaterOffice,
-	"+17866134310": sweetwaterOffice,
-	"+17864657479": sweetwaterOffice,
-	"+17864654836": sweetwaterOffice,
-	"+17864654882": sweetwaterOffice,
-	"+13055095333": northMiamiBeachOpticalOffice,
-}
-
-var devOffices = map[string]*OfficeConfig{
-	"+14843989071": devSpringHillOffice,
-}
-
-var officeRegistry = prodOffices
-
-var defaultPhone = "+17275919997"
 
 func InitRegistry(env string) {
 	switch env {
 	case "dev":
-		officeRegistry = devOffices
-		defaultPhone = "+14843989071"
-		isDevEnv = true
+		current = registries[Sandbox]
 		log.Printf("Office registry: dev")
 	default:
-		officeRegistry = prodOffices
-		defaultPhone = "+17275919997"
-		isDevEnv = false
+		current = registries[Prod]
 		log.Printf("Office registry: prod")
 	}
 }
@@ -536,14 +376,14 @@ func NormalizePhoneDigits(s string) string {
 func LookupOffice(phone string) (*OfficeConfig, bool) {
 	phone = strings.TrimSpace(phone)
 	for _, key := range officePhoneLookupKeys(phone) {
-		if office, ok := officeRegistry[key]; ok {
+		if office, ok := current.byPhone[key]; ok {
 			return office, true
 		}
 	}
 
 	lookup := normalizeOfficeLookup(phone)
 	compactLookup := strings.ReplaceAll(lookup, " ", "")
-	for _, office := range officeRegistry {
+	for _, office := range current.offices {
 		for _, candidate := range []string{office.ID, office.DisplayName} {
 			normalized := normalizeOfficeLookup(candidate)
 			if lookup == normalized || compactLookup == strings.ReplaceAll(normalized, " ", "") {
@@ -576,17 +416,13 @@ func officePhoneLookupKeys(phone string) []string {
 }
 
 func DefaultOffice() *OfficeConfig {
-	return officeRegistry[defaultPhone]
+	return current.defaultOffice
 }
 
 func validOfficeNames() []string {
-	seen := make(map[string]bool)
-	names := make([]string, 0, len(officeRegistry))
-	for _, office := range officeRegistry {
-		if !seen[office.DisplayName] {
-			seen[office.DisplayName] = true
-			names = append(names, office.DisplayName)
-		}
+	names := make([]string, 0, len(current.offices))
+	for _, office := range current.offices {
+		names = append(names, office.DisplayName)
 	}
 	sort.Strings(names)
 	return names

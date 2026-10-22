@@ -39,7 +39,7 @@ func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveR
 		Recorded:                true,
 		PatientSearchDurationMS: time.Since(searchStarted).Milliseconds(),
 		PatientSearchReads:      1,
-		OfficeGroupSize:         len(domain.AppointmentLookupOfficeIDs(office)),
+		OfficeGroupSize:         len(office.AppointmentLookupOfficeIDs),
 		AppointmentOutcome:      "not_requested",
 	}
 	if err != nil {
@@ -127,7 +127,7 @@ func (p *patient) resolvePatient(ctx context.Context, candidate domain.Patient, 
 }
 
 func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate domain.Patient, lookupPhone string, office *domain.OfficeConfig, loaded *domain.PatientDemographics) (ResolveResult, error) {
-	officeIDs := domain.AppointmentLookupOfficeIDs(office)
+	officeIDs := office.AppointmentLookupOfficeIDs
 	result := ResolveResult{
 		Status:       StatusVerified,
 		PatientID:    candidate.ID,

@@ -4,25 +4,24 @@ import "testing"
 
 func TestAppointmentTypeCatalog(t *testing.T) {
 	tests := []struct {
-		id           int
-		name         string
-		color        string
-		visitType    string
-		ageBand      string
-		crystalRiver bool
+		id        int
+		name      string
+		color     string
+		visitType string
+		ageBand   string
 	}{
-		{1004, "New Pediatric Medical", "GREEN", AppointmentVisitMedical, AppointmentAgePediatric, false},
-		{1005, "Established Pediatric Medical (Follow Up)", "PINK", AppointmentVisitMedical, AppointmentAgePediatric, false},
-		{1006, "New Adult Medical", "RED", AppointmentVisitMedical, AppointmentAgeAdult, false},
-		{1007, "Established Adult Medical (Follow Up)", "ORANGE", AppointmentVisitMedical, AppointmentAgeAdult, false},
-		{1008, "Post Op", "BLUE", AppointmentVisitMedical, appointmentAgeAny, false},
-		{1010, "New Adult Vision", "TEAL", AppointmentVisitRoutineVision, AppointmentAgeAdult, false},
-		{3364, "Established Adult Vision", "ROSE", AppointmentVisitRoutineVision, AppointmentAgeAdult, false},
-		{4244, "New Pediatric Vision", "BROWN", AppointmentVisitRoutineVision, AppointmentAgePediatric, false},
-		{4245, "Established Pediatric Vision", "GRAY", AppointmentVisitRoutineVision, AppointmentAgePediatric, false},
-		{6167, "Crystal River New Patient", "ORANGE", AppointmentVisitMedical, appointmentAgeAny, true},
-		{6168, "Crystal River Post Op", "TEAL", AppointmentVisitMedical, appointmentAgeAny, true},
-		{6169, "Crystal River Established Patient", "RED", AppointmentVisitMedical, appointmentAgeAny, true},
+		{1004, "New Pediatric Medical", "GREEN", AppointmentVisitMedical, AppointmentAgePediatric},
+		{1005, "Established Pediatric Medical (Follow Up)", "PINK", AppointmentVisitMedical, AppointmentAgePediatric},
+		{1006, "New Adult Medical", "RED", AppointmentVisitMedical, AppointmentAgeAdult},
+		{1007, "Established Adult Medical (Follow Up)", "ORANGE", AppointmentVisitMedical, AppointmentAgeAdult},
+		{1008, "Post Op", "BLUE", AppointmentVisitMedical, appointmentAgeAny},
+		{1010, "New Adult Vision", "TEAL", AppointmentVisitRoutineVision, AppointmentAgeAdult},
+		{3364, "Established Adult Vision", "ROSE", AppointmentVisitRoutineVision, AppointmentAgeAdult},
+		{4244, "New Pediatric Vision", "BROWN", AppointmentVisitRoutineVision, AppointmentAgePediatric},
+		{4245, "Established Pediatric Vision", "GRAY", AppointmentVisitRoutineVision, AppointmentAgePediatric},
+		{6167, "Crystal River New Patient", "ORANGE", AppointmentVisitMedical, appointmentAgeAny},
+		{6168, "Crystal River Post Op", "TEAL", AppointmentVisitMedical, appointmentAgeAny},
+		{6169, "Crystal River Established Patient", "RED", AppointmentVisitMedical, appointmentAgeAny},
 	}
 
 	if len(AppointmentTypes) != len(tests) {
@@ -34,7 +33,7 @@ func TestAppointmentTypeCatalog(t *testing.T) {
 			if !ok {
 				t.Fatalf("AppointmentTypes[%d] is missing", test.id)
 			}
-			if got.Name != test.name || got.Color != test.color || got.VisitType != test.visitType || got.AgeBand != test.ageBand || got.CrystalRiver != test.crystalRiver {
+			if got.Name != test.name || got.Color != test.color || got.VisitType != test.visitType || got.AgeBand != test.ageBand {
 				t.Errorf("AppointmentTypes[%d] = %+v", test.id, got)
 			}
 			if AppointmentVisitType(test.id) != test.visitType {
