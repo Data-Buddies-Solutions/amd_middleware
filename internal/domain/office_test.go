@@ -501,21 +501,3 @@ func TestInitRegistryRejectsAnUnknownEnvironment(t *testing.T) {
 		}()
 	}
 }
-
-func TestEveryOfficeColumnHasDisplayName(t *testing.T) {
-	t.Cleanup(func() { InitRegistry(Prod) })
-	for _, env := range []Environment{Prod, Sandbox} {
-		InitRegistry(env)
-		for _, id := range OfficeIDs() {
-			office, ok := LookupOfficeByID(id)
-			if !ok {
-				continue
-			}
-			for columnID, column := range office.Columns {
-				if column.DisplayName == "" {
-					t.Errorf("%s office %s column %s has no display name", env, id, columnID)
-				}
-			}
-		}
-	}
-}

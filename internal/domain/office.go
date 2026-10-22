@@ -206,8 +206,8 @@ func (o *OfficeConfig) AppointmentTypeName(typeID int) (string, bool) {
 }
 
 func OfficeIDs() []string {
-	ids := make([]string, 0, len(table.Offices))
-	for _, definition := range table.Offices {
+	ids := make([]string, 0, len(officeData.Offices))
+	for _, definition := range officeData.Offices {
 		ids = append(ids, definition.ID)
 	}
 	sort.Strings(ids)
@@ -215,7 +215,7 @@ func OfficeIDs() []string {
 }
 
 func OfficeProviderNames(officeID string) ([]string, bool) {
-	for _, definition := range table.Offices {
+	for _, definition := range officeData.Offices {
 		if definition.ID != officeID {
 			continue
 		}
@@ -273,9 +273,16 @@ type registry struct {
 	canonicalTypeIDs map[int]int
 }
 
-var table = newOfficeTable()
+var officeData = newOfficeTable()
 
-var registries = buildRegistries(table)
+var registries = mustBuildRegistries(officeData)
+
+func mustBuildRegistries(table officeTable) map[Environment]*registry {
+	if err := validateOfficeTable(table); err != nil {
+		panic("invalid office table: " + err.Error())
+	}
+	return buildRegistries(table)
+}
 
 var current *registry
 
@@ -378,13 +385,14 @@ const (
 	Sandbox Environment = "sandbox"
 )
 
+var environments = []Environment{Prod, Sandbox}
+
 func ParseEnvironment(value string) (Environment, error) {
-	switch env := Environment(value); env {
-	case Prod, Sandbox:
-		return env, nil
-	default:
-		return "", fmt.Errorf("environment must be %s or %s", Prod, Sandbox)
+	env := Environment(value)
+	if !slices.Contains(environments, env) {
+		return "", fmt.Errorf("environment must be one of %v", environments)
 	}
+	return env, nil
 }
 
 func InitRegistry(env Environment) {
