@@ -44,7 +44,8 @@ Creating a matching tag manually also triggers production deployment.
 ## Enforced rules
 
 Each rule below fails a check today. A rule without a check does not belong
-here.
+here. `scripts/check` runs the Go checks; CI runs the same script, so run it
+before opening a pull request.
 
 | Rule | What enforces it |
 | --- | --- |
@@ -52,7 +53,7 @@ here.
 | Go files carry no code comments; only `//go:` directives are allowed | `TestNoCodeComments` in `comments_test.go` |
 | Go files outside `cmd/api` and tests do not dot-import `time` and reference `time.Now` only as `x := time.Now()` where `x` is used solely as the argument of `time.Since` | `TestNoWallClockOutsideMain` in `wall_clock_test.go` |
 | `Dockerfile` and `cloudbuild.yaml` build with the `go.mod` toolchain | `TestBuildImagesUseTheGoModToolchain` in `toolchain_test.go` |
-| Go files under `cmd` and `internal` are `gofmt` formatted | CI step `Format check` |
-| Every function is reachable from `main` or a test | CI step `Dead code check` |
+| Every tracked Go file is `gofmt` formatted | `scripts/check` step `gofmt` |
+| Every function is reachable from `main` or a test | `scripts/check` step `dead code` |
 | README.md's HTTP interface tables list every route the router serves and no others | `TestReadmeRouteTableMatchesRouter` in `readme_routes_test.go` |
-| Tests pass under the race detector | CI step `Race test` |
+| Tests pass under the race detector | `scripts/check` step `race tests` |
