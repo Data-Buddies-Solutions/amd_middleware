@@ -382,7 +382,7 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *session.
 func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *session.TokenData, patientID, insPlanID string) (resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "enddateinsurance")
 	defer func() { finish(resultErr) }()
-	today := c.now().Format("01/02/2006")
+	today := c.now().In(domain.EasternLocation()).Format("01/02/2006")
 
 	payload := map[string]interface{}{
 		"ppmdmsg": map[string]interface{}{

@@ -149,6 +149,7 @@ func isMinor(dob string, asOf time.Time) bool {
 }
 
 func AgeYearsOn(dob string, asOf time.Time) (int, bool) {
+	asOf = asOf.In(easternLocation)
 	t, err := time.Parse("01/02/2006", NormalizeDOB(dob))
 	if err != nil {
 		return 0, false
