@@ -121,6 +121,43 @@ func TestCreateOwnsValidationAndOfficeResolution(t *testing.T) {
 	}
 }
 
+func TestCreateRejectsInvalidDOBBeforeAnyAdvancedMDCall(t *testing.T) {
+	domain.InitRegistry("")
+	for _, dob := range []string{"13/45/2020", ""} {
+		t.Run(dob, func(t *testing.T) {
+			amd := advancedmdtest.NewAdapter()
+			command := validCreateCommand()
+			command.DOB = dob
+
+			got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), command)
+
+			if got.Status != patient.CreateStatusError || got.Outcome != patient.MutationValidationFailed || got.Message == "" {
+				t.Fatalf("Create(dob=%q) = %+v, want validation failure", dob, got)
+			}
+			if amd.SearchPatientCalls != 0 || amd.CreatePatientCalls != 0 || amd.AddInsuranceCalls != 0 {
+				t.Fatalf("Create(dob=%q) called AdvancedMD: searches=%d creates=%d insurance=%d", dob, amd.SearchPatientCalls, amd.CreatePatientCalls, amd.AddInsuranceCalls)
+			}
+		})
+	}
+}
+
+func TestCreateAcceptsTheDOBFormatsAbitaSends(t *testing.T) {
+	domain.InitRegistry("")
+	for _, dob := range []string{"1/5/1980", "01/05/1980", "1/15/1980", "01/5/1980"} {
+		t.Run(dob, func(t *testing.T) {
+			amd := advancedmdtest.NewAdapter()
+			command := validCreateCommand()
+			command.DOB = dob
+
+			got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), command)
+
+			if got.Status != patient.CreateStatusCreated || amd.CreatePatientCalls != 1 {
+				t.Fatalf("Create(dob=%q) = %+v with %d writes, want one created patient", dob, got, amd.CreatePatientCalls)
+			}
+		})
+	}
+}
+
 func TestCreateReturnsStableRejectionWithoutRetry(t *testing.T) {
 	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()

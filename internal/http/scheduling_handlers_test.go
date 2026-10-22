@@ -205,6 +205,44 @@ func TestListSlotsErrorsPreserveInventoryContract(t *testing.T) {
 	}
 }
 
+func TestListSlotsRoutingContract(t *testing.T) {
+	for _, tc := range []struct {
+		name, body string
+		searches   bool
+	}{
+		{name: "unknown routing", body: `{"office":"Spring Hill","startDate":"2026-06-03","routing":"bach-only"}`},
+		{name: "abita medical without routing", body: `{"office":"Spring Hill","startDate":"2026-06-03","patientId":"123","visitType":"medical","dob":"01/15/1980"}`, searches: true},
+		{name: "abita routine vision without routing", body: `{"office":"Spring Hill","startDate":"2026-06-03","patientId":"123","visitType":"routine_vision","dob":"01/15/1980"}`, searches: true},
+		{name: "not_accepted", body: `{"office":"Spring Hill","startDate":"2026-06-03","routing":"not_accepted"}`, searches: true},
+		{name: "bach_only", body: `{"office":"Spring Hill","startDate":"2026-06-03","routing":"bach_only"}`, searches: true},
+		{name: "bach_licht", body: `{"office":"Spring Hill","startDate":"2026-06-03","routing":"bach_licht"}`, searches: true},
+		{name: "all_three", body: `{"office":"Spring Hill","startDate":"2026-06-03","routing":"all_three"}`, searches: true},
+		{name: "optical_only", body: `{"office":"Spring Hill","startDate":"2026-06-03","routing":"optical_only"}`, searches: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			records := advancedmdtest.NewAdapter()
+			scheduler := schedulingmodule.New(records, "secret", func() time.Time { return time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC) })
+			handlers := NewHandlers(nil, nil, scheduler, testNow)
+			response := httptest.NewRecorder()
+			handlers.HandleListAppointmentSlots(response, httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(tc.body)))
+			var got schedulingmodule.AvailabilityResponse
+			if err := json.Unmarshal(response.Body.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			searched := records.SchedulerSetupCalls != 0 || len(records.ScheduleRangeQueries) != 0 || len(records.ScheduleReadQueries) != 0
+			if tc.searches {
+				if got.Outcome == schedulingmodule.AvailabilityOutcomeInvalidInput || !searched {
+					t.Fatalf("searched=%v inventory=%s", searched, response.Body.String())
+				}
+				return
+			}
+			if got.Status != "error" || got.Outcome != schedulingmodule.AvailabilityOutcomeInvalidInput || got.Slots == nil || got.ShouldRetrySameSearch || got.Message == "" || searched {
+				t.Fatalf("searched=%v inventory=%s", searched, response.Body.String())
+			}
+		})
+	}
+}
+
 func TestListSlotsRejectsRemovedFieldsBeforeScheduling(t *testing.T) {
 	for _, field := range []string{`"insurancePlan":"ignored"`, `"coverageType":"medical"`, `"rangeDays":14`} {
 		t.Run(field, func(t *testing.T) {
