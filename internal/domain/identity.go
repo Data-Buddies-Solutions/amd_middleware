@@ -176,7 +176,8 @@ func (n RecordName) MatchesFirstName(spoken PersonName) bool {
 }
 
 func (n RecordName) GivenStartsWith(spoken PersonName) bool {
-	return strings.HasPrefix(strings.ToUpper(StripDiacritics(n.Given)), strings.ToUpper(string(spoken)))
+	key := spoken.Key()
+	return key != "" && strings.HasPrefix(nameKey(n.Given), key)
 }
 
 func (n RecordName) WrittenAs(first, last PersonName) bool {

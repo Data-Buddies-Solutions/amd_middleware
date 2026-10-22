@@ -94,3 +94,16 @@ func TestASpokenFullGivenNameMatchesAChartWithAMiddleName(t *testing.T) {
 		}
 	}
 }
+
+func TestPhoneAndLastNameLookupsCompareFirstNamesByTheirLetters(t *testing.T) {
+	for _, spoken := range []string{"Maryann", "Mary-Ann", " Mary", "Mar"} {
+		resolved, _ := postIdentity(t, "/api/patient/resolve", map[string]any{"office": "Spring Hill", "phone": "9545550100", "firstName": spoken})
+		if resolved["status"] != "verified" || resolved["patientId"] != "101" {
+			t.Errorf("phone + firstName %q = %v", spoken, resolved)
+		}
+	}
+	resolved, _ := postIdentity(t, "/api/patient/resolve", map[string]any{"office": "Spring Hill", "phone": "9545550100", "firstName": "123"})
+	if resolved["status"] != "not_found" {
+		t.Errorf("phone + letterless firstName = %v", resolved)
+	}
+}
