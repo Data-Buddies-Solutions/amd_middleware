@@ -60,7 +60,7 @@ func MutationFailureOf(err error) MutationFailure {
 
 type PatientRecords interface {
 	ReadPatientCandidates(ctx context.Context, firstName, dob string) (domain.PatientCandidateRead, error)
-	SearchPatients(ctx context.Context, search domain.PatientSearch) ([]domain.Patient, error)
+	SearchPatients(ctx context.Context, search domain.PatientSearch) (domain.PatientCandidateRead, error)
 	GetPatientDemographics(ctx context.Context, patientID string) (domain.PatientDemographics, error)
 	ReadPatientAppointments(ctx context.Context, query domain.PatientAppointmentsQuery) (AppointmentRead, error)
 	CreatePatient(ctx context.Context, command domain.PatientCreate) (domain.CreatedPatient, error)

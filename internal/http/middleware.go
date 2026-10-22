@@ -45,6 +45,7 @@ type requestLogState struct {
 	providerFailure safeerrors.Category
 	cancellation    *cancellationLogEntry
 	patientResolve  *patientResolutionLogEntry
+	patientCreate   *patientCreateLogEntry
 }
 
 type cancellationLogEntry struct {
@@ -65,6 +66,11 @@ type patientResolutionLogEntry struct {
 	OfficeGroupSize         int    `json:"office_group_size"`
 	CandidateCount          string `json:"candidate_count"`
 	AppointmentOutcome      string `json:"appointment_outcome"`
+	LookupComplete          *bool  `json:"lookup_complete,omitempty"`
+}
+
+type patientCreateLogEntry struct {
+	LookupComplete bool `json:"lookup_complete"`
 }
 
 type requestLogEntry struct {
@@ -76,6 +82,7 @@ type requestLogEntry struct {
 	ProviderFailure    safeerrors.Category             `json:"provider_failure_category"`
 	Cancellation       *cancellationLogEntry           `json:"cancellation,omitempty"`
 	PatientResolution  *patientResolutionLogEntry      `json:"patient_resolution,omitempty"`
+	PatientCreate      *patientCreateLogEntry          `json:"patient_create,omitempty"`
 	ProviderErrors     []safeerrors.ProviderDiagnostic `json:"provider_errors,omitempty"`
 	ProviderErrorCount int                             `json:"provider_error_count,omitempty"`
 	HTTPStatus         int                             `json:"http_status"`
@@ -150,6 +157,7 @@ func loggingMiddleware(amdSession session.Session) func(http.Handler) http.Handl
 				ProviderFailure:    state.providerFailure,
 				Cancellation:       state.cancellation,
 				PatientResolution:  state.patientResolve,
+				PatientCreate:      state.patientCreate,
 				ProviderErrors:     providerErrors,
 				ProviderErrorCount: providerErrorCount,
 				HTTPStatus:         wrapped.statusCode,
@@ -228,7 +236,19 @@ func recordPatientResolutionObservation(
 		OfficeGroupSize:    observation.OfficeGroupSize,
 		CandidateCount:     observation.CandidateCountBucket,
 		AppointmentOutcome: observation.AppointmentOutcome,
+		LookupComplete:     observation.PatientSearchComplete,
 	}
+}
+
+func recordPatientCreateObservation(ctx context.Context, observation patientmodule.CreateObservation) {
+	if observation.BaselineSearchComplete == nil {
+		return
+	}
+	state, ok := ctx.Value(requestLogKey).(*requestLogState)
+	if !ok {
+		return
+	}
+	state.patientCreate = &patientCreateLogEntry{LookupComplete: *observation.BaselineSearchComplete}
 }
 
 func outcomeForStatus(status int) outcomeCategory {

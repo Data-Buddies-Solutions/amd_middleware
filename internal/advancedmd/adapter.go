@@ -48,21 +48,21 @@ func NewAdapter(
 	}
 }
 
-func (a *Adapter) SearchPatients(ctx context.Context, search domain.PatientSearch) ([]domain.Patient, error) {
+func (a *Adapter) SearchPatients(ctx context.Context, search domain.PatientSearch) (domain.PatientCandidateRead, error) {
 	token, err := a.token(ctx)
 	if err != nil {
-		return nil, err
+		return domain.PatientCandidateRead{}, err
 	}
-	var patients []domain.Patient
+	var read domain.PatientCandidateRead
 	if search.Phone != "" {
-		patients, err = a.xmlClient.LookupPatientByPhone(ctx, token, search.Phone)
+		read, err = a.xmlClient.LookupPatientByPhone(ctx, token, search.Phone)
 	} else {
-		patients, err = a.xmlClient.LookupPatient(ctx, token, search.LastName, search.FirstName)
+		read, err = a.xmlClient.LookupPatient(ctx, token, search.LastName, search.FirstName)
 	}
 	if err != nil {
-		return nil, classify(err)
+		return domain.PatientCandidateRead{}, classify(err)
 	}
-	return patients, nil
+	return read, nil
 }
 
 func (a *Adapter) ReadPatientCandidates(ctx context.Context, firstName, dob string) (domain.PatientCandidateRead, error) {

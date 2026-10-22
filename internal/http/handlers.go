@@ -81,6 +81,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result := h.patient.Create(r.Context(), command)
+	recordPatientCreateObservation(r.Context(), result.Observation)
 	recordPatientMutationOutcome(r.Context(), result.Outcome)
 	if result.Status == patientmodule.CreateStatusCreated {
 		result.Outcome = ""

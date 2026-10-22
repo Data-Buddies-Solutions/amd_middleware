@@ -11,7 +11,9 @@ import (
 )
 
 func (p *patient) Create(ctx context.Context, command CreateCommand) (result CreateResult) {
+	var observation CreateObservation
 	defer func() {
+		result.Observation = observation
 		recordMutation("create", mutationLabel(result.Outcome, result.Status == CreateStatusCreated))
 	}()
 
@@ -32,7 +34,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
 
-	created, createReconciled, outcome := p.createPatient(ctx, command, office)
+	created, createReconciled, outcome, observation := p.createPatient(ctx, command, office)
 	switch outcome {
 	case MutationValidationFailed:
 		return CreateResult{Status: CreateStatusError, Outcome: outcome, Message: "An existing patient chart matches this first name and date of birth for this phone number. Do not create a new chart; look up the existing patient instead."}
@@ -116,13 +118,13 @@ func createMissingFields(command CreateCommand) []string {
 	return missing
 }
 
-func (p *patient) createPatient(ctx context.Context, command CreateCommand, office *domain.OfficeConfig) (domain.CreatedPatient, bool, MutationOutcome) {
-	baseline, err := p.creationBaseline(ctx, command)
+func (p *patient) createPatient(ctx context.Context, command CreateCommand, office *domain.OfficeConfig) (domain.CreatedPatient, bool, MutationOutcome, CreateObservation) {
+	baseline, observation, err := p.creationBaseline(ctx, command)
 	if errors.Is(err, errExistingPatient) {
-		return domain.CreatedPatient{}, false, MutationValidationFailed
+		return domain.CreatedPatient{}, false, MutationValidationFailed, observation
 	}
 	if err != nil {
-		return domain.CreatedPatient{}, false, failureOutcome(err)
+		return domain.CreatedPatient{}, false, failureOutcome(err), observation
 	}
 
 	created, err := p.advancedMD.CreatePatient(ctx, domain.PatientCreate{
@@ -141,16 +143,16 @@ func (p *patient) createPatient(ctx context.Context, command CreateCommand, offi
 		OfficeID:  office.ID,
 	})
 	if err == nil {
-		return created, false, ""
+		return created, false, "", observation
 	}
 	switch advancedmd.MutationFailureOf(err) {
 	case advancedmd.MutationRejected:
-		return domain.CreatedPatient{}, false, MutationRejected
+		return domain.CreatedPatient{}, false, MutationRejected, observation
 	case advancedmd.MutationAmbiguous:
 		created, outcome := p.reconcileCreatedPatient(ctx, command, baseline)
-		return created, outcome == "", outcome
+		return created, outcome == "", outcome, observation
 	default:
-		return domain.CreatedPatient{}, false, failureOutcome(err)
+		return domain.CreatedPatient{}, false, failureOutcome(err), observation
 	}
 }
 
@@ -163,28 +165,30 @@ func givenName(candidate domain.Patient) string {
 	return ""
 }
 
-func (p *patient) creationBaseline(ctx context.Context, command CreateCommand) (map[string]struct{}, error) {
+func (p *patient) creationBaseline(ctx context.Context, command CreateCommand) (map[string]struct{}, CreateObservation, error) {
 	search := domain.PatientSearch{Phone: domain.NormalizePhoneDigits(command.Phone)}
-	candidates, err := retryRead(ctx, func() ([]domain.Patient, error) {
+	read, err := retryRead(ctx, func() (domain.PatientCandidateRead, error) {
 		return p.advancedMD.SearchPatients(ctx, search)
 	})
 	if err != nil {
-		return nil, err
+		return nil, CreateObservation{}, err
 	}
+	complete := read.Complete
+	observation := CreateObservation{BaselineSearchComplete: &complete}
 
 	baseline := make(map[string]struct{})
-	for _, candidate := range candidates {
+	for _, candidate := range read.Patients {
 		id := domain.StripPatientPrefix(candidate.ID)
 		if id == "" {
-			return nil, errors.New("patient reconciliation baseline contains a record without an ID")
+			return nil, observation, errors.New("patient reconciliation baseline contains a record without an ID")
 		}
 		if exactFirstName(givenName(candidate)) == exactFirstName(command.FirstName) &&
 			domain.NormalizeDOB(candidate.DOB) == domain.NormalizeDOB(command.DOB) {
-			return nil, errExistingPatient
+			return nil, observation, errExistingPatient
 		}
 		baseline[id] = struct{}{}
 	}
-	return baseline, nil
+	return baseline, observation, nil
 }
 
 func (p *patient) reconcileCreatedPatient(
@@ -194,9 +198,9 @@ func (p *patient) reconcileCreatedPatient(
 ) (domain.CreatedPatient, MutationOutcome) {
 	search := domain.PatientSearch{Phone: domain.NormalizePhoneDigits(command.Phone)}
 	for attempt := 1; attempt <= maxReadAttempts; attempt++ {
-		candidates, err := p.advancedMD.SearchPatients(ctx, search)
+		read, err := p.advancedMD.SearchPatients(ctx, search)
 		if err == nil {
-			matches, identifiable := newCreationMatches(candidates, command, baseline)
+			matches, identifiable := newCreationMatches(read.Patients, command, baseline)
 			if !identifiable {
 				return domain.CreatedPatient{}, MutationIndeterminateWrite
 			}

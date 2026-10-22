@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -397,9 +398,10 @@ func TestRequestLogRecordsPHISafePatientResolutionStages(t *testing.T) {
 		wantTotalReads  float64
 		wantCandidates  string
 		wantApptOutcome string
+		wantComplete    any
 	}{
 		{
-			name:            "paired office single match",
+			name:            "paired office single match from legacy unpaged search",
 			body:            `{"phone":"9542872010","office":"Spring Hill"}`,
 			wantSearchReads: 1,
 			wantDemoReads:   1,
@@ -407,9 +409,10 @@ func TestRequestLogRecordsPHISafePatientResolutionStages(t *testing.T) {
 			wantTotalReads:  8,
 			wantCandidates:  "1",
 			wantApptOutcome: "found",
+			wantComplete:    false,
 		},
 		{
-			name:            "multiple matches defer hydration",
+			name:            "multiple matches from complete paged search defer hydration",
 			body:            `{"phone":"5552223333","office":"Spring Hill"}`,
 			wantSearchReads: 1,
 			wantDemoReads:   0,
@@ -417,6 +420,29 @@ func TestRequestLogRecordsPHISafePatientResolutionStages(t *testing.T) {
 			wantTotalReads:  1,
 			wantCandidates:  "2-5",
 			wantApptOutcome: "deferred",
+			wantComplete:    true,
+		},
+		{
+			name:            "first name and DOB from legacy unpaged search",
+			body:            `{"firstName":"Jane","dob":"01/15/1980","office":"Spring Hill"}`,
+			wantSearchReads: 1,
+			wantDemoReads:   0,
+			wantApptReads:   0,
+			wantTotalReads:  1,
+			wantCandidates:  "1",
+			wantApptOutcome: "not_requested",
+			wantComplete:    false,
+		},
+		{
+			name:            "patient ID runs no search",
+			body:            `{"patientId":"123","office":"Spring Hill"}`,
+			wantSearchReads: 0,
+			wantDemoReads:   1,
+			wantApptReads:   6,
+			wantTotalReads:  7,
+			wantCandidates:  "1",
+			wantApptOutcome: "found",
+			wantComplete:    nil,
 		},
 	}
 
@@ -450,6 +476,7 @@ func TestRequestLogRecordsPHISafePatientResolutionStages(t *testing.T) {
 				"office_group_size":    float64(2),
 				"candidate_count":      test.wantCandidates,
 				"appointment_outcome":  test.wantApptOutcome,
+				"lookup_complete":      test.wantComplete,
 			}
 			for field, expected := range want {
 				if observation[field] != expected {
@@ -477,6 +504,68 @@ func TestRequestLogRecordsPHISafePatientResolutionStages(t *testing.T) {
 			} {
 				if strings.Contains(logs.String(), forbidden) {
 					t.Errorf("patient-resolution log exposed %q: %s", forbidden, logs.String())
+				}
+			}
+		})
+	}
+}
+
+func TestRequestLogRecordsAddPatientBaselineSearchCompleteness(t *testing.T) {
+	const createBody = `{
+		"firstName":"Jane","lastName":"Doe","dob":"01/15/1980","phone":"9542872010",
+		"street":"123 Main St","city":"Spring Hill","state":"FL","zip":"34609","sex":"female",
+		"insurance":"Humana Medicare","subscriberName":"Jane Doe","subscriberNum":"H123","office":"Spring Hill"
+	}`
+	for _, tc := range []struct {
+		name       string
+		body       string
+		lookup     string
+		wantCreate any
+	}{
+		{
+			name:       "legacy unpaged baseline search",
+			body:       createBody,
+			lookup:     `{"PPMDResults":{"Results":{"patientlist":{"@itemcount":"1","patient":{"@id":"pat555","@name":"DOE,ROBIN","@dob":"03/20/1982"}}}}}`,
+			wantCreate: map[string]any{"lookup_complete": false},
+		},
+		{
+			name:       "complete paged baseline search",
+			body:       createBody,
+			lookup:     `{"PPMDResults":{"Results":{"patientlist":{"@itemcount":"0","@page":"1","@pagecount":"1"}}}}`,
+			wantCreate: map[string]any{"lookup_complete": true},
+		},
+		{
+			name:       "validation failure runs no search",
+			body:       `{"firstName":"Jane","office":"Spring Hill"}`,
+			wantCreate: nil,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var logs bytes.Buffer
+			previousWriter := log.Writer()
+			log.SetOutput(&logs)
+			t.Cleanup(func() { log.SetOutput(previousWriter) })
+
+			handlers := newProviderFailureTestHandlers(t, func(r *http.Request, body []byte) *providerFailure {
+				switch {
+				case strings.Contains(string(body), `"@action":"lookuppatient"`):
+					return &providerFailure{status: http.StatusOK, body: tc.lookup}
+				case strings.Contains(string(body), `"@action":"addpatient"`):
+					return &providerFailure{status: http.StatusOK, body: `{"PPMDResults":{"Error":"rejected"}}`}
+				}
+				return nil
+			})
+			req := httptest.NewRequest(http.MethodPost, "/api/add-patient", strings.NewReader(tc.body))
+			req.Header.Set("Authorization", "Bearer test-secret")
+			NewRouter(handlers, "test-secret", nil).ServeHTTP(httptest.NewRecorder(), req)
+
+			entry := decodeLastLogEntry(t, logs.String())
+			if !reflect.DeepEqual(entry["patient_create"], tc.wantCreate) {
+				t.Fatalf("patient_create = %#v, want %#v", entry["patient_create"], tc.wantCreate)
+			}
+			for _, forbidden := range []string{"9542872010", "Jane", "DOE", "01/15/1980", "pat555"} {
+				if strings.Contains(logs.String(), forbidden) {
+					t.Errorf("add-patient log exposed %q: %s", forbidden, logs.String())
 				}
 			}
 		})

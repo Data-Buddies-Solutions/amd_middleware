@@ -70,10 +70,11 @@ func TestAdvancedMDClient_LookupPatient_SingleResult(t *testing.T) {
 	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
 	defer cleanup()
 
-	patients, err := client.LookupPatient(context.Background(), tokenData, "Smith", "")
+	read, err := client.LookupPatient(context.Background(), tokenData, "Smith", "")
 	if err != nil {
 		t.Fatalf("LookupPatient failed: %v", err)
 	}
+	patients := read.Patients
 
 	if len(patients) != 1 {
 		t.Fatalf("Expected 1 patient, got %d", len(patients))

@@ -346,6 +346,12 @@ The structured request log adds a PHI-free `cancellation` object for this route
 with semantic outcome, actual provider schedule-read count, cancellation
 mutation count, and duration.
 
+When a patient search runs, the request log records `lookup_complete`: whether
+AdvancedMD's page metadata proved the search returned every matching patient.
+Patient resolution records it in its `patient_resolution` object, and
+add-patient records its duplicate-check search as
+`patient_create.lookup_complete`.
+
 Operational routes have separate contracts:
 
 | Route | Contract |

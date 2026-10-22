@@ -967,7 +967,7 @@ func newPatientResolveTestHandlers(
 					"PPMDResults": {
 						"Results": {
 							"patientlist": {
-								"@itemcount": "4",
+								"@itemcount": "5",
 								"@page": "1",
 								"@pagecount": "1",
 								"patient": [

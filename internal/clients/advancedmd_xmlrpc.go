@@ -115,7 +115,7 @@ func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *sessi
 	return body, nil
 }
 
-func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *session.TokenData, lastName string, firstName string) ([]domain.Patient, error) {
+func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *session.TokenData, lastName string, firstName string) (domain.PatientCandidateRead, error) {
 	name := lastName
 	if firstName != "" {
 		name = lastName + "," + firstName
@@ -129,8 +129,7 @@ func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *session
 		},
 	}
 
-	read, err := c.doPatientLookup(ctx, tokenData, reqBody)
-	return read.Patients, err
+	return c.doPatientLookup(ctx, tokenData, reqBody)
 }
 
 func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *session.TokenData, firstName, dob string) (read domain.PatientCandidateRead, resultErr error) {
@@ -152,13 +151,12 @@ func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenDat
 	return read, nil
 }
 
-func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *session.TokenData, phone string) ([]domain.Patient, error) {
+func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *session.TokenData, phone string) (domain.PatientCandidateRead, error) {
 	payload := amdLookupRequest{PPMDMsg: amdLookupMsg{
 		Action: "lookuppatient", Class: "api", Phone: phone,
 	}}
 
-	read, err := c.doPatientLookup(ctx, tokenData, payload)
-	return read.Patients, err
+	return c.doPatientLookup(ctx, tokenData, payload)
 }
 
 func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *session.TokenData, payload amdLookupRequest) (read domain.PatientCandidateRead, resultErr error) {
