@@ -19,7 +19,7 @@ func (s *service) signSlots(
 	for i := range slots {
 		token, err := SignSlotToken(s.bookingTokenSecret, SlotPolicy{
 			OfficeID:           office.ID,
-			Routing:            string(routing),
+			Routing:            routing,
 			ColumnID:           slots[i].ColumnID,
 			ProfileID:          slots[i].ProfileID,
 			StartDatetime:      slots[i].DateTime,

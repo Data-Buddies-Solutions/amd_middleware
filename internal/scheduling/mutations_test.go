@@ -307,7 +307,7 @@ func TestBookUsesVerifiedPatientDOBWhenSignedSlotOmittedIt(t *testing.T) {
 	records.Demographics["12345"] = domain.PatientDemographics{CarrierName: "Self Pay", CarrierID: "car301672", DOB: "06/01/2020"}
 	token, err := scheduling.SignSlotToken("test-booking-secret", scheduling.SlotPolicy{
 		OfficeID:           "spring_hill",
-		Routing:            string(domain.RoutingBachOnly),
+		Routing:            domain.RoutingBachOnly,
 		ColumnID:           1513,
 		ProfileID:          620,
 		StartDatetime:      "2026-06-03T09:00",
@@ -653,7 +653,7 @@ func signedBookCommandAt(t *testing.T, now, start time.Time) scheduling.BookComm
 	t.Helper()
 	token, err := scheduling.SignSlotToken("test-booking-secret", scheduling.SlotPolicy{
 		OfficeID:           "spring_hill",
-		Routing:            string(domain.RoutingBachOnly),
+		Routing:            domain.RoutingBachOnly,
 		ColumnID:           1513,
 		ProfileID:          620,
 		StartDatetime:      start.Format("2006-01-02T15:04"),

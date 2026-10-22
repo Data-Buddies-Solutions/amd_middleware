@@ -1,5 +1,7 @@
 package domain
 
+import "errors"
+
 type RoutingRule string
 
 const (
@@ -10,19 +12,13 @@ const (
 	RoutingOpticalOnly RoutingRule = "optical_only"
 )
 
-func ParseRoutingRule(s string) RoutingRule {
-	switch RoutingRule(s) {
-	case RoutingNotAccepted:
-		return RoutingNotAccepted
-	case RoutingBachOnly:
-		return RoutingBachOnly
-	case RoutingBachLicht:
-		return RoutingBachLicht
-	case RoutingAll:
-		return RoutingAll
-	case RoutingOpticalOnly:
-		return RoutingOpticalOnly
+var errUnknownRouting = errors.New("routing must be one of not_accepted, bach_only, bach_licht, all_three, optical_only")
+
+func ParseRoutingRule(s string) (RoutingRule, error) {
+	switch rule := RoutingRule(s); rule {
+	case RoutingNotAccepted, RoutingBachOnly, RoutingBachLicht, RoutingAll, RoutingOpticalOnly:
+		return rule, nil
 	default:
-		return RoutingAll
+		return "", errUnknownRouting
 	}
 }

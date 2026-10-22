@@ -31,20 +31,20 @@ var (
 )
 
 type SlotPolicy struct {
-	Version            int    `json:"v"`
-	OfficeID           string `json:"officeId"`
-	Routing            string `json:"routing"`
-	ColumnID           int    `json:"columnId"`
-	ProfileID          int    `json:"profileId"`
-	StartDatetime      string `json:"startDatetime"`
-	Duration           int    `json:"duration"`
-	DOB                string `json:"dob,omitempty"`
-	AppointmentTypeIDs []int  `json:"appointmentTypeIds,omitempty"`
-	SameStartBooked    int    `json:"sameStartBooked,omitempty"`
-	SameStartCapacity  int    `json:"sameStartCapacity,omitempty"`
-	RequiresForce      bool   `json:"requiresForce,omitempty"`
-	IssuedAt           int64  `json:"iat"`
-	ExpiresAt          int64  `json:"exp"`
+	Version            int                `json:"v"`
+	OfficeID           string             `json:"officeId"`
+	Routing            domain.RoutingRule `json:"routing"`
+	ColumnID           int                `json:"columnId"`
+	ProfileID          int                `json:"profileId"`
+	StartDatetime      string             `json:"startDatetime"`
+	Duration           int                `json:"duration"`
+	DOB                string             `json:"dob,omitempty"`
+	AppointmentTypeIDs []int              `json:"appointmentTypeIds,omitempty"`
+	SameStartBooked    int                `json:"sameStartBooked,omitempty"`
+	SameStartCapacity  int                `json:"sameStartCapacity,omitempty"`
+	RequiresForce      bool               `json:"requiresForce,omitempty"`
+	IssuedAt           int64              `json:"iat"`
+	ExpiresAt          int64              `json:"exp"`
 }
 
 type appointmentTokenPolicy struct {
@@ -216,8 +216,8 @@ func checkTokenLifetime(issuedAtUnix, expiresAtUnix int64, now time.Time) error 
 	return nil
 }
 
-func validRouting(routing string) bool {
-	switch domain.RoutingRule(routing) {
+func validRouting(routing domain.RoutingRule) bool {
+	switch routing {
 	case domain.RoutingBachOnly, domain.RoutingBachLicht, domain.RoutingAll, domain.RoutingOpticalOnly:
 		return true
 	default:

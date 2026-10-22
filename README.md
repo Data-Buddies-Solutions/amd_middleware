@@ -181,6 +181,9 @@ insurance. Insurance acceptance remains part of registration and insurance updat
 
 Slots accept `patientId`, `visitType`, `startDate`, `office`, `dob`, `routing`, and
 `preauthRequired`. Each search covers 14 days; use `startDate` to move the window.
+`routing` is `not_accepted`, `bach_only`, `bach_licht`, `all_three`, or
+`optical_only`. Omitted, it is `all_three`, or `optical_only` for routine vision.
+Any other value is `invalid_input`.
 The removed `insurancePlan`, `coverageType`, and `rangeDays` fields are rejected
 by the strict slots decoder. Deploy the Abita request cleanup (ACU-145) before
 deploying this contract change (ACU-146).

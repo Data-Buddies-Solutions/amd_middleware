@@ -78,25 +78,18 @@ func TestProvidersForRoutingAndDOB(t *testing.T) {
 }
 
 func TestParseRoutingRule(t *testing.T) {
-	tests := []struct {
-		input string
-		want  RoutingRule
-	}{
-		{"not_accepted", RoutingNotAccepted},
-		{"bach_only", RoutingBachOnly},
-		{"bach_licht", RoutingBachLicht},
-		{"all_three", RoutingAll},
-		{"optical_only", RoutingOpticalOnly},
-		{"", RoutingAll},
-		{"invalid", RoutingAll},
-		{"BACH_ONLY", RoutingAll},
+	for _, rule := range []RoutingRule{RoutingNotAccepted, RoutingBachOnly, RoutingBachLicht, RoutingAll, RoutingOpticalOnly} {
+		t.Run(string(rule), func(t *testing.T) {
+			got, err := ParseRoutingRule(string(rule))
+			if err != nil || got != rule {
+				t.Errorf("ParseRoutingRule(%q) = %q, %v, want %q", rule, got, err, rule)
+			}
+		})
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			got := ParseRoutingRule(tt.input)
-			if got != tt.want {
-				t.Errorf("ParseRoutingRule(%q) = %q, want %q", tt.input, got, tt.want)
+	for _, input := range []string{"", "invalid", "BACH_ONLY", "bach-only", "all"} {
+		t.Run(input, func(t *testing.T) {
+			if got, err := ParseRoutingRule(input); err == nil {
+				t.Errorf("ParseRoutingRule(%q) = %q, want an error", input, got)
 			}
 		})
 	}

@@ -33,7 +33,7 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 	if visit == "" || (command.VisitCategory != "" && command.VisitCategory != visit) {
 		return RescheduleReceipt{}, schedulingError("The existing visit type cannot be preserved. Reload appointments or ask staff for help.")
 	}
-	if !booking.office.AllowsAppointmentType(policy.AppointmentTypeID, domain.ParseRoutingRule(booking.token.Routing)) {
+	if !booking.office.AllowsAppointmentType(policy.AppointmentTypeID, booking.token.Routing) {
 		return RescheduleReceipt{}, schedulingError("The destination does not support the existing appointment type.")
 	}
 	if err := s.verifyRescheduleOriginal(ctx, policy); err != nil {

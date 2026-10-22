@@ -16,7 +16,7 @@ func TestSlotTokenRejectsTamperingWrongSecretAndUnsafeTimes(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	policy := scheduling.SlotPolicy{
 		OfficeID:      "spring_hill",
-		Routing:       string(domain.RoutingAll),
+		Routing:       domain.RoutingAll,
 		ColumnID:      1513,
 		ProfileID:     620,
 		StartDatetime: "2026-06-02T09:00",
@@ -55,6 +55,18 @@ func TestSlotTokenRejectsTamperingWrongSecretAndUnsafeTimes(t *testing.T) {
 	}
 	if _, err := scheduling.VerifySlotToken("test-booking-secret", oversizedToken, now); err == nil {
 		t.Fatal("VerifySlotToken accepted oversized TTL")
+	}
+
+	for _, routing := range []domain.RoutingRule{"bach-only", "", domain.RoutingNotAccepted} {
+		unbookable := policy
+		unbookable.Routing = routing
+		unbookableToken, err := scheduling.SignSlotToken("test-booking-secret", unbookable)
+		if err != nil {
+			t.Fatalf("SignSlotToken routing %q error = %v", routing, err)
+		}
+		if _, err := scheduling.VerifySlotToken("test-booking-secret", unbookableToken, now); err == nil {
+			t.Fatalf("VerifySlotToken accepted routing %q", routing)
+		}
 	}
 
 	futureIssued := policy
