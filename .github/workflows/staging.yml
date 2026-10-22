@@ -96,9 +96,10 @@ jobs:
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           gcloud auth configure-docker us-east4-docker.pkg.dev --quiet
           # crane copies the manifest bytes unchanged, so the digest is kept.
+          tag="$IMAGE_REPOSITORY:release-$GITHUB_REF_NAME-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           go run github.com/google/go-containerregistry/cmd/crane@v0.22.1 copy \
-            "$PRODUCTION_REPOSITORY@$digest" "$IMAGE_REPOSITORY:$GITHUB_REF_NAME"
-          copied="$(gcloud artifacts docker images describe "$IMAGE_REPOSITORY:$GITHUB_REF_NAME" \
+            "$PRODUCTION_REPOSITORY@$digest" "$tag"
+          copied="$(gcloud artifacts docker images describe "$tag" \
             --project acuity-health-prod --format='value(image_summary.digest)')"
           test "$copied" = "$digest"
           echo "image=$IMAGE_REPOSITORY@$digest" >> "$GITHUB_OUTPUT"

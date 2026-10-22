@@ -127,6 +127,8 @@ def main():
         receipt["production_image"] = production_image
     try:
         require(re.fullmatch(r"[0-9a-f]{40}", sha), "Expected full Git source SHA")
+        require(production_image or not os.environ.get("GITHUB_REF", "").startswith("refs/tags/v"),
+                "Release tag deploys must name the production image")
         if args.deploy:
             require(re.fullmatch(re.escape(REPOSITORY) + r"@sha256:[0-9a-f]{64}", image),
                     "Expected immutable image in sandbox-only repository")

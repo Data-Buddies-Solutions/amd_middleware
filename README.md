@@ -455,8 +455,8 @@ stable `vMAJOR.MINOR.PATCH` tag with the image production runs:
    refuses to deploy unless the sandbox digest equals the production digest,
    and records both in the receipt.
 
-A failed staging deploy does not affect production: it starts only after
-production's build succeeded and touches only the sandbox.
+A failed staging deploy does not affect production: the job touches Google
+Cloud only after production's build succeeded, and only the sandbox.
 
 An automatic deploy replaces the sandbox revision, so the new instance logs in
 to AdvancedMD again. A simulation running when a release lands can be
@@ -464,7 +464,9 @@ interrupted; rerun it against the new revision.
 
 For an ad hoc deploy from source, run the workflow manually and confirm
 `sandbox_idle`, or push a `staging-*` tag. Both share the `middleware-staging`
-concurrency group with release deploys, so deploys never overlap.
+concurrency group with release deploys, so deploys never overlap, and a deploy
+queued later replaces one still waiting. After an ad hoc deploy queued during a
+release, rerun the release's staging run so the sandbox matches production.
 
 Release deploys need three one-time grants, beyond what manual deploys use. The
 staging identity must read production images:
@@ -492,7 +494,7 @@ The `staging` GitHub environment must allow release tags:
 ```bash
 gh api --method POST \
   repos/Data-Buddies-Solutions/amd_middleware/environments/staging/deployment-branch-policies \
-  -f name='v*' -f type=tag
+  -f name='v*.*.*' -f type=tag
 ```
 
 CI runs every deployment script test (`scripts/*_test.sh` and

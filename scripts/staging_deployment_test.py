@@ -97,7 +97,7 @@ class ReleaseDeploymentTest(unittest.TestCase):
         os.chdir(directory.name)
         self.addCleanup(os.chdir, previous)
 
-    def deploy(self, production_image):
+    def deploy(self, production_image, ref="refs/heads/main"):
         before = service()
         after = copy.deepcopy(before)
         revision = staging.SERVICE + "-00002-test"
@@ -113,7 +113,7 @@ class ReleaseDeploymentTest(unittest.TestCase):
         responses = [(200, b""), (200, b""), (401, b""),
                      (200, json.dumps({"status": "error", "message": "Invalid JSON body"}).encode())]
         environment = {"GITHUB_SHA": SHA, "STAGING_IMAGE": SANDBOX_IMAGE,
-                       "PRODUCTION_IMAGE": production_image}
+                       "PRODUCTION_IMAGE": production_image, "GITHUB_REF": ref}
         error = None
         with patch.dict(os.environ, environment), \
                 patch.object(sys, "argv", ["staging_deployment.py", "--deploy"]), \
@@ -147,6 +147,12 @@ class ReleaseDeploymentTest(unittest.TestCase):
                 self.assertEqual(receipt["verification"], "failed")
                 self.assertEqual(receipt["production_image"], production_image)
                 describe.assert_not_called()
+
+    def test_release_tag_deploy_requires_the_production_image_before_any_cloud_call(self):
+        error, receipt, describe = self.deploy("", ref="refs/tags/v9.9.9")
+        self.assertIsInstance(error, RuntimeError)
+        self.assertEqual(receipt["verification"], "failed")
+        describe.assert_not_called()
 
 
 if __name__ == "__main__":
