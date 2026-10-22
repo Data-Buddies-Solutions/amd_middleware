@@ -2,6 +2,7 @@ package patient_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"slices"
 	"strings"
@@ -81,5 +82,58 @@ func TestCreateKeepsAnAmbiguousWriteIndeterminateWhenTheReconcileSearchIsIncompl
 	}
 	if requests := provider.Requests(); slices.Contains(requests, "addinsurance") {
 		t.Fatalf("AdvancedMD requests = %q, want no addinsurance", requests)
+	}
+}
+
+func TestResolveReportsAnIncompletePhoneOrNameSearchAsUnresolved(t *testing.T) {
+	rows := []domain.Patient{
+		{ID: "123", FullName: "DOE,JANE", DOB: "01/15/1980", Phone: "(954)287-2010"},
+		{ID: "456", FullName: "DOE,JOHN", DOB: "01/15/1980", Phone: "(954)287-2010"},
+	}
+	searches := []struct {
+		name    string
+		command patient.ResolveCommand
+		search  domain.PatientSearch
+	}{
+		{"phone", patient.ResolveCommand{Phone: "954-287-2010"}, domain.PatientSearch{Phone: "9542872010"}},
+		{"last name and DOB", patient.ResolveCommand{LastName: "Doe", DOB: "01/15/1980"}, domain.PatientSearch{LastName: "Doe"}},
+	}
+	completeStatus := []patient.Status{patient.StatusNotFound, patient.StatusVerified, patient.StatusMultipleMatches}
+	for _, search := range searches {
+		for seen := range 3 {
+			for _, incomplete := range []bool{false, true} {
+				t.Run(fmt.Sprintf("%s/%d seen/incomplete=%v", search.name, seen, incomplete), func(t *testing.T) {
+					amd := advancedmdtest.NewAdapter()
+					amd.PatientSearches[search.search] = rows[:seen]
+					amd.IncompletePatientSearch = map[domain.PatientSearch]bool{search.search: incomplete}
+					amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true}
+					query, message := search.command.Parse("spring_hill", testNow())
+					if message != "" {
+						t.Fatal(message)
+					}
+
+					got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), query)
+
+					if err != nil {
+						t.Fatalf("Resolve() error = %v", err)
+					}
+					if complete := got.Observation.PatientSearchComplete; complete == nil || *complete != !incomplete {
+						t.Fatalf("PatientSearchComplete = %v, want %v", complete, !incomplete)
+					}
+					if !incomplete {
+						if got.Status != completeStatus[seen] {
+							t.Fatalf("Status = %q, want %q", got.Status, completeStatus[seen])
+						}
+						return
+					}
+					if got.Status != patient.StatusUnresolved || got.Reason != "incomplete_search" || got.PatientID != "" || len(got.Matches) != 0 {
+						t.Errorf("Resolve() = status:%q reason:%q patientId:%q matches:%d, want unresolved incomplete_search", got.Status, got.Reason, got.PatientID, len(got.Matches))
+					}
+					if amd.DemographicCalls != 0 || amd.AppointmentReadCalls != 0 {
+						t.Errorf("reads = demographics:%d appointments:%d, want 0/0", amd.DemographicCalls, amd.AppointmentReadCalls)
+					}
+				})
+			}
+		}
 	}
 }

@@ -45,6 +45,9 @@ func (p *patient) Resolve(ctx context.Context, query ResolveQuery) (ResolveResul
 	observation.PatientSearchComplete = new(read.Complete)
 	matches := selectPatients(read.Patients, query)
 	observation.CandidateCountBucket = candidateCountBucket(len(matches))
+	if !read.Complete {
+		return unverifiedPatient(observation, "incomplete_search", safeerrors.CategoryInvalidResponse), nil
+	}
 	if len(matches) == 0 {
 		return ResolveResult{
 			Status:       StatusNotFound,

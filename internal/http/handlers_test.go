@@ -1080,6 +1080,24 @@ func newPatientResolveTestHandlers(
 						}
 					}
 				}`
+			case strings.Contains(string(body), `"@action":"lookuppatient"`) && strings.Contains(string(body), `"@phone":"9542872010"`):
+				response = `{
+					"PPMDResults": {
+						"Results": {
+							"patientlist": {
+								"@itemcount": "1",
+								"@page": "1",
+								"@pagecount": "1",
+								"patient": {
+									"@id": "pat123",
+									"@name": "DOE,JANE",
+									"@dob": "01/15/1980",
+									"contactinfo": {"@cellphone": "850-373-3869"}
+								}
+							}
+						}
+					}
+				}`
 			case strings.Contains(string(body), `"@action":"lookuppatient"`):
 				response = `{
 					"PPMDResults": {

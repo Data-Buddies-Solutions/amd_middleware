@@ -478,7 +478,7 @@ func TestRequestLogRecordsPHISafePatientResolutionStages(t *testing.T) {
 		wantComplete    any
 	}{
 		{
-			name:            "paired office single match from legacy unpaged search",
+			name:            "paired office single match from complete paged search",
 			body:            `{"phone":"9542872010","office":"Spring Hill"}`,
 			wantSearchReads: 1,
 			wantDemoReads:   1,
@@ -486,6 +486,17 @@ func TestRequestLogRecordsPHISafePatientResolutionStages(t *testing.T) {
 			wantTotalReads:  8,
 			wantCandidates:  "1",
 			wantApptOutcome: "found",
+			wantComplete:    true,
+		},
+		{
+			name:            "single match from legacy unpaged phone search is not hydrated",
+			body:            `{"phone":"9545550199","office":"Spring Hill"}`,
+			wantSearchReads: 1,
+			wantDemoReads:   0,
+			wantApptReads:   0,
+			wantTotalReads:  1,
+			wantCandidates:  "1",
+			wantApptOutcome: "not_requested",
 			wantComplete:    false,
 		},
 		{
@@ -571,6 +582,7 @@ func TestRequestLogRecordsPHISafePatientResolutionStages(t *testing.T) {
 			}
 			for _, forbidden := range []string{
 				"9542872010",
+				"9545550199",
 				"5552223333",
 				"JANE",
 				"JOHN",
