@@ -49,10 +49,18 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 		dob:       dob,
 		phone:     phone,
 	}
-	created, createReconciled, outcome, observation := p.createPatient(ctx, command, identity, office)
+	baseline, observation, err := p.creationBaseline(ctx, identity)
+	switch {
+	case errors.Is(err, errExistingPatient):
+		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: "An existing patient chart matches this first name and date of birth for this phone number. Do not create a new chart; look up the existing patient instead."}
+	case errors.Is(err, errIncompleteBaseline):
+		return CreateResult{Status: CreateStatusError, Outcome: MutationFailed, Message: "No chart was created. AdvancedMD returned an incomplete patient search for this phone number, so an existing chart could not be ruled out. Ask office staff to check for an existing chart before registering this patient."}
+	case err != nil:
+		return CreateResult{Status: CreateStatusError, Outcome: failureOutcome(err), Message: createFailedMessage}
+	}
+
+	created, createReconciled, outcome := p.createPatient(ctx, command, identity, office, baseline)
 	switch outcome {
-	case MutationValidationFailed:
-		return CreateResult{Status: CreateStatusError, Outcome: outcome, Message: "An existing patient chart matches this first name and date of birth for this phone number. Do not create a new chart; look up the existing patient instead."}
 	case MutationRejected:
 		return CreateResult{Status: CreateStatusError, Outcome: outcome, Message: "AdvancedMD rejected patient creation. Please contact the office."}
 	case MutationReconciledFailure:
@@ -60,7 +68,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 	case MutationIndeterminateWrite:
 		return CreateResult{Status: CreateStatusError, Outcome: outcome, Message: "Patient creation may have been applied, but the outcome could not be confirmed. Do not retry automatically; contact the office."}
 	case MutationUnavailable, MutationFailed:
-		return CreateResult{Status: CreateStatusError, Outcome: outcome, Message: "Failed to create patient in AdvancedMD. Please try again or contact the office."}
+		return CreateResult{Status: CreateStatusError, Outcome: outcome, Message: createFailedMessage}
 	}
 
 	insuranceReconciled, outcome := p.addInsurance(ctx, domain.PatientInsurance{
@@ -140,15 +148,7 @@ type chartIdentity struct {
 	phone     domain.Phone
 }
 
-func (p *patient) createPatient(ctx context.Context, command CreateCommand, identity chartIdentity, office *domain.OfficeConfig) (domain.CreatedPatient, bool, MutationOutcome, CreateObservation) {
-	baseline, observation, err := p.creationBaseline(ctx, identity)
-	if errors.Is(err, errExistingPatient) {
-		return domain.CreatedPatient{}, false, MutationValidationFailed, observation
-	}
-	if err != nil {
-		return domain.CreatedPatient{}, false, failureOutcome(err), observation
-	}
-
+func (p *patient) createPatient(ctx context.Context, command CreateCommand, identity chartIdentity, office *domain.OfficeConfig, baseline map[string]struct{}) (domain.CreatedPatient, bool, MutationOutcome) {
 	created, err := p.advancedMD.CreatePatient(ctx, domain.PatientCreate{
 		FirstName: string(identity.firstName),
 		LastName:  string(identity.lastName),
@@ -165,20 +165,25 @@ func (p *patient) createPatient(ctx context.Context, command CreateCommand, iden
 		OfficeID:  office.ID,
 	})
 	if err == nil {
-		return created, false, "", observation
+		return created, false, ""
 	}
 	switch advancedmd.MutationFailureOf(err) {
 	case advancedmd.MutationRejected:
-		return domain.CreatedPatient{}, false, MutationRejected, observation
+		return domain.CreatedPatient{}, false, MutationRejected
 	case advancedmd.MutationAmbiguous:
 		created, outcome := p.reconcileCreatedPatient(ctx, identity, baseline)
-		return created, outcome == "", outcome, observation
+		return created, outcome == "", outcome
 	default:
-		return domain.CreatedPatient{}, false, failureOutcome(err), observation
+		return domain.CreatedPatient{}, false, failureOutcome(err)
 	}
 }
 
-var errExistingPatient = errors.New("existing patient matches first name and DOB")
+const createFailedMessage = "Failed to create patient in AdvancedMD. Please try again or contact the office."
+
+var (
+	errExistingPatient    = errors.New("existing patient matches first name and DOB")
+	errIncompleteBaseline = errors.New("patient baseline search was incomplete")
+)
 
 func (p *patient) creationBaseline(ctx context.Context, identity chartIdentity) (map[string]struct{}, CreateObservation, error) {
 	search := domain.PatientSearch{Phone: string(identity.phone)}
@@ -201,6 +206,9 @@ func (p *patient) creationBaseline(ctx context.Context, identity chartIdentity) 
 		}
 		baseline[candidate.ID] = struct{}{}
 	}
+	if !complete {
+		return nil, observation, errIncompleteBaseline
+	}
 	return baseline, observation, nil
 }
 
@@ -217,7 +225,7 @@ func (p *patient) reconcileCreatedPatient(
 			if !identifiable {
 				return domain.CreatedPatient{}, MutationIndeterminateWrite
 			}
-			if len(matches) == 1 {
+			if len(matches) == 1 && read.Complete {
 				return p.loadCreatedPatient(ctx, matches[0])
 			}
 			if len(matches) > 1 {
