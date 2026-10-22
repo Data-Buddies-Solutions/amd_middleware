@@ -211,12 +211,17 @@ func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.Pati
 	}
 
 	monthlyAppointments := make([][]clients.AMDAppointmentResponse, 6)
+	var firstErr error
 	for range 6 {
 		result := <-results
-		if result.err != nil {
-			return AppointmentRead{ProviderReads: 6}, classify(result.err)
+		if result.err != nil && firstErr == nil {
+			firstErr = result.err
+			cancel()
 		}
 		monthlyAppointments[result.month] = result.appointments
+	}
+	if firstErr != nil {
+		return AppointmentRead{ProviderReads: 6}, classify(firstErr)
 	}
 	var rawAppointments []clients.AMDAppointmentResponse
 	for _, appointments := range monthlyAppointments {
