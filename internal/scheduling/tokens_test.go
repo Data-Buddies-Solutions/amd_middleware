@@ -8,7 +8,6 @@ import (
 )
 
 func TestTokenFormatIsStable(t *testing.T) {
-	domain.InitRegistry("")
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	slot, err := SignSlotToken("fixture-secret", SlotPolicy{OfficeID: "spring_hill", Routing: "all_three", ColumnID: 1513, ProfileID: 620, StartDatetime: "2026-06-02T09:00", Duration: 15, IssuedAt: now.Unix(), ExpiresAt: now.Add(15 * time.Minute).Unix()})
 	if err != nil || slot != "eyJ2IjoxLCJvZmZpY2VJZCI6InNwcmluZ19oaWxsIiwicm91dGluZyI6ImFsbF90aHJlZSIsImNvbHVtbklkIjoxNTEzLCJwcm9maWxlSWQiOjYyMCwic3RhcnREYXRldGltZSI6IjIwMjYtMDYtMDJUMDk6MDAiLCJkdXJhdGlvbiI6MTUsImlhdCI6MTc4MDMxNTIwMCwiZXhwIjoxNzgwMzE2MTAwfQ.aVbToR7dsPoDnN7NFFFEkhc62lSi7cEqLOpvk3PGhtY" {

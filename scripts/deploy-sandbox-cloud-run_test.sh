@@ -31,7 +31,7 @@ export SANDBOX_APP_NAME_VERSION=4 SANDBOX_API_SECRET_VERSION=5 SANDBOX_BOOKING_S
 bash "$repo_root/scripts/deploy-sandbox-cloud-run.sh"
 for expected in \
   '--min=0 --max=1' '--cpu-throttling' \
-  'AMD_ENV=dev' \
+  'AMD_ENV=sandbox,' \
   'ADVANCEDMD_USERNAME=advancedmd-sandbox-username:1' \
   'ADVANCEDMD_PASSWORD=advancedmd-sandbox-password:2' \
   'ADVANCEDMD_OFFICE_KEY=advancedmd-sandbox-office-key:3' \
@@ -44,7 +44,7 @@ for expected in \
     exit 1
   fi
 done
-if grep -Eq 'scheduler|AMD_ENV=prod|=advancedmd-password:|run deploy abita-middleware ' "$FAKE_GCLOUD_LOG"; then
+if grep -Eq 'scheduler|AMD_ENV=(prod|dev)|=advancedmd-password:|run deploy abita-middleware ' "$FAKE_GCLOUD_LOG"; then
   echo 'Sandbox deployment touched production or Scheduler configuration.' >&2
   exit 1
 fi

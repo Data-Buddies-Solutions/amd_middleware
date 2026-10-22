@@ -20,7 +20,7 @@ func validateOfficeTables(officeTables map[string][]string) error {
 			return fmt.Errorf("%s: no offices", table)
 		}
 		for _, office := range officeTables[table] {
-			if _, ok := domain.LookupOfficeByID(office); !ok {
+			if _, ok := domain.TableOfficeProviderNames(office); !ok {
 				return fmt.Errorf("%s: unknown office %q", table, office)
 			}
 			if other, ok := officeTable[office]; ok {
@@ -29,7 +29,7 @@ func validateOfficeTables(officeTables map[string][]string) error {
 			officeTable[office] = table
 		}
 	}
-	for _, office := range domain.OfficeIDs() {
+	for _, office := range domain.TableOfficeIDs() {
 		if _, ok := officeTable[office]; !ok {
 			return fmt.Errorf("office %q has no plan list", office)
 		}

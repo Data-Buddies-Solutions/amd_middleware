@@ -74,7 +74,6 @@ func TestPatientResolveKeepsStableResponseWhenSessionUnavailable(t *testing.T) {
 }
 
 func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
-	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.PatientSearches[domain.PatientSearch{Phone: "9542872010"}] = []domain.Patient{{
 		ID: "123", FullName: "DOE,JANE", DOB: "01/15/1980", Phone: "850-373-3869",
@@ -1159,7 +1158,6 @@ func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListC
 }
 
 func TestFirstNameDOBHTTPContract(t *testing.T) {
-	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true, Patients: []domain.Patient{{ID: "1", FirstName: "Jane", LastName: "Meyer", DOB: "01/01/1980"}}}
 	amd.Demographics["1"] = domain.PatientDemographics{InsuranceStateKnown: true, FullName: "MEYER,JANE", DOB: "01/01/1980"}
@@ -1205,7 +1203,6 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 }
 
 func TestFirstNameDOBUnresolvedHTTPContract(t *testing.T) {
-	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: false}
 	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens, testNow), nil, testNow)

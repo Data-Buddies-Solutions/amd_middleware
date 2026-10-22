@@ -11,7 +11,6 @@ import (
 )
 
 func TestFirstNameDOBResolution(t *testing.T) {
-	domain.InitRegistry("")
 	valid := domain.Patient{ID: "1", FirstName: "Jane", LastName: "Meyer", FullName: "MEYER,JANE", DOB: "01/01/1980"}
 	missing := domain.Patient{ID: "2", FirstName: "Jane", LastName: "Other", FullName: "OTHER,JANE"}
 	otherName := missing
@@ -85,7 +84,6 @@ func TestFirstNameDOBResolution(t *testing.T) {
 }
 
 func TestFirstNameDOBMissingRecordsAndChangedIdentity(t *testing.T) {
-	domain.InitRegistry("")
 	for _, changed := range []bool{false, true} {
 		amd := advancedmdtest.NewAdapter()
 		rows := []domain.Patient{}

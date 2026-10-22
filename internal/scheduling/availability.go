@@ -84,7 +84,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 		return unsupportedVisit(), nil
 	}
 	if age, ok := domain.AgeYearsOn(command.DOB, nowEastern); ok && command.VisitType == domain.AppointmentVisitRoutineVision && routineVisionTooYoung(office, age) {
-		return empty, schedulingError(underSevenRoutineVisionMessage)
+		return empty, schedulingError(office.RoutineVisionMinimumAge.Message)
 	}
 
 	routing := office.SchedulingRouting(requestedRouting, command.DOB, now)

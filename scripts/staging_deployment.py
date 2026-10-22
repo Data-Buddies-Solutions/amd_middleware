@@ -23,6 +23,9 @@ SECRETS = {
     "API_SECRET": "middleware-sandbox-api-secret",
     "BOOKING_TOKEN_SECRET": "sandbox-booking-token-secret",
 }
+AMD_ENV = "sandbox"
+# The sandbox ran AMD_ENV=dev before the middleware accepted only prod or sandbox.
+LEGACY_AMD_ENV = "dev"
 
 
 def require(condition, message):
@@ -41,14 +44,15 @@ def describe():
                             "--region", REGION, "--format=json"))
 
 
-def validate(service):
+def validate(service, amd_envs=(AMD_ENV,)):
     require(service["metadata"]["name"] == SERVICE, "Wrong Cloud Run service")
     spec = service["spec"]["template"]["spec"]
     require(spec["serviceAccountName"] == f"{SERVICE}@{PROJECT}.iam.gserviceaccount.com",
             "Sandbox runtime identity changed")
     require(len(spec["containers"]) == 1, "Unexpected sandbox containers")
     env = {item["name"]: item for item in spec["containers"][0]["env"]}
-    require(env.get("AMD_ENV", {}).get("value") == "dev", "Sandbox must use AMD_ENV=dev")
+    require(env.get("AMD_ENV", {}).get("value") in amd_envs,
+            "Sandbox must use AMD_ENV=" + " or AMD_ENV=".join(amd_envs))
     for variable, name in SECRETS.items():
         ref = env.get(variable, {}).get("valueFrom", {}).get("secretKeyRef", {})
         require(ref.get("name") == name and re.fullmatch(r"[1-9][0-9]*", ref.get("key", "")),
@@ -69,7 +73,9 @@ def validate(service):
 
 def runtime_spec(service):
     spec = copy.deepcopy(service["spec"]["template"]["spec"])
-    spec["containers"][0].pop("image")
+    container = spec["containers"][0]
+    container.pop("image")
+    container["env"] = [item for item in container["env"] if item["name"] != "AMD_ENV"]
     return spec
 
 
@@ -138,13 +144,16 @@ def main():
             require(image.rpartition("@")[2] == production_image.rpartition("@")[2],
                     "Sandbox image digest differs from the production image digest")
         before = describe()
-        validate(before)
+        validate(before, (LEGACY_AMD_ENV, AMD_ENV))
         receipt["previous_revision"] = before["status"]["latestReadyRevisionName"]
         receipt["previous_image"] = before["spec"]["template"]["spec"]["containers"][0]["image"]
         if args.deploy:
-            # Image and provenance labels only; keep all runtime configuration.
+            # Image, AMD_ENV, and provenance labels only; keep all other runtime
+            # configuration. One update makes one revision, so the image that
+            # requires AMD_ENV=sandbox never runs with AMD_ENV=dev.
             cloud("run", "services", "update", SERVICE, "--region", REGION,
-                  "--image", image, "--update-labels", f"source-sha={sha}")
+                  "--image", image, "--update-env-vars", f"AMD_ENV={AMD_ENV}",
+                  "--update-labels", f"source-sha={sha}")
         after = describe()
         validate(after)
         receipt["revision"] = after["status"]["latestReadyRevisionName"]

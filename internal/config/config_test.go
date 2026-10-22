@@ -3,6 +3,8 @@ package config
 import (
 	"os"
 	"testing"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 func setEnvVars(t *testing.T) func() {
@@ -15,6 +17,7 @@ func setEnvVars(t *testing.T) func() {
 		"API_SECRET":                       "test-secret",
 		"MAINTENANCE_OIDC_AUDIENCE":        "https://middleware.example.test",
 		"MAINTENANCE_OIDC_SERVICE_ACCOUNT": "middleware-maintenance@example.iam.gserviceaccount.com",
+		"AMD_ENV":                          "prod",
 	}
 
 	for k, v := range vars {
@@ -63,6 +66,28 @@ func TestLoad_Success(t *testing.T) {
 	if cfg.BookingTokenSecret != "test-secret" {
 		t.Errorf("BookingTokenSecret = %q, want API secret fallback", cfg.BookingTokenSecret)
 	}
+	if cfg.AMDEnv != domain.Prod {
+		t.Errorf("AMDEnv = %q, want prod", cfg.AMDEnv)
+	}
+}
+
+func TestLoad_AcceptsOnlyProdOrSandboxAMDEnv(t *testing.T) {
+	cleanup := setEnvVars(t)
+	defer cleanup()
+
+	os.Setenv("AMD_ENV", "sandbox")
+	cfg, err := Load()
+	if err != nil || cfg.AMDEnv != domain.Sandbox {
+		t.Fatalf("Load() with AMD_ENV=sandbox = (%+v, %v), want the sandbox environment", cfg, err)
+	}
+	for _, value := range []string{"", "dev", "production", "Prod", "staging"} {
+		t.Run(value, func(t *testing.T) {
+			os.Setenv("AMD_ENV", value)
+			if cfg, err := Load(); err == nil {
+				t.Fatalf("Load() with AMD_ENV=%q = %+v, want an error", value, cfg)
+			}
+		})
+	}
 }
 
 func TestLoad_CustomBookingTokenSecret(t *testing.T) {
@@ -92,6 +117,7 @@ func TestLoad_MissingRequiredFields(t *testing.T) {
 		{"missing API secret", "API_SECRET"},
 		{"missing maintenance OIDC audience", "MAINTENANCE_OIDC_AUDIENCE"},
 		{"missing maintenance OIDC service account", "MAINTENANCE_OIDC_SERVICE_ACCOUNT"},
+		{"missing AdvancedMD environment", "AMD_ENV"},
 	}
 
 	for _, tt := range requiredVars {

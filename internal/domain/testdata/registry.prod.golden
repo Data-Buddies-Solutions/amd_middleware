@@ -1,0 +1,594 @@
+default	spring_hill
+officeIDs	crystal_river,hollywood,north_miami_beach_optical,spring_hill,sweetwater
+phone	+13055095333	north_miami_beach_optical
+phone	+13523202007	crystal_river
+phone	+17275919997	spring_hill
+phone	+17864654836	sweetwater
+phone	+17864654845	sweetwater
+phone	+17864654882	sweetwater
+phone	+17864657475	sweetwater
+phone	+17864657479	sweetwater
+phone	+17866134310	sweetwater
+phone	+19542872010	hollywood
+lookup	"+17275919997"	spring_hill
+lookup	"17275919997"	spring_hill
+lookup	"7275919997"	spring_hill
+lookup	"(727) 591-9997"	spring_hill
+lookup	" +17275919997 "	spring_hill
+lookup	"+13523202007"	crystal_river
+lookup	"+19542872010"	hollywood
+lookup	"19542872010"	hollywood
+lookup	"9542872010"	hollywood
+lookup	"(954) 287-2010"	hollywood
+lookup	"+17864657475"	sweetwater
+lookup	"+17864654845"	sweetwater
+lookup	"+17866134310"	sweetwater
+lookup	"+17864657479"	sweetwater
+lookup	"+17864654836"	sweetwater
+lookup	"+17864654882"	sweetwater
+lookup	"+13055095333"	north_miami_beach_optical
+lookup	"3055095333"	north_miami_beach_optical
+lookup	"+14843989071"	not found
+lookup	"4843989071"	not found
+lookup	"+15551234567"	not found
+lookup	""	not found
+lookup	"spring_hill"	spring_hill
+lookup	"Spring Hill"	spring_hill
+lookup	"spring hill"	spring_hill
+lookup	"SPRING-HILL"	spring_hill
+lookup	"springhill"	spring_hill
+lookup	"crystal_river"	crystal_river
+lookup	"Crystal River"	crystal_river
+lookup	"hollywood"	hollywood
+lookup	"Hollywood"	hollywood
+lookup	"sweetwater"	sweetwater
+lookup	"Sweetwater"	sweetwater
+lookup	"north_miami_beach_optical"	north_miami_beach_optical
+lookup	"North Miami Beach Optical"	north_miami_beach_optical
+lookup	"north miami beach"	not found
+lookup	"atlantis"	not found
+resolve	""	spring_hill
+resolve	"Hollywood"	hollywood
+resolve	"atlantis"	error	unknown office: "atlantis". Valid options: Crystal River, Hollywood, North Miami Beach Optical, Spring Hill, Sweetwater
+office	spring_hill	display=Spring Hill	facility=1568	defaultProfile=620	pediatric=bach_only	supportsMedical=true	lookupGroup=spring_hill,crystal_river
+column	spring_hill	1513	profile=620	display=Dr. Austin Bach	short=Dr. Bach	match=BACH	minAge=0	capacity=2	windows=
+columnDOB	spring_hill	1513	none=true invalid=true age3=true age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+column	spring_hill	1550	profile=2076	display=Dr. Noel	short=Dr. Noel	match=NOEL	minAge=0	capacity=2	windows=
+columnDOB	spring_hill	1550	none=true invalid=true age3=true age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+column	spring_hill	1551	profile=2064	display=Dr. Joseph Licht	short=Dr. Licht	match=LICHT	minAge=0	capacity=2	windows=
+columnDOB	spring_hill	1551	none=true invalid=true age3=true age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+column	spring_hill	1598	profile=620	display=Dr. Austin Bach	short=Dr. Bach	match=BACH	minAge=0	capacity=2	windows=
+columnDOB	spring_hill	1598	none=true invalid=true age3=true age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+column	spring_hill	1600	profile=1983	display=Dr. Melissa Otero	short=Dr. Otero	match=OTERO	minAge=0	capacity=0	windows=
+columnDOB	spring_hill	1600	none=true invalid=true age3=true age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+routing	spring_hill	not_accepted	columns=nil	providers=nil	supports=false	adult=not_accepted	minor=not_accepted
+routingDOB	spring_hill	not_accepted	none	columns=nil	providers=nil
+routingDOB	spring_hill	not_accepted	invalid	columns=nil	providers=nil
+routingDOB	spring_hill	not_accepted	age3	columns=nil	providers=nil
+routingDOB	spring_hill	not_accepted	age4	columns=nil	providers=nil
+routingDOB	spring_hill	not_accepted	age5	columns=nil	providers=nil
+routingDOB	spring_hill	not_accepted	age6	columns=nil	providers=nil
+routingDOB	spring_hill	not_accepted	age7	columns=nil	providers=nil
+routingDOB	spring_hill	not_accepted	age10	columns=nil	providers=nil
+routingDOB	spring_hill	not_accepted	age17	columns=nil	providers=nil
+routingDOB	spring_hill	not_accepted	age18	columns=nil	providers=nil
+routingDOB	spring_hill	not_accepted	age40	columns=nil	providers=nil
+allowsTypes	spring_hill	not_accepted	
+routing	spring_hill	bach_only	columns=[1513,1598]	providers=[Dr. Bach]	supports=true	adult=bach_only	minor=bach_only
+routingDOB	spring_hill	bach_only	none	columns=[1513,1598]	providers=[Dr. Bach]
+routingDOB	spring_hill	bach_only	invalid	columns=[1513,1598]	providers=[Dr. Bach]
+routingDOB	spring_hill	bach_only	age3	columns=[1513,1598]	providers=[Dr. Bach]
+routingDOB	spring_hill	bach_only	age4	columns=[1513,1598]	providers=[Dr. Bach]
+routingDOB	spring_hill	bach_only	age5	columns=[1513,1598]	providers=[Dr. Bach]
+routingDOB	spring_hill	bach_only	age6	columns=[1513,1598]	providers=[Dr. Bach]
+routingDOB	spring_hill	bach_only	age7	columns=[1513,1598]	providers=[Dr. Bach]
+routingDOB	spring_hill	bach_only	age10	columns=[1513,1598]	providers=[Dr. Bach]
+routingDOB	spring_hill	bach_only	age17	columns=[1513,1598]	providers=[Dr. Bach]
+routingDOB	spring_hill	bach_only	age18	columns=[1513,1598]	providers=[Dr. Bach]
+routingDOB	spring_hill	bach_only	age40	columns=[1513,1598]	providers=[Dr. Bach]
+allowsTypes	spring_hill	bach_only	1004,1005,1006,1007,1008
+routing	spring_hill	bach_licht	columns=[1513,1551,1598]	providers=[Dr. Bach,Dr. Licht]	supports=true	adult=bach_licht	minor=bach_only
+routingDOB	spring_hill	bach_licht	none	columns=[1513,1551,1598]	providers=[Dr. Bach,Dr. Licht]
+routingDOB	spring_hill	bach_licht	invalid	columns=[1513,1551,1598]	providers=[Dr. Bach,Dr. Licht]
+routingDOB	spring_hill	bach_licht	age3	columns=[1513,1551,1598]	providers=[Dr. Bach,Dr. Licht]
+routingDOB	spring_hill	bach_licht	age4	columns=[1513,1551,1598]	providers=[Dr. Bach,Dr. Licht]
+routingDOB	spring_hill	bach_licht	age5	columns=[1513,1551,1598]	providers=[Dr. Bach,Dr. Licht]
+routingDOB	spring_hill	bach_licht	age6	columns=[1513,1551,1598]	providers=[Dr. Bach,Dr. Licht]
+routingDOB	spring_hill	bach_licht	age7	columns=[1513,1551,1598]	providers=[Dr. Bach,Dr. Licht]
+routingDOB	spring_hill	bach_licht	age10	columns=[1513,1551,1598]	providers=[Dr. Bach,Dr. Licht]
+routingDOB	spring_hill	bach_licht	age17	columns=[1513,1551,1598]	providers=[Dr. Bach,Dr. Licht]
+routingDOB	spring_hill	bach_licht	age18	columns=[1513,1551,1598]	providers=[Dr. Bach,Dr. Licht]
+routingDOB	spring_hill	bach_licht	age40	columns=[1513,1551,1598]	providers=[Dr. Bach,Dr. Licht]
+allowsTypes	spring_hill	bach_licht	1004,1005,1006,1007,1008
+routing	spring_hill	all_three	columns=[1513,1550,1551,1598]	providers=[Dr. Bach,Dr. Licht,Dr. Noel]	supports=true	adult=all_three	minor=bach_only
+routingDOB	spring_hill	all_three	none	columns=[1513,1550,1551,1598]	providers=[Dr. Bach,Dr. Licht,Dr. Noel]
+routingDOB	spring_hill	all_three	invalid	columns=[1513,1550,1551,1598]	providers=[Dr. Bach,Dr. Licht,Dr. Noel]
+routingDOB	spring_hill	all_three	age3	columns=[1513,1550,1551,1598]	providers=[Dr. Bach,Dr. Licht,Dr. Noel]
+routingDOB	spring_hill	all_three	age4	columns=[1513,1550,1551,1598]	providers=[Dr. Bach,Dr. Licht,Dr. Noel]
+routingDOB	spring_hill	all_three	age5	columns=[1513,1550,1551,1598]	providers=[Dr. Bach,Dr. Licht,Dr. Noel]
+routingDOB	spring_hill	all_three	age6	columns=[1513,1550,1551,1598]	providers=[Dr. Bach,Dr. Licht,Dr. Noel]
+routingDOB	spring_hill	all_three	age7	columns=[1513,1550,1551,1598]	providers=[Dr. Bach,Dr. Licht,Dr. Noel]
+routingDOB	spring_hill	all_three	age10	columns=[1513,1550,1551,1598]	providers=[Dr. Bach,Dr. Licht,Dr. Noel]
+routingDOB	spring_hill	all_three	age17	columns=[1513,1550,1551,1598]	providers=[Dr. Bach,Dr. Licht,Dr. Noel]
+routingDOB	spring_hill	all_three	age18	columns=[1513,1550,1551,1598]	providers=[Dr. Bach,Dr. Licht,Dr. Noel]
+routingDOB	spring_hill	all_three	age40	columns=[1513,1550,1551,1598]	providers=[Dr. Bach,Dr. Licht,Dr. Noel]
+allowsTypes	spring_hill	all_three	1004,1005,1006,1007,1008
+routing	spring_hill	optical_only	columns=[1600]	providers=[Dr. Otero]	supports=true	adult=optical_only	minor=optical_only
+routingDOB	spring_hill	optical_only	none	columns=[1600]	providers=[Dr. Otero]
+routingDOB	spring_hill	optical_only	invalid	columns=[1600]	providers=[Dr. Otero]
+routingDOB	spring_hill	optical_only	age3	columns=[1600]	providers=[Dr. Otero]
+routingDOB	spring_hill	optical_only	age4	columns=[1600]	providers=[Dr. Otero]
+routingDOB	spring_hill	optical_only	age5	columns=[1600]	providers=[Dr. Otero]
+routingDOB	spring_hill	optical_only	age6	columns=[1600]	providers=[Dr. Otero]
+routingDOB	spring_hill	optical_only	age7	columns=[1600]	providers=[Dr. Otero]
+routingDOB	spring_hill	optical_only	age10	columns=[1600]	providers=[Dr. Otero]
+routingDOB	spring_hill	optical_only	age17	columns=[1600]	providers=[Dr. Otero]
+routingDOB	spring_hill	optical_only	age18	columns=[1600]	providers=[Dr. Otero]
+routingDOB	spring_hill	optical_only	age40	columns=[1600]	providers=[Dr. Otero]
+allowsTypes	spring_hill	optical_only	1010,3364,4244,4245
+typeLabel	spring_hill	-1	color=/false	name=/false
+typeLabel	spring_hill	0	color=/false	name=/false
+typeLabel	spring_hill	8	color=/false	name=/false
+typeLabel	spring_hill	12	color=/false	name=/false
+typeLabel	spring_hill	18	color=/false	name=/false
+typeLabel	spring_hill	20	color=/false	name=/false
+typeLabel	spring_hill	1004	color=GREEN/true	name=New Pediatric Medical/true
+typeLabel	spring_hill	1005	color=PINK/true	name=Established Pediatric Medical (Follow Up)/true
+typeLabel	spring_hill	1006	color=RED/true	name=New Adult Medical/true
+typeLabel	spring_hill	1007	color=ORANGE/true	name=Established Adult Medical (Follow Up)/true
+typeLabel	spring_hill	1008	color=BLUE/true	name=Post Op/true
+typeLabel	spring_hill	1010	color=TEAL/true	name=New Adult Vision/true
+typeLabel	spring_hill	1627	color=/false	name=/false
+typeLabel	spring_hill	3364	color=ROSE/true	name=Established Adult Vision/true
+typeLabel	spring_hill	4244	color=BROWN/true	name=New Pediatric Vision/true
+typeLabel	spring_hill	4245	color=GRAY/true	name=Established Pediatric Vision/true
+typeLabel	spring_hill	6167	color=ORANGE/true	name=Crystal River New Patient/true
+typeLabel	spring_hill	6168	color=TEAL/true	name=Crystal River Post Op/true
+typeLabel	spring_hill	6169	color=RED/true	name=Crystal River Established Patient/true
+typeLabel	spring_hill	9999	color=/false	name=/false
+friendly	spring_hill	"BACH, AUSTIN"	"Dr. Austin Bach"
+friendly	spring_hill	"BACH, MIRIAM"	"Dr. Austin Bach"
+friendly	spring_hill	"LICHT, JOSEPH"	"Dr. Joseph Licht"
+friendly	spring_hill	"NOEL, DR"	"Dr. Noel"
+friendly	spring_hill	"OTERO, MELISSA"	"Dr. Melissa Otero"
+friendly	spring_hill	"CASAS, MARIA"	"CASAS, MARIA"
+friendly	spring_hill	"FARNAN, KYLER"	"FARNAN, KYLER"
+friendly	spring_hill	"CALERO, GISSELLE"	"CALERO, GISSELLE"
+friendly	spring_hill	"VIDAL, LISBET"	"VIDAL, LISBET"
+friendly	spring_hill	"UNKNOWN, DOCTOR"	"UNKNOWN, DOCTOR"
+friendly	spring_hill	""	""
+office	crystal_river	display=Crystal River	facility=1576	defaultProfile=2064	pediatric=not_accepted	supportsMedical=true	lookupGroup=spring_hill,crystal_river
+column	crystal_river	1593	profile=2064	display=Dr. Joseph Licht	short=Dr. Licht	match=LICHT	minAge=0	capacity=0	windows=
+columnDOB	crystal_river	1593	none=true invalid=true age3=true age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+routing	crystal_river	not_accepted	columns=nil	providers=nil	supports=false	adult=not_accepted	minor=not_accepted
+routingDOB	crystal_river	not_accepted	none	columns=nil	providers=nil
+routingDOB	crystal_river	not_accepted	invalid	columns=nil	providers=nil
+routingDOB	crystal_river	not_accepted	age3	columns=nil	providers=nil
+routingDOB	crystal_river	not_accepted	age4	columns=nil	providers=nil
+routingDOB	crystal_river	not_accepted	age5	columns=nil	providers=nil
+routingDOB	crystal_river	not_accepted	age6	columns=nil	providers=nil
+routingDOB	crystal_river	not_accepted	age7	columns=nil	providers=nil
+routingDOB	crystal_river	not_accepted	age10	columns=nil	providers=nil
+routingDOB	crystal_river	not_accepted	age17	columns=nil	providers=nil
+routingDOB	crystal_river	not_accepted	age18	columns=nil	providers=nil
+routingDOB	crystal_river	not_accepted	age40	columns=nil	providers=nil
+allowsTypes	crystal_river	not_accepted	
+routing	crystal_river	bach_only	columns=[1593]	providers=[Dr. Licht]	supports=true	adult=bach_only	minor=not_accepted
+routingDOB	crystal_river	bach_only	none	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_only	invalid	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_only	age3	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_only	age4	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_only	age5	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_only	age6	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_only	age7	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_only	age10	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_only	age17	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_only	age18	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_only	age40	columns=[1593]	providers=[Dr. Licht]
+allowsTypes	crystal_river	bach_only	6167,6168,6169
+routing	crystal_river	bach_licht	columns=[1593]	providers=[Dr. Licht]	supports=true	adult=bach_licht	minor=not_accepted
+routingDOB	crystal_river	bach_licht	none	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_licht	invalid	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_licht	age3	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_licht	age4	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_licht	age5	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_licht	age6	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_licht	age7	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_licht	age10	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_licht	age17	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_licht	age18	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	bach_licht	age40	columns=[1593]	providers=[Dr. Licht]
+allowsTypes	crystal_river	bach_licht	6167,6168,6169
+routing	crystal_river	all_three	columns=[1593]	providers=[Dr. Licht]	supports=true	adult=all_three	minor=not_accepted
+routingDOB	crystal_river	all_three	none	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	all_three	invalid	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	all_three	age3	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	all_three	age4	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	all_three	age5	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	all_three	age6	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	all_three	age7	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	all_three	age10	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	all_three	age17	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	all_three	age18	columns=[1593]	providers=[Dr. Licht]
+routingDOB	crystal_river	all_three	age40	columns=[1593]	providers=[Dr. Licht]
+allowsTypes	crystal_river	all_three	6167,6168,6169
+routing	crystal_river	optical_only	columns=[]	providers=[]	supports=false	adult=optical_only	minor=optical_only
+routingDOB	crystal_river	optical_only	none	columns=[]	providers=[]
+routingDOB	crystal_river	optical_only	invalid	columns=[]	providers=[]
+routingDOB	crystal_river	optical_only	age3	columns=[]	providers=[]
+routingDOB	crystal_river	optical_only	age4	columns=[]	providers=[]
+routingDOB	crystal_river	optical_only	age5	columns=[]	providers=[]
+routingDOB	crystal_river	optical_only	age6	columns=[]	providers=[]
+routingDOB	crystal_river	optical_only	age7	columns=[]	providers=[]
+routingDOB	crystal_river	optical_only	age10	columns=[]	providers=[]
+routingDOB	crystal_river	optical_only	age17	columns=[]	providers=[]
+routingDOB	crystal_river	optical_only	age18	columns=[]	providers=[]
+routingDOB	crystal_river	optical_only	age40	columns=[]	providers=[]
+allowsTypes	crystal_river	optical_only	
+typeLabel	crystal_river	-1	color=/false	name=/false
+typeLabel	crystal_river	0	color=/false	name=/false
+typeLabel	crystal_river	8	color=/false	name=/false
+typeLabel	crystal_river	12	color=/false	name=/false
+typeLabel	crystal_river	18	color=/false	name=/false
+typeLabel	crystal_river	20	color=/false	name=/false
+typeLabel	crystal_river	1004	color=GREEN/true	name=New Pediatric Medical/true
+typeLabel	crystal_river	1005	color=PINK/true	name=Established Pediatric Medical (Follow Up)/true
+typeLabel	crystal_river	1006	color=RED/true	name=New Adult Medical/true
+typeLabel	crystal_river	1007	color=ORANGE/true	name=Established Adult Medical (Follow Up)/true
+typeLabel	crystal_river	1008	color=BLUE/true	name=Post Op/true
+typeLabel	crystal_river	1010	color=TEAL/true	name=New Adult Vision/true
+typeLabel	crystal_river	1627	color=/false	name=/false
+typeLabel	crystal_river	3364	color=ROSE/true	name=Established Adult Vision/true
+typeLabel	crystal_river	4244	color=BROWN/true	name=New Pediatric Vision/true
+typeLabel	crystal_river	4245	color=GRAY/true	name=Established Pediatric Vision/true
+typeLabel	crystal_river	6167	color=ORANGE/true	name=Crystal River New Patient/true
+typeLabel	crystal_river	6168	color=TEAL/true	name=Crystal River Post Op/true
+typeLabel	crystal_river	6169	color=RED/true	name=Crystal River Established Patient/true
+typeLabel	crystal_river	9999	color=/false	name=/false
+friendly	crystal_river	"BACH, AUSTIN"	"BACH, AUSTIN"
+friendly	crystal_river	"BACH, MIRIAM"	"BACH, MIRIAM"
+friendly	crystal_river	"LICHT, JOSEPH"	"Dr. Joseph Licht"
+friendly	crystal_river	"NOEL, DR"	"NOEL, DR"
+friendly	crystal_river	"OTERO, MELISSA"	"OTERO, MELISSA"
+friendly	crystal_river	"CASAS, MARIA"	"CASAS, MARIA"
+friendly	crystal_river	"FARNAN, KYLER"	"FARNAN, KYLER"
+friendly	crystal_river	"CALERO, GISSELLE"	"CALERO, GISSELLE"
+friendly	crystal_river	"VIDAL, LISBET"	"VIDAL, LISBET"
+friendly	crystal_river	"UNKNOWN, DOCTOR"	"UNKNOWN, DOCTOR"
+friendly	crystal_river	""	""
+office	hollywood	display=Hollywood	facility=1480	defaultProfile=620	pediatric=bach_only	supportsMedical=true	lookupGroup=hollywood,sweetwater,north_miami_beach_optical
+column	hollywood	1268	profile=620	display=Dr. Austin Bach	short=Dr. Bach	match=BACH	minAge=0	capacity=2	windows=
+columnDOB	hollywood	1268	none=true invalid=true age3=true age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+column	hollywood	1305	profile=1993	display=Dr. Gisselle Calero	short=Dr. Calero	match=CALERO	minAge=4	capacity=2	windows=Mon 08:30-10:45,Mon 13:30-14:30,Tue 08:30-10:45,Tue 13:30-14:30,Wed 08:30-10:45,Wed 13:30-14:30,Thu 08:30-10:45,Thu 13:30-14:30,Fri 08:30-11:45
+columnDOB	hollywood	1305	none=false invalid=false age3=false age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+column	hollywood	1478	profile=620	display=Dr. Austin Bach	short=Dr. Bach	match=BACH	minAge=0	capacity=2	windows=
+columnDOB	hollywood	1478	none=true invalid=true age3=true age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+column	hollywood	1510	profile=2057	display=Dr. Lisbet Vidal	short=Dr. Vidal	match=VIDAL	minAge=7	capacity=2	windows=Mon 08:30-10:45,Mon 13:30-14:30,Tue 08:30-10:45,Tue 13:30-14:30,Wed 08:30-10:45,Wed 13:30-14:30,Thu 08:30-10:45,Thu 13:30-14:30,Fri 08:30-11:45
+columnDOB	hollywood	1510	none=false invalid=false age3=false age4=false age5=false age6=false age7=true age10=true age17=true age18=true age40=true
+column	hollywood	1555	profile=2075	display=Dr. Kyler Farnan	short=Dr. Farnan	match=FARNAN	minAge=5	capacity=2	windows=Mon 08:30-10:45,Mon 13:30-14:30,Tue 08:30-10:45,Tue 13:30-14:30,Wed 08:30-10:45,Wed 13:30-14:30,Thu 08:30-10:45,Thu 13:30-14:30,Fri 08:30-11:45
+columnDOB	hollywood	1555	none=false invalid=false age3=false age4=false age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+routing	hollywood	not_accepted	columns=nil	providers=nil	supports=false	adult=not_accepted	minor=not_accepted
+routingDOB	hollywood	not_accepted	none	columns=nil	providers=nil
+routingDOB	hollywood	not_accepted	invalid	columns=nil	providers=nil
+routingDOB	hollywood	not_accepted	age3	columns=nil	providers=nil
+routingDOB	hollywood	not_accepted	age4	columns=nil	providers=nil
+routingDOB	hollywood	not_accepted	age5	columns=nil	providers=nil
+routingDOB	hollywood	not_accepted	age6	columns=nil	providers=nil
+routingDOB	hollywood	not_accepted	age7	columns=nil	providers=nil
+routingDOB	hollywood	not_accepted	age10	columns=nil	providers=nil
+routingDOB	hollywood	not_accepted	age17	columns=nil	providers=nil
+routingDOB	hollywood	not_accepted	age18	columns=nil	providers=nil
+routingDOB	hollywood	not_accepted	age40	columns=nil	providers=nil
+allowsTypes	hollywood	not_accepted	
+routing	hollywood	bach_only	columns=[1268,1478]	providers=[Dr. Bach]	supports=true	adult=bach_only	minor=bach_only
+routingDOB	hollywood	bach_only	none	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_only	invalid	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_only	age3	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_only	age4	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_only	age5	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_only	age6	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_only	age7	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_only	age10	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_only	age17	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_only	age18	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_only	age40	columns=[1268,1478]	providers=[Dr. Bach]
+allowsTypes	hollywood	bach_only	1004,1005,1006,1007,1008
+routing	hollywood	bach_licht	columns=[1268,1478]	providers=[Dr. Bach]	supports=true	adult=bach_licht	minor=bach_only
+routingDOB	hollywood	bach_licht	none	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_licht	invalid	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_licht	age3	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_licht	age4	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_licht	age5	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_licht	age6	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_licht	age7	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_licht	age10	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_licht	age17	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_licht	age18	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_licht	age40	columns=[1268,1478]	providers=[Dr. Bach]
+allowsTypes	hollywood	bach_licht	1004,1005,1006,1007,1008
+routing	hollywood	all_three	columns=[1268,1478]	providers=[Dr. Bach]	supports=true	adult=all_three	minor=bach_only
+routingDOB	hollywood	all_three	none	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	all_three	invalid	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	all_three	age3	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	all_three	age4	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	all_three	age5	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	all_three	age6	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	all_three	age7	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	all_three	age10	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	all_three	age17	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	all_three	age18	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	all_three	age40	columns=[1268,1478]	providers=[Dr. Bach]
+allowsTypes	hollywood	all_three	1004,1005,1006,1007,1008
+routing	hollywood	optical_only	columns=[1305,1510,1555]	providers=[Dr. Farnan,Dr. Vidal,Dr. Calero]	supports=true	adult=optical_only	minor=optical_only
+routingDOB	hollywood	optical_only	none	columns=[1305,1510,1555]	providers=[Dr. Farnan,Dr. Vidal,Dr. Calero]
+routingDOB	hollywood	optical_only	invalid	columns=[]	providers=[]
+routingDOB	hollywood	optical_only	age3	columns=[]	providers=[]
+routingDOB	hollywood	optical_only	age4	columns=[1305]	providers=[Dr. Calero]
+routingDOB	hollywood	optical_only	age5	columns=[1305,1555]	providers=[Dr. Farnan,Dr. Calero]
+routingDOB	hollywood	optical_only	age6	columns=[1305,1555]	providers=[Dr. Farnan,Dr. Calero]
+routingDOB	hollywood	optical_only	age7	columns=[1305,1510,1555]	providers=[Dr. Farnan,Dr. Vidal,Dr. Calero]
+routingDOB	hollywood	optical_only	age10	columns=[1305,1510,1555]	providers=[Dr. Farnan,Dr. Vidal,Dr. Calero]
+routingDOB	hollywood	optical_only	age17	columns=[1305,1510,1555]	providers=[Dr. Farnan,Dr. Vidal,Dr. Calero]
+routingDOB	hollywood	optical_only	age18	columns=[1305,1510,1555]	providers=[Dr. Farnan,Dr. Vidal,Dr. Calero]
+routingDOB	hollywood	optical_only	age40	columns=[1305,1510,1555]	providers=[Dr. Farnan,Dr. Vidal,Dr. Calero]
+allowsTypes	hollywood	optical_only	1010,3364,4244,4245
+typeLabel	hollywood	-1	color=/false	name=/false
+typeLabel	hollywood	0	color=/false	name=/false
+typeLabel	hollywood	8	color=/false	name=/false
+typeLabel	hollywood	12	color=/false	name=/false
+typeLabel	hollywood	18	color=/false	name=/false
+typeLabel	hollywood	20	color=/false	name=/false
+typeLabel	hollywood	1004	color=GREEN/true	name=New Pediatric Medical/true
+typeLabel	hollywood	1005	color=PINK/true	name=Established Pediatric Medical (Follow Up)/true
+typeLabel	hollywood	1006	color=RED/true	name=New Adult Medical/true
+typeLabel	hollywood	1007	color=ORANGE/true	name=Established Adult Medical (Follow Up)/true
+typeLabel	hollywood	1008	color=BLUE/true	name=Post Op/true
+typeLabel	hollywood	1010	color=TEAL/true	name=New Adult Vision/true
+typeLabel	hollywood	1627	color=/false	name=/false
+typeLabel	hollywood	3364	color=ROSE/true	name=Established Adult Vision/true
+typeLabel	hollywood	4244	color=BROWN/true	name=New Pediatric Vision/true
+typeLabel	hollywood	4245	color=GRAY/true	name=Established Pediatric Vision/true
+typeLabel	hollywood	6167	color=ORANGE/true	name=Crystal River New Patient/true
+typeLabel	hollywood	6168	color=TEAL/true	name=Crystal River Post Op/true
+typeLabel	hollywood	6169	color=RED/true	name=Crystal River Established Patient/true
+typeLabel	hollywood	9999	color=/false	name=/false
+friendly	hollywood	"BACH, AUSTIN"	"Dr. Austin Bach"
+friendly	hollywood	"BACH, MIRIAM"	"Dr. Austin Bach"
+friendly	hollywood	"LICHT, JOSEPH"	"LICHT, JOSEPH"
+friendly	hollywood	"NOEL, DR"	"NOEL, DR"
+friendly	hollywood	"OTERO, MELISSA"	"OTERO, MELISSA"
+friendly	hollywood	"CASAS, MARIA"	"CASAS, MARIA"
+friendly	hollywood	"FARNAN, KYLER"	"Dr. Kyler Farnan"
+friendly	hollywood	"CALERO, GISSELLE"	"Dr. Gisselle Calero"
+friendly	hollywood	"VIDAL, LISBET"	"Dr. Lisbet Vidal"
+friendly	hollywood	"UNKNOWN, DOCTOR"	"UNKNOWN, DOCTOR"
+friendly	hollywood	""	""
+office	sweetwater	display=Sweetwater	facility=670	defaultProfile=620	pediatric=bach_only	supportsMedical=true	lookupGroup=hollywood,sweetwater
+column	sweetwater	1210	profile=1993	display=Dr. Gisselle Calero	short=Dr. Calero	match=CALERO	minAge=4	capacity=2	windows=Mon 08:30-10:45,Mon 13:30-14:30,Tue 08:30-10:45,Tue 13:30-14:30,Wed 08:30-10:45,Wed 13:30-14:30,Thu 08:30-10:45,Thu 13:30-14:30,Fri 08:30-11:45
+columnDOB	sweetwater	1210	none=false invalid=false age3=false age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+column	sweetwater	1296	profile=1996	display=Dr. Maria Casas	short=Dr. Casas	match=CASAS	minAge=7	capacity=2	windows=Mon 08:30-10:45,Mon 13:30-14:30,Tue 08:30-10:45,Tue 13:30-14:30,Wed 08:30-10:45,Wed 13:30-14:30,Thu 08:30-10:45,Thu 13:30-14:30,Fri 08:30-11:45
+columnDOB	sweetwater	1296	none=false invalid=false age3=false age4=false age5=false age6=false age7=true age10=true age17=true age18=true age40=true
+column	sweetwater	1307	profile=620	display=Dr. Austin Bach	short=Dr. Bach	match=BACH	minAge=0	capacity=2	windows=
+columnDOB	sweetwater	1307	none=true invalid=true age3=true age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+column	sweetwater	1554	profile=2075	display=Dr. Kyler Farnan	short=Dr. Farnan	match=FARNAN	minAge=5	capacity=2	windows=Mon 08:30-10:45,Mon 13:30-14:30,Tue 08:30-10:45,Tue 13:30-14:30,Wed 08:30-10:45,Wed 13:30-14:30,Thu 08:30-10:45,Thu 13:30-14:30,Fri 08:30-11:45
+columnDOB	sweetwater	1554	none=false invalid=false age3=false age4=false age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+column	sweetwater	682	profile=620	display=Dr. Austin Bach	short=Dr. Bach	match=BACH	minAge=0	capacity=2	windows=
+columnDOB	sweetwater	682	none=true invalid=true age3=true age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+routing	sweetwater	not_accepted	columns=nil	providers=nil	supports=false	adult=not_accepted	minor=not_accepted
+routingDOB	sweetwater	not_accepted	none	columns=nil	providers=nil
+routingDOB	sweetwater	not_accepted	invalid	columns=nil	providers=nil
+routingDOB	sweetwater	not_accepted	age3	columns=nil	providers=nil
+routingDOB	sweetwater	not_accepted	age4	columns=nil	providers=nil
+routingDOB	sweetwater	not_accepted	age5	columns=nil	providers=nil
+routingDOB	sweetwater	not_accepted	age6	columns=nil	providers=nil
+routingDOB	sweetwater	not_accepted	age7	columns=nil	providers=nil
+routingDOB	sweetwater	not_accepted	age10	columns=nil	providers=nil
+routingDOB	sweetwater	not_accepted	age17	columns=nil	providers=nil
+routingDOB	sweetwater	not_accepted	age18	columns=nil	providers=nil
+routingDOB	sweetwater	not_accepted	age40	columns=nil	providers=nil
+allowsTypes	sweetwater	not_accepted	
+routing	sweetwater	bach_only	columns=[1307,682]	providers=[Dr. Bach]	supports=true	adult=bach_only	minor=bach_only
+routingDOB	sweetwater	bach_only	none	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_only	invalid	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_only	age3	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_only	age4	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_only	age5	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_only	age6	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_only	age7	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_only	age10	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_only	age17	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_only	age18	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_only	age40	columns=[1307,682]	providers=[Dr. Bach]
+allowsTypes	sweetwater	bach_only	1004,1005,1006,1007,1008
+routing	sweetwater	bach_licht	columns=[1307,682]	providers=[Dr. Bach]	supports=true	adult=bach_licht	minor=bach_only
+routingDOB	sweetwater	bach_licht	none	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_licht	invalid	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_licht	age3	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_licht	age4	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_licht	age5	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_licht	age6	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_licht	age7	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_licht	age10	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_licht	age17	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_licht	age18	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_licht	age40	columns=[1307,682]	providers=[Dr. Bach]
+allowsTypes	sweetwater	bach_licht	1004,1005,1006,1007,1008
+routing	sweetwater	all_three	columns=[1307,682]	providers=[Dr. Bach]	supports=true	adult=all_three	minor=bach_only
+routingDOB	sweetwater	all_three	none	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	all_three	invalid	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	all_three	age3	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	all_three	age4	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	all_three	age5	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	all_three	age6	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	all_three	age7	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	all_three	age10	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	all_three	age17	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	all_three	age18	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	all_three	age40	columns=[1307,682]	providers=[Dr. Bach]
+allowsTypes	sweetwater	all_three	1004,1005,1006,1007,1008
+routing	sweetwater	optical_only	columns=[1210,1296,1554]	providers=[Dr. Casas,Dr. Farnan,Dr. Calero]	supports=true	adult=optical_only	minor=optical_only
+routingDOB	sweetwater	optical_only	none	columns=[1210,1296,1554]	providers=[Dr. Casas,Dr. Farnan,Dr. Calero]
+routingDOB	sweetwater	optical_only	invalid	columns=[]	providers=[]
+routingDOB	sweetwater	optical_only	age3	columns=[]	providers=[]
+routingDOB	sweetwater	optical_only	age4	columns=[1210]	providers=[Dr. Calero]
+routingDOB	sweetwater	optical_only	age5	columns=[1210,1554]	providers=[Dr. Farnan,Dr. Calero]
+routingDOB	sweetwater	optical_only	age6	columns=[1210,1554]	providers=[Dr. Farnan,Dr. Calero]
+routingDOB	sweetwater	optical_only	age7	columns=[1210,1296,1554]	providers=[Dr. Casas,Dr. Farnan,Dr. Calero]
+routingDOB	sweetwater	optical_only	age10	columns=[1210,1296,1554]	providers=[Dr. Casas,Dr. Farnan,Dr. Calero]
+routingDOB	sweetwater	optical_only	age17	columns=[1210,1296,1554]	providers=[Dr. Casas,Dr. Farnan,Dr. Calero]
+routingDOB	sweetwater	optical_only	age18	columns=[1210,1296,1554]	providers=[Dr. Casas,Dr. Farnan,Dr. Calero]
+routingDOB	sweetwater	optical_only	age40	columns=[1210,1296,1554]	providers=[Dr. Casas,Dr. Farnan,Dr. Calero]
+allowsTypes	sweetwater	optical_only	1010,3364,4244,4245
+typeLabel	sweetwater	-1	color=/false	name=/false
+typeLabel	sweetwater	0	color=/false	name=/false
+typeLabel	sweetwater	8	color=/false	name=/false
+typeLabel	sweetwater	12	color=/false	name=/false
+typeLabel	sweetwater	18	color=/false	name=/false
+typeLabel	sweetwater	20	color=/false	name=/false
+typeLabel	sweetwater	1004	color=GREEN/true	name=New Pediatric Medical/true
+typeLabel	sweetwater	1005	color=PINK/true	name=Established Pediatric Medical (Follow Up)/true
+typeLabel	sweetwater	1006	color=RED/true	name=New Adult Medical/true
+typeLabel	sweetwater	1007	color=ORANGE/true	name=Established Adult Medical (Follow Up)/true
+typeLabel	sweetwater	1008	color=BLUE/true	name=Post Op/true
+typeLabel	sweetwater	1010	color=TEAL/true	name=New Adult Vision/true
+typeLabel	sweetwater	1627	color=/false	name=/false
+typeLabel	sweetwater	3364	color=ROSE/true	name=Established Adult Vision/true
+typeLabel	sweetwater	4244	color=BROWN/true	name=New Pediatric Vision/true
+typeLabel	sweetwater	4245	color=GRAY/true	name=Established Pediatric Vision/true
+typeLabel	sweetwater	6167	color=ORANGE/true	name=Crystal River New Patient/true
+typeLabel	sweetwater	6168	color=TEAL/true	name=Crystal River Post Op/true
+typeLabel	sweetwater	6169	color=RED/true	name=Crystal River Established Patient/true
+typeLabel	sweetwater	9999	color=/false	name=/false
+friendly	sweetwater	"BACH, AUSTIN"	"Dr. Austin Bach"
+friendly	sweetwater	"BACH, MIRIAM"	"Dr. Austin Bach"
+friendly	sweetwater	"LICHT, JOSEPH"	"LICHT, JOSEPH"
+friendly	sweetwater	"NOEL, DR"	"NOEL, DR"
+friendly	sweetwater	"OTERO, MELISSA"	"OTERO, MELISSA"
+friendly	sweetwater	"CASAS, MARIA"	"Dr. Maria Casas"
+friendly	sweetwater	"FARNAN, KYLER"	"Dr. Kyler Farnan"
+friendly	sweetwater	"CALERO, GISSELLE"	"Dr. Gisselle Calero"
+friendly	sweetwater	"VIDAL, LISBET"	"VIDAL, LISBET"
+friendly	sweetwater	"UNKNOWN, DOCTOR"	"UNKNOWN, DOCTOR"
+friendly	sweetwater	""	""
+office	north_miami_beach_optical	display=North Miami Beach Optical	facility=1582	defaultProfile=621	pediatric=not_accepted	supportsMedical=false	lookupGroup=north_miami_beach_optical
+column	north_miami_beach_optical	1601	profile=621	display=Dr. Miriam Bach	short=Dr. Miriam Bach	match=BACH	minAge=0	capacity=0	windows=
+columnDOB	north_miami_beach_optical	1601	none=true invalid=true age3=true age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+routing	north_miami_beach_optical	not_accepted	columns=nil	providers=nil	supports=false	adult=not_accepted	minor=not_accepted
+routingDOB	north_miami_beach_optical	not_accepted	none	columns=nil	providers=nil
+routingDOB	north_miami_beach_optical	not_accepted	invalid	columns=nil	providers=nil
+routingDOB	north_miami_beach_optical	not_accepted	age3	columns=nil	providers=nil
+routingDOB	north_miami_beach_optical	not_accepted	age4	columns=nil	providers=nil
+routingDOB	north_miami_beach_optical	not_accepted	age5	columns=nil	providers=nil
+routingDOB	north_miami_beach_optical	not_accepted	age6	columns=nil	providers=nil
+routingDOB	north_miami_beach_optical	not_accepted	age7	columns=nil	providers=nil
+routingDOB	north_miami_beach_optical	not_accepted	age10	columns=nil	providers=nil
+routingDOB	north_miami_beach_optical	not_accepted	age17	columns=nil	providers=nil
+routingDOB	north_miami_beach_optical	not_accepted	age18	columns=nil	providers=nil
+routingDOB	north_miami_beach_optical	not_accepted	age40	columns=nil	providers=nil
+allowsTypes	north_miami_beach_optical	not_accepted	
+routing	north_miami_beach_optical	bach_only	columns=[]	providers=[]	supports=false	adult=bach_only	minor=not_accepted
+routingDOB	north_miami_beach_optical	bach_only	none	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_only	invalid	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_only	age3	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_only	age4	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_only	age5	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_only	age6	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_only	age7	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_only	age10	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_only	age17	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_only	age18	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_only	age40	columns=[]	providers=[]
+allowsTypes	north_miami_beach_optical	bach_only	
+routing	north_miami_beach_optical	bach_licht	columns=[]	providers=[]	supports=false	adult=bach_licht	minor=not_accepted
+routingDOB	north_miami_beach_optical	bach_licht	none	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_licht	invalid	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_licht	age3	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_licht	age4	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_licht	age5	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_licht	age6	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_licht	age7	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_licht	age10	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_licht	age17	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_licht	age18	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	bach_licht	age40	columns=[]	providers=[]
+allowsTypes	north_miami_beach_optical	bach_licht	
+routing	north_miami_beach_optical	all_three	columns=[]	providers=[]	supports=false	adult=all_three	minor=not_accepted
+routingDOB	north_miami_beach_optical	all_three	none	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	all_three	invalid	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	all_three	age3	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	all_three	age4	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	all_three	age5	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	all_three	age6	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	all_three	age7	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	all_three	age10	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	all_three	age17	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	all_three	age18	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	all_three	age40	columns=[]	providers=[]
+allowsTypes	north_miami_beach_optical	all_three	
+routing	north_miami_beach_optical	optical_only	columns=[1601]	providers=[Dr. Miriam Bach]	supports=true	adult=optical_only	minor=optical_only
+routingDOB	north_miami_beach_optical	optical_only	none	columns=[1601]	providers=[Dr. Miriam Bach]
+routingDOB	north_miami_beach_optical	optical_only	invalid	columns=[1601]	providers=[Dr. Miriam Bach]
+routingDOB	north_miami_beach_optical	optical_only	age3	columns=[1601]	providers=[Dr. Miriam Bach]
+routingDOB	north_miami_beach_optical	optical_only	age4	columns=[1601]	providers=[Dr. Miriam Bach]
+routingDOB	north_miami_beach_optical	optical_only	age5	columns=[1601]	providers=[Dr. Miriam Bach]
+routingDOB	north_miami_beach_optical	optical_only	age6	columns=[1601]	providers=[Dr. Miriam Bach]
+routingDOB	north_miami_beach_optical	optical_only	age7	columns=[1601]	providers=[Dr. Miriam Bach]
+routingDOB	north_miami_beach_optical	optical_only	age10	columns=[1601]	providers=[Dr. Miriam Bach]
+routingDOB	north_miami_beach_optical	optical_only	age17	columns=[1601]	providers=[Dr. Miriam Bach]
+routingDOB	north_miami_beach_optical	optical_only	age18	columns=[1601]	providers=[Dr. Miriam Bach]
+routingDOB	north_miami_beach_optical	optical_only	age40	columns=[1601]	providers=[Dr. Miriam Bach]
+allowsTypes	north_miami_beach_optical	optical_only	1010,3364,4244,4245
+typeLabel	north_miami_beach_optical	-1	color=/false	name=/false
+typeLabel	north_miami_beach_optical	0	color=/false	name=/false
+typeLabel	north_miami_beach_optical	8	color=/false	name=/false
+typeLabel	north_miami_beach_optical	12	color=/false	name=/false
+typeLabel	north_miami_beach_optical	18	color=/false	name=/false
+typeLabel	north_miami_beach_optical	20	color=/false	name=/false
+typeLabel	north_miami_beach_optical	1004	color=GREEN/true	name=New Pediatric Medical/true
+typeLabel	north_miami_beach_optical	1005	color=PINK/true	name=Established Pediatric Medical (Follow Up)/true
+typeLabel	north_miami_beach_optical	1006	color=RED/true	name=New Adult Medical/true
+typeLabel	north_miami_beach_optical	1007	color=ORANGE/true	name=Established Adult Medical (Follow Up)/true
+typeLabel	north_miami_beach_optical	1008	color=BLUE/true	name=Post Op/true
+typeLabel	north_miami_beach_optical	1010	color=TEAL/true	name=New Adult Vision/true
+typeLabel	north_miami_beach_optical	1627	color=/false	name=/false
+typeLabel	north_miami_beach_optical	3364	color=ROSE/true	name=Established Adult Vision/true
+typeLabel	north_miami_beach_optical	4244	color=BROWN/true	name=New Pediatric Vision/true
+typeLabel	north_miami_beach_optical	4245	color=GRAY/true	name=Established Pediatric Vision/true
+typeLabel	north_miami_beach_optical	6167	color=ORANGE/true	name=Crystal River New Patient/true
+typeLabel	north_miami_beach_optical	6168	color=TEAL/true	name=Crystal River Post Op/true
+typeLabel	north_miami_beach_optical	6169	color=RED/true	name=Crystal River Established Patient/true
+typeLabel	north_miami_beach_optical	9999	color=/false	name=/false
+friendly	north_miami_beach_optical	"BACH, AUSTIN"	"Dr. Miriam Bach"
+friendly	north_miami_beach_optical	"BACH, MIRIAM"	"Dr. Miriam Bach"
+friendly	north_miami_beach_optical	"LICHT, JOSEPH"	"LICHT, JOSEPH"
+friendly	north_miami_beach_optical	"NOEL, DR"	"NOEL, DR"
+friendly	north_miami_beach_optical	"OTERO, MELISSA"	"OTERO, MELISSA"
+friendly	north_miami_beach_optical	"CASAS, MARIA"	"CASAS, MARIA"
+friendly	north_miami_beach_optical	"FARNAN, KYLER"	"FARNAN, KYLER"
+friendly	north_miami_beach_optical	"CALERO, GISSELLE"	"CALERO, GISSELLE"
+friendly	north_miami_beach_optical	"VIDAL, LISBET"	"VIDAL, LISBET"
+friendly	north_miami_beach_optical	"UNKNOWN, DOCTOR"	"UNKNOWN, DOCTOR"
+friendly	north_miami_beach_optical	""	""
+office	atlantis	not found
+validTypes	1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+typeCount	12
+type	-1	known=false	name=	color=	visit=	age=	visitType=	resolve=0/false	canonical=0/false
+type	0	known=false	name=	color=	visit=	age=	visitType=	resolve=0/false	canonical=0/false
+type	8	known=false	name=	color=	visit=	age=	visitType=	resolve=0/false	canonical=0/false
+type	12	known=false	name=	color=	visit=	age=	visitType=	resolve=0/false	canonical=0/false
+type	18	known=false	name=	color=	visit=	age=	visitType=	resolve=0/false	canonical=0/false
+type	20	known=false	name=	color=	visit=	age=	visitType=	resolve=0/false	canonical=0/false
+type	1004	known=true	name=New Pediatric Medical	color=GREEN	visit=medical	age=pediatric	visitType=medical	resolve=1004/true	canonical=1004/true
+type	1005	known=true	name=Established Pediatric Medical (Follow Up)	color=PINK	visit=medical	age=pediatric	visitType=medical	resolve=1005/true	canonical=1005/true
+type	1006	known=true	name=New Adult Medical	color=RED	visit=medical	age=adult	visitType=medical	resolve=1006/true	canonical=1006/true
+type	1007	known=true	name=Established Adult Medical (Follow Up)	color=ORANGE	visit=medical	age=adult	visitType=medical	resolve=1007/true	canonical=1007/true
+type	1008	known=true	name=Post Op	color=BLUE	visit=medical	age=any	visitType=medical	resolve=1008/true	canonical=1008/true
+type	1010	known=true	name=New Adult Vision	color=TEAL	visit=routine_vision	age=adult	visitType=routine_vision	resolve=1010/true	canonical=1010/true
+type	1627	known=false	name=	color=	visit=	age=	visitType=	resolve=0/false	canonical=0/false
+type	3364	known=true	name=Established Adult Vision	color=ROSE	visit=routine_vision	age=adult	visitType=routine_vision	resolve=3364/true	canonical=3364/true
+type	4244	known=true	name=New Pediatric Vision	color=BROWN	visit=routine_vision	age=pediatric	visitType=routine_vision	resolve=4244/true	canonical=4244/true
+type	4245	known=true	name=Established Pediatric Vision	color=GRAY	visit=routine_vision	age=pediatric	visitType=routine_vision	resolve=4245/true	canonical=4245/true
+type	6167	known=true	name=Crystal River New Patient	color=ORANGE	visit=medical	age=any	visitType=medical	resolve=6167/true	canonical=6167/true
+type	6168	known=true	name=Crystal River Post Op	color=TEAL	visit=medical	age=any	visitType=medical	resolve=6168/true	canonical=6168/true
+type	6169	known=true	name=Crystal River Established Patient	color=RED	visit=medical	age=any	visitType=medical	resolve=6169/true	canonical=6169/true
+type	9999	known=false	name=	color=	visit=	age=	visitType=	resolve=0/false	canonical=0/false

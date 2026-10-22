@@ -78,8 +78,8 @@ func acceptedElsewhere(p plan, list planList, office *domain.OfficeConfig) []str
 			continue
 		}
 		for _, id := range other.Offices {
-			o, _ := domain.LookupOfficeByID(id)
-			if id != office.ID && DecidePlan(p.ID, p.Coverage, o, "", time.Time{}).Participation == "accepted" {
+			o, available := domain.LookupOfficeByID(id)
+			if available && id != office.ID && DecidePlan(p.ID, p.Coverage, o, "", time.Time{}).Participation == "accepted" {
 				offices = append(offices, o.DisplayName)
 			}
 		}

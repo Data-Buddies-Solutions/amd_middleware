@@ -405,6 +405,11 @@ go run ./cmd/api
 
 The process listens on `0.0.0.0:$PORT` (`8080` by default).
 
+`AMD_ENV` names the AdvancedMD account the credentials belong to, `prod` or
+`sandbox`, and selects that account's offices, scheduler columns, and
+appointment type IDs from the [office table](internal/domain/office_table.go).
+Any other value, including an empty one, stops startup.
+
 ```bash
 curl http://localhost:8080/live
 curl http://localhost:8080/ready
@@ -440,7 +445,7 @@ Deployment configuration and verification live in the
 
 ### Staging follows each release
 
-The staging Cloud Run service `abita-middleware-sandbox` (`AMD_ENV=dev`,
+The staging Cloud Run service `abita-middleware-sandbox` (`AMD_ENV=sandbox`,
 AdvancedMD sandbox credentials) is the only target of abita_s2s simulations.
 The [staging workflow](.github/workflows/staging.yml) redeploys it on every
 stable `vMAJOR.MINOR.PATCH` tag with the image production runs:
@@ -451,9 +456,10 @@ stable `vMAJOR.MINOR.PATCH` tag with the image production runs:
 2. It copies `services/abita-middleware:<commit>` by digest into the
    `middleware-sandbox` repository with a pinned `crane copy`, which keeps the
    digest.
-3. It updates the sandbox to that digest. `scripts/staging_deployment.py`
-   refuses to deploy unless the sandbox digest equals the production digest,
-   and records both in the receipt.
+3. It updates the sandbox to that digest and `AMD_ENV=sandbox` in one
+   revision. `scripts/staging_deployment.py` refuses to deploy unless the
+   sandbox digest equals the production digest, and records both in the
+   receipt.
 
 A failed staging deploy does not affect production: the job touches Google
 Cloud only after production's build succeeded, and only the sandbox.
@@ -461,6 +467,12 @@ Cloud only after production's build succeeded, and only the sandbox.
 An automatic deploy replaces the sandbox revision, so the new instance logs in
 to AdvancedMD again. A simulation running when a release lands can be
 interrupted; rerun it against the new revision.
+
+Roll the sandbox back only by sending traffic to an older revision, which keeps
+that revision's own image and `AMD_ENV`. Never deploy an image older than the
+`AMD_ENV=sandbox` migration onto it with `--image` or the bootstrap script: older
+code treats `sandbox` as unknown and loads the production office registry
+against the sandbox AdvancedMD account.
 
 For an ad hoc deploy from source, run the workflow manually and confirm
 `sandbox_idle`, or push a `staging-*` tag. Both share the `middleware-staging`
@@ -508,7 +520,7 @@ their owners:
 
 - [Records seam](internal/advancedmd/advancedmd.go) and [adapter](internal/advancedmd/adapter.go): provider records, completeness, and write classification
 - [AdvancedMD transport](internal/clients/advancedmd_xmlrpc.go): the response decoder and `oneOrMany`
-- [Office policy](internal/domain/office.go): offices, scheduler columns, and routing lanes
+- [Office table](internal/domain/office_table.go): offices, scheduler columns, routing lanes, appointment types, and each environment's AdvancedMD IDs
 - [Insurance decisions](internal/insurance/decision.go) and [plan lists](internal/insurance/data): participation, matching, and scheduling requirements
 - [Scheduling policy](internal/scheduling/policy.go) and [tokens](internal/scheduling/tokens.go): booking rules and signed promises
 - [Patient resolution](internal/patient/resolve.go): identity and appointment loading

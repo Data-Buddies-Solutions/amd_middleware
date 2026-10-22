@@ -35,10 +35,7 @@ func resolveAppointmentTypeForIntent(office *domain.OfficeConfig, routing domain
 		if routing == domain.RoutingOpticalOnly {
 			return unresolvedAppointmentType([]string{"routing"}, "Post-op appointments must use a medical scheduling lane.")
 		}
-		if office.ID == "crystal_river" {
-			return resolvedAppointmentType(6168)
-		}
-		return resolvedAppointmentType(1008)
+		return resolvedAppointmentType(office.AppointmentTypes.PostOp)
 	}
 
 	if category == domain.AppointmentVisitRoutineVision {
@@ -46,67 +43,33 @@ func resolveAppointmentTypeForIntent(office *domain.OfficeConfig, routing domain
 			return unresolvedAppointmentType([]string{"routeToSpringHill"}, fmt.Sprintf("Routine vision scheduling is not supported at %s. Route the visit to Spring Hill before booking.", office.DisplayName))
 		}
 
-		missing := missingAppointmentTypeFacts(status, ageBand)
+		ladder := office.AppointmentTypes.RoutineVision
+		missing := missingAppointmentTypeFacts(status, ageBand, ladder.DependsOnAge())
 		if len(missing) > 0 {
 			return unresolvedAppointmentType(missing, appointmentTypeMissingFactsMessage(missing))
 		}
-		if office.ID == "spring_hill" && ageBand == domain.AppointmentAgePediatric {
-			age, ok := domain.AgeYearsOn(intent.DOB, asOf)
-			if !ok {
-				return unresolvedAppointmentType([]string{"dob"}, "Patient DOB is required before scheduling pediatric routine vision at Spring Hill.")
-			}
-			if routineVisionTooYoung(office, age) {
-				return unresolvedAppointmentType([]string{"appointmentLane"}, underSevenRoutineVisionMessage)
-			}
-		}
-
-		if status == domain.AppointmentPatientNew {
-			if ageBand == domain.AppointmentAgePediatric {
-				return resolvedAppointmentType(4244)
-			}
-			return resolvedAppointmentType(1010)
-		}
 		if ageBand == domain.AppointmentAgePediatric {
-			return resolvedAppointmentType(4245)
+			if age, _ := domain.AgeYearsOn(intent.DOB, asOf); routineVisionTooYoung(office, age) {
+				return unresolvedAppointmentType([]string{"appointmentLane"}, office.RoutineVisionMinimumAge.Message)
+			}
 		}
-		return resolvedAppointmentType(3364)
+		return resolvedAppointmentType(ladder.TypeFor(status, ageBand))
 	}
 
 	if len(office.ColumnsForRouting(routing)) == 0 {
 		return unresolvedAppointmentType([]string{"routing"}, fmt.Sprintf("Medical scheduling is not supported at %s.", office.DisplayName))
 	}
 
-	if office.ID == "crystal_river" {
-		if status == "" {
-			return unresolvedAppointmentType([]string{"patientStatus"}, appointmentTypeMissingFactsMessage([]string{"patientStatus"}))
-		}
-		if status == domain.AppointmentPatientNew {
-			return resolvedAppointmentType(6167)
-		}
-		return resolvedAppointmentType(6169)
-	}
-
-	missing := missingAppointmentTypeFacts(status, ageBand)
+	ladder := office.AppointmentTypes.Medical
+	missing := missingAppointmentTypeFacts(status, ageBand, ladder.DependsOnAge())
 	if len(missing) > 0 {
 		return unresolvedAppointmentType(missing, appointmentTypeMissingFactsMessage(missing))
 	}
-
-	if status == domain.AppointmentPatientNew {
-		if ageBand == domain.AppointmentAgePediatric {
-			return resolvedAppointmentType(1004)
-		}
-		return resolvedAppointmentType(1006)
-	}
-	if ageBand == domain.AppointmentAgePediatric {
-		return resolvedAppointmentType(1005)
-	}
-	return resolvedAppointmentType(1007)
+	return resolvedAppointmentType(ladder.TypeFor(status, ageBand))
 }
 
-const underSevenRoutineVisionMessage = "Spring Hill does not schedule routine vision for children under 7. Search medical availability instead; Dr. Bach sees these children."
-
 func routineVisionTooYoung(office *domain.OfficeConfig, age int) bool {
-	return office.ID == "spring_hill" && age < 7
+	return age < office.RoutineVisionMinimumAge.Years
 }
 
 func resolvedAppointmentType(typeID int) appointmentTypeResolution {
@@ -120,12 +83,12 @@ func unresolvedAppointmentType(missing []string, message string) appointmentType
 	}
 }
 
-func missingAppointmentTypeFacts(status, ageBand string) []string {
+func missingAppointmentTypeFacts(status, ageBand string, needsAge bool) []string {
 	var missing []string
 	if status == "" {
 		missing = append(missing, "patientStatus")
 	}
-	if ageBand == "" {
+	if needsAge && ageBand == "" {
 		missing = append(missing, "dob")
 	}
 	return missing
