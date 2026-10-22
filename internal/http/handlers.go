@@ -235,11 +235,15 @@ func (h *Handlers) HandleListAppointmentSlots(w http.ResponseWriter, r *http.Req
 }
 
 func inventoryError(outcome, message string) schedulingmodule.AvailabilityResponse {
-	return schedulingmodule.AvailabilityResponse{
+	response := schedulingmodule.AvailabilityResponse{
 		Status: schedulingmodule.AvailabilityStatusError, Outcome: outcome,
-		ShouldRetrySameSearch: outcome == schedulingmodule.AvailabilityOutcomeSearchIncomplete,
-		Message:               message, Slots: []schedulingmodule.AvailabilitySlotOption{},
+		Message: message, Slots: []schedulingmodule.AvailabilitySlotOption{},
 	}
+	if outcome == schedulingmodule.AvailabilityOutcomeSearchIncomplete {
+		response.ShouldRetrySameSearch = true
+		response.NextAction = schedulingmodule.AvailabilityNextActionRetryOnceThenAskPreferences
+	}
+	return response
 }
 
 func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request) {
