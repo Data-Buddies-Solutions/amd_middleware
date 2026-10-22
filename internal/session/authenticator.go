@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"advancedmd-token-management/internal/safeerrors"
+
 	"golang.org/x/net/html/charset"
 )
 
@@ -80,7 +82,7 @@ func parseXMLResponse(body []byte) (*loginResponse, error) {
 	decoder := xml.NewDecoder(bytes.NewReader(body))
 	decoder.CharsetReader = charset.NewReaderLabel
 	if err := decoder.Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to parse XML: %w", err)
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to parse XML: %w", err)
 	}
 	return &result, nil
 }
@@ -88,7 +90,7 @@ func parseXMLResponse(body []byte) (*loginResponse, error) {
 func (a *advancedMDLogin) postLogin(ctx context.Context, url string) (*loginResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(a.buildLoginXML()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, safeerrors.NotSent("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/xml")
 	resp, err := a.client.Do(req)
@@ -99,7 +101,7 @@ func (a *advancedMDLogin) postLogin(ctx context.Context, url string) (*loginResp
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to read response: %w", err)
 	}
 
 	result, err := parseXMLResponse(body)
@@ -118,7 +120,7 @@ func (a *advancedMDLogin) getWebserver(ctx context.Context) (string, error) {
 
 	webserver := result.Results.UserContext.Webserver
 	if webserver == "" {
-		return "", fmt.Errorf("no webserver URL in response. Error: %s", result.Error.Fault.Description)
+		return "", safeerrors.New(safeerrors.CategoryAuthentication, "no webserver URL in response. Error: %s", result.Error.Fault.Description)
 	}
 
 	return webserver, nil
@@ -132,13 +134,13 @@ func (a *advancedMDLogin) getAuthToken(ctx context.Context, webserverURL string)
 	}
 
 	if result.Results.Success != "1" {
-		return "", fmt.Errorf("login failed: success=%s, error=%s",
+		return "", safeerrors.New(safeerrors.CategoryAuthentication, "login failed: success=%s, error=%s",
 			result.Results.Success, result.Error.Fault.Description)
 	}
 
 	token := strings.TrimSpace(result.Results.UserContext.Token)
 	if token == "" {
-		return "", fmt.Errorf("no token in response")
+		return "", safeerrors.New(safeerrors.CategoryAuthentication, "no token in response")
 	}
 
 	return token, nil

@@ -20,13 +20,12 @@ func observeProviderFailure(ctx context.Context, operation string, started time.
 	if observation, _ := ctx.Value(providerObservationKey{}).(*providerObservation); observation != nil {
 		diagnostic.HTTPStatus = observation.httpStatus
 	}
-	var status *HTTPStatusError
+	var status *httpStatusError
 	if errors.As(err, &status) {
-		diagnostic.HTTPStatus = status.StatusCode
+		diagnostic.HTTPStatus = status.statusCode
 	}
-	var rejection *ProviderRejectionError
+	var rejection *providerRejectionError
 	if errors.As(err, &rejection) {
-		diagnostic.Category = safeerrors.CategoryRejected
 		diagnostic.Code = rejection.code
 	}
 	safeerrors.Observe(ctx, diagnostic)
@@ -35,7 +34,7 @@ func observeProviderFailure(ctx context.Context, operation string, started time.
 var numericFaultCode = regexp.MustCompile(`^-?[0-9]{1,6}$`)
 
 func providerRejection(operation string, body []byte) error {
-	result := &ProviderRejectionError{operation: operation}
+	result := &providerRejectionError{operation: operation}
 	var envelope struct {
 		Results struct {
 			Error struct {

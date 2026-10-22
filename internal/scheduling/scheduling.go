@@ -151,9 +151,9 @@ func providerFailureMessage(err error, fallback string) string {
 }
 
 func providerCategory(err error) safeerrors.Category {
-	category := advancedmd.CategoryOf(err)
-	if category == safeerrors.CategoryInternal {
-		return safeerrors.Classify(err)
+	var adapterErr *advancedmd.Error
+	if errors.As(err, &adapterErr) {
+		return advancedmd.CategoryOf(err)
 	}
-	return category
+	return safeerrors.Classify(err)
 }

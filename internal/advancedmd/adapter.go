@@ -2,9 +2,7 @@ package advancedmd
 
 import (
 	"context"
-	"errors"
 	"log"
-	"net/http"
 	"slices"
 	"sort"
 	"strconv"
@@ -724,23 +722,8 @@ func classify(err error) error {
 }
 
 func classifyMutation(err error) error {
-	var rejection *clients.ProviderRejectionError
-	if errors.As(err, &rejection) {
-		return NewError(safeerrors.CategoryRejected)
-	}
-	var status *clients.HTTPStatusError
-	if errors.As(err, &status) {
-		switch code := status.StatusCode; {
-		case code == http.StatusUnauthorized || code == http.StatusForbidden:
-			return NewError(safeerrors.CategoryAuthentication)
-		case code == http.StatusConflict:
-			return NewError(safeerrors.CategoryConflict)
-		case code >= 400 && code < 500 && code != http.StatusRequestTimeout:
-			return NewError(safeerrors.CategoryRejected)
-		}
-	}
 	category := safeerrors.Classify(err)
-	if category == safeerrors.CategoryInternal {
+	if safeerrors.IsNotSent(err) || refusedWrite(category) {
 		return NewError(category)
 	}
 	return NewAmbiguousWriteError(category)
