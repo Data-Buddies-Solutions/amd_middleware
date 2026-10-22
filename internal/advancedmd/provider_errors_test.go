@@ -136,6 +136,7 @@ func TestAdapterReportsWritesThatNeverLeftAsDefiniteFailures(t *testing.T) {
 		staticSession{token: unbuildable},
 		clients.NewAdvancedMDClient(http.DefaultClient, time.Now),
 		clients.NewAdvancedMDRestClient(http.DefaultClient),
+		time.Now,
 	)
 	ctx := context.Background()
 	writes := map[string]func() error{
@@ -275,6 +276,7 @@ func TestAdapterTreatsUnusableBookingAnswerAsAmbiguousInvalidResponse(t *testing
 		staticSession{token: &session.TokenData{Token: "Bearer test-token", RestApiBase: strings.TrimPrefix(server.URL, "https://")}},
 		nil,
 		clients.NewAdvancedMDRestClient(server.Client()),
+		time.Now,
 	)
 	_, err := adapter.BookAppointment(context.Background(), Booking{
 		PatientID: 12345, OfficeID: "spring_hill", ColumnID: 1513, ProfileID: 620,
@@ -306,6 +308,7 @@ func TestAdapterClassifiesReadStatusesWithoutWriteSemantics(t *testing.T) {
 				staticSession{token: &session.TokenData{Token: "Bearer test-token", CookieToken: "token=test-cookie", XmlrpcURL: base, RestApiBase: base}},
 				clients.NewAdvancedMDClient(server.Client(), time.Now),
 				clients.NewAdvancedMDRestClient(server.Client()),
+				time.Now,
 			)
 			_, xmlrpcErr := adapter.GetPatientDemographics(context.Background(), "123")
 			_, restErr := adapter.ReadScheduleRange(context.Background(), domain.ScheduleRangeQuery{
@@ -331,5 +334,6 @@ func xmlrpcAdapter(t *testing.T, handler http.HandlerFunc) *Adapter {
 		}},
 		clients.NewAdvancedMDClient(server.Client(), time.Now),
 		nil,
+		time.Now,
 	)
 }

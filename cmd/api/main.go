@@ -53,7 +53,7 @@ func main() {
 
 	amdRestClient := clients.NewAdvancedMDRestClient(httpClient)
 
-	patientRecords := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient)
+	patientRecords := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient, time.Now)
 	appointmentTokens := scheduling.NewAppointmentTokens(cfg.BookingTokenSecret, time.Now)
 	patients := patient.New(patientRecords, appointmentTokens, time.Now)
 	scheduler := scheduling.New(

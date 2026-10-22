@@ -93,7 +93,7 @@ func TestRequestLogIsStructuredAndPHISafe(t *testing.T) {
 	t.Cleanup(func() { log.SetOutput(previousWriter) })
 
 	router := NewRouter(
-		NewHandlers(unavailableSession{}, patientmodule.New(advancedmd.NewAdapter(unavailableSession{}, nil, nil), testAppointmentTokens, testNow), nil, testNow),
+		NewHandlers(unavailableSession{}, patientmodule.New(advancedmd.NewAdapter(unavailableSession{}, nil, nil, time.Now), testAppointmentTokens, testNow), nil, testNow),
 		"test-secret",
 		nil,
 	)

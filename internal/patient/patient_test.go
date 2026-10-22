@@ -1088,7 +1088,7 @@ func assertResolveResult(t *testing.T, got, want patient.ResolveResult) {
 	}
 }
 
-var testAppointmentTokens = scheduling.NewAppointmentTokens("test-scheduling-secret", nil)
+var testAppointmentTokens = scheduling.NewAppointmentTokens("test-scheduling-secret", testNow)
 
 func testNow() time.Time {
 	return time.Date(2026, time.June, 1, 16, 0, 0, 0, time.UTC)
@@ -1109,7 +1109,7 @@ func TestResolveReportsAppointmentsErrorWhenTokensCannotBeIssued(t *testing.T) {
 			Complete: true,
 		},
 	}
-	got, err := patient.New(amd, scheduling.NewAppointmentTokens("", nil), testNow).Resolve(context.Background(), patient.ResolveCommand{PatientID: "123", OfficeID: "spring_hill"})
+	got, err := patient.New(amd, scheduling.NewAppointmentTokens("", testNow), testNow).Resolve(context.Background(), patient.ResolveCommand{PatientID: "123", OfficeID: "spring_hill"})
 	if err != nil || got.AppointmentsStatus != patient.AppointmentsError || len(got.Appointments) != 0 {
 		t.Fatalf("Resolve() = %+v, err = %v", got, err)
 	}

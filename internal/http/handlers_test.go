@@ -51,7 +51,7 @@ func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
 }
 
 func TestPatientResolveKeepsStableResponseWhenSessionUnavailable(t *testing.T) {
-	records := advancedmd.NewAdapter(unavailableSession{}, nil, nil)
+	records := advancedmd.NewAdapter(unavailableSession{}, nil, nil, time.Now)
 	handlers := NewHandlers(unavailableSession{}, patientmodule.New(records, testAppointmentTokens, testNow), nil, testNow)
 	req := httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"patientId":"123"}`))
 	w := httptest.NewRecorder()
@@ -951,6 +951,7 @@ func newProviderFailureTestHandlers(t *testing.T, fail func(*http.Request, []byt
 		amdSession,
 		clients.NewAdvancedMDClient(httpClient, time.Now),
 		clients.NewAdvancedMDRestClient(httpClient),
+		time.Now,
 	)
 	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens, testNow), nil, testNow)
 }
@@ -1000,6 +1001,7 @@ func newUpdateInsuranceTestHandlers(t *testing.T, dob, insPlanID string) (*Handl
 		amdSession,
 		clients.NewAdvancedMDClient(httpClient, time.Now),
 		clients.NewAdvancedMDRestClient(httpClient),
+		time.Now,
 	)
 	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens, testNow), nil, testNow), &writes
 }
@@ -1147,7 +1149,7 @@ func newPatientResolveTestHandlers(
 	}, httpClient, time.Now)
 	amdClient := clients.NewAdvancedMDClient(httpClient, time.Now)
 	amdRestClient := clients.NewAdvancedMDRestClient(httpClient)
-	records := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient)
+	records := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient, time.Now)
 
 	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens, testNow), nil, testNow)
 }
@@ -1225,7 +1227,7 @@ func (s schedulingStub) Reschedule(context.Context, schedulingmodule.BookCommand
 	return s.rescheduleResult, nil
 }
 
-var testAppointmentTokens = schedulingmodule.NewAppointmentTokens("test-scheduling-secret", nil)
+var testAppointmentTokens = schedulingmodule.NewAppointmentTokens("test-scheduling-secret", testNow)
 
 func testNow() time.Time {
 	return time.Date(2026, time.June, 1, 16, 0, 0, 0, time.UTC)

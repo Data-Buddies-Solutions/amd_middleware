@@ -42,6 +42,7 @@ func TestAdapterSearchPatientsByNameUsesControlledXMLRPCServer(t *testing.T) {
 		}},
 		clients.NewAdvancedMDClient(server.Client(), time.Now),
 		nil,
+		time.Now,
 	)
 	got, err := adapter.SearchPatients(context.Background(), domain.PatientSearch{
 		LastName:  "Doe",
@@ -103,6 +104,7 @@ func TestAdapterDemographicsUsesControlledXMLRPCServer(t *testing.T) {
 		}},
 		clients.NewAdvancedMDClient(server.Client(), time.Now),
 		nil,
+		time.Now,
 	)
 	got, err := adapter.GetPatientDemographics(context.Background(), "123")
 	if err != nil {
@@ -133,6 +135,7 @@ func TestAdapterReturnsStableRedactedErrors(t *testing.T) {
 			staticSession{err: errors.New("login failed password=secret")},
 			clients.NewAdvancedMDClient(http.DefaultClient, time.Now),
 			nil,
+			time.Now,
 		)
 		_, err := adapter.SearchPatients(context.Background(), domain.PatientSearch{Phone: "9542872010"})
 		if CategoryOf(err) != safeerrors.CategoryUnavailable || err.Error() != "unavailable" {
@@ -153,6 +156,7 @@ func TestAdapterReturnsStableRedactedErrors(t *testing.T) {
 			}},
 			clients.NewAdvancedMDClient(server.Client(), time.Now),
 			nil,
+			time.Now,
 		)
 		_, err := adapter.SearchPatients(context.Background(), domain.PatientSearch{Phone: "9542872010"})
 		if CategoryOf(err) != safeerrors.CategoryUpstreamStatus || err.Error() != "upstream_status" {
@@ -194,6 +198,7 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 			}},
 			clients.NewAdvancedMDClient(server.Client(), time.Now),
 			nil,
+			time.Now,
 		)
 		_, err := adapter.CreatePatient(context.Background(), command)
 		if MutationFailureOf(err) != MutationRejected {
@@ -219,6 +224,7 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 			}},
 			clients.NewAdvancedMDClient(server.Client(), time.Now),
 			nil,
+			time.Now,
 		)
 		_, err := adapter.CreatePatient(context.Background(), command)
 		if MutationFailureOf(err) != MutationAmbiguous {
@@ -244,6 +250,7 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 			}},
 			clients.NewAdvancedMDClient(server.Client(), time.Now),
 			nil,
+			time.Now,
 		)
 		_, err := adapter.CreatePatient(context.Background(), command)
 		if MutationFailureOf(err) != MutationRejected {
@@ -275,6 +282,7 @@ func TestAdapterInsuranceMutationUsesControlledXMLRPCServer(t *testing.T) {
 		}},
 		clients.NewAdvancedMDClient(server.Client(), time.Now),
 		nil,
+		time.Now,
 	)
 	err := adapter.AddPatientInsurance(context.Background(), domain.PatientInsurance{
 		PatientID:     "123",
@@ -542,6 +550,7 @@ func TestAdapterPreservesUnrecognizedProductionAppointmentType(t *testing.T) {
 		}},
 		nil,
 		clients.NewAdvancedMDRestClient(server.Client()),
+		time.Now,
 	)
 	_, err := adapter.BookAppointment(context.Background(), Booking{
 		PatientID:                 12345,
@@ -750,6 +759,7 @@ func TestAdapterIntendedMonthReadPreservesPerOfficeReconciliation(t *testing.T) 
 		}},
 		nil,
 		clients.NewAdvancedMDRestClient(server.Client()),
+		time.Now,
 	)
 	read, err := adapter.ReadPatientAppointmentsForMonth(context.Background(), AppointmentMonthQuery{
 		PatientID: "12345",
@@ -796,6 +806,7 @@ func TestAdapterMarksMissingPatientIDIncomplete(t *testing.T) {
 		}},
 		nil,
 		clients.NewAdvancedMDRestClient(server.Client()),
+		time.Now,
 	)
 	read, err := adapter.ReadPatientAppointmentsForMonth(context.Background(), AppointmentMonthQuery{
 		PatientID: "12345",
@@ -912,6 +923,7 @@ func TestAdapterReadsCompleteScheduleThroughDomainSeam(t *testing.T) {
 		}},
 		clients.NewAdvancedMDClient(server.Client(), time.Now),
 		clients.NewAdvancedMDRestClient(server.Client()),
+		time.Now,
 	)
 
 	setup, err := adapter.GetSchedulerSetup(context.Background())
@@ -952,6 +964,7 @@ func TestAdapterPreservesPartialScheduleReads(t *testing.T) {
 		}},
 		nil,
 		clients.NewAdvancedMDRestClient(server.Client()),
+		time.Now,
 	)
 	read, err := adapter.ReadSchedule(context.Background(), domain.ScheduleReadQuery{
 		ColumnIDs: []string{"1513", "1598"},
@@ -999,6 +1012,7 @@ func TestAdapterBooksAndCancelsThroughControlledRESTServer(t *testing.T) {
 		}},
 		nil,
 		clients.NewAdvancedMDRestClient(server.Client()),
+		time.Now,
 	)
 	appointmentID, err := adapter.BookAppointment(context.Background(), Booking{
 		PatientID:                 12345,
@@ -1061,6 +1075,7 @@ func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
 				}},
 				nil,
 				clients.NewAdvancedMDRestClient(server.Client()),
+				time.Now,
 			)
 			_, err := adapter.BookAppointment(context.Background(), Booking{
 				PatientID:                 12345,
@@ -1083,6 +1098,7 @@ func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
 				}},
 				clients.NewAdvancedMDClient(server.Client(), time.Now),
 				nil,
+				time.Now,
 			)
 			_, err = xmlAdapter.CreatePatient(context.Background(), domain.PatientCreate{FirstName: "JANE", LastName: "DOE", OfficeID: "spring_hill"})
 			if CategoryOf(err) != tt.category || IsAmbiguousWrite(err) != tt.ambiguous {
@@ -1122,7 +1138,7 @@ func TestScheduleReadsAreConcurrentAndCannotUseMalformedOccupancy(t *testing.T) 
 		w.Write([]byte(`[]`))
 	}))
 	defer server.Close()
-	adapter := NewAdapter(staticSession{token: &session.TokenData{RestApiBase: strings.TrimPrefix(server.URL, "https://")}}, nil, clients.NewAdvancedMDRestClient(server.Client()))
+	adapter := NewAdapter(staticSession{token: &session.TokenData{RestApiBase: strings.TrimPrefix(server.URL, "https://")}}, nil, clients.NewAdvancedMDRestClient(server.Client()), time.Now)
 	done := make(chan error, 1)
 	go func() {
 		read, err := adapter.ReadSchedule(context.Background(), domain.ScheduleReadQuery{ColumnIDs: []string{"1513", "1598"}, Date: "2026-09-15"})
@@ -1176,7 +1192,7 @@ func TestAdapterPatientCandidatesForwardsDOB(t *testing.T) {
 				w.Write([]byte(`{"PPMDResults":{"Results":{"patientlist":{"@page":"1","@pagecount":"1","@itemcount":"0"}}}}`))
 			}))
 			defer server.Close()
-			adapter := NewAdapter(staticSession{token: &session.TokenData{CookieToken: "token=test", XmlrpcURL: strings.TrimPrefix(server.URL, "https://")}}, clients.NewAdvancedMDClient(server.Client(), time.Now), nil)
+			adapter := NewAdapter(staticSession{token: &session.TokenData{CookieToken: "token=test", XmlrpcURL: strings.TrimPrefix(server.URL, "https://")}}, clients.NewAdvancedMDClient(server.Client(), time.Now), nil, time.Now)
 			got, err := adapter.ReadPatientCandidates(context.Background(), "Jane", dob)
 			if err != nil || !got.Complete || len(got.Patients) != 0 {
 				t.Fatalf("read=%+v err=%v", got, err)
