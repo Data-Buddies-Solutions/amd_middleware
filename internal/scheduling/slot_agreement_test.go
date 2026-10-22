@@ -1,14 +1,9 @@
 package scheduling_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"math/rand"
-	"net/http"
-	"path"
 	"runtime"
 	"slices"
 	"strconv"
@@ -23,7 +18,6 @@ import (
 	"advancedmd-token-management/internal/clients"
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/scheduling"
-	"advancedmd-token-management/internal/session"
 )
 
 const (
@@ -48,118 +42,32 @@ var agreementColumns = []agreementColumn{
 	{"Sweetwater", domain.RoutingOpticalOnly, "1296", "1996", "670", domain.AppointmentVisitRoutineVision, domain.AppointmentPatientNew},
 }
 
-type amdAppointmentRow struct {
-	ID            int    `json:"id"`
-	StartDateTime string `json:"startdatetime"`
-	Duration      int    `json:"duration"`
-	ColumnID      int    `json:"columnid"`
-}
-
-type amdHoldRow struct {
-	ID            int    `json:"id"`
-	StartDateTime string `json:"startdatetime"`
-	EndDateTime   string `json:"enddatetime"`
-	Duration      int    `json:"duration"`
-	Column        struct {
-		ID int `json:"id"`
-	} `json:"column"`
-	Recurrence struct {
-		RecurrenceType int `json:"recurrencetype"`
-	} `json:"recurrence"`
-}
-
 type amdRows struct {
-	appointments []amdAppointmentRow
-	holds        []amdHoldRow
+	appointments []clients.AMDAppointmentResponse
+	holds        []advancedmdtest.HoldRow
 }
 
 func (rows *amdRows) addAppointment(id int, columnID string, start time.Time, duration int) {
 	column, _ := strconv.Atoi(columnID)
-	rows.appointments = append(rows.appointments, amdAppointmentRow{ID: id, StartDateTime: start.Format(amdRowLayout), Duration: duration, ColumnID: column})
+	rows.appointments = append(rows.appointments, clients.AMDAppointmentResponse{ID: id, StartDateTime: start.Format(amdRowLayout), Duration: duration, ColumnID: column})
 }
 
 func (rows *amdRows) addHold(id int, columnID string, start, end time.Time) {
-	hold := amdHoldRow{ID: id, StartDateTime: start.Format(amdRowLayout), EndDateTime: end.Format(amdRowLayout)}
+	hold := advancedmdtest.HoldRow{ID: id, StartDateTime: start.Format(amdRowLayout), EndDateTime: end.Format(amdRowLayout)}
 	hold.Column.ID, _ = strconv.Atoi(columnID)
 	rows.holds = append(rows.holds, hold)
 }
 
 func (rows *amdRows) addRecurringHold(id int, columnID string, start time.Time, duration int) {
-	hold := amdHoldRow{ID: id, StartDateTime: start.Format(amdRowLayout), EndDateTime: start.AddDate(0, 6, 0).Format(amdRowLayout), Duration: duration}
+	hold := advancedmdtest.HoldRow{ID: id, StartDateTime: start.Format(amdRowLayout), EndDateTime: start.AddDate(0, 6, 0).Format(amdRowLayout), Duration: duration}
 	hold.Column.ID, _ = strconv.Atoi(columnID)
 	hold.Recurrence.RecurrenceType = 2
 	rows.holds = append(rows.holds, hold)
 }
 
-func (row amdAppointmentRow) span() domain.Interval {
+func appointmentSpan(row clients.AMDAppointmentResponse) domain.Interval {
 	start, _ := time.Parse(amdRowLayout, row.StartDateTime)
 	return domain.Interval{Start: start, End: start.Add(time.Duration(row.Duration) * time.Minute)}
-}
-
-func (row amdHoldRow) span() domain.Interval {
-	start, _ := time.Parse(amdRowLayout, row.StartDateTime)
-	if row.Recurrence.RecurrenceType > 0 {
-		return domain.Interval{Start: start, End: start.Add(time.Duration(row.Duration) * time.Minute)}
-	}
-	end, _ := time.Parse(amdRowLayout, row.EndDateTime)
-	return domain.Interval{Start: start, End: end}
-}
-
-func (rows *amdRows) RoundTrip(request *http.Request) (*http.Response, error) {
-	query := request.URL.Query()
-	columns := strings.Split(query.Get("columnId"), "-")
-	first, err := time.Parse("2006-01-02", query.Get("startDate"))
-	if err != nil {
-		return nil, err
-	}
-	window := domain.Interval{Start: first, End: first.AddDate(0, 0, 1)}
-	if query.Get("forView") == "month" {
-		window = domain.Interval{Start: first.AddDate(0, 0, -7), End: first.AddDate(0, 1, 7)}
-	}
-	var body []byte
-	switch path.Base(request.URL.Path) {
-	case "appointments":
-		served := []amdAppointmentRow{}
-		for _, row := range rows.appointments {
-			start := row.span().Start
-			if slices.Contains(columns, strconv.Itoa(row.ColumnID)) && !start.Before(window.Start) && start.Before(window.End) {
-				served = append(served, row)
-			}
-		}
-		body, err = json.Marshal(served)
-	case "blockholds":
-		served := []amdHoldRow{}
-		for _, row := range rows.holds {
-			span := row.span()
-			if !span.End.After(span.Start) {
-				span.End = span.Start.Add(time.Nanosecond)
-			}
-			if slices.Contains(columns, strconv.Itoa(row.Column.ID)) && overlaps(span, window) {
-				served = append(served, row)
-			}
-		}
-		body, err = json.Marshal(served)
-	default:
-		return nil, fmt.Errorf("unexpected AdvancedMD request %s", request.URL.Path)
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(bytes.NewReader(body)), Request: request}, nil
-}
-
-type agreementSession struct{}
-
-func (agreementSession) Get(context.Context) (*session.TokenData, error) {
-	return &session.TokenData{Token: "Bearer agreement", RestApiBase: "amd.test"}, nil
-}
-
-func (agreementSession) Maintain(context.Context) error {
-	return nil
-}
-
-func (agreementSession) Status() session.SessionStatus {
-	return session.SessionStatus{}
 }
 
 type agreementRecords struct {
@@ -285,8 +193,8 @@ func clockTime(minute int) string {
 func (c agreementCase) scheduler() (scheduling.Scheduling, *advancedmdtest.Adapter) {
 	fake := recordsWithSetup(c.column)
 	fake.Demographics["12345"] = domain.PatientDemographics{CarrierName: "Self Pay", DOB: "01/15/1980"}
-	rows := c.rows
-	reads := advancedmd.NewAdapter(agreementSession{}, nil, clients.NewAdvancedMDRestClient(&http.Client{Transport: &rows}), func() time.Time { return c.now })
+	provider := &advancedmdtest.Provider{Appointments: c.rows.appointments, Holds: c.rows.holds}
+	reads := provider.Adapter(func() time.Time { return c.now })
 	return scheduling.New(agreementRecords{Adapter: fake, schedule: reads, days: map[string]domain.ScheduleReadResult{}}, "test-booking-secret", func() time.Time { return c.now }), fake
 }
 
@@ -366,7 +274,7 @@ func (c agreementCase) expectedSlots() []string {
 
 func (c agreementCase) sameStartBookings(slot domain.Interval) (int, bool) {
 	for _, hold := range c.rows.holds {
-		if span := hold.span(); span.Start.Equal(span.End) {
+		if span := hold.Span(); span.Start.Equal(span.End) {
 			if slot.Start.Before(span.Start) && span.Start.Before(slot.End) {
 				return 0, false
 			}
@@ -377,7 +285,7 @@ func (c agreementCase) sameStartBookings(slot domain.Interval) (int, bool) {
 	booked := 0
 	counted := map[int]bool{}
 	for _, appointment := range c.rows.appointments {
-		switch other := appointment.span(); {
+		switch other := appointmentSpan(appointment); {
 		case other.Start.Equal(slot.Start):
 			if appointment.ID <= 0 || !counted[appointment.ID] {
 				counted[appointment.ID] = true

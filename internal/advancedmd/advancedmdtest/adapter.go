@@ -23,6 +23,11 @@ type PatientSearchStep struct {
 	Err      error
 }
 
+type ColumnDay struct {
+	Date     string
+	ColumnID string
+}
+
 type CandidateQuery struct {
 	FirstName string
 	DOB       string
@@ -66,6 +71,8 @@ type Adapter struct {
 	SchedulerSetupCalls      int
 	ScheduleReads            map[string]domain.ScheduleReadResult
 	ScheduleReadErrors       map[string]error
+	ColumnReadErrors         map[ColumnDay]error
+	IncompleteDays           map[string]bool
 	ScheduleRangeQueries     []domain.ScheduleRangeQuery
 	ScheduleReadQueries      []domain.ScheduleReadQuery
 	BookAppointmentID        int
@@ -89,6 +96,8 @@ func NewAdapter() *Adapter {
 		AppointmentStateResults:  make(map[int]AppointmentStateResult),
 		ScheduleReads:            make(map[string]domain.ScheduleReadResult),
 		ScheduleReadErrors:       make(map[string]error),
+		ColumnReadErrors:         make(map[ColumnDay]error),
+		IncompleteDays:           make(map[string]bool),
 	}
 }
 
