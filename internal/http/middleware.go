@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"runtime/debug"
+	"runtime"
+	"strings"
 	"sync"
 	"time"
 	"uuid"
@@ -183,7 +184,7 @@ func recoveryMiddleware(next http.Handler) http.Handler {
 				return
 			}
 			recordRequestOutcome(r.Context(), outcomeInternalFailure, safeerrors.CategoryNone)
-			recordPanic(r.Context(), &panicLogEntry{Type: fmt.Sprintf("%T", recovered), Stack: string(debug.Stack())})
+			recordPanic(r.Context(), &panicLogEntry{Type: fmt.Sprintf("%T", recovered), Stack: panicStack()})
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 		}()
@@ -205,6 +206,21 @@ func recordRequestOutcome(ctx context.Context, outcome outcomeCategory, provider
 	}
 	state.outcome = outcome
 	state.providerFailure = providerFailure
+}
+
+const maxPanicFrames = 64
+
+func panicStack() string {
+	pcs := make([]uintptr, maxPanicFrames)
+	frames := runtime.CallersFrames(pcs[:runtime.Callers(2, pcs)])
+	var stack strings.Builder
+	for {
+		frame, more := frames.Next()
+		fmt.Fprintf(&stack, "%s %s:%d\n", frame.Function, frame.File, frame.Line)
+		if !more {
+			return stack.String()
+		}
+	}
 }
 
 func recordPanic(ctx context.Context, entry *panicLogEntry) {
