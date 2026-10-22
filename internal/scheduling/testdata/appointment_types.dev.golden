@@ -1,0 +1,422 @@
+tooYoung	spring_hill	age3	true
+tooYoung	spring_hill	age4	true
+tooYoung	spring_hill	age5	true
+tooYoung	spring_hill	age6	true
+tooYoung	spring_hill	age7	false
+tooYoung	spring_hill	age8	false
+allowed	spring_hill	not_accepted	none	[]
+allowed	spring_hill	not_accepted	age6	[]
+allowed	spring_hill	not_accepted	age7	[]
+allowed	spring_hill	not_accepted	age10	[]
+allowed	spring_hill	not_accepted	age40	[]
+intent	spring_hill	not_accepted	medical		none	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical		none	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	medical		age6	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical		age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	medical		age7	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical		age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	medical		age10	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical		age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	medical		age40	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical		age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	medical	new	none	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical	new	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	medical	new	age6	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical	new	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	medical	new	age7	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical	new	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	medical	new	age10	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical	new	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	medical	new	age40	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical	new	age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	medical	established	none	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical	established	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	medical	established	age6	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical	established	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	medical	established	age7	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical	established	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	medical	established	age10	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical	established	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	medical	established	age40	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	not_accepted	medical	established	age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision		none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision		none	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision		age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision		age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision		age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision		age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision		age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision		age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision		age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision		age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision	new	none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision	new	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision	new	age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision	new	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision	new	age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision	new	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision	new	age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision	new	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision	new	age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision	new	age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision	established	none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision	established	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision	established	age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision	established	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision	established	age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision	established	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision	established	age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision	established	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	not_accepted	routine_vision	established	age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	not_accepted	routine_vision	established	age40	post-op check	type=1008	missing=	message=
+allowed	spring_hill	bach_only	none	[1004 1005 1006 1007 1008]
+allowed	spring_hill	bach_only	age6	[1004 1005 1008]
+allowed	spring_hill	bach_only	age7	[1004 1005 1008]
+allowed	spring_hill	bach_only	age10	[1004 1005 1008]
+allowed	spring_hill	bach_only	age40	[1006 1007 1008]
+intent	spring_hill	bach_only	medical		none	eye exam	type=0	missing=patientStatus,dob	message=Confirm whether this is a new or established patient and verify DOB before booking.
+intent	spring_hill	bach_only	medical		none	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	medical		age6	eye exam	type=0	missing=patientStatus	message=Confirm whether this is a new or established patient before booking.
+intent	spring_hill	bach_only	medical		age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	medical		age7	eye exam	type=0	missing=patientStatus	message=Confirm whether this is a new or established patient before booking.
+intent	spring_hill	bach_only	medical		age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	medical		age10	eye exam	type=0	missing=patientStatus	message=Confirm whether this is a new or established patient before booking.
+intent	spring_hill	bach_only	medical		age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	medical		age40	eye exam	type=0	missing=patientStatus	message=Confirm whether this is a new or established patient before booking.
+intent	spring_hill	bach_only	medical		age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	medical	new	none	eye exam	type=0	missing=dob	message=Verify the patient's DOB before booking.
+intent	spring_hill	bach_only	medical	new	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	medical	new	age6	eye exam	type=1004	missing=	message=
+intent	spring_hill	bach_only	medical	new	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	medical	new	age7	eye exam	type=1004	missing=	message=
+intent	spring_hill	bach_only	medical	new	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	medical	new	age10	eye exam	type=1004	missing=	message=
+intent	spring_hill	bach_only	medical	new	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	medical	new	age40	eye exam	type=1006	missing=	message=
+intent	spring_hill	bach_only	medical	new	age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	medical	established	none	eye exam	type=0	missing=dob	message=Verify the patient's DOB before booking.
+intent	spring_hill	bach_only	medical	established	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	medical	established	age6	eye exam	type=1005	missing=	message=
+intent	spring_hill	bach_only	medical	established	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	medical	established	age7	eye exam	type=1005	missing=	message=
+intent	spring_hill	bach_only	medical	established	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	medical	established	age10	eye exam	type=1005	missing=	message=
+intent	spring_hill	bach_only	medical	established	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	medical	established	age40	eye exam	type=1007	missing=	message=
+intent	spring_hill	bach_only	medical	established	age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision		none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision		none	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision		age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision		age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision		age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision		age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision		age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision		age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision		age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision		age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision	new	none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision	new	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision	new	age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision	new	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision	new	age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision	new	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision	new	age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision	new	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision	new	age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision	new	age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision	established	none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision	established	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision	established	age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision	established	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision	established	age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision	established	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision	established	age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision	established	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_only	routine_vision	established	age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_only	routine_vision	established	age40	post-op check	type=1008	missing=	message=
+allowed	spring_hill	bach_licht	none	[1004 1005 1006 1007 1008]
+allowed	spring_hill	bach_licht	age6	[1004 1005 1008]
+allowed	spring_hill	bach_licht	age7	[1004 1005 1008]
+allowed	spring_hill	bach_licht	age10	[1004 1005 1008]
+allowed	spring_hill	bach_licht	age40	[1006 1007 1008]
+intent	spring_hill	bach_licht	medical		none	eye exam	type=0	missing=patientStatus,dob	message=Confirm whether this is a new or established patient and verify DOB before booking.
+intent	spring_hill	bach_licht	medical		none	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	medical		age6	eye exam	type=0	missing=patientStatus	message=Confirm whether this is a new or established patient before booking.
+intent	spring_hill	bach_licht	medical		age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	medical		age7	eye exam	type=0	missing=patientStatus	message=Confirm whether this is a new or established patient before booking.
+intent	spring_hill	bach_licht	medical		age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	medical		age10	eye exam	type=0	missing=patientStatus	message=Confirm whether this is a new or established patient before booking.
+intent	spring_hill	bach_licht	medical		age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	medical		age40	eye exam	type=0	missing=patientStatus	message=Confirm whether this is a new or established patient before booking.
+intent	spring_hill	bach_licht	medical		age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	medical	new	none	eye exam	type=0	missing=dob	message=Verify the patient's DOB before booking.
+intent	spring_hill	bach_licht	medical	new	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	medical	new	age6	eye exam	type=1004	missing=	message=
+intent	spring_hill	bach_licht	medical	new	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	medical	new	age7	eye exam	type=1004	missing=	message=
+intent	spring_hill	bach_licht	medical	new	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	medical	new	age10	eye exam	type=1004	missing=	message=
+intent	spring_hill	bach_licht	medical	new	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	medical	new	age40	eye exam	type=1006	missing=	message=
+intent	spring_hill	bach_licht	medical	new	age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	medical	established	none	eye exam	type=0	missing=dob	message=Verify the patient's DOB before booking.
+intent	spring_hill	bach_licht	medical	established	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	medical	established	age6	eye exam	type=1005	missing=	message=
+intent	spring_hill	bach_licht	medical	established	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	medical	established	age7	eye exam	type=1005	missing=	message=
+intent	spring_hill	bach_licht	medical	established	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	medical	established	age10	eye exam	type=1005	missing=	message=
+intent	spring_hill	bach_licht	medical	established	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	medical	established	age40	eye exam	type=1007	missing=	message=
+intent	spring_hill	bach_licht	medical	established	age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision		none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision		none	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision		age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision		age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision		age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision		age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision		age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision		age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision		age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision		age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision	new	none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision	new	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision	new	age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision	new	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision	new	age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision	new	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision	new	age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision	new	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision	new	age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision	new	age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision	established	none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision	established	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision	established	age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision	established	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision	established	age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision	established	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision	established	age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision	established	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	bach_licht	routine_vision	established	age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	bach_licht	routine_vision	established	age40	post-op check	type=1008	missing=	message=
+allowed	spring_hill	all_three	none	[1004 1005 1006 1007 1008]
+allowed	spring_hill	all_three	age6	[1004 1005 1008]
+allowed	spring_hill	all_three	age7	[1004 1005 1008]
+allowed	spring_hill	all_three	age10	[1004 1005 1008]
+allowed	spring_hill	all_three	age40	[1006 1007 1008]
+intent	spring_hill	all_three	medical		none	eye exam	type=0	missing=patientStatus,dob	message=Confirm whether this is a new or established patient and verify DOB before booking.
+intent	spring_hill	all_three	medical		none	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	medical		age6	eye exam	type=0	missing=patientStatus	message=Confirm whether this is a new or established patient before booking.
+intent	spring_hill	all_three	medical		age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	medical		age7	eye exam	type=0	missing=patientStatus	message=Confirm whether this is a new or established patient before booking.
+intent	spring_hill	all_three	medical		age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	medical		age10	eye exam	type=0	missing=patientStatus	message=Confirm whether this is a new or established patient before booking.
+intent	spring_hill	all_three	medical		age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	medical		age40	eye exam	type=0	missing=patientStatus	message=Confirm whether this is a new or established patient before booking.
+intent	spring_hill	all_three	medical		age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	medical	new	none	eye exam	type=0	missing=dob	message=Verify the patient's DOB before booking.
+intent	spring_hill	all_three	medical	new	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	medical	new	age6	eye exam	type=1004	missing=	message=
+intent	spring_hill	all_three	medical	new	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	medical	new	age7	eye exam	type=1004	missing=	message=
+intent	spring_hill	all_three	medical	new	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	medical	new	age10	eye exam	type=1004	missing=	message=
+intent	spring_hill	all_three	medical	new	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	medical	new	age40	eye exam	type=1006	missing=	message=
+intent	spring_hill	all_three	medical	new	age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	medical	established	none	eye exam	type=0	missing=dob	message=Verify the patient's DOB before booking.
+intent	spring_hill	all_three	medical	established	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	medical	established	age6	eye exam	type=1005	missing=	message=
+intent	spring_hill	all_three	medical	established	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	medical	established	age7	eye exam	type=1005	missing=	message=
+intent	spring_hill	all_three	medical	established	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	medical	established	age10	eye exam	type=1005	missing=	message=
+intent	spring_hill	all_three	medical	established	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	medical	established	age40	eye exam	type=1007	missing=	message=
+intent	spring_hill	all_three	medical	established	age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision		none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision		none	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision		age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision		age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision		age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision		age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision		age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision		age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision		age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision		age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision	new	none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision	new	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision	new	age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision	new	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision	new	age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision	new	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision	new	age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision	new	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision	new	age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision	new	age40	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision	established	none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision	established	none	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision	established	age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision	established	age6	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision	established	age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision	established	age7	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision	established	age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision	established	age10	post-op check	type=1008	missing=	message=
+intent	spring_hill	all_three	routine_vision	established	age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	all_three	routine_vision	established	age40	post-op check	type=1008	missing=	message=
+allowed	spring_hill	optical_only	none	[]
+allowed	spring_hill	optical_only	age6	[]
+allowed	spring_hill	optical_only	age7	[]
+allowed	spring_hill	optical_only	age10	[]
+allowed	spring_hill	optical_only	age40	[]
+intent	spring_hill	optical_only	medical		none	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical		none	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	medical		age6	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical		age6	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	medical		age7	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical		age7	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	medical		age10	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical		age10	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	medical		age40	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical		age40	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	medical	new	none	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical	new	none	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	medical	new	age6	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical	new	age6	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	medical	new	age7	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical	new	age7	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	medical	new	age10	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical	new	age10	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	medical	new	age40	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical	new	age40	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	medical	established	none	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical	established	none	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	medical	established	age6	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical	established	age6	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	medical	established	age7	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical	established	age7	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	medical	established	age10	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical	established	age10	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	medical	established	age40	eye exam	type=0	missing=routing	message=Medical scheduling is not supported at Spring Hill.
+intent	spring_hill	optical_only	medical	established	age40	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision		none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision		none	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision		age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision		age6	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision		age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision		age7	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision		age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision		age10	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision		age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision		age40	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision	new	none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision	new	none	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision	new	age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision	new	age6	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision	new	age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision	new	age7	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision	new	age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision	new	age10	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision	new	age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision	new	age40	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision	established	none	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision	established	none	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision	established	age6	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision	established	age6	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision	established	age7	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision	established	age7	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision	established	age10	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision	established	age10	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+intent	spring_hill	optical_only	routine_vision	established	age40	eye exam	type=0	missing=routeToSpringHill	message=Routine vision scheduling is not supported at Spring Hill. Route the visit to Spring Hill before booking.
+intent	spring_hill	optical_only	routine_vision	established	age40	post-op check	type=0	missing=routing	message=Post-op appointments must use a medical scheduling lane.
+prepare	spring_hill	1716	bach_only	0	routing=bach_only	type=1006	provider=12	color=RED
+prepare	spring_hill	1716	bach_only	1004	error		Appointment type 1004 is not valid for routing "bach_only" at Spring Hill
+prepare	spring_hill	1716	bach_only	1005	error		Appointment type 1005 is not valid for routing "bach_only" at Spring Hill
+prepare	spring_hill	1716	bach_only	1006	routing=bach_only	type=1006	provider=12	color=RED
+prepare	spring_hill	1716	bach_only	1007	routing=bach_only	type=1007	provider=18	color=ORANGE
+prepare	spring_hill	1716	bach_only	1008	routing=bach_only	type=1008	provider=1627	color=BLUE
+prepare	spring_hill	1716	bach_only	1010	error		Invalid appointment type ID: 1010. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_only	3364	error		Invalid appointment type ID: 3364. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_only	4244	error		Invalid appointment type ID: 4244. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_only	4245	error		Invalid appointment type ID: 4245. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_only	6167	error		Invalid appointment type ID: 6167. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_only	6168	error		Invalid appointment type ID: 6168. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_only	6169	error		Invalid appointment type ID: 6169. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_only	9999	error		Invalid appointment type ID: 9999. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_licht	0	routing=bach_licht	type=1006	provider=12	color=RED
+prepare	spring_hill	1716	bach_licht	1004	error		Appointment type 1004 is not valid for routing "bach_licht" at Spring Hill
+prepare	spring_hill	1716	bach_licht	1005	error		Appointment type 1005 is not valid for routing "bach_licht" at Spring Hill
+prepare	spring_hill	1716	bach_licht	1006	routing=bach_licht	type=1006	provider=12	color=RED
+prepare	spring_hill	1716	bach_licht	1007	routing=bach_licht	type=1007	provider=18	color=ORANGE
+prepare	spring_hill	1716	bach_licht	1008	routing=bach_licht	type=1008	provider=1627	color=BLUE
+prepare	spring_hill	1716	bach_licht	1010	error		Invalid appointment type ID: 1010. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_licht	3364	error		Invalid appointment type ID: 3364. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_licht	4244	error		Invalid appointment type ID: 4244. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_licht	4245	error		Invalid appointment type ID: 4245. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_licht	6167	error		Invalid appointment type ID: 6167. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_licht	6168	error		Invalid appointment type ID: 6168. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_licht	6169	error		Invalid appointment type ID: 6169. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	bach_licht	9999	error		Invalid appointment type ID: 9999. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	all_three	0	routing=all_three	type=1006	provider=12	color=RED
+prepare	spring_hill	1716	all_three	1004	error		Appointment type 1004 is not valid for routing "all_three" at Spring Hill
+prepare	spring_hill	1716	all_three	1005	error		Appointment type 1005 is not valid for routing "all_three" at Spring Hill
+prepare	spring_hill	1716	all_three	1006	routing=all_three	type=1006	provider=12	color=RED
+prepare	spring_hill	1716	all_three	1007	routing=all_three	type=1007	provider=18	color=ORANGE
+prepare	spring_hill	1716	all_three	1008	routing=all_three	type=1008	provider=1627	color=BLUE
+prepare	spring_hill	1716	all_three	1010	error		Invalid appointment type ID: 1010. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	all_three	3364	error		Invalid appointment type ID: 3364. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	all_three	4244	error		Invalid appointment type ID: 4244. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	all_three	4245	error		Invalid appointment type ID: 4245. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	all_three	6167	error		Invalid appointment type ID: 6167. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	all_three	6168	error		Invalid appointment type ID: 6168. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	all_three	6169	error		Invalid appointment type ID: 6169. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1716	all_three	9999	error		Invalid appointment type ID: 9999. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+preserve	spring_hill	1716	{Routing:all_three AppointmentTypeID:9999 EnvironmentTypeID:9999 Color:TEAL}	<nil>
+prepare	spring_hill	1723	bach_licht	0	routing=bach_licht	type=1006	provider=12	color=RED
+prepare	spring_hill	1723	bach_licht	1004	error		Appointment type 1004 is not valid for routing "bach_licht" at Spring Hill
+prepare	spring_hill	1723	bach_licht	1005	error		Appointment type 1005 is not valid for routing "bach_licht" at Spring Hill
+prepare	spring_hill	1723	bach_licht	1006	routing=bach_licht	type=1006	provider=12	color=RED
+prepare	spring_hill	1723	bach_licht	1007	routing=bach_licht	type=1007	provider=18	color=ORANGE
+prepare	spring_hill	1723	bach_licht	1008	routing=bach_licht	type=1008	provider=1627	color=BLUE
+prepare	spring_hill	1723	bach_licht	1010	error		Invalid appointment type ID: 1010. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	bach_licht	3364	error		Invalid appointment type ID: 3364. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	bach_licht	4244	error		Invalid appointment type ID: 4244. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	bach_licht	4245	error		Invalid appointment type ID: 4245. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	bach_licht	6167	error		Invalid appointment type ID: 6167. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	bach_licht	6168	error		Invalid appointment type ID: 6168. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	bach_licht	6169	error		Invalid appointment type ID: 6169. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	bach_licht	9999	error		Invalid appointment type ID: 9999. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	all_three	0	routing=all_three	type=1006	provider=12	color=RED
+prepare	spring_hill	1723	all_three	1004	error		Appointment type 1004 is not valid for routing "all_three" at Spring Hill
+prepare	spring_hill	1723	all_three	1005	error		Appointment type 1005 is not valid for routing "all_three" at Spring Hill
+prepare	spring_hill	1723	all_three	1006	routing=all_three	type=1006	provider=12	color=RED
+prepare	spring_hill	1723	all_three	1007	routing=all_three	type=1007	provider=18	color=ORANGE
+prepare	spring_hill	1723	all_three	1008	routing=all_three	type=1008	provider=1627	color=BLUE
+prepare	spring_hill	1723	all_three	1010	error		Invalid appointment type ID: 1010. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	all_three	3364	error		Invalid appointment type ID: 3364. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	all_three	4244	error		Invalid appointment type ID: 4244. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	all_three	4245	error		Invalid appointment type ID: 4245. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	all_three	6167	error		Invalid appointment type ID: 6167. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	all_three	6168	error		Invalid appointment type ID: 6168. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	all_three	6169	error		Invalid appointment type ID: 6169. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1723	all_three	9999	error		Invalid appointment type ID: 9999. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+preserve	spring_hill	1723	{Routing:all_three AppointmentTypeID:9999 EnvironmentTypeID:9999 Color:TEAL}	<nil>
+prepare	spring_hill	1726	all_three	0	routing=all_three	type=1006	provider=12	color=RED
+prepare	spring_hill	1726	all_three	1004	error		Appointment type 1004 is not valid for routing "all_three" at Spring Hill
+prepare	spring_hill	1726	all_three	1005	error		Appointment type 1005 is not valid for routing "all_three" at Spring Hill
+prepare	spring_hill	1726	all_three	1006	routing=all_three	type=1006	provider=12	color=RED
+prepare	spring_hill	1726	all_three	1007	routing=all_three	type=1007	provider=18	color=ORANGE
+prepare	spring_hill	1726	all_three	1008	routing=all_three	type=1008	provider=1627	color=BLUE
+prepare	spring_hill	1726	all_three	1010	error		Invalid appointment type ID: 1010. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1726	all_three	3364	error		Invalid appointment type ID: 3364. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1726	all_three	4244	error		Invalid appointment type ID: 4244. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1726	all_three	4245	error		Invalid appointment type ID: 4245. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1726	all_three	6167	error		Invalid appointment type ID: 6167. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1726	all_three	6168	error		Invalid appointment type ID: 6168. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1726	all_three	6169	error		Invalid appointment type ID: 6169. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+prepare	spring_hill	1726	all_three	9999	error		Invalid appointment type ID: 9999. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169
+preserve	spring_hill	1726	{Routing:all_three AppointmentTypeID:9999 EnvironmentTypeID:9999 Color:TEAL}	<nil>
+office	crystal_river	not found
+office	hollywood	not found
+office	sweetwater	not found
+office	north_miami_beach_optical	not found
