@@ -619,6 +619,70 @@ func TestAdapterSingleOfficeUsesSixReadsAndMarksUnreconciledRowsIncomplete(t *te
 	}
 }
 
+func TestAdapterCancelsRemainingMonthReadsWhenOneMonthFails(t *testing.T) {
+	domain.InitRegistry("")
+	fixedNow := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
+	blockedStarted := make(chan struct{}, 5)
+	blockedCancelled := make(chan struct{}, 5)
+	release := make(chan struct{})
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("startDate") == "2026-07-01" {
+			for range 5 {
+				select {
+				case <-blockedStarted:
+				case <-release:
+					return
+				}
+			}
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		blockedStarted <- struct{}{}
+		select {
+		case <-r.Context().Done():
+			blockedCancelled <- struct{}{}
+		case <-release:
+		}
+	}))
+	defer server.Close()
+	defer close(release)
+
+	adapter := NewAdapter(
+		staticSession{token: &session.TokenData{
+			Token:       "Bearer test-token",
+			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
+		}},
+		nil,
+		clients.NewAdvancedMDRestClient(server.Client()),
+		func() time.Time { return fixedNow },
+	)
+	readErr := make(chan error, 1)
+	go func() {
+		_, err := adapter.ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
+			PatientID: "12345",
+			OfficeIDs: []string{"spring_hill"},
+		})
+		readErr <- err
+	}()
+
+	guard := time.After(5 * time.Second)
+	select {
+	case err := <-readErr:
+		if CategoryOf(err) != safeerrors.CategoryUpstreamStatus {
+			t.Fatalf("ReadPatientAppointments() error = %v, want the failed month's upstream status", err)
+		}
+	case <-guard:
+		t.Fatal("ReadPatientAppointments() did not return after one month read failed")
+	}
+	for cancelled := 0; cancelled < 5; cancelled++ {
+		select {
+		case <-blockedCancelled:
+		case <-guard:
+			t.Fatalf("%d of 5 remaining month reads were cancelled after one month failed", cancelled)
+		}
+	}
+}
+
 func TestAdapterReadsIntendedAppointmentMonth(t *testing.T) {
 	domain.InitRegistry("")
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -333,6 +333,12 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/appointment/cancel` | Cancel the appointment a signed cancellation token names | `scheduling.Cancel` |
 | `POST /api/appointment/reschedule` | Book a replacement, then cancel the confirmed original | `scheduling.Reschedule` |
 
+Patient resolution answers within 9 seconds, inside the voice agent's
+10-second budget. Its appointment read stops 1 second before that deadline, so
+a slow appointment read returns a verified patient with
+`appointmentsStatus: "error"`. Write routes have no request deadline, because
+cancelling a write mid-flight turns a late success into an ambiguous write.
+
 Each appointment returned by patient resolution may include a private,
 short-lived `cancellationToken`. Cancellation requires that token; a missing
 or empty token returns a validation error without provider calls. Optional

@@ -667,6 +667,94 @@ func TestRouter(t *testing.T) {
 	})
 }
 
+type observedBudget struct {
+	bounded   bool
+	remaining time.Duration
+}
+
+type budgetRecorder struct {
+	budgets map[string]observedBudget
+}
+
+func (r *budgetRecorder) observe(ctx context.Context, operation string) {
+	deadline, bounded := ctx.Deadline()
+	budget := observedBudget{bounded: bounded}
+	if bounded {
+		budget.remaining = time.Until(deadline)
+	}
+	r.budgets[operation] = budget
+}
+
+func (r *budgetRecorder) Resolve(ctx context.Context, _ patientmodule.ResolveCommand) (patientmodule.ResolveResult, error) {
+	r.observe(ctx, "resolve")
+	return patientmodule.ResolveResult{}, nil
+}
+
+func (r *budgetRecorder) Create(ctx context.Context, _ patientmodule.CreateCommand) patientmodule.CreateResult {
+	r.observe(ctx, "create")
+	return patientmodule.CreateResult{}
+}
+
+func (r *budgetRecorder) UpdateInsurance(ctx context.Context, _ patientmodule.UpdateInsuranceCommand) patientmodule.UpdateInsuranceResult {
+	r.observe(ctx, "update_insurance")
+	return patientmodule.UpdateInsuranceResult{}
+}
+
+func (r *budgetRecorder) List(ctx context.Context, _ schedulingmodule.ListCommand) (schedulingmodule.AvailabilityResponse, error) {
+	r.observe(ctx, "list")
+	return schedulingmodule.AvailabilityResponse{}, nil
+}
+
+func (r *budgetRecorder) Book(ctx context.Context, _ schedulingmodule.BookCommand) (schedulingmodule.BookReceipt, error) {
+	r.observe(ctx, "book")
+	return schedulingmodule.BookReceipt{}, nil
+}
+
+func (r *budgetRecorder) Cancel(ctx context.Context, _ schedulingmodule.CancelCommand) (schedulingmodule.CancelReceipt, error) {
+	r.observe(ctx, "cancel")
+	return schedulingmodule.CancelReceipt{}, nil
+}
+
+func (r *budgetRecorder) Reschedule(ctx context.Context, _ schedulingmodule.BookCommand) (schedulingmodule.RescheduleReceipt, error) {
+	r.observe(ctx, "reschedule")
+	return schedulingmodule.RescheduleReceipt{}, nil
+}
+
+func TestOnlyPatientResolveRunsWithinTheVoiceAgentBudget(t *testing.T) {
+	recorder := &budgetRecorder{budgets: map[string]observedBudget{}}
+	router := NewRouter(&Handlers{patient: recorder, scheduling: recorder}, "test-secret", nil)
+	routes := []struct {
+		path      string
+		body      string
+		operation string
+	}{
+		{path: "/api/patient/resolve", body: `{"patientId":"123"}`, operation: "resolve"},
+		{path: "/api/add-patient", body: `{}`, operation: "create"},
+		{path: "/api/patient/update-insurance", body: `{}`, operation: "update_insurance"},
+		{path: "/api/scheduler/slots", body: `{}`, operation: "list"},
+		{path: "/api/appointment/book", body: `{}`, operation: "book"},
+		{path: "/api/appointment/cancel", body: `{}`, operation: "cancel"},
+		{path: "/api/appointment/reschedule", body: `{}`, operation: "reschedule"},
+	}
+	for _, route := range routes {
+		req := httptest.NewRequest(http.MethodPost, route.path, strings.NewReader(route.body))
+		req.Header.Set("Authorization", "Bearer test-secret")
+		router.ServeHTTP(httptest.NewRecorder(), req)
+	}
+
+	for _, route := range routes {
+		budget, called := recorder.budgets[route.operation]
+		switch {
+		case !called:
+			t.Errorf("%s did not reach %s", route.path, route.operation)
+		case route.operation == "resolve" && (!budget.bounded || budget.remaining > 9*time.Second || budget.remaining < 8*time.Second):
+			t.Errorf("%s budget = %+v, want a deadline between 8s and 9s out", route.path, budget)
+		case route.operation != "resolve" && budget.bounded:
+			t.Errorf("%s budget = %+v, want no deadline", route.path, budget)
+		}
+	}
+}
+
 func TestHandleUpdateInsurance_ValidationErrors(t *testing.T) {
 	handlers := &Handlers{patient: patientmodule.New(advancedmdtest.NewAdapter(), testAppointmentTokens)}
 
