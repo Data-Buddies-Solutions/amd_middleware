@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.3.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.3.1...v8.3.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* **domain:** build each environment's office registry from one table ([#288](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/288)) ([ed798d2](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/ed798d228b24ec3677bb5ebf37167b25da384368))
+
 ## [8.3.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.3.0...v8.3.1) (2026-10-22)
 
 
