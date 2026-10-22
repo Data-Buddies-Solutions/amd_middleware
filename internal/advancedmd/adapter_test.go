@@ -549,7 +549,6 @@ func TestAdapterPreservesUnrecognizedProductionAppointmentType(t *testing.T) {
 		ProfileID:                 620,
 		Start:                     time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
 		Duration:                  15,
-		AppointmentTypeID:         9999,
 		ProviderAppointmentTypeID: 9999,
 		AppointmentColor:          domain.PreservedAppointmentTypeFallbackColor,
 	})
@@ -943,7 +942,6 @@ func TestAdapterBooksAndCancelsThroughControlledRESTServer(t *testing.T) {
 		ProfileID:                 620,
 		Start:                     time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
 		Duration:                  15,
-		AppointmentTypeID:         1007,
 		ProviderAppointmentTypeID: 1007,
 		AppointmentColor:          "ORANGE",
 		Force:                     true,
@@ -959,11 +957,7 @@ func TestAdapterBooksAndCancelsThroughControlledRESTServer(t *testing.T) {
 		t.Fatalf("booking payload = %#v", bookingPayload)
 	}
 
-	if err := adapter.CancelAppointment(context.Background(), Cancellation{
-		PatientID:     "12345",
-		AppointmentID: appointmentID,
-		OfficeID:      "spring_hill",
-	}); err != nil {
+	if err := adapter.CancelAppointment(context.Background(), Cancellation{AppointmentID: appointmentID}); err != nil {
 		t.Fatalf("CancelAppointment error = %v", err)
 	}
 	if cancellationPayload["id"] != float64(98765) {
@@ -1010,7 +1004,6 @@ func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
 				ProfileID:                 620,
 				Start:                     time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
 				Duration:                  15,
-				AppointmentTypeID:         1007,
 				ProviderAppointmentTypeID: 1007,
 				AppointmentColor:          "ORANGE",
 			})

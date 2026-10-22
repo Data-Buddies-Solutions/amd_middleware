@@ -12,12 +12,10 @@ func TestIsBlockedByHold(t *testing.T) {
 		{
 			StartDateTime: time.Date(2026, 3, 3, 12, 0, 0, 0, time.UTC),
 			EndDateTime:   time.Date(2026, 3, 3, 13, 0, 0, 0, time.UTC),
-			Note:          "Lunch",
 		},
 		{
 			StartDateTime: time.Date(2026, 3, 3, 15, 0, 0, 0, time.UTC),
 			EndDateTime:   time.Date(2026, 3, 3, 15, 30, 0, 0, time.UTC),
-			Note:          "Meeting",
 		},
 	}
 

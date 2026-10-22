@@ -62,9 +62,6 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 		(chart.InsPlanID == "" && (chart.CarrierID != "" || chart.CarrierName != "" || chart.SubscriberNum != "")) {
 		return updateInsuranceFailure(MutationValidationFailed, "Current insurance references are incomplete. Contact the office; no update was attempted.")
 	}
-	command.InsPlanID = chart.InsPlanID
-	command.RespPartyID = chart.RespPartyID
-	command.OldInsurance = chart.CarrierName
 	replacement := domain.PatientInsurance{
 		PatientID: command.PatientID, RespPartyID: chart.RespPartyID,
 		CarrierID: decision.CarrierID, SubscriberNum: command.SubscriberNum,
@@ -73,7 +70,7 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 	reconciled := false
 	if !replacementAlreadyActive {
 		var outcome MutationOutcome
-		reconciled, replacementAlreadyActive, outcome = p.endInsurance(ctx, command, decision.CarrierID)
+		reconciled, replacementAlreadyActive, outcome = p.endInsurance(ctx, chart.InsPlanID, replacement)
 		if outcome != "" {
 			return updateInsuranceFailure(outcome, "Failed to end current insurance. Contact the office.")
 		}
@@ -90,10 +87,9 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 	result = UpdateInsuranceResult{
 		Status:            UpdateInsuranceStatusUpdated,
 		PatientID:         command.PatientID,
-		OldInsurance:      command.OldInsurance,
+		OldInsurance:      chart.CarrierName,
 		NewInsurance:      command.Insurance,
 		AllowedProviders:  decision.AllowedProviders,
-		RoutingAmbiguous:  decision.Participation == "unknown",
 		PreauthRequired:   len(decision.Requirements) > 0,
 		InsuranceDecision: &decision,
 		Message:           "Insurance updated successfully",
@@ -116,13 +112,13 @@ func updateInsuranceFailure(outcome MutationOutcome, message string) UpdateInsur
 	return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: outcome, Message: message}
 }
 
-func (p *patient) endInsurance(ctx context.Context, command UpdateInsuranceCommand, replacementCarrierID string) (bool, bool, MutationOutcome) {
-	if command.InsPlanID == "" {
+func (p *patient) endInsurance(ctx context.Context, insPlanID string, replacement domain.PatientInsurance) (bool, bool, MutationOutcome) {
+	if insPlanID == "" {
 		return false, false, ""
 	}
 	err := p.advancedMD.EndDatePatientInsurance(ctx, domain.PatientInsuranceEnd{
-		PatientID: command.PatientID,
-		InsPlanID: command.InsPlanID,
+		PatientID: replacement.PatientID,
+		InsPlanID: insPlanID,
 	})
 	if err == nil {
 		return false, false, ""
@@ -131,17 +127,12 @@ func (p *patient) endInsurance(ctx context.Context, command UpdateInsuranceComma
 	case advancedmd.MutationRejected:
 		return false, false, MutationRejected
 	case advancedmd.MutationAmbiguous:
-		demographics, known := p.reconcileInsurance(ctx, command.PatientID)
+		demographics, known := p.reconcileInsurance(ctx, replacement.PatientID)
 		if !known {
 			return false, false, MutationIndeterminateWrite
 		}
-		if demographics.InsPlanID == command.InsPlanID {
+		if demographics.InsPlanID == insPlanID {
 			return false, false, MutationReconciledFailure
-		}
-		replacement := domain.PatientInsurance{
-			RespPartyID:   command.RespPartyID,
-			CarrierID:     replacementCarrierID,
-			SubscriberNum: command.SubscriberNum,
 		}
 		if demographics.InsPlanID != "" && !insuranceMatches(demographics, replacement) {
 			return false, false, MutationIndeterminateWrite

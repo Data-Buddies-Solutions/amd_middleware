@@ -98,7 +98,6 @@ func (s *service) book(ctx context.Context, booking bookingContext) (BookReceipt
 		ProfileID:                 prepared.token.ProfileID,
 		Start:                     prepared.start,
 		Duration:                  prepared.token.Duration,
-		AppointmentTypeID:         prepared.command.AppointmentTypeID,
 		ProviderAppointmentTypeID: prepared.providerAppointmentType,
 		AppointmentColor:          prepared.appointmentColor,
 		Force:                     prepared.force,
@@ -269,8 +268,8 @@ func applyBookingPolicy(booking *bookingContext) (
 	})
 	if policyErr != nil {
 		category := CategoryValidation
-		if policyErr.Outcome == string(CategoryAppointmentTypeMissing) {
-			category = CategoryAppointmentTypeMissing
+		if policyErr.Outcome == string(categoryAppointmentTypeMissing) {
+			category = categoryAppointmentTypeMissing
 		}
 		return schedulingPolicy{}, bookingPolicyDecision{}, "", &Error{
 			category: category,

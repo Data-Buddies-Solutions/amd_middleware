@@ -95,9 +95,7 @@ func TestCancellationTokenCancelsPairedOfficeAppointmentWithoutRediscovery(t *te
 		t.Fatalf("provider cancellations = %#v, want exactly one", records.Cancellations)
 	}
 	cancellation := records.Cancellations[0]
-	if cancellation.PatientID != "12345" ||
-		cancellation.AppointmentID != 33333 ||
-		cancellation.OfficeID != "crystal_river" {
+	if cancellation.AppointmentID != 33333 {
 		t.Fatalf("provider cancellation = %#v", cancellation)
 	}
 }

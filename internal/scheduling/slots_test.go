@@ -11,7 +11,7 @@ func TestAvailableSlotsExcludesSlotEndingAfterWorkHours(t *testing.T) {
 	date := time.Date(2026, 10, 14, 0, 0, 0, 0, time.UTC)
 	column := schedulingTestColumn("08:00", "08:45", 30)
 
-	slots := availableSlots(schedulingPolicy{}, column, nil, nil, date, date.Add(-time.Hour))
+	slots := availableSlots(schedulingPolicy{}, column, nil, nil, date)
 
 	if len(slots) != 1 || slots[0].Time != "8:00 AM" {
 		t.Fatalf("availableSlots() = %#v, want only 8:00 AM", slots)
@@ -36,7 +36,7 @@ func TestAvailableSlotsAreSupportedByCurrentColumn(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			column := schedulingTestColumn(tt.start, tt.end, tt.interval)
-			slots := availableSlots(schedulingPolicy{}, column, nil, nil, date, date.Add(-time.Hour))
+			slots := availableSlots(schedulingPolicy{}, column, nil, nil, date)
 			if len(slots) != len(tt.want) {
 				t.Fatalf("availableSlots() = %#v, want times %v", slots, tt.want)
 			}

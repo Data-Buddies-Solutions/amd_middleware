@@ -18,10 +18,10 @@ type SessionState string
 
 const (
 	SessionUninitialized SessionState = "uninitialized"
-	SessionRefreshing    SessionState = "refreshing"
-	SessionFresh         SessionState = "fresh"
-	SessionStale         SessionState = "stale"
-	SessionDegraded      SessionState = "degraded"
+	sessionRefreshing    SessionState = "refreshing"
+	sessionFresh         SessionState = "fresh"
+	sessionStale         SessionState = "stale"
+	sessionDegraded      SessionState = "degraded"
 	SessionUnavailable   SessionState = "unavailable"
 )
 
@@ -171,7 +171,7 @@ func (s *sessionImpl) authenticateLocked(ctx context.Context) error {
 			s.retryAt = now.Add(s.policy.retryDelay)
 		}
 		if s.usableLocked(now) {
-			s.state = SessionDegraded
+			s.state = sessionDegraded
 		} else {
 			s.tokenData = nil
 			s.createdAt = time.Time{}
@@ -182,7 +182,7 @@ func (s *sessionImpl) authenticateLocked(ctx context.Context) error {
 	s.createdAt = loginStartedAt
 	s.tokenData = buildTokenData(token, webserverURL)
 	s.retryAt = time.Time{}
-	s.state = SessionFresh
+	s.state = sessionFresh
 	return nil
 }
 
@@ -191,7 +191,7 @@ func (s *sessionImpl) usableLocked(now time.Time) bool {
 }
 
 func (s *sessionImpl) freshLocked(now time.Time) bool {
-	return s.state == SessionFresh &&
+	return s.state == sessionFresh &&
 		s.tokenData != nil &&
 		now.Sub(s.createdAt) < s.policy.staleAfter
 }
@@ -209,7 +209,7 @@ func (s *sessionImpl) statusLocked(now time.Time) SessionStatus {
 		status.ExpiresIn = max(s.policy.expiresAfter-status.TokenAge, 0)
 	}
 	if s.flight != nil {
-		status.State = SessionRefreshing
+		status.State = sessionRefreshing
 		return status
 	}
 	if s.tokenData == nil {
@@ -219,12 +219,12 @@ func (s *sessionImpl) statusLocked(now time.Time) SessionStatus {
 		status.State = SessionUnavailable
 		return status
 	}
-	if s.state == SessionDegraded {
-		status.State = SessionDegraded
+	if s.state == sessionDegraded {
+		status.State = sessionDegraded
 		return status
 	}
 	if status.TokenAge >= s.policy.staleAfter {
-		status.State = SessionStale
+		status.State = sessionStale
 		return status
 	}
 	return status

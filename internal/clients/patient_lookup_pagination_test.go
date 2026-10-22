@@ -105,7 +105,7 @@ func TestLookupPatientRetainsRecordsWhenReportedCountIsTooLow(t *testing.T) {
 			t.Run(fmt.Sprintf("%s_%d_pages", lookup, pages), func(t *testing.T) {
 				reads := 0
 				client, token, cleanup := newTestXMLRPCClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					var request AMDLookupRequest
+					var request amdLookupRequest
 					if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 						t.Fatal(err)
 					}

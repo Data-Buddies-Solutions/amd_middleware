@@ -24,7 +24,7 @@ const (
 	AvailabilityOutcomeInvalidInput        = "invalid_input"
 	AvailabilityOutcomeSearchIncomplete    = "availability_search_incomplete"
 
-	AvailabilityNextActionOfferSlots                  = "offer_slots"
+	availabilityNextActionOfferSlots                  = "offer_slots"
 	AvailabilityNextActionAskDifferentPreferences     = "ask_for_different_preferences"
 	AvailabilityNextActionRetryOnceThenAskPreferences = "retry_once_then_ask_preferences"
 )

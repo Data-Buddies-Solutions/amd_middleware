@@ -244,9 +244,6 @@ func TestOfficeConfig_NorthMiamiBeachOpticalColumn(t *testing.T) {
 	if col.ProfileID != "621" || col.DisplayName != "Dr. Miriam Bach" || col.SameStartCapacity != 0 {
 		t.Fatalf("column 1601 = %+v, want Dr. Miriam Bach profile 621 single-booked", col)
 	}
-	if got := office.ProviderDisplayName("621"); got != "Dr. Miriam Bach" {
-		t.Fatalf("ProviderDisplayName(621) = %q, want Dr. Miriam Bach", got)
-	}
 	if got := office.FriendlyProviderName("BACH, MIRIAM"); got != "Dr. Miriam Bach" {
 		t.Fatalf("FriendlyProviderName(BACH, MIRIAM) = %q, want Dr. Miriam Bach", got)
 	}
@@ -466,5 +463,17 @@ func TestInitRegistry(t *testing.T) {
 	office = DefaultOffice()
 	if office.FacilityID != "1568" {
 		t.Errorf("default FacilityID = %q, want %q", office.FacilityID, "1568")
+	}
+}
+
+func TestEveryOfficeColumnHasDisplayName(t *testing.T) {
+	for _, registry := range []map[string]*OfficeConfig{prodOffices, devOffices} {
+		for _, office := range registry {
+			for id, column := range office.Columns {
+				if column.DisplayName == "" {
+					t.Errorf("office %s column %s has no display name", office.ID, id)
+				}
+			}
+		}
 	}
 }

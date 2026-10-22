@@ -73,7 +73,7 @@ func TestBookingAndRescheduleUseSignedSlotFields(t *testing.T) {
 				t.Fatalf("writes=%d", len(records.Bookings))
 			}
 			write := records.Bookings[0]
-			if write.ColumnID != 1513 || write.ProfileID != 620 || write.Start.Format(domain.SlotDateTimeLayout) != "2026-06-03T09:00" || write.Duration != 15 || write.AppointmentTypeID != 1007 {
+			if write.ColumnID != 1513 || write.ProfileID != 620 || write.Start.Format(domain.SlotDateTimeLayout) != "2026-06-03T09:00" || write.Duration != 15 || write.ProviderAppointmentTypeID != 1007 {
 				t.Fatalf("signed slot changed: %+v", write)
 			}
 			if receipt.ProfileID != "620" || receipt.StartDatetime != "2026-06-03T09:00" || receipt.Duration != 15 || receipt.ProviderName != "Dr. Austin Bach" {
@@ -129,7 +129,7 @@ func TestBookAllowsOmittedIntentWithExplicitOrPreservedType(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if len(records.Bookings) != 1 || records.Bookings[0].AppointmentTypeID != 1007 {
+			if len(records.Bookings) != 1 || records.Bookings[0].ProviderAppointmentTypeID != 1007 {
 				t.Fatalf("bookings=%+v", records.Bookings)
 			}
 		})

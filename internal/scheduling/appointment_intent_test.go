@@ -229,8 +229,8 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			if !sameStringSlice(got.Missing, tt.missing) {
 				t.Fatalf("Missing = %v, want %v", got.Missing, tt.missing)
 			}
-			if tt.wantID != 0 && got.AppointmentTypeName == "" {
-				t.Fatal("AppointmentTypeName should be set for resolved types")
+			if tt.wantID != 0 && domain.AppointmentTypes[got.AppointmentTypeID].Name == "" {
+				t.Fatal("resolved appointment type is missing from the registry")
 			}
 		})
 	}
