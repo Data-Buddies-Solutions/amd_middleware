@@ -4,6 +4,15 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.3.3](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.3.2...v8.3.3) (2026-10-22)
+
+
+### Bug Fixes
+
+* **advancedmd:** wait for cancelled month reads before returning ([#291](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/291)) ([0b8ed4e](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/0b8ed4e2c747a8cbeacef1da6b62c83eb3ec2b0d))
+* **patient:** fail closed when a patient search is incomplete ([#295](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/295)) ([e7aba03](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/e7aba03cc06a9501290c492e4602c8a062a04aef))
+* **patient:** parse patient IDs, phones, names and DOBs once ([#294](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/294)) ([eb0b7ed](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/eb0b7ed2180c1f20c33d8cc20a3e3fb5f8cd5a84))
+
 ## [8.3.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.3.1...v8.3.2) (2026-10-22)
 
 
