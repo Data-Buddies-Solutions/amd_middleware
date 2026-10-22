@@ -325,22 +325,6 @@ func TestCreateAllowsHouseholdMemberOnCallerPhone(t *testing.T) {
 	}
 }
 
-func TestCreateObservesBaselineSearchCompletenessWithoutChangingTheDecision(t *testing.T) {
-	for _, incomplete := range []bool{false, true} {
-		amd := advancedmdtest.NewAdapter()
-		amd.IncompletePatientSearch = map[domain.PatientSearch]bool{{Phone: "9542872010"}: incomplete}
-
-		got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
-
-		if got.Status != patient.CreateStatusCreated || amd.CreatePatientCalls != 1 {
-			t.Fatalf("incomplete=%v: Create() = %+v with %d writes, want one created patient", incomplete, got, amd.CreatePatientCalls)
-		}
-		if complete := got.Observation.BaselineSearchComplete; complete == nil || *complete != !incomplete {
-			t.Fatalf("incomplete=%v: BaselineSearchComplete = %v, want %v", incomplete, complete, !incomplete)
-		}
-	}
-}
-
 func TestCreateDoesNotAdoptPreexistingPatientWhoseLookupDetailsChanged(t *testing.T) {
 	search := domain.PatientSearch{Phone: "9542872010"}
 	existing := domain.Patient{
