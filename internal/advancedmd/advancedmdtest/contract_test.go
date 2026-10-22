@@ -147,7 +147,7 @@ func fakeCalls(fake *advancedmdtest.Adapter) map[string]int {
 		"ReadPatientAppointmentsForMonth": len(fake.AppointmentMonthQueries),
 		"ReadAppointmentState":            len(fake.AppointmentStateQueries),
 		"GetSchedulerSetup":               fake.SchedulerSetupCalls,
-		"ReadSchedule":                    len(fake.ScheduleReadQueries),
+		"ReadColumnDay":                   len(fake.ColumnDayReads),
 		"ReadScheduleRange":               len(fake.ScheduleRangeQueries),
 		"BookAppointment":                 len(fake.Bookings),
 		"CancelAppointment":               len(fake.Cancellations),
@@ -644,7 +644,7 @@ func complete(appointments []domain.Appointment, holds []domain.BlockHold) domai
 }
 
 func readDay(ctx context.Context, r records) (any, error) {
-	return r.ReadSchedule(ctx, domain.ScheduleReadQuery{ColumnIDs: []string{"1513", "1598"}, Date: "2026-06-03"})
+	return r.ReadColumnDay(ctx, "1513", "2026-06-03")
 }
 
 func scheduleDayScenarios() []scenario {
@@ -684,52 +684,40 @@ func scheduleDayScenarios() []scenario {
 	)
 	return []scenario{
 		{
-			name: "day read merges repeated rows, keeps id-less rows, and returns every queried column",
-			op:   "ReadSchedule",
+			name: "day read merges repeated rows and keeps id-less rows",
+			op:   "ReadColumnDay",
 			amd:  dayRows,
 			fake: filedRows,
 			call: readDay,
-			want: outcome{Value: domain.ScheduleReadResult{Columns: map[string]domain.ColumnSchedule{
-				"1513": bach,
-				"1598": complete(nil, nil),
-			}}},
+			want: outcome{Value: bach},
 		},
 		{
-			name: "day read with one failing column reports that column incomplete",
-			op:   "ReadSchedule",
+			name: "day read fails when the appointments read fails",
+			op:   "ReadColumnDay",
 			amd: func(p *advancedmdtest.Provider) {
 				dayRows(p)
-				reply(p, "appointments day "+day+" 1598", status(http.StatusServiceUnavailable))
-				reply(p, "blockholds day "+day+" 1598", status(http.StatusServiceUnavailable))
+				reply(p, "appointments day "+day+" 1513", status(http.StatusServiceUnavailable))
 			},
 			fake: func(f *advancedmdtest.Adapter) {
 				filedRows(f)
-				f.ColumnReadErrors[advancedmdtest.ColumnDay{Date: day, ColumnID: "1598"}] = advancedmd.NewError(safeerrors.CategoryUpstreamStatus)
+				f.ColumnReadErrors[advancedmdtest.ColumnDay{Date: day, ColumnID: "1513"}] = advancedmd.NewError(safeerrors.CategoryUpstreamStatus)
 			},
 			call: readDay,
-			want: outcome{Value: domain.ScheduleReadResult{Columns: map[string]domain.ColumnSchedule{
-				"1513": bach,
-				"1598": {},
-			}}},
+			want: outcome{Value: domain.ColumnSchedule{}, Category: safeerrors.CategoryUpstreamStatus},
 		},
 		{
-			name: "day read fails when every column fails",
-			op:   "ReadSchedule",
+			name: "day read fails when the block holds read fails",
+			op:   "ReadColumnDay",
 			amd: func(p *advancedmdtest.Provider) {
-				for _, route := range []string{"appointments", "blockholds"} {
-					for _, column := range []string{"1513", "1598"} {
-						reply(p, route+" day "+day+" "+column, status(http.StatusServiceUnavailable))
-					}
-				}
+				dayRows(p)
+				reply(p, "blockholds day "+day+" 1513", status(http.StatusServiceUnavailable))
 			},
 			fake: func(f *advancedmdtest.Adapter) {
+				filedRows(f)
 				f.ScheduleReadErrors[day] = advancedmd.NewError(safeerrors.CategoryUpstreamStatus)
 			},
 			call: readDay,
-			want: outcome{
-				Value:    domain.ScheduleReadResult{Columns: map[string]domain.ColumnSchedule{"1513": {}, "1598": {}}},
-				Category: safeerrors.CategoryUpstreamStatus,
-			},
+			want: outcome{Value: domain.ColumnSchedule{}, Category: safeerrors.CategoryUpstreamStatus},
 		},
 	}
 }

@@ -931,49 +931,12 @@ func TestAdapterReadsCompleteScheduleThroughDomainSeam(t *testing.T) {
 		t.Fatalf("setup = %#v", setup)
 	}
 
-	read, err := adapter.ReadSchedule(context.Background(), domain.ScheduleReadQuery{
-		ColumnIDs: []string{"1513"},
-		Date:      "2026-06-03",
-	})
+	column, err := adapter.ReadColumnDay(context.Background(), "1513", "2026-06-03")
 	if err != nil {
-		t.Fatalf("ReadSchedule error = %v", err)
+		t.Fatalf("ReadColumnDay error = %v", err)
 	}
-	column := read.Columns["1513"]
 	if !column.Complete() || len(column.Appointments) != 1 || len(column.BlockHolds) != 1 {
 		t.Fatalf("column schedule = %#v", column)
-	}
-}
-
-func TestAdapterPreservesPartialScheduleReads(t *testing.T) {
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/scheduler/appointments" && r.URL.Query().Get("columnId") == "1513" {
-			http.Error(w, "provider unavailable", http.StatusServiceUnavailable)
-			return
-		}
-		w.Write([]byte(`[]`))
-	}))
-	defer server.Close()
-
-	adapter := NewAdapter(
-		staticSession{token: &session.TokenData{
-			Token:       "Bearer test-token",
-			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
-		}},
-		nil,
-		clients.NewAdvancedMDRestClient(server.Client()),
-		time.Now,
-	)
-	read, err := adapter.ReadSchedule(context.Background(), domain.ScheduleReadQuery{
-		ColumnIDs: []string{"1513", "1598"},
-		Date:      "2026-06-03",
-	})
-	if err != nil {
-		t.Fatalf("ReadSchedule error = %v", err)
-	}
-	if read.Columns["1513"].AppointmentsComplete ||
-		!read.Columns["1513"].BlockHoldsComplete ||
-		!read.Columns["1598"].Complete() {
-		t.Fatalf("read = %#v, want one explicit partial column", read)
 	}
 }
 
@@ -1121,7 +1084,7 @@ func (staticSession) Status() session.SessionStatus {
 }
 
 func TestScheduleReadsAreConcurrentAndCannotUseMalformedOccupancy(t *testing.T) {
-	started := make(chan struct{}, 4)
+	started := make(chan struct{}, 2)
 	release := make(chan struct{})
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		started <- struct{}{}
@@ -1136,12 +1099,10 @@ func TestScheduleReadsAreConcurrentAndCannotUseMalformedOccupancy(t *testing.T) 
 	adapter := NewAdapter(staticSession{token: &session.TokenData{RestApiBase: strings.TrimPrefix(server.URL, "https://")}}, nil, clients.NewAdvancedMDRestClient(server.Client()), time.Now)
 	done := make(chan error, 1)
 	go func() {
-		read, err := adapter.ReadSchedule(context.Background(), domain.ScheduleReadQuery{ColumnIDs: []string{"1513", "1598"}, Date: "2026-09-15"})
-		for _, column := range read.Columns {
-			if column.Complete() {
-				done <- errors.New("malformed occupancy declared complete")
-				return
-			}
+		column, err := adapter.ReadColumnDay(context.Background(), "1513", "2026-09-15")
+		if column.Complete() {
+			done <- errors.New("malformed occupancy declared complete")
+			return
 		}
 		if CategoryOf(err) != safeerrors.CategoryInvalidResponse {
 			done <- errors.New("missing invalid-response failure")
@@ -1149,7 +1110,7 @@ func TestScheduleReadsAreConcurrentAndCannotUseMalformedOccupancy(t *testing.T) 
 		}
 		done <- nil
 	}()
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 2; i++ {
 		select {
 		case <-started:
 		case <-time.After(2 * time.Second):

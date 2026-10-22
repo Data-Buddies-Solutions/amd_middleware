@@ -229,7 +229,7 @@ func TestListSlotsRoutingContract(t *testing.T) {
 			if err := json.Unmarshal(response.Body.Bytes(), &got); err != nil {
 				t.Fatal(err)
 			}
-			searched := records.SchedulerSetupCalls != 0 || len(records.ScheduleRangeQueries) != 0 || len(records.ScheduleReadQueries) != 0
+			searched := records.SchedulerSetupCalls != 0 || len(records.ScheduleRangeQueries) != 0 || len(records.ColumnDayReads) != 0
 			if tc.searches {
 				if got.Outcome == schedulingmodule.AvailabilityOutcomeInvalidInput || !searched {
 					t.Fatalf("searched=%v inventory=%s", searched, response.Body.String())

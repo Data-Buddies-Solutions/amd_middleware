@@ -1,9 +1,13 @@
 package scheduling_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
+	"net/http"
+	"os"
 	"runtime"
 	"slices"
 	"strconv"
@@ -17,6 +21,7 @@ import (
 	"advancedmd-token-management/internal/advancedmd/advancedmdtest"
 	"advancedmd-token-management/internal/clients"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/safeerrors"
 	"advancedmd-token-management/internal/scheduling"
 )
 
@@ -73,15 +78,15 @@ func appointmentSpan(row clients.AMDAppointmentResponse) domain.Interval {
 type agreementRecords struct {
 	*advancedmdtest.Adapter
 	schedule *advancedmd.Adapter
-	days     map[string]domain.ScheduleReadResult
+	days     map[advancedmdtest.ColumnDay]domain.ColumnSchedule
 }
 
-func (r agreementRecords) ReadSchedule(ctx context.Context, query domain.ScheduleReadQuery) (domain.ScheduleReadResult, error) {
-	key := query.Date + " " + strings.Join(query.ColumnIDs, "-")
+func (r agreementRecords) ReadColumnDay(ctx context.Context, columnID, date string) (domain.ColumnSchedule, error) {
+	key := advancedmdtest.ColumnDay{Date: date, ColumnID: columnID}
 	if read, ok := r.days[key]; ok {
 		return read, nil
 	}
-	read, err := r.schedule.ReadSchedule(ctx, query)
+	read, err := r.schedule.ReadColumnDay(ctx, columnID, date)
 	if err == nil {
 		r.days[key] = read
 	}
@@ -93,11 +98,12 @@ func (r agreementRecords) ReadScheduleRange(ctx context.Context, query domain.Sc
 }
 
 type agreementCase struct {
-	target agreementColumn
-	column domain.SchedulerColumn
-	now    time.Time
-	first  time.Time
-	rows   amdRows
+	target    agreementColumn
+	column    domain.SchedulerColumn
+	now       time.Time
+	first     time.Time
+	rows      amdRows
+	responses map[string][]advancedmdtest.Response
 }
 
 func (c agreementCase) String() string {
@@ -193,9 +199,9 @@ func clockTime(minute int) string {
 func (c agreementCase) scheduler() (scheduling.Scheduling, *advancedmdtest.Adapter) {
 	fake := recordsWithSetup(c.column)
 	fake.Demographics["12345"] = domain.PatientDemographics{CarrierName: "Self Pay", DOB: "01/15/1980"}
-	provider := &advancedmdtest.Provider{Appointments: c.rows.appointments, Holds: c.rows.holds}
+	provider := &advancedmdtest.Provider{Appointments: c.rows.appointments, Holds: c.rows.holds, Responses: c.responses}
 	reads := provider.Adapter(func() time.Time { return c.now })
-	return scheduling.New(agreementRecords{Adapter: fake, schedule: reads, days: map[string]domain.ScheduleReadResult{}}, "test-booking-secret", func() time.Time { return c.now }), fake
+	return scheduling.New(agreementRecords{Adapter: fake, schedule: reads, days: map[advancedmdtest.ColumnDay]domain.ColumnSchedule{}}, "test-booking-secret", func() time.Time { return c.now }), fake
 }
 
 func (c agreementCase) list(scheduler scheduling.Scheduling) (scheduling.AvailabilityResponse, error) {
@@ -459,5 +465,89 @@ func TestBookingRejectsASlotHoldingTwoAppointmentsWithoutIDs(t *testing.T) {
 			booked = append(booked, fmt.Sprintf("%s force=%v", domain.FormatSlotDateTime(booking.Start), booking.Force))
 		}
 		t.Fatalf("booking a third patient into 09:00 returned %q (%v) and booked %v, want slot_unavailable and no booking\n%s", scheduling.CategoryOf(err), err, booked, c)
+	}
+}
+
+func TestBookingRevalidationFailsWithTheFirstFailedDayRead(t *testing.T) {
+	target := agreementColumns[0]
+	day, _ := time.Parse("2006-01-02", slotContractDate)
+	now := mutationTestNow()
+	appointments := "appointments day " + slotContractDate + " " + target.id
+	holds := "blockholds day " + slotContractDate + " " + target.id
+	unavailable := advancedmdtest.Response{Status: http.StatusServiceUnavailable, Body: `{}`}
+	malformed := advancedmdtest.Response{Status: http.StatusOK, Body: `not json`}
+	tests := []struct {
+		name      string
+		responses map[string][]advancedmdtest.Response
+		provider  safeerrors.Category
+		logged    []string
+	}{
+		{
+			name:      "appointments read fails",
+			responses: map[string][]advancedmdtest.Response{appointments: {unavailable}},
+			provider:  safeerrors.CategoryUpstreamStatus,
+			logged:    []string{"schedule read incomplete category=upstream_status"},
+		},
+		{
+			name:      "block holds read fails",
+			responses: map[string][]advancedmdtest.Response{holds: {malformed}},
+			provider:  safeerrors.CategoryInvalidResponse,
+			logged:    []string{"schedule read incomplete category=invalid_response"},
+		},
+		{
+			name:      "both reads fail and the appointments read is malformed",
+			responses: map[string][]advancedmdtest.Response{appointments: {malformed}, holds: {unavailable}},
+			provider:  safeerrors.CategoryInvalidResponse,
+			logged:    []string{"schedule read incomplete category=invalid_response", "schedule read incomplete category=upstream_status"},
+		},
+		{
+			name:      "both reads fail and the appointments read is unavailable",
+			responses: map[string][]advancedmdtest.Response{appointments: {unavailable}, holds: {malformed}},
+			provider:  safeerrors.CategoryUpstreamStatus,
+			logged:    []string{"schedule read incomplete category=upstream_status", "schedule read incomplete category=invalid_response"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := agreementCase{
+				target: target,
+				now:    now,
+				first:  day,
+				column: domain.SchedulerColumn{
+					ID: target.id, Name: "AGREEMENT", ProfileID: target.profileID, FacilityID: target.facilityID,
+					StartTime: "09:00", EndTime: "09:30", Interval: 30, Workweek: 1 << day.Weekday(),
+				},
+				responses: tt.responses,
+			}
+			office, err := domain.ResolveOffice(target.office)
+			if err != nil {
+				t.Fatal(err)
+			}
+			token := signSlotContractToken(t, now, office.ID, target.routing, c.column, slotContractToken{start: "09:00", duration: 30, capacity: 2})
+			scheduler, fake := c.scheduler()
+			var logs bytes.Buffer
+			log.SetOutput(&logs)
+			defer log.SetOutput(os.Stderr)
+
+			_, err = c.book(scheduler, token)
+
+			if scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed ||
+				scheduling.ProviderFailureOf(err) != tt.provider ||
+				err.Error() != "Unable to revalidate the selected slot. Please check availability again." {
+				t.Fatalf("Book error = %v, category = %q, provider failure = %q; want write_failed from %q", err, scheduling.CategoryOf(err), scheduling.ProviderFailureOf(err), tt.provider)
+			}
+			if len(fake.Bookings) != 0 {
+				t.Fatalf("provider bookings = %d, want none after a failed day read", len(fake.Bookings))
+			}
+			var logged []string
+			for line := range strings.Lines(logs.String()) {
+				if _, entry, ok := strings.Cut(strings.TrimSpace(line), "schedule read incomplete"); ok {
+					logged = append(logged, "schedule read incomplete"+entry)
+				}
+			}
+			if !slices.Equal(logged, tt.logged) {
+				t.Fatalf("logged %q, want %q", logged, tt.logged)
+			}
+		})
 	}
 }

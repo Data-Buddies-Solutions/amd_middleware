@@ -476,42 +476,24 @@ func (a *Adapter) GetSchedulerSetup(ctx context.Context) (domain.SchedulerSetup,
 	return *setup, nil
 }
 
-func (a *Adapter) ReadSchedule(ctx context.Context, query domain.ScheduleReadQuery) (domain.ScheduleReadResult, error) {
+func (a *Adapter) ReadColumnDay(ctx context.Context, columnID, date string) (domain.ColumnSchedule, error) {
 	token, err := a.token(ctx)
 	if err != nil {
-		return domain.ScheduleReadResult{}, err
+		return domain.ColumnSchedule{}, err
 	}
-	columns := make([]domain.ColumnSchedule, len(query.ColumnIDs))
-	failures := make([]error, 2*len(query.ColumnIDs))
+	var appointments []domain.Appointment
+	var holds []domain.BlockHold
+	var appointmentsErr, holdsErr error
 	var reads sync.WaitGroup
-	for i, columnID := range query.ColumnIDs {
-		reads.Add(2)
-		go func() {
-			defer reads.Done()
-			rows, err := a.restClient.GetAppointments(ctx, token, columnID, query.Date)
-			columns[i].Appointments = distinctRows(rows, appointmentKey)
-			columns[i].AppointmentsComplete = err == nil
-			failures[2*i] = err
-		}()
-		go func() {
-			defer reads.Done()
-			rows, err := a.restClient.GetBlockHolds(ctx, token, columnID, query.Date)
-			columns[i].BlockHolds = distinctRows(rows, holdKey)
-			columns[i].BlockHoldsComplete = err == nil
-			failures[2*i+1] = err
-		}()
-	}
+	reads.Go(func() {
+		appointments, appointmentsErr = a.restClient.GetAppointments(ctx, token, columnID, date)
+	})
+	reads.Go(func() {
+		holds, holdsErr = a.restClient.GetBlockHolds(ctx, token, columnID, date)
+	})
 	reads.Wait()
-	result := domain.ScheduleReadResult{Columns: make(map[string]domain.ColumnSchedule, len(columns))}
-	completeColumns := 0
-	for i, columnID := range query.ColumnIDs {
-		result.Columns[columnID] = columns[i]
-		if columns[i].Complete() {
-			completeColumns++
-		}
-	}
 	var firstErr error
-	for _, err := range failures {
+	for _, err := range []error{appointmentsErr, holdsErr} {
 		if err != nil {
 			failure := classify(err)
 			if firstErr == nil {
@@ -520,11 +502,15 @@ func (a *Adapter) ReadSchedule(ctx context.Context, query domain.ScheduleReadQue
 			log.Printf("schedule read incomplete category=%s", CategoryOf(failure))
 		}
 	}
-	if completeColumns == 0 && firstErr != nil {
-		return result, firstErr
+	if firstErr != nil {
+		return domain.ColumnSchedule{}, firstErr
 	}
-
-	return result, nil
+	return domain.ColumnSchedule{
+		Appointments:         distinctRows(appointments, appointmentKey),
+		BlockHolds:           distinctRows(holds, holdKey),
+		AppointmentsComplete: true,
+		BlockHoldsComplete:   true,
+	}, nil
 }
 
 func (a *Adapter) ReadScheduleRange(ctx context.Context, query domain.ScheduleRangeQuery) (map[string]domain.ScheduleReadResult, error) {

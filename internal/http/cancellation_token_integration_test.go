@@ -345,7 +345,7 @@ func TestCancellationAndBookingTokensAreNotInterchangeable(t *testing.T) {
 	}
 	if records.DemographicCalls != 0 ||
 		records.SchedulerSetupCalls != 0 ||
-		len(records.ScheduleReadQueries) != 0 ||
+		len(records.ColumnDayReads) != 0 ||
 		len(records.Bookings) != 0 {
 		t.Fatalf("provider operations occurred: records = %#v", records.Adapter)
 	}

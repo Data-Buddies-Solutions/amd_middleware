@@ -83,7 +83,7 @@ type Adapter struct {
 	ColumnReadErrors         map[ColumnDay]error
 	IncompleteDays           map[string]bool
 	ScheduleRangeQueries     []domain.ScheduleRangeQuery
-	ScheduleReadQueries      []domain.ScheduleReadQuery
+	ColumnDayReads           []ColumnDay
 	BookAppointmentID        int
 	BookAppointmentErr       error
 	Bookings                 []advancedmd.Booking
@@ -279,29 +279,14 @@ func (a *Adapter) columnSchedule(date, columnID string) domain.ColumnSchedule {
 	}
 }
 
-func (a *Adapter) ReadSchedule(_ context.Context, query domain.ScheduleReadQuery) (domain.ScheduleReadResult, error) {
+func (a *Adapter) ReadColumnDay(_ context.Context, columnID, date string) (domain.ColumnSchedule, error) {
 	a.scheduleMu.Lock()
 	defer a.scheduleMu.Unlock()
-	query.ColumnIDs = append([]string(nil), query.ColumnIDs...)
-	a.ScheduleReadQueries = append(a.ScheduleReadQueries, query)
-	result := domain.ScheduleReadResult{Columns: make(map[string]domain.ColumnSchedule, len(query.ColumnIDs))}
-	var firstErr error
-	completeColumns := 0
-	for _, columnID := range query.ColumnIDs {
-		if err := a.columnFailure(query.Date, columnID); err != nil {
-			result.Columns[columnID] = domain.ColumnSchedule{}
-			if firstErr == nil {
-				firstErr = err
-			}
-			continue
-		}
-		result.Columns[columnID] = a.columnSchedule(query.Date, columnID)
-		completeColumns++
+	a.ColumnDayReads = append(a.ColumnDayReads, ColumnDay{Date: date, ColumnID: columnID})
+	if err := a.columnFailure(date, columnID); err != nil {
+		return domain.ColumnSchedule{}, err
 	}
-	if completeColumns == 0 && firstErr != nil {
-		return result, firstErr
-	}
-	return result, nil
+	return a.columnSchedule(date, columnID), nil
 }
 
 func (a *Adapter) ReadScheduleRange(_ context.Context, query domain.ScheduleRangeQuery) (map[string]domain.ScheduleReadResult, error) {
