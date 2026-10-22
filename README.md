@@ -438,6 +438,67 @@ Deployment configuration and verification live in the
 [deployment script](scripts/deploy-cloud-run.sh) and
 [staging verification](scripts/staging_deployment.py).
 
+### Staging follows each release
+
+The staging Cloud Run service `abita-middleware-sandbox` (`AMD_ENV=dev`,
+AdvancedMD sandbox credentials) is the only target of abita_s2s simulations.
+The [staging workflow](.github/workflows/staging.yml) redeploys it on every
+stable `vMAJOR.MINOR.PATCH` tag with the image production runs:
+
+1. It waits for the production Cloud Build check on the tag's commit to
+   succeed, using the same [wait script](scripts/wait-for-cloud-build.sh) as
+   the Production status workflow.
+2. It copies `services/abita-middleware:<commit>` by digest into the
+   `middleware-sandbox` repository with a pinned `crane copy`, which keeps the
+   digest.
+3. It updates the sandbox to that digest. `scripts/staging_deployment.py`
+   refuses to deploy unless the sandbox digest equals the production digest,
+   and records both in the receipt.
+
+A failed staging deploy does not affect production: it starts only after
+production's build succeeded and touches only the sandbox.
+
+An automatic deploy replaces the sandbox revision, so the new instance logs in
+to AdvancedMD again. A simulation running when a release lands can be
+interrupted; rerun it against the new revision.
+
+For an ad hoc deploy from source, run the workflow manually and confirm
+`sandbox_idle`, or push a `staging-*` tag. Both share the `middleware-staging`
+concurrency group with release deploys, so deploys never overlap.
+
+Release deploys need three one-time grants, beyond what manual deploys use. The
+staging identity must read production images:
+
+```bash
+gcloud artifacts repositories add-iam-policy-binding services \
+  --location us-east4 --project acuity-health-prod \
+  --member serviceAccount:middleware-staging-deploy@acuity-health-prod.iam.gserviceaccount.com \
+  --role roles/artifactregistry.reader
+```
+
+The workload identity provider must accept release tag refs. This is the
+current attribute condition with `assertion.ref.startsWith('refs/tags/v')`
+added:
+
+```bash
+gcloud iam workload-identity-pools providers update-oidc github \
+  --workload-identity-pool middleware-staging --location global \
+  --project acuity-health-prod \
+  --attribute-condition "assertion.repository_id == '1131211316' && assertion.repository_owner_id == '247211163' && assertion.sub == 'repo:Data-Buddies-Solutions/amd_middleware:environment:staging' && assertion.workflow_ref.startsWith('Data-Buddies-Solutions/amd_middleware/.github/workflows/staging.yml@') && (assertion.ref.startsWith('refs/tags/staging-') || assertion.ref.startsWith('refs/tags/v') || assertion.ref == 'refs/heads/codex/sandbox-middleware' || assertion.ref == 'refs/heads/dev' || assertion.ref == 'refs/heads/main')"
+```
+
+The `staging` GitHub environment must allow release tags:
+
+```bash
+gh api --method POST \
+  repos/Data-Buddies-Solutions/amd_middleware/environments/staging/deployment-branch-policies \
+  -f name='v*' -f type=tag
+```
+
+CI runs every deployment script test (`scripts/*_test.sh` and
+`scripts/staging_deployment_test.py`); add a new script's test to
+[CI](.github/workflows/ci.yml) with it.
+
 ## Where the details live
 
 The README explains the system. Detailed provider and policy data stay close to

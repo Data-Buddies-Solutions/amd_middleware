@@ -14,6 +14,7 @@ PROJECT = "acuity-health-prod"
 REGION = "us-east4"
 SERVICE = "abita-middleware-sandbox"
 REPOSITORY = f"{REGION}-docker.pkg.dev/{PROJECT}/middleware-sandbox/abita-middleware"
+PRODUCTION_REPOSITORY = f"{REGION}-docker.pkg.dev/{PROJECT}/services/abita-middleware"
 SECRETS = {
     "ADVANCEDMD_USERNAME": "advancedmd-sandbox-username",
     "ADVANCEDMD_PASSWORD": "advancedmd-sandbox-password",
@@ -113,6 +114,7 @@ def main():
     args = parser.parse_args()
     sha = os.environ.get("GITHUB_SHA", "")
     image = os.environ.get("STAGING_IMAGE", "")
+    production_image = os.environ.get("PRODUCTION_IMAGE", "")
     receipt = {
         "source_sha": sha, "image": image, "service": SERVICE,
         "run_url": os.environ.get("GITHUB_SERVER_URL", "https://github.com") + "/" +
@@ -121,11 +123,18 @@ def main():
         "verification": "failed",
         "provider_verification": "pending: no verified live synthetic patient fixture",
     }
+    if production_image:
+        receipt["production_image"] = production_image
     try:
         require(re.fullmatch(r"[0-9a-f]{40}", sha), "Expected full Git source SHA")
         if args.deploy:
             require(re.fullmatch(re.escape(REPOSITORY) + r"@sha256:[0-9a-f]{64}", image),
                     "Expected immutable image in sandbox-only repository")
+        if production_image:
+            require(re.fullmatch(re.escape(PRODUCTION_REPOSITORY) + r"@sha256:[0-9a-f]{64}", production_image),
+                    "Expected immutable image in the production repository")
+            require(image.rpartition("@")[2] == production_image.rpartition("@")[2],
+                    "Sandbox image digest differs from the production image digest")
         before = describe()
         validate(before)
         receipt["previous_revision"] = before["status"]["latestReadyRevisionName"]

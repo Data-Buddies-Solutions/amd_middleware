@@ -10,8 +10,10 @@ on:
         default: false
   # Works before this workflow reaches main. Creating this tag acknowledges
   # the same idle-session requirement as the manual input above.
+  # A stable release tag deploys the image production runs, without that
+  # acknowledgement, so simulations always test the released middleware.
   push:
-    tags: [staging-*]
+    tags: [staging-*, 'v[0-9]+.[0-9]+.[0-9]+']
 
 permissions:
   contents: read
@@ -24,15 +26,18 @@ jobs:
   deploy:
     if: github.event_name == 'push' || inputs.sandbox_idle
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && 45 || 20 }}
     environment:
       name: staging
       url: https://abita-middleware-sandbox-1006405058436.us-east4.run.app
     permissions:
+      checks: read
       contents: read
       id-token: write
     env:
       IMAGE_REPOSITORY: us-east4-docker.pkg.dev/acuity-health-prod/middleware-sandbox/abita-middleware
+      PRODUCTION_REPOSITORY: us-east4-docker.pkg.dev/acuity-health-prod/services/abita-middleware
+      RELEASE: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -46,13 +51,20 @@ jobs:
           go test ./...
           go vet ./...
           bash scripts/deploy-sandbox-cloud-run_test.sh
+          bash scripts/wait-for-cloud-build_test.sh
           python3 -m unittest discover -s scripts -p 'staging_deployment_test.py'
+      - name: Wait for the production build of this release
+        if: env.RELEASE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/wait-for-cloud-build.sh "abita-middleware-main-build (acuity-health-prod)"
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: projects/1006405058436/locations/global/workloadIdentityPools/middleware-staging/providers/github
           service_account: middleware-staging-deploy@acuity-health-prod.iam.gserviceaccount.com
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
       - name: Build exact Git source and push sandbox image
+        if: env.RELEASE != 'true'
         id: image
         shell: bash
         run: |
@@ -73,9 +85,28 @@ jobs:
             --project acuity-health-prod --format='value(image_summary.digest)')"
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           echo "image=$IMAGE_REPOSITORY@$digest" >> "$GITHUB_OUTPUT"
+      - name: Copy the production image into the sandbox repository
+        if: env.RELEASE == 'true'
+        id: release_image
+        shell: bash
+        run: |
+          set -euo pipefail
+          digest="$(gcloud artifacts docker images describe "$PRODUCTION_REPOSITORY:$GITHUB_SHA" \
+            --project acuity-health-prod --format='value(image_summary.digest)')"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          gcloud auth configure-docker us-east4-docker.pkg.dev --quiet
+          # crane copies the manifest bytes unchanged, so the digest is kept.
+          go run github.com/google/go-containerregistry/cmd/crane@v0.22.1 copy \
+            "$PRODUCTION_REPOSITORY@$digest" "$IMAGE_REPOSITORY:$GITHUB_REF_NAME"
+          copied="$(gcloud artifacts docker images describe "$IMAGE_REPOSITORY:$GITHUB_REF_NAME" \
+            --project acuity-health-prod --format='value(image_summary.digest)')"
+          test "$copied" = "$digest"
+          echo "image=$IMAGE_REPOSITORY@$digest" >> "$GITHUB_OUTPUT"
+          echo "production_image=$PRODUCTION_REPOSITORY@$digest" >> "$GITHUB_OUTPUT"
       - name: Update existing sandbox and verify deployment
         env:
-          STAGING_IMAGE: ${{ steps.image.outputs.image }}
+          STAGING_IMAGE: ${{ steps.image.outputs.image || steps.release_image.outputs.image }}
+          PRODUCTION_IMAGE: ${{ steps.release_image.outputs.production_image }}
         run: python3 scripts/staging_deployment.py --deploy
       - name: Upload sanitized deployment receipt
         if: always()

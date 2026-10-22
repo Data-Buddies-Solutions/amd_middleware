@@ -21,55 +21,11 @@ jobs:
       name: production
       url: https://abita-middleware-cbuqwpsdsq-uk.a.run.app
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - name: Wait for Cloud Build
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          deadline=$((SECONDS + 1200))
-          while (( SECONDS < deadline )); do
-            check="$(
-              gh api \
-                -H "Accept: application/vnd.github+json" \
-                "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs" \
-                --jq '[
-                    .check_runs[]
-                    | select(
-                        .name == "abita-middleware-main-build (acuity-health-prod)"
-                        and .app.name == "Google Cloud Build"
-                      )
-                  ]
-                  | first
-                  | if . == null then
-                      empty
-                    else
-                      [.status, (.conclusion // "")]
-                      | @tsv
-                    end'
-            )"
-
-            if [[ -z "$check" ]]; then
-              echo "Waiting for the Cloud Build check to appear."
-              sleep 10
-              continue
-            fi
-
-            IFS=$'\t' read -r status conclusion <<< "$check"
-            if [[ "$status" != "completed" ]]; then
-              echo "Cloud Build is $status."
-              sleep 10
-              continue
-            fi
-
-            if [[ "$conclusion" == "success" ]]; then
-              echo "Cloud Build deployed $GITHUB_SHA successfully."
-              exit 0
-            fi
-
-            echo "Cloud Build completed with conclusion: $conclusion" >&2
-            exit 1
-          done
-
-          echo "Timed out waiting for Cloud Build to finish." >&2
-          exit 1
+        run: bash scripts/wait-for-cloud-build.sh "abita-middleware-main-build (acuity-health-prod)"
