@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -200,6 +201,67 @@ func TestRequestLogRecoversPanicWithoutLoggingRawError(t *testing.T) {
 		if strings.Contains(logs.String(), forbidden) {
 			t.Errorf("logs exposed panic detail %q: %s", forbidden, logs.String())
 		}
+	}
+}
+
+func panicWithPatientName(http.ResponseWriter, *http.Request) {
+	panic(fmt.Sprintf("patient %s", "Jane Doe"))
+}
+
+func panicOnNilInsurancePlan(http.ResponseWriter, *http.Request) {
+	var plan *struct{ name string }
+	_ = plan.name
+}
+
+func TestRequestLogRecordsPanicTypeAndStackWithoutItsMessage(t *testing.T) {
+	for _, tc := range []struct {
+		handler   http.HandlerFunc
+		wantType  string
+		wantFrame string
+		forbidden []string
+	}{
+		{panicWithPatientName, "string", "internal/http.panicWithPatientName(", []string{"Jane Doe", "patient Jane"}},
+		{panicOnNilInsurancePlan, "runtime.errorString", "internal/http.panicOnNilInsurancePlan(", []string{"nil pointer dereference"}},
+	} {
+		t.Run(tc.wantFrame, func(t *testing.T) {
+			var logs bytes.Buffer
+			previousWriter := log.Writer()
+			log.SetOutput(safelog.NewWriter(&logs))
+			t.Cleanup(func() { log.SetOutput(previousWriter) })
+
+			router := chi.NewRouter()
+			router.Use(requestIDMiddleware)
+			router.Use(loggingMiddleware(nil))
+			router.Use(recoveryMiddleware)
+			router.Get("/panic", tc.handler)
+			w := httptest.NewRecorder()
+
+			router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/panic", nil))
+
+			if w.Code != http.StatusInternalServerError {
+				t.Fatalf("status = %d, want 500", w.Code)
+			}
+			if lines := strings.Count(strings.TrimSpace(logs.String()), "\n") + 1; lines != 1 {
+				t.Fatalf("log lines = %d, want one entry: %s", lines, logs.String())
+			}
+			entry := decodeLastLogEntry(t, logs.String())
+			if entry["outcome_category"] != "internal_failure" {
+				t.Errorf("outcome_category = %v, want internal_failure", entry["outcome_category"])
+			}
+			panicEntry, _ := entry["panic"].(map[string]any)
+			if panicEntry["type"] != tc.wantType {
+				t.Errorf("panic.type = %v, want %s", panicEntry["type"], tc.wantType)
+			}
+			stack, _ := panicEntry["stack"].(string)
+			if !strings.Contains(stack, tc.wantFrame) {
+				t.Errorf("panic.stack does not name %s: %q", tc.wantFrame, stack)
+			}
+			for _, forbidden := range tc.forbidden {
+				if strings.Contains(logs.String(), forbidden) {
+					t.Errorf("logs exposed panic message %q: %s", forbidden, logs.String())
+				}
+			}
+		})
 	}
 }
 
