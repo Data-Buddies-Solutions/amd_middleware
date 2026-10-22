@@ -4,6 +4,28 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.3.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.2.0...v8.3.0) (2026-10-22)
+
+
+### Features
+
+* **observability:** log latency for every AdvancedMD call ([#284](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/284)) ([4be4f5e](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/4be4f5e0949d3bd3365e2e64420123d7b9d75e9f))
+
+
+### Bug Fixes
+
+* **advancedmd:** classify provider errors by type, not message ([#274](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/274)) ([55af6e0](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/55af6e06d8c5044fbf65a4382df5f0212471c12a))
+* **domain:** use Eastern dates for insurance end dates and ages ([#278](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/278)) ([fa7f944](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/fa7f944f1d6b82669cc9e963e316426df73c42de))
+* **http:** keep the slots retry hint and share the insurance error contract ([#281](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/281)) ([b862938](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/b862938c36c87018e431c95334f8ad0b2e2e5f45))
+* **http:** log the panic type and stack, never its message ([#279](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/279)) ([4985c67](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/4985c67b4179799f1bb99d9c786722b58056349c))
+* **scheduling:** report the provider category when a pre-booking read fails ([#275](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/275)) ([ae3815d](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/ae3815d52a93ca03b852ce9d09168e6f3a1f901f))
+* validate add-patient DOB and reject unknown routing rules ([#280](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/280)) ([b3f9bc7](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/b3f9bc74e8211d4abd3ef0e18842488789c72284))
+
+
+### Performance Improvements
+
+* **http:** stop logging successful readiness probes ([#283](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/283)) ([89986a2](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/89986a26db6399654d1a5772d424c3f6a651bc6a))
+
 ## [8.2.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.1.0...v8.2.0) (2026-10-22)
 
 
