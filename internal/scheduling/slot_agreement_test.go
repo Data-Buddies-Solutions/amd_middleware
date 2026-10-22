@@ -134,7 +134,7 @@ func (rows *amdRows) RoundTrip(request *http.Request) (*http.Response, error) {
 			if !span.End.After(span.Start) {
 				span.End = span.Start.Add(time.Nanosecond)
 			}
-			if slices.Contains(columns, strconv.Itoa(row.Column.ID)) && span.Overlaps(window) {
+			if slices.Contains(columns, strconv.Itoa(row.Column.ID)) && overlaps(span, window) {
 				served = append(served, row)
 			}
 		}
@@ -244,6 +244,9 @@ func agreementCaseAt(index int) agreementCase {
 			}
 			duration := []int{0, 5, 10, 15, 20, 30, 45, 60, 90}[rng.Intn(9)]
 			appointmentID := id()
+			if rng.Intn(5) == 0 {
+				appointmentID = 0
+			}
 			c.rows.addAppointment(appointmentID, target.id, at(minute), duration)
 			if rng.Intn(6) == 0 {
 				c.rows.addAppointment(appointmentID, target.id, at(minute), duration)
@@ -363,20 +366,48 @@ func (c agreementCase) expectedSlots() []string {
 
 func (c agreementCase) sameStartBookings(slot domain.Interval) (int, bool) {
 	for _, hold := range c.rows.holds {
-		if slot.Overlaps(hold.span()) {
+		if span := hold.span(); span.Start.Equal(span.End) {
+			if slot.Start.Before(span.Start) && span.Start.Before(slot.End) {
+				return 0, false
+			}
+		} else if overlaps(slot, span) {
 			return 0, false
 		}
 	}
-	sameStart := map[int]bool{}
+	booked := 0
+	counted := map[int]bool{}
 	for _, appointment := range c.rows.appointments {
 		switch other := appointment.span(); {
 		case other.Start.Equal(slot.Start):
-			sameStart[appointment.ID] = true
-		case slot.Overlaps(other):
+			if appointment.ID <= 0 || !counted[appointment.ID] {
+				counted[appointment.ID] = true
+				booked++
+			}
+		case overlaps(slot, other):
 			return 0, false
 		}
 	}
-	return len(sameStart), true
+	return booked, true
+}
+
+func overlaps(a, b domain.Interval) bool {
+	return a.Start.Before(b.End) && b.Start.Before(a.End)
+}
+
+func (c agreementCase) idlessSameStarts() int {
+	starts := map[string]int{}
+	for _, row := range c.rows.appointments {
+		if row.ID <= 0 {
+			starts[row.StartDateTime]++
+		}
+	}
+	shared := 0
+	for _, count := range starts {
+		if count > 1 {
+			shared++
+		}
+	}
+	return shared
 }
 
 func clockMinutes(clock string) time.Duration {
@@ -397,7 +428,7 @@ func TestEveryListedSlotBooksAgainstTheSameSchedule(t *testing.T) {
 		})
 	}
 	workers.Wait()
-	listed, forced, crossingMonths := 0, 0, 0
+	listed, forced, crossingMonths, idlessSameStarts := 0, 0, 0, 0
 	for i, failure := range failures {
 		if failure != nil {
 			t.Fatalf("case %d: %v\n%s", i, failure, agreementCaseAt(i))
@@ -408,14 +439,16 @@ func TestEveryListedSlotBooksAgainstTheSameSchedule(t *testing.T) {
 				forced++
 			}
 		}
-		if c := agreementCaseAt(i); c.first.Month() != c.first.AddDate(0, 0, 13).Month() {
+		c := agreementCaseAt(i)
+		if c.first.Month() != c.first.AddDate(0, 0, 13).Month() {
 			crossingMonths++
 		}
+		idlessSameStarts += c.idlessSameStarts()
 	}
-	if listed < agreementCases || forced == 0 || crossingMonths == 0 {
-		t.Fatalf("listed=%d forced=%d month-crossing searches=%d across %d schedules; the generator is too narrow to prove agreement", listed, forced, crossingMonths, agreementCases)
+	if listed < agreementCases || forced == 0 || crossingMonths == 0 || idlessSameStarts == 0 {
+		t.Fatalf("listed=%d forced=%d month-crossing searches=%d id-less same starts=%d across %d schedules; the generator is too narrow to prove agreement", listed, forced, crossingMonths, idlessSameStarts, agreementCases)
 	}
-	t.Logf("%d schedules (%d crossing a month), %d listed slots (%d same-start with force), every one booked", agreementCases, crossingMonths, listed, forced)
+	t.Logf("%d schedules (%d crossing a month), %d starts shared by id-less appointments, %d listed slots (%d same-start with force), every one booked", agreementCases, crossingMonths, idlessSameStarts, listed, forced)
 }
 
 func TestListedSlotBooksWhenAdvancedMDRepeatsAnAppointmentRow(t *testing.T) {
