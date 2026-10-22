@@ -98,12 +98,12 @@ type failReconciliation struct {
 	reads int
 }
 
-func (a *failReconciliation) ReadPatientAppointmentsForMonth(ctx context.Context, q advancedmd.AppointmentMonthQuery) (advancedmd.AppointmentRead, error) {
+func (a *failReconciliation) ReadPatientAppointmentsForDay(ctx context.Context, q advancedmd.AppointmentDayQuery) (advancedmd.AppointmentRead, error) {
 	a.reads++
 	if a.reads > 1 {
 		return advancedmd.AppointmentRead{}, advancedmd.NewError(safeerrors.CategoryUnavailable)
 	}
-	return a.Adapter.ReadPatientAppointmentsForMonth(ctx, q)
+	return a.Adapter.ReadPatientAppointmentsForDay(ctx, q)
 }
 
 func TestRescheduleCanRetryAfterConfirmedNoWriteFailure(t *testing.T) {

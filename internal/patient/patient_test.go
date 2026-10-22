@@ -1097,3 +1097,35 @@ func TestResolveReportsAppointmentsErrorWhenTokensCannotBeIssued(t *testing.T) {
 		t.Fatalf("Resolve() = %+v, err = %v", got, err)
 	}
 }
+
+func TestResolveReturnsAppointmentsOutsideConfiguredOfficesWithoutTokens(t *testing.T) {
+	amd := advancedmdtest.NewAdapter()
+	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true, FullName: "DOE,JANE", DOB: "01/15/1980"}
+	amd.AppointmentResults["123"] = advancedmdtest.AppointmentResult{
+		Read: advancedmd.AppointmentRead{
+			Appointments: []domain.PatientAppointment{{
+				ID:       9570268,
+				Start:    time.Date(2026, time.June, 20, 8, 30, 0, 0, time.UTC),
+				Provider: "Austin Bach",
+				Type:     "Adult New Medical Exam",
+				Facility: "Abita Eye Group Hollywood",
+			}},
+			Complete: true,
+		},
+	}
+	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveQuery{PatientID: "123", OfficeID: "spring_hill"})
+	if err != nil || got.AppointmentsStatus != patient.AppointmentsFound || len(got.Appointments) != 1 {
+		t.Fatalf("Resolve() = %+v, err = %v", got, err)
+	}
+	want := patient.Appointment{
+		ID:       9570268,
+		Date:     "Saturday, June 20, 2026",
+		Time:     "8:30 AM",
+		Provider: "Austin Bach",
+		Type:     "Adult New Medical Exam",
+		Facility: "Abita Eye Group Hollywood",
+	}
+	if got.Appointments[0] != want {
+		t.Fatalf("appointment = %+v, want %+v without office or tokens", got.Appointments[0], want)
+	}
+}

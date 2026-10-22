@@ -57,19 +57,10 @@ type AMDAppointmentResponse struct {
 func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *session.TokenData, columnID string, startDate string) (appointmentsResult []domain.Appointment, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "get_appointments")
 	defer func() { finish(resultErr) }()
-	url := fmt.Sprintf("https://%s/scheduler/appointments?columnId=%s&forView=day&isLegacy=true&startDate=%s",
-		tokenData.RestApiBase, columnID, startDate)
-
-	body, err := c.getResponseBody(ctx, tokenData, url, "appointments")
+	amdAppts, err := c.appointmentRows(ctx, tokenData, "day", columnID, startDate, "appointments")
 	if err != nil {
 		return nil, err
 	}
-
-	amdAppts, err := oneOrMany[AMDAppointmentResponse](body)
-	if err != nil {
-		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to parse appointments: %w", err)
-	}
-
 	return ScheduledAppointments(amdAppts)
 }
 
@@ -168,10 +159,20 @@ func blockHoldColumnID(hold amdBlockHoldResponse) int {
 func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, tokenData *session.TokenData, columnIDs string, startDate string) (appointmentsResult []AMDAppointmentResponse, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "get_appointments_by_month")
 	defer func() { finish(resultErr) }()
-	url := fmt.Sprintf("https://%s/scheduler/appointments?columnId=%s&forView=month&isLegacy=true&startDate=%s",
-		tokenData.RestApiBase, columnIDs, startDate)
+	return c.appointmentRows(ctx, tokenData, "month", columnIDs, startDate, "monthly appointments")
+}
 
-	body, err := c.getResponseBody(ctx, tokenData, url, "monthly appointments")
+func (c *AdvancedMDRestClient) GetAppointmentsByDay(ctx context.Context, tokenData *session.TokenData, columnIDs string, date string) (appointmentsResult []AMDAppointmentResponse, resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, "get_appointments_by_day")
+	defer func() { finish(resultErr) }()
+	return c.appointmentRows(ctx, tokenData, "day", columnIDs, date, "daily appointments")
+}
+
+func (c *AdvancedMDRestClient) appointmentRows(ctx context.Context, tokenData *session.TokenData, view, columnIDs, startDate, operation string) ([]AMDAppointmentResponse, error) {
+	url := fmt.Sprintf("https://%s/scheduler/appointments?columnId=%s&forView=%s&isLegacy=true&startDate=%s",
+		tokenData.RestApiBase, columnIDs, view, startDate)
+
+	body, err := c.getResponseBody(ctx, tokenData, url, operation)
 	if err != nil {
 		return nil, err
 	}

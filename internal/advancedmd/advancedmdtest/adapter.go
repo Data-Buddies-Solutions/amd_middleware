@@ -11,8 +11,6 @@ import (
 	"advancedmd-token-management/internal/safeerrors"
 )
 
-const patientAppointmentMonths = 6
-
 type AppointmentResult struct {
 	Read advancedmd.AppointmentRead
 	Err  error
@@ -60,7 +58,7 @@ type Adapter struct {
 	AppointmentResults       map[string]AppointmentResult
 	AppointmentsStarted      chan<- struct{}
 	AppointmentsRelease      <-chan struct{}
-	AppointmentMonthQueries  []advancedmd.AppointmentMonthQuery
+	AppointmentDayQueries    []advancedmd.AppointmentDayQuery
 	AppointmentStateResults  map[int]AppointmentStateResult
 	AppointmentStateQueries  []advancedmd.AppointmentStateQuery
 	CreatedPatient           domain.CreatedPatient
@@ -169,23 +167,24 @@ func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.Pati
 		return advancedmd.AppointmentRead{}, internalError()
 	}
 	result, configured := a.AppointmentResults[query.PatientID]
+	providerReads := max(result.Read.ProviderReads, 1)
 	if result.Err != nil {
-		return advancedmd.AppointmentRead{ProviderReads: patientAppointmentMonths}, result.Err
+		return advancedmd.AppointmentRead{ProviderReads: providerReads}, result.Err
 	}
 	return advancedmd.AppointmentRead{
 		Appointments:  append([]domain.PatientAppointment{}, result.Read.Appointments...),
 		Complete:      result.Read.Complete || !configured,
-		ProviderReads: patientAppointmentMonths,
+		ProviderReads: providerReads,
 	}, nil
 }
 
-func (a *Adapter) ReadPatientAppointmentsForMonth(ctx context.Context, query advancedmd.AppointmentMonthQuery) (advancedmd.AppointmentRead, error) {
+func (a *Adapter) ReadPatientAppointmentsForDay(ctx context.Context, query advancedmd.AppointmentDayQuery) (advancedmd.AppointmentRead, error) {
 	query.OfficeIDs = append([]string(nil), query.OfficeIDs...)
-	a.AppointmentMonthQueries = append(a.AppointmentMonthQueries, query)
+	a.AppointmentDayQueries = append(a.AppointmentDayQueries, query)
 	if err := waitBarrier(ctx, a.AppointmentsStarted, a.AppointmentsRelease); err != nil {
 		return advancedmd.AppointmentRead{}, err
 	}
-	if query.Month.IsZero() || !numeric(query.PatientID) {
+	if query.Day.IsZero() || !numeric(query.PatientID) {
 		return advancedmd.AppointmentRead{}, internalError()
 	}
 	result, configured := a.AppointmentResults[query.PatientID]

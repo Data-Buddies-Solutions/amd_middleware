@@ -60,7 +60,7 @@ func TestFakeAndRealAdapterAgree(t *testing.T) {
 		candidateScenarios(),
 		demographicScenarios(),
 		patientAppointmentScenarios(),
-		monthAppointmentScenarios(),
+		dayAppointmentScenarios(),
 		appointmentStateScenarios(),
 		schedulerSetupScenarios(),
 		scheduleDayScenarios(),
@@ -140,20 +140,20 @@ func describe(o outcome) string {
 
 func fakeCalls(fake *advancedmdtest.Adapter) map[string]int {
 	calls := map[string]int{
-		"SearchPatients":                  fake.SearchPatientCalls,
-		"ReadPatientCandidates":           len(fake.CandidateQueries),
-		"GetPatientDemographics":          fake.DemographicCalls,
-		"ReadPatientAppointments":         fake.AppointmentReadCalls,
-		"ReadPatientAppointmentsForMonth": len(fake.AppointmentMonthQueries),
-		"ReadAppointmentState":            len(fake.AppointmentStateQueries),
-		"GetSchedulerSetup":               fake.SchedulerSetupCalls,
-		"ReadColumnDay":                   len(fake.ColumnDayReads),
-		"ReadScheduleRange":               len(fake.ScheduleRangeQueries),
-		"BookAppointment":                 len(fake.Bookings),
-		"CancelAppointment":               len(fake.Cancellations),
-		"CreatePatient":                   fake.CreatePatientCalls,
-		"AddPatientInsurance":             fake.AddInsuranceCalls,
-		"EndDatePatientInsurance":         fake.EndInsuranceCalls,
+		"SearchPatients":                fake.SearchPatientCalls,
+		"ReadPatientCandidates":         len(fake.CandidateQueries),
+		"GetPatientDemographics":        fake.DemographicCalls,
+		"ReadPatientAppointments":       fake.AppointmentReadCalls,
+		"ReadPatientAppointmentsForDay": len(fake.AppointmentDayQueries),
+		"ReadAppointmentState":          len(fake.AppointmentStateQueries),
+		"GetSchedulerSetup":             fake.SchedulerSetupCalls,
+		"ReadColumnDay":                 len(fake.ColumnDayReads),
+		"ReadScheduleRange":             len(fake.ScheduleRangeQueries),
+		"BookAppointment":               len(fake.Bookings),
+		"CancelAppointment":             len(fake.Cancellations),
+		"CreatePatient":                 fake.CreatePatientCalls,
+		"AddPatientInsurance":           fake.AddInsuranceCalls,
+		"EndDatePatientInsurance":       fake.EndInsuranceCalls,
 	}
 	maps.DeleteFunc(calls, func(_ string, count int) bool { return count == 0 })
 	return calls
@@ -418,6 +418,13 @@ var lichtCrystalRiver = domain.PatientAppointment{
 	Office:            "Crystal River",
 }
 
+var lichtOutsideSpringHill = domain.PatientAppointment{
+	ID:       9570264,
+	Start:    time.Date(2026, 8, 15, 9, 0, 0, 0, time.UTC),
+	Provider: "Joseph Licht",
+	Facility: "Abita Eye Group Crystal River",
+}
+
 func patientRows(p *advancedmdtest.Provider) {
 	p.Appointments = []clients.AMDAppointmentResponse{
 		{ID: 9570263, StartDateTime: "2026-08-03T09:00:00", ColumnID: 1513, Provider: "BACH, AUSTIN", Facility: "ABITA EYE GROUP SPRING HILL", AppointmentTypes: []int{1007}, PatientID: 123},
@@ -436,50 +443,75 @@ func readPatientAppointments(patientID string) func(context.Context, records) (a
 func patientAppointmentScenarios() []scenario {
 	return []scenario{
 		{
-			name: "patient appointments found across six month reads",
+			name: "patient appointments found on their future visit days, unmapped ones without an office",
 			op:   "ReadPatientAppointments",
 			amd:  patientRows,
 			fake: func(f *advancedmdtest.Adapter) {
 				f.AppointmentResults["123"] = advancedmdtest.AppointmentResult{Read: advancedmd.AppointmentRead{
-					Appointments: []domain.PatientAppointment{bachFollowUp}, Complete: true,
+					Appointments: []domain.PatientAppointment{bachFollowUp, lichtOutsideSpringHill}, Complete: true, ProviderReads: 3,
 				}}
 			},
 			call: readPatientAppointments("123"),
-			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{bachFollowUp}, Complete: true, ProviderReads: 6}},
+			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{bachFollowUp, lichtOutsideSpringHill}, Complete: true, ProviderReads: 3}},
 		},
 		{
 			name: "patient with no appointments",
 			op:   "ReadPatientAppointments",
 			call: readPatientAppointments("123"),
-			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{}, Complete: true, ProviderReads: 6}},
+			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{}, Complete: true, ProviderReads: 1}},
+		},
+		{
+			name: "patient visits that are cancelled read no days",
+			op:   "ReadPatientAppointments",
+			amd: func(p *advancedmdtest.Provider) {
+				reply(p, "getpatientvisits", results(`{"@visitcount":"1","visitlist":{"visit":
+					{"@id":"9570263","@visitstartdatetime":"2026-08-03T09:00:00","@apptstatus":"10"}}}`))
+			},
+			call: readPatientAppointments("123"),
+			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{}, Complete: true, ProviderReads: 1}},
 		},
 		{
 			name: "patient appointments with a row missing its patient are incomplete",
 			op:   "ReadPatientAppointments",
 			amd: func(p *advancedmdtest.Provider) {
 				patientRows(p)
-				p.Appointments = append(p.Appointments, clients.AMDAppointmentResponse{ID: 333, StartDateTime: "2026-09-01T09:00:00", ColumnID: 1598})
+				p.Appointments = append(p.Appointments, clients.AMDAppointmentResponse{ID: 333, StartDateTime: "2026-08-03T10:00:00", ColumnID: 1598})
 			},
 			fake: func(f *advancedmdtest.Adapter) {
 				f.AppointmentResults["123"] = advancedmdtest.AppointmentResult{Read: advancedmd.AppointmentRead{
-					Appointments: []domain.PatientAppointment{bachFollowUp}, Complete: false,
+					Appointments: []domain.PatientAppointment{bachFollowUp, lichtOutsideSpringHill}, Complete: false, ProviderReads: 3,
 				}}
 			},
 			call: readPatientAppointments("123"),
-			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{bachFollowUp}, Complete: false, ProviderReads: 6}},
+			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{bachFollowUp, lichtOutsideSpringHill}, Complete: false, ProviderReads: 3}},
 		},
 		{
-			name: "patient appointments fail when one month fails",
+			name: "patient appointments fail when the visit read fails",
 			op:   "ReadPatientAppointments",
 			amd: func(p *advancedmdtest.Provider) {
-				patientRows(p)
-				reply(p, "appointments month 2026-09-01 "+springHillColumns, status(http.StatusServiceUnavailable))
+				reply(p, "getpatientvisits", status(http.StatusServiceUnavailable))
 			},
 			fake: func(f *advancedmdtest.Adapter) {
 				f.AppointmentResults["123"] = advancedmdtest.AppointmentResult{Err: advancedmd.NewError(safeerrors.CategoryUpstreamStatus)}
 			},
 			call: readPatientAppointments("123"),
-			want: outcome{Value: advancedmd.AppointmentRead{ProviderReads: 6}, Category: safeerrors.CategoryUpstreamStatus},
+			want: outcome{Value: advancedmd.AppointmentRead{ProviderReads: 1}, Category: safeerrors.CategoryUpstreamStatus},
+		},
+		{
+			name: "patient appointments fail when one day fails",
+			op:   "ReadPatientAppointments",
+			amd: func(p *advancedmdtest.Provider) {
+				patientRows(p)
+				reply(p, "appointments day 2026-08-03 "+springHillColumns, status(http.StatusServiceUnavailable))
+			},
+			fake: func(f *advancedmdtest.Adapter) {
+				f.AppointmentResults["123"] = advancedmdtest.AppointmentResult{
+					Read: advancedmd.AppointmentRead{ProviderReads: 3},
+					Err:  advancedmd.NewError(safeerrors.CategoryUpstreamStatus),
+				}
+			},
+			call: readPatientAppointments("123"),
+			want: outcome{Value: advancedmd.AppointmentRead{ProviderReads: 3}, Category: safeerrors.CategoryUpstreamStatus},
 		},
 		{
 			name: "patient appointments for a non-numeric patient ID are an internal error",
@@ -490,55 +522,56 @@ func patientAppointmentScenarios() []scenario {
 	}
 }
 
-func readMonth(offices []string, month time.Time) func(context.Context, records) (any, error) {
+func readPatientDay(offices []string, day time.Time) func(context.Context, records) (any, error) {
 	return func(ctx context.Context, r records) (any, error) {
-		return r.ReadPatientAppointmentsForMonth(ctx, advancedmd.AppointmentMonthQuery{PatientID: "123", OfficeIDs: offices, Month: month})
+		return r.ReadPatientAppointmentsForDay(ctx, advancedmd.AppointmentDayQuery{PatientID: "123", OfficeIDs: offices, Day: day})
 	}
 }
 
-func monthAppointmentScenarios() []scenario {
-	august := time.Date(2026, 8, 14, 0, 0, 0, 0, time.UTC)
+func dayAppointmentScenarios() []scenario {
+	august3 := time.Date(2026, 8, 3, 9, 0, 0, 0, time.UTC)
+	august15 := time.Date(2026, 8, 15, 9, 0, 0, 0, time.UTC)
 	return []scenario{
 		{
-			name: "month read for one office",
-			op:   "ReadPatientAppointmentsForMonth",
+			name: "day read for one office",
+			op:   "ReadPatientAppointmentsForDay",
 			amd:  patientRows,
 			fake: func(f *advancedmdtest.Adapter) {
 				f.AppointmentResults["123"] = advancedmdtest.AppointmentResult{Read: advancedmd.AppointmentRead{
 					Appointments: []domain.PatientAppointment{bachFollowUp}, Complete: true,
 				}}
 			},
-			call: readMonth([]string{"spring_hill"}, august),
+			call: readPatientDay([]string{"spring_hill"}, august3),
 			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{bachFollowUp}, Complete: true, ProviderReads: 1}},
 		},
 		{
-			name: "month read reads each office once",
-			op:   "ReadPatientAppointmentsForMonth",
+			name: "day read reads each office once",
+			op:   "ReadPatientAppointmentsForDay",
 			amd:  patientRows,
 			fake: func(f *advancedmdtest.Adapter) {
 				f.AppointmentResults["123"] = advancedmdtest.AppointmentResult{Read: advancedmd.AppointmentRead{
-					Appointments: []domain.PatientAppointment{bachFollowUp, lichtCrystalRiver}, Complete: true,
+					Appointments: []domain.PatientAppointment{lichtCrystalRiver}, Complete: true,
 				}}
 			},
-			call: readMonth([]string{"spring_hill", "crystal_river"}, august),
-			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{bachFollowUp, lichtCrystalRiver}, Complete: true, ProviderReads: 2}},
+			call: readPatientDay([]string{"spring_hill", "crystal_river"}, august15),
+			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{lichtCrystalRiver}, Complete: true, ProviderReads: 2}},
 		},
 		{
-			name: "month read fails when its office read fails",
-			op:   "ReadPatientAppointmentsForMonth",
+			name: "day read fails when its office read fails",
+			op:   "ReadPatientAppointmentsForDay",
 			amd: func(p *advancedmdtest.Provider) {
-				reply(p, "appointments month 2026-08-01 "+springHillColumns, status(http.StatusGatewayTimeout))
+				reply(p, "appointments day 2026-08-03 "+springHillColumns, status(http.StatusGatewayTimeout))
 			},
 			fake: func(f *advancedmdtest.Adapter) {
 				f.AppointmentResults["123"] = advancedmdtest.AppointmentResult{Err: advancedmd.NewError(safeerrors.CategoryUpstreamStatus)}
 			},
-			call: readMonth([]string{"spring_hill"}, august),
+			call: readPatientDay([]string{"spring_hill"}, august3),
 			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{}, Complete: true, ProviderReads: 1}, Category: safeerrors.CategoryUpstreamStatus},
 		},
 		{
-			name: "month read without a month is an internal error",
-			op:   "ReadPatientAppointmentsForMonth",
-			call: readMonth([]string{"spring_hill"}, time.Time{}),
+			name: "day read without a day is an internal error",
+			op:   "ReadPatientAppointmentsForDay",
+			call: readPatientDay([]string{"spring_hill"}, time.Time{}),
 			want: outcome{Value: advancedmd.AppointmentRead{}, Category: safeerrors.CategoryInternal},
 		},
 	}

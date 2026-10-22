@@ -80,7 +80,7 @@ type SchedulingRecords interface {
 	ReadColumnDay(ctx context.Context, columnID, date string) (domain.ColumnSchedule, error)
 	ReadScheduleRange(ctx context.Context, query domain.ScheduleRangeQuery) (map[string]domain.ScheduleReadResult, error)
 	GetPatientDemographics(ctx context.Context, patientID string) (domain.PatientDemographics, error)
-	ReadPatientAppointmentsForMonth(ctx context.Context, query AppointmentMonthQuery) (AppointmentRead, error)
+	ReadPatientAppointmentsForDay(ctx context.Context, query AppointmentDayQuery) (AppointmentRead, error)
 	ReadAppointmentState(ctx context.Context, query AppointmentStateQuery) (AppointmentState, error)
 	BookAppointment(ctx context.Context, booking Booking) (int, error)
 	CancelAppointment(ctx context.Context, cancellation Cancellation) error
@@ -92,10 +92,10 @@ type AppointmentRead struct {
 	ProviderReads int
 }
 
-type AppointmentMonthQuery struct {
+type AppointmentDayQuery struct {
 	PatientID string
 	OfficeIDs []string
-	Month     time.Time
+	Day       time.Time
 }
 
 type AppointmentStateQuery struct {

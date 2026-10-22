@@ -120,6 +120,10 @@ func TestScheduleReadLogsUpstreamStatus(t *testing.T) {
 			_, err := c.GetAppointmentsByMonth(context.Background(), token, "1513", "2026-03-01")
 			return err
 		}},
+		{"daily appointments", http.StatusBadGateway, func(c *AdvancedMDRestClient, token *session.TokenData) error {
+			_, err := c.GetAppointmentsByDay(context.Background(), token, "1513", "2026-03-03")
+			return err
+		}},
 	} {
 		t.Run(tc.operation, func(t *testing.T) {
 			var logs bytes.Buffer

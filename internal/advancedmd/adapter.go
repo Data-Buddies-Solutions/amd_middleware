@@ -21,6 +21,8 @@ import (
 
 var eastern = domain.EasternLocation()
 
+const scheduledVisitStatus = "0"
+
 type Adapter struct {
 	session    session.Session
 	xmlClient  *clients.AdvancedMDClient
@@ -129,15 +131,15 @@ func (a *Adapter) EndDatePatientInsurance(ctx context.Context, command domain.Pa
 	return nil
 }
 
-func (a *Adapter) ReadPatientAppointmentsForMonth(
+func (a *Adapter) ReadPatientAppointmentsForDay(
 	ctx context.Context,
-	query AppointmentMonthQuery,
+	query AppointmentDayQuery,
 ) (AppointmentRead, error) {
 	token, err := a.token(ctx)
 	if err != nil {
 		return AppointmentRead{}, err
 	}
-	if query.Month.IsZero() {
+	if query.Day.IsZero() {
 		return AppointmentRead{}, NewError(safeerrors.CategoryInternal)
 	}
 	patientID, err := strconv.Atoi(query.PatientID)
@@ -154,12 +156,12 @@ func (a *Adapter) ReadPatientAppointmentsForMonth(
 		if !ok {
 			return read, NewError(safeerrors.CategoryInternal)
 		}
-		officeRead, err := a.patientAppointmentsForOfficeMonth(
+		officeRead, err := a.patientAppointmentsForOfficeDay(
 			ctx,
 			token,
 			patientID,
 			office,
-			query.Month,
+			query.Day,
 		)
 		read.ProviderReads += officeRead.ProviderReads
 		if err != nil {
@@ -187,68 +189,97 @@ func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.Pati
 	}
 	now := a.now().In(eastern)
 	cutoff := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second(), 0, time.UTC)
-	thisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, eastern)
 
-	type monthResult struct {
-		month        int
+	visits, err := a.xmlClient.GetPatientVisits(ctx, token, query.PatientID)
+	if err != nil {
+		return AppointmentRead{ProviderReads: 1}, classify(err)
+	}
+	var scheduled []clients.PatientVisit
+	var days []string
+	seenDays := make(map[string]bool)
+	for _, visit := range visits {
+		if visit.Status != scheduledVisitStatus || !visit.Start.After(cutoff) {
+			continue
+		}
+		scheduled = append(scheduled, visit)
+		day := appointmentDay(visit.Start)
+		if !seenDays[day] {
+			seenDays[day] = true
+			days = append(days, day)
+		}
+	}
+	providerReads := 1 + len(days)
+
+	type dayResult struct {
 		appointments []clients.AMDAppointmentResponse
 		err          error
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	results := make(chan monthResult, 6)
-	for month := 0; month < 6; month++ {
-		startDate := thisMonth.AddDate(0, month, 0).Format("2006-01-02")
-		go func(month int, startDate string) {
-			appointments, err := a.restClient.GetAppointmentsByMonth(
-				ctx,
-				token,
-				strings.Join(lookup.columnIDs, "-"),
-				startDate,
-			)
-			results <- monthResult{month: month, appointments: appointments, err: err}
-		}(month, startDate)
+	results := make(chan dayResult, len(days))
+	columnIDs := strings.Join(lookup.columnIDs, "-")
+	for _, day := range days {
+		go func() {
+			appointments, err := a.restClient.GetAppointmentsByDay(ctx, token, columnIDs, day)
+			results <- dayResult{appointments: appointments, err: err}
+		}()
 	}
 
-	monthlyAppointments := make([][]clients.AMDAppointmentResponse, 6)
+	var rawAppointments []clients.AMDAppointmentResponse
 	var firstErr error
-	for range 6 {
+	for range days {
 		result := <-results
 		if result.err != nil && firstErr == nil {
 			firstErr = result.err
 			cancel()
 		}
-		monthlyAppointments[result.month] = result.appointments
+		rawAppointments = append(rawAppointments, result.appointments...)
 	}
 	if firstErr != nil {
-		return AppointmentRead{ProviderReads: 6}, classify(firstErr)
-	}
-	var rawAppointments []clients.AMDAppointmentResponse
-	for _, appointments := range monthlyAppointments {
-		rawAppointments = append(rawAppointments, appointments...)
+		return AppointmentRead{ProviderReads: providerReads}, classify(firstErr)
 	}
 
 	read := patientAppointmentRead(rawAppointments, patientIDNumber, lookup.officeByColumn, nil, &cutoff)
+	appendUnmappedVisits(&read, scheduled)
 	normalizePatientAppointments(&read)
-	read.ProviderReads = 6
+	read.ProviderReads = providerReads
 	return read, nil
 }
 
-func (a *Adapter) patientAppointmentsForOfficeMonth(
+func appendUnmappedVisits(read *AppointmentRead, scheduled []clients.PatientVisit) {
+	mapped := make(map[int]bool, len(read.Appointments))
+	for _, appointment := range read.Appointments {
+		mapped[appointment.ID] = true
+	}
+	for _, visit := range scheduled {
+		if mapped[visit.ID] {
+			continue
+		}
+		read.Appointments = append(read.Appointments, domain.PatientAppointment{
+			ID:       visit.ID,
+			Start:    visit.Start,
+			Provider: visitProviderName(visit.Provider),
+			Type:     titleCase(visit.Type),
+			Facility: titleCase(visit.Facility),
+		})
+	}
+}
+
+func (a *Adapter) patientAppointmentsForOfficeDay(
 	ctx context.Context,
 	token *session.TokenData,
 	patientID int,
 	office *domain.OfficeConfig,
-	month time.Time,
+	day time.Time,
 ) (AppointmentRead, error) {
-	if office == nil || month.IsZero() {
+	if office == nil || day.IsZero() {
 		return AppointmentRead{}, NewError(safeerrors.CategoryInternal)
 	}
-	rawAppointments, err := a.restClient.GetAppointmentsByMonth(
+	rawAppointments, err := a.restClient.GetAppointmentsByDay(
 		ctx,
 		token,
 		strings.Join(office.AllowedColumnIDs(), "-"),
-		firstOfMonth(month),
+		appointmentDay(day),
 	)
 	if err != nil {
 		return AppointmentRead{ProviderReads: 1}, classify(err)
@@ -363,7 +394,7 @@ func patientAppointmentRead(
 		if strings.TrimSpace(raw.Provider) == "" || provider == "" {
 			read.Complete = false
 		}
-		facility := friendlyFacilityName(raw.Facility)
+		facility := titleCase(raw.Facility)
 		if facility == "" {
 			facility = office.DisplayName
 		}
@@ -425,11 +456,11 @@ func (a *Adapter) ReadAppointmentState(
 		return AppointmentState{}, NewError(safeerrors.CategoryInternal)
 	}
 
-	rawAppointments, err := a.restClient.GetAppointmentsByMonth(
+	rawAppointments, err := a.restClient.GetAppointmentsByDay(
 		ctx,
 		token,
 		strings.Join(office.AllowedColumnIDs(), "-"),
-		firstOfMonth(query.Start),
+		appointmentDay(query.Start),
 	)
 	if err != nil {
 		return AppointmentState{}, classify(err)
@@ -448,17 +479,8 @@ func (a *Adapter) ReadAppointmentState(
 	return state, nil
 }
 
-func firstOfMonth(value time.Time) string {
-	return time.Date(
-		value.Year(),
-		value.Month(),
-		1,
-		0,
-		0,
-		0,
-		0,
-		value.Location(),
-	).Format("2006-01-02")
+func appointmentDay(value time.Time) string {
+	return value.Format("2006-01-02")
 }
 
 func (a *Adapter) GetSchedulerSetup(ctx context.Context) (domain.SchedulerSetup, error) {
@@ -734,7 +756,14 @@ func classifyMutation(err error) error {
 	return NewAmbiguousWriteError(category)
 }
 
-func friendlyFacilityName(name string) string {
+func visitProviderName(name string) string {
+	if last, first, found := strings.Cut(name, ","); found {
+		name = first + " " + last
+	}
+	return titleCase(strings.Join(strings.Fields(name), " "))
+}
+
+func titleCase(name string) string {
 	if name == "" {
 		return ""
 	}
