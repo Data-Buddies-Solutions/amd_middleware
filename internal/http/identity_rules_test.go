@@ -126,3 +126,15 @@ func TestCandidatesNameAChartTheSameWayOnEveryLookup(t *testing.T) {
 		t.Errorf("phone candidate %v, first-name candidate %v", byPhone, byFirstName)
 	}
 }
+
+func TestBookingReceiptNamesThePatientFromTheChartName(t *testing.T) {
+	for raw, want := range map[string]string{"SMITH,MARY ANN": "Mary Ann Smith", "DOE,": "Doe", ",JANE": "Jane", "Jane McDoe": "Jane McDoe"} {
+		booked, _ := postIdentity(t, "/api/appointment/book", map[string]any{
+			"patientId": "12345", "patientName": raw, "dob": "01/15/1980",
+			"bookingToken": signedPinSlot(t, "01/15/1980"), "appointmentTypeId": 1007, "office": "Spring Hill",
+		})
+		if booked["status"] != "booked" || booked["patientName"] != want {
+			t.Errorf("patientName %q = %v, want %q", raw, booked["patientName"], want)
+		}
+	}
+}

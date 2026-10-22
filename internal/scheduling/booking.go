@@ -466,13 +466,11 @@ func (s *service) buildBookReceipt(prepared preparedBooking, appointmentID int) 
 	return receipt
 }
 
-func normalizePatientName(name string) string {
-	name = strings.TrimSpace(name)
+func normalizePatientName(full string) string {
+	recorded := domain.ParseRecordName(full)
+	name := strings.TrimSpace(recorded.Given + " " + recorded.Last)
 	if name == "" {
 		return ""
-	}
-	if parts := strings.SplitN(name, ",", 2); len(parts) == 2 {
-		name = strings.TrimSpace(parts[1]) + " " + strings.TrimSpace(parts[0])
 	}
 	if name == strings.ToUpper(name) || name == strings.ToLower(name) {
 		return cases.Title(language.English).String(strings.ToLower(name))
