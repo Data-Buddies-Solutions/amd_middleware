@@ -214,13 +214,14 @@ func panicStack() string {
 	pcs := make([]uintptr, maxPanicFrames)
 	frames := runtime.CallersFrames(pcs[:runtime.Callers(2, pcs)])
 	var stack strings.Builder
-	for {
+	for written := 0; written < maxPanicFrames; written++ {
 		frame, more := frames.Next()
 		fmt.Fprintf(&stack, "%s %s:%d\n", frame.Function, frame.File, frame.Line)
 		if !more {
-			return stack.String()
+			break
 		}
 	}
+	return stack.String()
 }
 
 func recordPanic(ctx context.Context, entry *panicLogEntry) {
