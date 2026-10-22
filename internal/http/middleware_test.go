@@ -213,6 +213,17 @@ func panicOnNilInsurancePlan(http.ResponseWriter, *http.Request) {
 	_ = plan.name
 }
 
+func panicBelowAppointmentID(http.ResponseWriter, *http.Request) {
+	cancelForPanicTest(987654321)
+}
+
+//go:noinline
+func cancelForPanicTest(appointmentID int) {
+	var plan *struct{ name string }
+	_ = plan.name
+	_ = appointmentID
+}
+
 func TestRequestLogRecordsPanicTypeAndStackWithoutItsMessage(t *testing.T) {
 	for _, tc := range []struct {
 		handler   http.HandlerFunc
@@ -220,8 +231,9 @@ func TestRequestLogRecordsPanicTypeAndStackWithoutItsMessage(t *testing.T) {
 		wantFrame string
 		forbidden []string
 	}{
-		{panicWithPatientName, "string", "internal/http.panicWithPatientName(", []string{"Jane Doe", "patient Jane"}},
-		{panicOnNilInsurancePlan, "runtime.errorString", "internal/http.panicOnNilInsurancePlan(", []string{"nil pointer dereference"}},
+		{panicWithPatientName, "string", "internal/http.panicWithPatientName ", []string{"Jane Doe", "patient Jane"}},
+		{panicOnNilInsurancePlan, "runtime.errorString", "internal/http.panicOnNilInsurancePlan ", []string{"nil pointer dereference"}},
+		{panicBelowAppointmentID, "runtime.errorString", "internal/http.cancelForPanicTest ", []string{"987654321", "0x3ade68b1", "3ade68b1"}},
 	} {
 		t.Run(tc.wantFrame, func(t *testing.T) {
 			var logs bytes.Buffer
@@ -255,6 +267,9 @@ func TestRequestLogRecordsPanicTypeAndStackWithoutItsMessage(t *testing.T) {
 			stack, _ := panicEntry["stack"].(string)
 			if !strings.Contains(stack, tc.wantFrame) {
 				t.Errorf("panic.stack does not name %s: %q", tc.wantFrame, stack)
+			}
+			if strings.Contains(stack, "0x") {
+				t.Errorf("panic.stack carries argument words, which can hold patient or appointment IDs: %q", stack)
 			}
 			for _, forbidden := range tc.forbidden {
 				if strings.Contains(logs.String(), forbidden) {
