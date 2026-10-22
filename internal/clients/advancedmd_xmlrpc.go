@@ -569,6 +569,79 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *sessio
 	return demographics, nil
 }
 
+type PatientVisit struct {
+	Start  time.Time
+	Status string
+}
+
+type amdPatientVisit struct {
+	Start  string `json:"@visitstartdatetime"`
+	Status string `json:"@apptstatus"`
+}
+
+func (c *AdvancedMDClient) GetPatientVisits(ctx context.Context, tokenData *session.TokenData, patientID string) (visits []PatientVisit, resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, "getpatientvisits")
+	defer func() { finish(resultErr) }()
+
+	payload := map[string]interface{}{
+		"ppmdmsg": map[string]interface{}{
+			"@action":    "getpatientvisits",
+			"@class":     "api",
+			"@msgtime":   c.msgTime(),
+			"@patientid": patientID,
+			"visit": map[string]string{
+				"@visitstartdatetime": "VisitStartDateTime",
+				"@apptstatus":         "ApptStatus",
+			},
+		},
+	}
+
+	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, readRequest)
+	if err != nil {
+		return nil, fmt.Errorf("getpatientvisits request failed: %w", err)
+	}
+	results, err := decodeXMLRPC(body, "getpatientvisits")
+	if err != nil {
+		return nil, err
+	}
+	var parsed struct {
+		VisitCount string `json:"@visitcount"`
+		VisitList  *struct {
+			Visit json.RawMessage `json:"visit"`
+		} `json:"visitlist"`
+	}
+	if err := json.Unmarshal(results, &parsed); err != nil {
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to parse getpatientvisits response: %w", err)
+	}
+	visitCount, err := strconv.Atoi(parsed.VisitCount)
+	if err != nil {
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "getpatientvisits returned no visit count")
+	}
+	var rawVisits []amdPatientVisit
+	if parsed.VisitList != nil {
+		rawVisits, err = oneOrMany[amdPatientVisit](parsed.VisitList.Visit)
+		if err != nil {
+			return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to parse getpatientvisits visits: %w", err)
+		}
+	}
+	if len(rawVisits) != visitCount {
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "getpatientvisits listed %d of %d visits", len(rawVisits), visitCount)
+	}
+
+	visits = make([]PatientVisit, 0, len(rawVisits))
+	for _, raw := range rawVisits {
+		start, err := ParseDateTime(raw.Start)
+		if err != nil {
+			return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "getpatientvisits returned a visit without a start: %w", err)
+		}
+		if raw.Status == "" {
+			return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "getpatientvisits returned a visit without a status")
+		}
+		visits = append(visits, PatientVisit{Start: start, Status: raw.Status})
+	}
+	return visits, nil
+}
+
 func activePrimaryPlan(insPlanList json.RawMessage) (*amdInsPlan, bool) {
 	var list struct {
 		InsPlan json.RawMessage `json:"insplan"`

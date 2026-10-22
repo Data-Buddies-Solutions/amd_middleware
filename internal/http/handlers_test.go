@@ -264,11 +264,12 @@ func TestHandlePatientResolve_PhoneCountUnderrunReturnsAllCandidatesWithoutHydra
 	}
 }
 
-func TestHandlePatientResolve_PairedOfficeUsesEightProviderReads(t *testing.T) {
+func TestHandlePatientResolve_PairedOfficeUsesFourProviderReads(t *testing.T) {
 	var mu sync.Mutex
 	patientSearches := 0
 	demographicReads := 0
-	appointmentColumns := make([]string, 0, 6)
+	visitReads := 0
+	appointmentColumns := make([]string, 0, 1)
 	handlers := newPatientResolveTestHandlers(t, http.StatusOK, func(r *http.Request, body []byte) {
 		mu.Lock()
 		defer mu.Unlock()
@@ -277,6 +278,8 @@ func TestHandlePatientResolve_PairedOfficeUsesEightProviderReads(t *testing.T) {
 			patientSearches++
 		case strings.Contains(string(body), `"@action":"getdemographic"`):
 			demographicReads++
+		case strings.Contains(string(body), `"@action":"getpatientvisits"`):
+			visitReads++
 		case strings.Contains(r.URL.Path, "/scheduler/appointments"):
 			appointmentColumns = append(appointmentColumns, r.URL.Query().Get("columnId"))
 		}
@@ -296,11 +299,12 @@ func TestHandlePatientResolve_PairedOfficeUsesEightProviderReads(t *testing.T) {
 
 	mu.Lock()
 	defer mu.Unlock()
-	if patientSearches != 1 || demographicReads != 1 || len(appointmentColumns) != 6 {
+	if patientSearches != 1 || demographicReads != 1 || visitReads != 1 || len(appointmentColumns) != 1 {
 		t.Fatalf(
-			"provider reads = search:%d demographics:%d appointments:%d, want 1/1/6",
+			"provider reads = search:%d demographics:%d visits:%d appointment days:%d, want 1/1/1/1",
 			patientSearches,
 			demographicReads,
+			visitReads,
 			len(appointmentColumns),
 		)
 	}
@@ -1013,7 +1017,7 @@ func newPatientResolveTestHandlers(
 	t.Helper()
 	eastern := domain.EasternLocation()
 	future := time.Now().In(eastern).Add(48 * time.Hour)
-	futureMonth := time.Date(future.Year(), future.Month(), 1, 0, 0, 0, 0, eastern).Format("2006-01-02")
+	futureDay := future.Format("2006-01-02")
 
 	httpClient := &http.Client{
 		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
@@ -1036,7 +1040,7 @@ func newPatientResolveTestHandlers(
 			case strings.Contains(r.URL.Path, "/scheduler/appointments"):
 				status = appointmentStatus
 				columnID := r.URL.Query().Get("columnId")
-				if status == http.StatusOK && r.URL.Query().Get("startDate") == futureMonth && strings.Contains(columnID, "1513") {
+				if status == http.StatusOK && r.URL.Query().Get("startDate") == futureDay && strings.Contains(columnID, "1513") {
 					response = fmt.Sprintf(`[{
 						"id": 9570263,
 						"startdatetime": %q,
@@ -1051,6 +1055,10 @@ func newPatientResolveTestHandlers(
 				} else {
 					response = `{"error":"appointment failure"}`
 				}
+			case strings.Contains(string(body), `"@action":"getpatientvisits"`):
+				response = fmt.Sprintf(`{"PPMDResults": {"Results": {"@visitcount": "1", "visitlist": {"visit":
+					{"@id": "9570263", "@visitstartdatetime": %q, "@apptstatus": "0"}}}, "Error": null}}`,
+					future.Format("2006-01-02T15:04:05"))
 			case strings.Contains(string(body), `"@action":"lookuppatient"`) && strings.Contains(string(body), `"@phone":"5552223333"`):
 				response = `{
 					"PPMDResults": {

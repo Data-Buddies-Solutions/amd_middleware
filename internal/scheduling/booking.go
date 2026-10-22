@@ -345,10 +345,10 @@ func (s *service) revalidateBookingSlot(
 }
 
 func (s *service) reconcileBooking(ctx context.Context, prepared preparedBooking) (BookReceipt, error) {
-	read, err := s.records.ReadPatientAppointmentsForMonth(ctx, advancedmd.AppointmentMonthQuery{
+	read, err := s.records.ReadPatientAppointmentsForDay(ctx, advancedmd.AppointmentDayQuery{
 		PatientID: string(prepared.patientID),
 		OfficeIDs: prepared.office.AppointmentLookupOfficeIDs,
-		Month:     prepared.start,
+		Day:       prepared.start,
 	})
 	if err != nil {
 		log.Printf("booking: reconciliation outcome=indeterminate category=%s", providerCategory(err))

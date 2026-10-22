@@ -74,8 +74,8 @@ func TestRequestLogSummarizesEveryProviderCallByOperation(t *testing.T) {
 		{
 			name:           "successful resolve",
 			body:           `{"phone":"9542872010","office":"Spring Hill"}`,
-			wantOperations: []string{"get_appointments_by_month", "getdemographic", "lookuppatient"},
-			wantCalls:      []float64{6, 1, 1},
+			wantOperations: []string{"get_appointments_by_day", "getdemographic", "getpatientvisits", "lookuppatient"},
+			wantCalls:      []float64{1, 1, 1, 1},
 		},
 		{
 			name: "invalid request makes no provider call",

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -306,100 +307,56 @@ func TestAdapterInsuranceMutationUsesControlledXMLRPCServer(t *testing.T) {
 
 func TestAdapterUpcomingAppointmentsUsesControlledRESTServer(t *testing.T) {
 	fixedNow := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
-	var requestedColumns map[string]int = make(map[string]int)
-	var requestedMonths map[string]int = make(map[string]int)
 	var mu sync.Mutex
-	augustResponded := make(chan struct{})
-	var releaseJuly sync.Once
+	requestedColumns := make(map[string]int)
+	requestedDays := make(map[string]int)
+	var visitRequest map[string]any
 
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/scheduler/appointments" {
-			t.Fatalf("path = %q", r.URL.Path)
-		}
+	server := patientVisitServer(t, `[
+			{"@id": "111", "@visitstartdatetime": "2026-07-20T09:00:00", "@apptstatus": "0"},
+			{"@id": "9570263", "@visitstartdatetime": "2026-08-14T12:00:00", "@apptstatus": "0"},
+			{"@id": "9570265", "@visitstartdatetime": "2026-08-14T15:00:00", "@apptstatus": "0"},
+			{"@id": "9570264", "@visitstartdatetime": "2026-08-15T09:00:00", "@apptstatus": "0"},
+			{"@id": "9570266", "@visitstartdatetime": "2026-09-01T09:00:00", "@apptstatus": "10"},
+			{"@id": "9570267", "@visitstartdatetime": "2027-06-01T09:00:00", "@apptstatus": "0"}
+		]`, &visitRequest, func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer test-token" {
 			t.Fatalf("Authorization = %q", r.Header.Get("Authorization"))
 		}
-		if r.URL.Query().Get("forView") != "month" || r.URL.Query().Get("isLegacy") != "true" {
+		if r.URL.Query().Get("forView") != "day" || r.URL.Query().Get("isLegacy") != "true" {
 			t.Fatalf("query = %q", r.URL.RawQuery)
 		}
 		columns := r.URL.Query().Get("columnId")
+		day := r.URL.Query().Get("startDate")
 		mu.Lock()
 		requestedColumns[columns]++
-		requestedMonths[r.URL.Query().Get("startDate")]++
+		requestedDays[day]++
 		mu.Unlock()
 
-		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Query().Get("startDate") == "2026-07-01" && strings.Contains(columns, "1513") {
-			<-augustResponded
+		switch day {
+		case "2026-08-14":
 			w.Write([]byte(`[
-				{
-					"id": 111,
-					"startdatetime": "2026-07-20T09:00:00",
-					"columnid": 1513,
-					"patientid": 123
-				},
-				{
-					"id": 222,
-					"startdatetime": "2026-07-30T09:00:00",
-					"columnid": 1513,
-					"patientid": 999
-				}
+				{"id": 9570263, "startdatetime": "2026-08-14T12:00:00", "columnid": 1513, "provider": "BACH, AUSTIN",
+				 "facility": "ABITA EYE GROUP SPRING HILL", "appointmenttypeids": [1007], "patientid": 123},
+				{"id": 9570263, "startdatetime": "2026-08-14T12:00:00", "columnid": 1513, "provider": "BACH, AUSTIN",
+				 "facility": "ABITA EYE GROUP SPRING HILL", "appointmenttypeids": [1007], "patientid": 123},
+				{"id": 222, "startdatetime": "2026-08-14T13:00:00", "columnid": 1513, "patientid": 999}
 			]`))
-			return
-		}
-		if r.URL.Query().Get("startDate") != "2026-08-01" {
-			w.Write([]byte(`[]`))
-			return
-		}
-		switch {
-		case strings.Contains(columns, "1513") && strings.Contains(columns, "1593"):
-			w.Write([]byte(`[
-					{
-						"id": 9570264,
-						"startdatetime": "2026-08-15T09:00:00",
-						"columnid": 1593,
-						"provider": "BACH, AUSTIN",
-						"facility": "ABITA EYE GROUP CRYSTAL RIVER",
-						"appointmenttypeids": [6169],
-						"patientid": 123
-					},
-					{
-						"id": 9570263,
-						"startdatetime": "2026-08-14T12:00:00",
-						"columnid": 1513,
-						"provider": "BACH, AUSTIN",
-						"facility": "ABITA EYE GROUP SPRING HILL",
-						"appointmenttypeids": [1007],
-						"patientid": 123
-					},
-					{
-						"id": 9570263,
-						"startdatetime": "2026-08-14T12:00:00",
-						"columnid": 1513,
-						"provider": "BACH, AUSTIN",
-						"facility": "ABITA EYE GROUP SPRING HILL",
-						"appointmenttypeids": [1007],
-						"patientid": 123
-					}
-				]`))
+		case "2026-08-15":
+			w.Write([]byte(`[{"id": 9570264, "startdatetime": "2026-08-15T09:00:00", "columnid": 1593,
+				"provider": "BACH, AUSTIN", "facility": "ABITA EYE GROUP CRYSTAL RIVER",
+				"appointmenttypeids": [6169], "patientid": 123}]`))
+		case "2027-06-01":
+			w.Write([]byte(`[{"id": 9570267, "startdatetime": "2027-06-01T09:00:00", "columnid": 1513,
+				"provider": "BACH, AUSTIN", "facility": "ABITA EYE GROUP SPRING HILL",
+				"appointmenttypeids": [1007], "patientid": 123}]`))
 		default:
-			w.Write([]byte(`[]`))
+			t.Fatalf("unexpected day read %q", day)
 		}
-		releaseJuly.Do(func() { close(augustResponded) })
-	}))
+	})
 	defer server.Close()
 
-	adapter := NewAdapter(
-		staticSession{token: &session.TokenData{
-			Token:       "Bearer test-token",
-			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
-		}},
-		nil,
-		clients.NewAdvancedMDRestClient(server.Client()),
-		func() time.Time { return fixedNow },
-	)
-
-	read, err := adapter.ReadPatientAppointments(
+	read, err := patientVisitAdapter(server, fixedNow).ReadPatientAppointments(
 		context.Background(),
 		domain.PatientAppointmentsQuery{
 			PatientID: "123",
@@ -410,30 +367,43 @@ func TestAdapterUpcomingAppointmentsUsesControlledRESTServer(t *testing.T) {
 		t.Fatalf("ReadPatientAppointments() error = %v", err)
 	}
 	got := read.Appointments
-	if len(got) != 2 {
-		t.Fatalf("ReadPatientAppointments() = %+v, want two", got)
+	if !read.Complete || len(got) != 3 {
+		t.Fatalf("ReadPatientAppointments() = %+v, want three complete", read)
 	}
-	if read.ProviderReads != 6 {
-		t.Fatalf("ProviderReads = %d, want six", read.ProviderReads)
+	if read.ProviderReads != 4 {
+		t.Fatalf("ProviderReads = %d, want one visit read and three day reads", read.ProviderReads)
 	}
-	if got[0].OfficeID != "spring_hill" || got[0].Provider != "Dr. Austin Bach" ||
+	if got[0].ID != 9570263 || got[0].OfficeID != "spring_hill" || got[0].Provider != "Dr. Austin Bach" ||
 		got[0].Type != "Established Adult Medical (Follow Up)" {
 		t.Fatalf("Spring Hill appointment = %+v", got[0])
 	}
-	if got[1].OfficeID != "crystal_river" || got[1].Office != "Crystal River" ||
+	if got[1].ID != 9570264 || got[1].OfficeID != "crystal_river" || got[1].Office != "Crystal River" ||
 		got[1].Type != "Crystal River Established Patient" {
 		t.Fatalf("Crystal River appointment = %+v", got[1])
 	}
+	if got[2].ID != 9570267 {
+		t.Fatalf("appointment beyond six months = %+v", got[2])
+	}
 
+	message := visitRequest["ppmdmsg"].(map[string]any)
+	if message["@action"] != "getpatientvisits" || message["@patientid"] != "123" {
+		t.Fatalf("ppmdmsg = %#v", message)
+	}
 	mu.Lock()
 	defer mu.Unlock()
+	wantDays := map[string]int{"2026-08-14": 1, "2026-08-15": 1, "2027-06-01": 1}
+	if len(requestedDays) != len(wantDays) {
+		t.Fatalf("requested days = %#v, want %#v", requestedDays, wantDays)
+	}
+	for day, count := range wantDays {
+		if requestedDays[day] != count {
+			t.Fatalf("requested days = %#v, want %#v", requestedDays, wantDays)
+		}
+	}
 	if len(requestedColumns) != 1 {
 		t.Fatalf("requested column groups = %#v, want one batched nearby-office group", requestedColumns)
 	}
-	for columns, count := range requestedColumns {
-		if count != 6 {
-			t.Fatalf("requests for %q = %d, want six months", columns, count)
-		}
+	for columns := range requestedColumns {
 		if !strings.Contains(columns, "1513") || !strings.Contains(columns, "1593") {
 			t.Fatalf("requested columns = %q, want both owning offices", columns)
 		}
@@ -445,14 +415,98 @@ func TestAdapterUpcomingAppointmentsUsesControlledRESTServer(t *testing.T) {
 			seen[columnID] = true
 		}
 	}
-	if len(requestedMonths) != 6 {
-		t.Fatalf("requested months = %#v, want six-month horizon", requestedMonths)
+}
+
+func TestAdapterSkipsDayReadsWithoutUpcomingVisits(t *testing.T) {
+	fixedNow := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
+	for name, visits := range map[string]string{
+		"no visits": `null`,
+		"past and cancelled": `[
+			{"@id": "111", "@visitstartdatetime": "2026-07-20T09:00:00", "@apptstatus": "0"},
+			{"@id": "112", "@visitstartdatetime": "2026-08-20T09:00:00", "@apptstatus": "10"}
+		]`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			server := patientVisitServer(t, visits, nil, func(_ http.ResponseWriter, r *http.Request) {
+				t.Fatalf("unexpected day read %q", r.URL.RawQuery)
+			})
+			defer server.Close()
+
+			read, err := patientVisitAdapter(server, fixedNow).ReadPatientAppointments(context.Background(),
+				domain.PatientAppointmentsQuery{PatientID: "123", OfficeIDs: []string{"spring_hill"}})
+			if err != nil || !read.Complete || read.ProviderReads != 1 || len(read.Appointments) != 0 {
+				t.Fatalf("ReadPatientAppointments() = %#v, %v; want complete empty read from one visit read", read, err)
+			}
+		})
 	}
-	for month, count := range requestedMonths {
-		if count != 1 {
-			t.Fatalf("requests for month %q = %d, want one", month, count)
+}
+
+func TestAdapterReturnsPatientVisitFailureWithoutDayReads(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected day read %q", r.URL.RawQuery)
 		}
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	read, err := patientVisitAdapter(server, time.Now()).ReadPatientAppointments(context.Background(),
+		domain.PatientAppointmentsQuery{PatientID: "123", OfficeIDs: []string{"spring_hill"}})
+	if CategoryOf(err) != safeerrors.CategoryUpstreamStatus || read.ProviderReads != 1 {
+		t.Fatalf("ReadPatientAppointments() = %#v, %v; want upstream status after one read", read, err)
 	}
+}
+
+func patientVisitServer(
+	t *testing.T,
+	visits string,
+	visitRequest *map[string]any,
+	dayRead http.HandlerFunc,
+) *httptest.Server {
+	t.Helper()
+	return httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost {
+			var request map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+				t.Fatalf("decode visit request: %v", err)
+			}
+			if visitRequest != nil {
+				*visitRequest = request
+			}
+			var list []any
+			if err := json.Unmarshal([]byte(visits), &list); err != nil && visits != "null" {
+				t.Fatalf("visit fixture: %v", err)
+			}
+			visitList := "null"
+			if list != nil {
+				visitList = `{"visit": ` + visits + `}`
+			}
+			w.Write([]byte(`{"PPMDResults": {"Results": {"@visitcount": "` + strconv.Itoa(len(list)) +
+				`", "visitlist": ` + visitList + `}, "Error": null}}`))
+			return
+		}
+		if r.URL.Path != "/scheduler/appointments" {
+			t.Fatalf("path = %q", r.URL.Path)
+		}
+		dayRead(w, r)
+	}))
+}
+
+func patientVisitAdapter(server *httptest.Server, now time.Time) *Adapter {
+	host := strings.TrimPrefix(server.URL, "https://")
+	clock := func() time.Time { return now }
+	return NewAdapter(
+		staticSession{token: &session.TokenData{
+			Token:       "Bearer test-token",
+			CookieToken: "token=test-token",
+			XmlrpcURL:   host,
+			RestApiBase: host,
+		}},
+		clients.NewAdvancedMDClient(server.Client(), clock),
+		clients.NewAdvancedMDRestClient(server.Client()),
+		clock,
+	)
 }
 
 func TestAdapterCanonicalizesSandboxAppointmentTypeIDs(t *testing.T) {
@@ -461,34 +515,25 @@ func TestAdapterCanonicalizesSandboxAppointmentTypeIDs(t *testing.T) {
 	office := domain.DefaultOffice()
 	fixedNow := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
 
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Query().Get("startDate") != "2026-08-01" ||
-			!strings.Contains(r.URL.Query().Get("columnId"), "1716") {
-			w.Write([]byte(`[]`))
-			return
-		}
-		w.Write([]byte(`[{
+	server := patientVisitServer(t,
+		`[{"@id": "22222", "@visitstartdatetime": "2026-08-14T12:00:00", "@apptstatus": "0"}]`, nil,
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Query().Get("startDate") != "2026-08-14" ||
+				!strings.Contains(r.URL.Query().Get("columnId"), "1716") {
+				t.Fatalf("day read = %q", r.URL.RawQuery)
+			}
+			w.Write([]byte(`[{
 				"id": 22222,
 				"startdatetime": "2026-08-14T12:00:00",
 				"columnid": 1716,
 				"patientid": 12345,
-			"provider": "BACH, AUSTIN",
-			"appointmenttypeids": [18]
-		}]`))
-	}))
+				"provider": "BACH, AUSTIN",
+				"appointmenttypeids": [18]
+			}]`))
+		})
 	defer server.Close()
 
-	adapter := NewAdapter(
-		staticSession{token: &session.TokenData{
-			Token:       "Bearer test-token",
-			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
-		}},
-		nil,
-		clients.NewAdvancedMDRestClient(server.Client()),
-		func() time.Time { return fixedNow },
-	)
-	read, err := adapter.ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
+	read, err := patientVisitAdapter(server, fixedNow).ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
 		PatientID: "12345",
 		OfficeIDs: []string{office.ID},
 	})
@@ -573,42 +618,30 @@ func TestAdapterPreservesUnrecognizedProductionAppointmentType(t *testing.T) {
 	}
 }
 
-func TestAdapterSingleOfficeUsesSixReadsAndMarksUnreconciledRowsIncomplete(t *testing.T) {
+func TestAdapterSingleOfficeMarksUnreconciledRowsIncomplete(t *testing.T) {
 	fixedNow := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Query().Get("startDate") != "2026-08-01" {
-			w.Write([]byte(`[]`))
-			return
-		}
-		w.Write([]byte(`[
-			{
-				"id": 30001,
-				"startdatetime": "not-a-date",
-				"patientid": 12345,
-				"provider": "BACH, AUSTIN",
-				"appointmenttypeids": [1007]
-			},
-			{
+	server := patientVisitServer(t,
+		`[{"@id": "30002", "@visitstartdatetime": "2026-08-14T12:00:00", "@apptstatus": "0"}]`, nil,
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.Write([]byte(`[
+				{
+					"id": 30001,
+					"startdatetime": "not-a-date",
+					"patientid": 12345,
+					"provider": "BACH, AUSTIN",
+					"appointmenttypeids": [1007]
+				},
+				{
 					"id": 30002,
 					"startdatetime": "2026-08-14T12:00:00",
 					"columnid": 1513,
 					"patientid": 12345
-			}
-		]`))
-	}))
+				}
+			]`))
+		})
 	defer server.Close()
 
-	adapter := NewAdapter(
-		staticSession{token: &session.TokenData{
-			Token:       "Bearer test-token",
-			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
-		}},
-		nil,
-		clients.NewAdvancedMDRestClient(server.Client()),
-		func() time.Time { return fixedNow },
-	)
-	read, err := adapter.ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
+	read, err := patientVisitAdapter(server, fixedNow).ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
 		PatientID: "12345",
 		OfficeIDs: []string{"spring_hill"},
 	})
@@ -616,21 +649,25 @@ func TestAdapterSingleOfficeUsesSixReadsAndMarksUnreconciledRowsIncomplete(t *te
 		t.Fatalf("ReadPatientAppointments() error = %v", err)
 	}
 	if read.Complete ||
-		read.ProviderReads != 6 ||
+		read.ProviderReads != 2 ||
 		len(read.Appointments) != 1 ||
 		read.Appointments[0].ID != 30002 {
 		t.Fatalf("ReadPatientAppointments() = %#v, want one partial appointment and incomplete proof", read)
 	}
 }
 
-func TestAdapterCancelsAndWaitsForRemainingMonthReadsWhenOneMonthFails(t *testing.T) {
+func TestAdapterCancelsAndWaitsForRemainingDayReadsWhenOneDayFails(t *testing.T) {
 	fixedNow := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
-	blockedStarted := make(chan struct{}, 5)
-	blockedCancelled := make(chan struct{}, 5)
+	blockedStarted := make(chan struct{}, 2)
+	blockedCancelled := make(chan struct{}, 2)
 	release := make(chan struct{})
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("startDate") == "2026-07-01" {
-			for range 5 {
+	server := patientVisitServer(t, `[
+			{"@id": "1", "@visitstartdatetime": "2026-08-01T09:00:00", "@apptstatus": "0"},
+			{"@id": "2", "@visitstartdatetime": "2026-08-02T09:00:00", "@apptstatus": "0"},
+			{"@id": "3", "@visitstartdatetime": "2026-08-03T09:00:00", "@apptstatus": "0"}
+		]`, nil, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("startDate") == "2026-08-01" {
+			for range 2 {
 				select {
 				case <-blockedStarted:
 				case <-release:
@@ -646,19 +683,10 @@ func TestAdapterCancelsAndWaitsForRemainingMonthReadsWhenOneMonthFails(t *testin
 			blockedCancelled <- struct{}{}
 		case <-release:
 		}
-	}))
+	})
 	defer server.Close()
 	defer close(release)
 
-	adapter := NewAdapter(
-		staticSession{token: &session.TokenData{
-			Token:       "Bearer test-token",
-			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
-		}},
-		nil,
-		clients.NewAdvancedMDRestClient(server.Client()),
-		func() time.Time { return fixedNow },
-	)
 	type readOutcome struct {
 		err   error
 		calls []safeerrors.ProviderCallSummary
@@ -666,7 +694,7 @@ func TestAdapterCancelsAndWaitsForRemainingMonthReadsWhenOneMonthFails(t *testin
 	readDone := make(chan readOutcome, 1)
 	go func() {
 		ctx, diagnostics := safeerrors.WithDiagnostics(context.Background())
-		_, err := adapter.ReadPatientAppointments(ctx, domain.PatientAppointmentsQuery{
+		_, err := patientVisitAdapter(server, fixedNow).ReadPatientAppointments(ctx, domain.PatientAppointmentsQuery{
 			PatientID: "12345",
 			OfficeIDs: []string{"spring_hill"},
 		})
@@ -677,27 +705,33 @@ func TestAdapterCancelsAndWaitsForRemainingMonthReadsWhenOneMonthFails(t *testin
 	select {
 	case outcome := <-readDone:
 		if CategoryOf(outcome.err) != safeerrors.CategoryUpstreamStatus {
-			t.Fatalf("ReadPatientAppointments() error = %v, want the failed month's upstream status", outcome.err)
+			t.Fatalf("ReadPatientAppointments() error = %v, want the failed day's upstream status", outcome.err)
 		}
-		if len(outcome.calls) != 1 || outcome.calls[0].Operation != "get_appointments_by_month" || outcome.calls[0].Calls != 6 {
-			t.Fatalf("provider calls recorded when ReadPatientAppointments() returned = %+v, want all 6 month reads finished", outcome.calls)
+		dayCalls := 0
+		for _, call := range outcome.calls {
+			if call.Operation == "get_appointments_by_day" {
+				dayCalls = call.Calls
+			}
+		}
+		if dayCalls != 3 {
+			t.Fatalf("provider calls recorded when ReadPatientAppointments() returned = %+v, want all 3 day reads finished", outcome.calls)
 		}
 	case <-guard:
-		t.Fatal("ReadPatientAppointments() did not return after one month read failed")
+		t.Fatal("ReadPatientAppointments() did not return after one day read failed")
 	}
-	for cancelled := 0; cancelled < 5; cancelled++ {
+	for cancelled := 0; cancelled < 2; cancelled++ {
 		select {
 		case <-blockedCancelled:
 		case <-guard:
-			t.Fatalf("%d of 5 remaining month reads were cancelled after one month failed", cancelled)
+			t.Fatalf("%d of 2 remaining day reads were cancelled after one day failed", cancelled)
 		}
 	}
 }
 
-func TestAdapterReadsIntendedAppointmentMonth(t *testing.T) {
+func TestAdapterReadsIntendedAppointmentDay(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("startDate") != "2027-01-01" {
-			t.Fatalf("startDate = %q, want intended appointment month", r.URL.Query().Get("startDate"))
+		if r.URL.Query().Get("startDate") != "2027-01-03" || r.URL.Query().Get("forView") != "day" {
+			t.Fatalf("query = %q, want intended appointment day", r.URL.RawQuery)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`[{
@@ -723,23 +757,23 @@ func TestAdapterReadsIntendedAppointmentMonth(t *testing.T) {
 			return time.Date(2026, time.June, 1, 12, 0, 0, 0, time.UTC)
 		},
 	)
-	read, err := adapter.ReadPatientAppointmentsForMonth(context.Background(), AppointmentMonthQuery{
+	read, err := adapter.ReadPatientAppointmentsForDay(context.Background(), AppointmentDayQuery{
 		PatientID: "12345",
 		OfficeIDs: []string{"spring_hill"},
-		Month:     time.Date(2027, time.January, 3, 9, 0, 0, 0, time.UTC),
+		Day:       time.Date(2027, time.January, 3, 9, 0, 0, 0, time.UTC),
 	})
 	if err != nil {
-		t.Fatalf("ReadPatientAppointmentsForMonth() error = %v", err)
+		t.Fatalf("ReadPatientAppointmentsForDay() error = %v", err)
 	}
 	if !read.Complete ||
 		read.ProviderReads != 1 ||
 		len(read.Appointments) != 1 ||
 		read.Appointments[0].ID != 30004 {
-		t.Fatalf("ReadPatientAppointmentsForMonth() = %#v, want exact complete match", read)
+		t.Fatalf("ReadPatientAppointmentsForDay() = %#v, want exact complete match", read)
 	}
 }
 
-func TestAdapterIntendedMonthReadPreservesPerOfficeReconciliation(t *testing.T) {
+func TestAdapterIntendedDayReadPreservesPerOfficeReconciliation(t *testing.T) {
 	var mu sync.Mutex
 	requestedColumns := make(map[string]int)
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -760,16 +794,16 @@ func TestAdapterIntendedMonthReadPreservesPerOfficeReconciliation(t *testing.T) 
 		clients.NewAdvancedMDRestClient(server.Client()),
 		time.Now,
 	)
-	read, err := adapter.ReadPatientAppointmentsForMonth(context.Background(), AppointmentMonthQuery{
+	read, err := adapter.ReadPatientAppointmentsForDay(context.Background(), AppointmentDayQuery{
 		PatientID: "12345",
 		OfficeIDs: []string{"spring_hill", "crystal_river"},
-		Month:     time.Date(2027, time.January, 3, 9, 0, 0, 0, time.UTC),
+		Day:       time.Date(2027, time.January, 3, 9, 0, 0, 0, time.UTC),
 	})
 	if err != nil {
-		t.Fatalf("ReadPatientAppointmentsForMonth() error = %v", err)
+		t.Fatalf("ReadPatientAppointmentsForDay() error = %v", err)
 	}
 	if !read.Complete || read.ProviderReads != 2 {
-		t.Fatalf("ReadPatientAppointmentsForMonth() = %#v, want two complete per-office reads", read)
+		t.Fatalf("ReadPatientAppointmentsForDay() = %#v, want two complete per-office reads", read)
 	}
 
 	mu.Lock()
@@ -806,23 +840,23 @@ func TestAdapterMarksMissingPatientIDIncomplete(t *testing.T) {
 		clients.NewAdvancedMDRestClient(server.Client()),
 		time.Now,
 	)
-	read, err := adapter.ReadPatientAppointmentsForMonth(context.Background(), AppointmentMonthQuery{
+	read, err := adapter.ReadPatientAppointmentsForDay(context.Background(), AppointmentDayQuery{
 		PatientID: "12345",
 		OfficeIDs: []string{"spring_hill"},
-		Month:     time.Date(2027, time.January, 3, 9, 0, 0, 0, time.UTC),
+		Day:       time.Date(2027, time.January, 3, 9, 0, 0, 0, time.UTC),
 	})
 	if err != nil {
-		t.Fatalf("ReadPatientAppointmentsForMonth() error = %v", err)
+		t.Fatalf("ReadPatientAppointmentsForDay() error = %v", err)
 	}
 	if read.Complete || len(read.Appointments) != 0 {
-		t.Fatalf("ReadPatientAppointmentsForMonth() = %#v, want incomplete empty read", read)
+		t.Fatalf("ReadPatientAppointmentsForDay() = %#v, want incomplete empty read", read)
 	}
 }
 
 func TestAdapterReadsCurrentAppointmentStateAfterStartTime(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("startDate") != "2026-08-01" {
-			t.Fatalf("startDate = %q, want appointment month", r.URL.Query().Get("startDate"))
+		if r.URL.Query().Get("startDate") != "2026-08-14" || r.URL.Query().Get("forView") != "day" {
+			t.Fatalf("query = %q, want appointment day", r.URL.RawQuery)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`[{
@@ -1158,36 +1192,24 @@ func TestAdapterPatientCandidatesForwardsDOB(t *testing.T) {
 }
 
 func TestAdapterPatientAppointmentWindowFollowsTheInjectedEasternClock(t *testing.T) {
-	clock := func() time.Time { return time.Date(2026, time.August, 1, 2, 30, 0, 0, time.UTC) }
+	now := time.Date(2026, time.August, 1, 2, 30, 0, 0, time.UTC)
 	var mu sync.Mutex
-	var requestedMonths []string
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		startDate := r.URL.Query().Get("startDate")
+	var requestedDays []string
+	server := patientVisitServer(t, `[
+			{"@id": "40001", "@visitstartdatetime": "2026-07-31T22:00:00", "@apptstatus": "0"},
+			{"@id": "40002", "@visitstartdatetime": "2026-07-31T23:00:00", "@apptstatus": "0"}
+		]`, nil, func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
-		requestedMonths = append(requestedMonths, startDate)
+		requestedDays = append(requestedDays, r.URL.Query().Get("startDate"))
 		mu.Unlock()
-		w.Header().Set("Content-Type", "application/json")
-		if startDate != "2026-07-01" {
-			w.Write([]byte(`[]`))
-			return
-		}
 		w.Write([]byte(`[
 			{"id": 40001, "startdatetime": "2026-07-31T22:00:00", "columnid": 1513, "provider": "BACH, AUSTIN", "appointmenttypeids": [1007], "patientid": 123},
 			{"id": 40002, "startdatetime": "2026-07-31T23:00:00", "columnid": 1513, "provider": "BACH, AUSTIN", "appointmenttypeids": [1007], "patientid": 123}
 		]`))
-	}))
+	})
 	defer server.Close()
 
-	adapter := NewAdapter(
-		staticSession{token: &session.TokenData{
-			Token:       "Bearer test-token",
-			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
-		}},
-		nil,
-		clients.NewAdvancedMDRestClient(server.Client()),
-		clock,
-	)
-	read, err := adapter.ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
+	read, err := patientVisitAdapter(server, now).ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
 		PatientID: "123",
 		OfficeIDs: []string{"spring_hill"},
 	})
@@ -1197,10 +1219,8 @@ func TestAdapterPatientAppointmentWindowFollowsTheInjectedEasternClock(t *testin
 
 	mu.Lock()
 	defer mu.Unlock()
-	slices.Sort(requestedMonths)
-	wantMonths := []string{"2026-07-01", "2026-08-01", "2026-09-01", "2026-10-01", "2026-11-01", "2026-12-01"}
-	if !slices.Equal(requestedMonths, wantMonths) {
-		t.Fatalf("requested months = %v, want the six Eastern months from July 2026: %v", requestedMonths, wantMonths)
+	if !slices.Equal(requestedDays, []string{"2026-07-31"}) {
+		t.Fatalf("requested days = %v, want the Eastern date of the one future visit", requestedDays)
 	}
 	if len(read.Appointments) != 1 || read.Appointments[0].ID != 40002 {
 		t.Fatalf("ReadPatientAppointments() = %#v, want only the 23:00 Eastern appointment after the 22:30 Eastern cutoff", read.Appointments)

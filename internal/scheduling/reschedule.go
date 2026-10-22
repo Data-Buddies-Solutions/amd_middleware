@@ -68,8 +68,8 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 }
 
 func (s *service) verifyRescheduleOriginal(ctx context.Context, policy appointmentTokenPolicy) error {
-	read, err := s.records.ReadPatientAppointmentsForMonth(ctx, advancedmd.AppointmentMonthQuery{
-		PatientID: string(policy.PatientID), OfficeIDs: []string{policy.OfficeID}, Month: policy.start,
+	read, err := s.records.ReadPatientAppointmentsForDay(ctx, advancedmd.AppointmentDayQuery{
+		PatientID: string(policy.PatientID), OfficeIDs: []string{policy.OfficeID}, Day: policy.start,
 	})
 	if err != nil || !read.Complete {
 		return ownershipCheckError()

@@ -127,6 +127,9 @@ func (p *Provider) nextResponse(route string) (Response, bool) {
 }
 
 func (p *Provider) rows(request *http.Request, route string) ([]byte, error) {
+	if route == "getpatientvisits" {
+		return p.patientVisits(request)
+	}
 	query := request.URL.Query()
 	if request.Method != http.MethodGet {
 		return nil, fmt.Errorf("unexpected AdvancedMD request %s", route)
@@ -167,6 +170,35 @@ func (p *Provider) rows(request *http.Request, route string) ([]byte, error) {
 	}
 }
 
+func (p *Provider) patientVisits(request *http.Request) ([]byte, error) {
+	var message struct {
+		PPMDMsg struct {
+			PatientID string `json:"@patientid"`
+		} `json:"ppmdmsg"`
+	}
+	if err := json.NewDecoder(request.Body).Decode(&message); err != nil {
+		return nil, err
+	}
+	visits := []map[string]string{}
+	for _, row := range p.Appointments {
+		if strconv.Itoa(row.PatientID) == message.PPMDMsg.PatientID {
+			visits = append(visits, map[string]string{
+				"@id":                 strconv.Itoa(row.ID),
+				"@visitstartdatetime": row.StartDateTime,
+				"@apptstatus":         "0",
+			})
+		}
+	}
+	var visitList any
+	if len(visits) > 0 {
+		visitList = map[string]any{"visit": visits}
+	}
+	return json.Marshal(map[string]any{"PPMDResults": map[string]any{
+		"Results": map[string]any{"@visitcount": strconv.Itoa(len(visits)), "visitlist": visitList},
+		"Error":   nil,
+	}})
+}
+
 func requestRoute(request *http.Request) (string, error) {
 	if request.URL.Host == providerXMLRPCHost {
 		body, err := io.ReadAll(request.Body)
@@ -181,6 +213,7 @@ func requestRoute(request *http.Request) (string, error) {
 		if err := json.Unmarshal(body, &message); err != nil {
 			return "", err
 		}
+		request.Body = io.NopCloser(bytes.NewReader(body))
 		return message.PPMDMsg.Action, nil
 	}
 	switch {

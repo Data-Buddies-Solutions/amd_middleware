@@ -384,7 +384,7 @@ func TestBookReconcilesAmbiguousWriteToSuccess(t *testing.T) {
 	}
 }
 
-func TestBookReconcilesAmbiguousWriteInIntendedMonth(t *testing.T) {
+func TestBookReconcilesAmbiguousWriteInIntendedDay(t *testing.T) {
 	now := mutationTestNow()
 	start := time.Date(2027, time.January, 3, 9, 0, 0, 0, time.UTC)
 	records := bookingRecords()
@@ -402,9 +402,9 @@ func TestBookReconcilesAmbiguousWriteInIntendedMonth(t *testing.T) {
 	if receipt.AppointmentID != 98766 {
 		t.Fatalf("receipt = %#v", receipt)
 	}
-	if len(records.AppointmentMonthQueries) != 1 ||
-		!records.AppointmentMonthQueries[0].Month.Equal(start) {
-		t.Fatalf("appointment month queries = %#v, want %v", records.AppointmentMonthQueries, start)
+	if len(records.AppointmentDayQueries) != 1 ||
+		!records.AppointmentDayQueries[0].Day.Equal(start) {
+		t.Fatalf("appointment day queries = %#v, want %v", records.AppointmentDayQueries, start)
 	}
 }
 

@@ -161,10 +161,10 @@ Examples of authoritative proof:
   unknown fields.
   A known empty current plan attaches directly; an already-matching active
   replacement performs no writes. Missing references block the operation.
-- Booking reads the intended appointment month and matches the patient, office,
+- Booking reads the intended appointment day and matches the patient, office,
   time, provider, and appointment type.
-- Cancellation reads the original appointment's owning month and proves
-  whether it still exists.
+- Cancellation reads the original appointment's day and proves whether it
+  still exists.
 
 Insurance update responses retain `status: updated|error` and diagnostic `outcome`,
 and add `effect: no_effect|completed|partial|uncertain`. `no_effect` proves no
@@ -336,6 +336,9 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/appointment/cancel` | Cancel the appointment a signed cancellation token names | `scheduling.Cancel` |
 | `POST /api/appointment/reschedule` | Book a replacement, then cancel the confirmed original | `scheduling.Reschedule` |
 
+Patient resolution lists the patient's scheduled visits with one
+`getpatientvisits` read, then reads the office group's schedule only on the
+days those future visits fall, so upcoming appointments have no fixed horizon.
 Patient resolution answers within 9 seconds, inside the voice agent's
 10-second budget. Its appointment read stops 1 second before that deadline, so
 a slow appointment read returns a verified patient with
