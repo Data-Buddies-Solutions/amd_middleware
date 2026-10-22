@@ -484,14 +484,14 @@ func (a *Adapter) ReadSchedule(ctx context.Context, query domain.ScheduleReadQue
 		go func() {
 			defer reads.Done()
 			rows, err := a.restClient.GetAppointments(ctx, token, columnID, query.Date)
-			columns[i].Appointments = rows
+			columns[i].Appointments = distinctRows(rows, appointmentKey)
 			columns[i].AppointmentsComplete = err == nil
 			failures[2*i] = err
 		}()
 		go func() {
 			defer reads.Done()
 			rows, err := a.restClient.GetBlockHolds(ctx, token, columnID, query.Date)
-			columns[i].BlockHolds = rows
+			columns[i].BlockHolds = distinctRows(rows, holdKey)
 			columns[i].BlockHoldsComplete = err == nil
 			failures[2*i+1] = err
 		}()
@@ -581,18 +581,7 @@ func scheduleByDate(query domain.ScheduleRangeQuery, appointments []domain.Appoi
 		}
 		result[date] = domain.ScheduleReadResult{Columns: columns}
 	}
-	type rowKey struct {
-		id     int
-		column int
-		start  time.Time
-	}
-	seen := make(map[rowKey]bool)
-	for _, appointment := range appointments {
-		key := rowKey{appointment.ID, appointment.ColumnID, appointment.StartDateTime}
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
+	for _, appointment := range distinctRows(appointments, appointmentKey) {
 		date := appointment.StartDateTime.Format("2006-01-02")
 		read, ok := result[date]
 		if !ok {
@@ -607,13 +596,7 @@ func scheduleByDate(query domain.ScheduleRangeQuery, appointments []domain.Appoi
 		column.Appointments = append(column.Appointments, appointment)
 		read.Columns[columnID] = column
 	}
-	seen = make(map[rowKey]bool)
-	for _, hold := range holds {
-		key := rowKey{hold.ID, hold.ColumnID, hold.StartDateTime}
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
+	for _, hold := range distinctRows(holds, holdKey) {
 		span := hold.Interval()
 		if !span.End.After(span.Start) {
 			span.End = span.Start.Add(time.Nanosecond)
@@ -641,6 +624,32 @@ func scheduleByDate(query domain.ScheduleRangeQuery, appointments []domain.Appoi
 		}
 	}
 	return result
+}
+
+type rowKey struct {
+	id     int
+	column int
+	start  time.Time
+}
+
+func appointmentKey(appointment domain.Appointment) rowKey {
+	return rowKey{appointment.ID, appointment.ColumnID, appointment.StartDateTime}
+}
+
+func holdKey(hold domain.BlockHold) rowKey {
+	return rowKey{hold.ID, hold.ColumnID, hold.StartDateTime}
+}
+
+func distinctRows[T any](rows []T, key func(T) rowKey) []T {
+	seen := make(map[rowKey]bool, len(rows))
+	var distinct []T
+	for _, row := range rows {
+		if !seen[key(row)] {
+			seen[key(row)] = true
+			distinct = append(distinct, row)
+		}
+	}
+	return distinct
 }
 
 func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, error) {
