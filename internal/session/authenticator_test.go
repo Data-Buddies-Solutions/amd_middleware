@@ -79,6 +79,31 @@ func TestAdvancedMDLoginEscapesCredentialAttributes(t *testing.T) {
 	}
 }
 
+func TestAdvancedMDLoginStampsTheInjectedUTCClock(t *testing.T) {
+	var msgTime string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var message struct {
+			MsgTime string `xml:"msgtime,attr"`
+		}
+		if err := xml.NewDecoder(r.Body).Decode(&message); err != nil {
+			t.Errorf("login message is not valid XML: %v", err)
+		}
+		msgTime = message.MsgTime
+		w.Header().Set("Content-Type", "application/xml")
+		w.Write([]byte(`<PPMDResults><Results success="1"><usercontext>token</usercontext></Results></PPMDResults>`))
+	}))
+	defer server.Close()
+	evening := func() time.Time { return time.Date(2026, time.October, 21, 1, 30, 0, 0, time.UTC) }
+
+	login := newAdvancedMDLogin(Credentials{Username: "user"}, server.Client(), evening)
+	if _, err := login.getAuthToken(context.Background(), server.URL); err != nil {
+		t.Fatalf("getAuthToken failed: %v", err)
+	}
+	if msgTime != "10/21/2026 1:30:00 AM" {
+		t.Fatalf("msgtime = %q, want the unchanged UTC wall clock 10/21/2026 1:30:00 AM", msgTime)
+	}
+}
+
 func TestAdvancedMDLoginRejectsFailedAuthToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/xml")

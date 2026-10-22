@@ -503,6 +503,42 @@ func TestAdvancedMDClient_EndDateInsurance_EmptyErrorIsNotRejection(t *testing.T
 	}
 }
 
+func TestAdvancedMDClient_EndDateInsurance_SendsTheEasternCalendarDate(t *testing.T) {
+	var sent struct {
+		Message struct {
+			MsgTime string `json:"@msgtime"`
+			Patient struct {
+				Plans struct {
+					Plan struct {
+						EndDate string `json:"@enddate"`
+					} `json:"insplan"`
+				} `json:"insplanlist"`
+			} `json:"patient"`
+		} `json:"ppmdmsg"`
+	}
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&sent); err != nil {
+			t.Errorf("decode request: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"PPMDResults":{"Results":{"@success":"1"}}}`))
+	})
+	evening := func() time.Time { return time.Date(2026, time.October, 21, 1, 30, 0, 0, time.UTC) }
+
+	client, tokenData, cleanup := newTestXMLRPCClientAt(t, handler, evening)
+	defer cleanup()
+
+	if err := client.EndDateInsurance(context.Background(), tokenData, "pat123", "ins789"); err != nil {
+		t.Fatalf("EndDateInsurance: %v", err)
+	}
+	if got := sent.Message.Patient.Plans.Plan.EndDate; got != "10/20/2026" {
+		t.Fatalf("enddate = %q at 21:30 EDT on 10/20/2026, want the Eastern date 10/20/2026", got)
+	}
+	if got := sent.Message.MsgTime; got != "10/21/2026 01:30:00 AM" {
+		t.Fatalf("msgtime = %q, want the unchanged UTC wall clock 10/21/2026 01:30:00 AM", got)
+	}
+}
+
 func TestAdvancedMDClient_GetSchedulerSetup(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
