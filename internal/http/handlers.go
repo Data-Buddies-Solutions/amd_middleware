@@ -229,7 +229,6 @@ func (h *Handlers) HandleListAppointmentSlots(w http.ResponseWriter, r *http.Req
 		return
 	}
 	if response.Status == schedulingmodule.AvailabilityStatusError {
-		response.NextAction = ""
 		recordRequestOutcome(r.Context(), outcomeProviderFailure, safeerrors.CategoryInvalidResponse)
 	}
 	respond(w, response)
