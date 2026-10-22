@@ -280,3 +280,24 @@ func TestScheduleReadsCountEveryRowWithoutAnID(t *testing.T) {
 		}
 	}
 }
+
+func TestReadScheduleRangeReadsAnIDLessAppointmentOnceWhenTwoMonthsReturnIt(t *testing.T) {
+	row := `{"startdatetime": "2026-11-02T09:00:00", "duration": 30, "columnid": 1513}`
+	server := &monthScheduleServer{bodies: map[string]string{
+		"appointments 2026-10-01": `[` + row + `]`,
+		"appointments 2026-11-01": `[` + row + `, ` + row + `]`,
+	}}
+	adapter := newMonthScheduleAdapter(t, server)
+
+	schedule, err := adapter.ReadScheduleRange(context.Background(), domain.ScheduleRangeQuery{
+		ColumnIDs: []string{"1513"},
+		Start:     time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC),
+		End:       time.Date(2026, 11, 3, 0, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatalf("ReadScheduleRange error = %v", err)
+	}
+	if got := appointmentIDs(schedule["2026-11-02"].Columns["1513"]); !slices.Equal(got, []int{0, 0}) {
+		t.Fatalf("2026-11-02 appointments = %v, want the two id-less rows November returns and not October's copy of one", got)
+	}
+}

@@ -555,11 +555,19 @@ func (a *Adapter) ReadScheduleRange(ctx context.Context, query domain.ScheduleRa
 			return nil, failure
 		}
 	}
-	scheduled, err := clients.ScheduledAppointments(slices.Concat(appointments...))
-	if err != nil {
-		failure := classify(err)
-		log.Printf("schedule read incomplete category=%s", CategoryOf(failure))
-		return nil, failure
+	var scheduled []domain.Appointment
+	for i, month := range months {
+		rows, err := clients.ScheduledAppointments(appointments[i])
+		if err != nil {
+			failure := classify(err)
+			log.Printf("schedule read incomplete category=%s", CategoryOf(failure))
+			return nil, failure
+		}
+		for _, row := range rows {
+			if row.StartDateTime.Format("2006-01") == month[:len("2006-01")] {
+				scheduled = append(scheduled, row)
+			}
+		}
 	}
 	return scheduleByDate(query, scheduled, slices.Concat(holds...)), nil
 }
