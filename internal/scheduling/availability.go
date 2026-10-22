@@ -23,8 +23,11 @@ type ListCommand struct {
 }
 
 func (s *service) List(ctx context.Context, command ListCommand) (AvailabilityResponse, error) {
-	if command.Routing == "" && command.VisitType == domain.AppointmentVisitRoutineVision {
-		command.Routing = string(domain.RoutingOpticalOnly)
+	if command.Routing == "" {
+		command.Routing = string(domain.RoutingAll)
+		if command.VisitType == domain.AppointmentVisitRoutineVision {
+			command.Routing = string(domain.RoutingOpticalOnly)
+		}
 	}
 	return s.list(ctx, command)
 }
@@ -44,6 +47,10 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 		return empty, schedulingError("Invalid date format. Use YYYY-MM-DD.")
 	}
 	if err := domain.ValidateOptionalDOB(command.DOB, now); err != nil {
+		return empty, schedulingError(err.Error())
+	}
+	requestedRouting, err := domain.ParseRoutingRule(command.Routing)
+	if err != nil {
 		return empty, schedulingError(err.Error())
 	}
 
@@ -80,7 +87,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 		return empty, schedulingError(underSevenRoutineVisionMessage)
 	}
 
-	routing := office.SchedulingRouting(domain.ParseRoutingRule(command.Routing), command.DOB, now)
+	routing := office.SchedulingRouting(requestedRouting, command.DOB, now)
 	if (command.VisitType == domain.AppointmentVisitMedical && routing == domain.RoutingOpticalOnly) ||
 		(command.VisitType == domain.AppointmentVisitRoutineVision && routing != domain.RoutingOpticalOnly) {
 		return unsupportedVisit(), nil

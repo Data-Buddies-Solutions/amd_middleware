@@ -131,7 +131,7 @@ func TestListBlocksSlotsOverlappedByMultiSlotAppointments(t *testing.T) {
 			{StartDateTime: day.Add(9 * time.Hour), Duration: 60},
 		}, nil)
 	}
-	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "all"})
+	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "all_three"})
 	if err != nil {
 		t.Fatal(err)
 	}

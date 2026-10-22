@@ -259,7 +259,7 @@ func applyBookingPolicy(booking *bookingContext) (
 		ColumnID:          booking.token.ColumnID,
 		ProfileID:         booking.token.ProfileID,
 		AppointmentTypeID: command.AppointmentTypeID,
-		Routing:           domain.ParseRoutingRule(booking.token.Routing),
+		Routing:           booking.token.Routing,
 		DOB:               command.DOB,
 		Intent: appointmentIntent{
 			VisitCategory: command.VisitCategory,
@@ -284,7 +284,7 @@ func applyBookingPolicy(booking *bookingContext) (
 		!slices.Contains(booking.token.AppointmentTypeIDs, decision.AppointmentTypeID) {
 		return schedulingPolicy{}, bookingPolicyDecision{}, "", invalidBookingTokenError()
 	}
-	booking.token.Routing = string(decision.Routing)
+	booking.token.Routing = decision.Routing
 	command.AppointmentTypeID = decision.AppointmentTypeID
 	booking.command = command
 	return policy, decision, comments, nil
@@ -426,7 +426,7 @@ func currentBookingColumn(
 	}
 	eligible := newSchedulingPolicy(booking.office, booking.asOf).EligibleColumns(
 		setup.Columns,
-		domain.ParseRoutingRule(booking.token.Routing),
+		booking.token.Routing,
 		booking.command.DOB,
 	)
 	for _, column := range eligible {
