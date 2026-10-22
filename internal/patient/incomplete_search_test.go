@@ -80,8 +80,39 @@ func TestCreateKeepsAnAmbiguousWriteIndeterminateWhenTheReconcileSearchIsIncompl
 	if got.Status != patient.CreateStatusError || got.Outcome != patient.MutationIndeterminateWrite || got.PatientID != "" {
 		t.Fatalf("Create() = %+v, want an indeterminate write", got)
 	}
-	if requests := provider.Requests(); slices.Contains(requests, "addinsurance") {
+	requests := provider.Requests()
+	if slices.Contains(requests, "addinsurance") {
 		t.Fatalf("AdvancedMD requests = %q, want no addinsurance", requests)
+	}
+	if lookups := countRoute(requests, "lookuppatient"); lookups != 4 {
+		t.Fatalf("lookuppatient requests = %d in %q, want the baseline plus three reconcile polls", lookups, requests)
+	}
+}
+
+func countRoute(requests []string, route string) int {
+	n := 0
+	for _, request := range requests {
+		if request == route {
+			n++
+		}
+	}
+	return n
+}
+
+func TestCreateWritesOnceAfterACompletePagedBaselineSearch(t *testing.T) {
+	provider := &advancedmdtest.Provider{Responses: map[string][]advancedmdtest.Response{
+		"lookuppatient": {{Body: completeEmptyLookup}},
+		"addpatient":    {{Body: addedJane}},
+		"addinsurance":  {{Body: insuranceSaved}},
+	}}
+
+	got := patient.New(provider.Adapter(testNow), testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
+
+	if got.Status != patient.CreateStatusCreated || got.PatientID == "" {
+		t.Fatalf("Create() = %+v, want a created patient", got)
+	}
+	if creates := countRoute(provider.Requests(), "addpatient"); creates != 1 {
+		t.Fatalf("addpatient requests = %d in %q, want exactly one", creates, provider.Requests())
 	}
 }
 
