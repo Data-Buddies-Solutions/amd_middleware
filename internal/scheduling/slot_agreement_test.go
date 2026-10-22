@@ -479,3 +479,44 @@ func TestSlotsOverlappingTheScheduleAreNeverListed(t *testing.T) {
 		t.Fatalf("listed %v, want %v: 08:30 overlaps an appointment, 09:30 is full, 10:00 and 10:30 overlap a hold, 11:30 runs past work hours\n%s", listed, want, c)
 	}
 }
+
+func TestBookingRejectsASlotHoldingTwoAppointmentsWithoutIDs(t *testing.T) {
+	target := agreementColumns[0]
+	day, _ := time.Parse("2006-01-02", slotContractDate)
+	now := mutationTestNow()
+	c := agreementCase{
+		target: target,
+		now:    now,
+		first:  day,
+		column: domain.SchedulerColumn{
+			ID: target.id, Name: "AGREEMENT", ProfileID: target.profileID, FacilityID: target.facilityID,
+			StartTime: "09:00", EndTime: "09:30", Interval: 30, Workweek: 1 << day.Weekday(),
+		},
+	}
+	c.rows.addAppointment(0, target.id, day.Add(9*time.Hour), 30)
+	c.rows.addAppointment(0, target.id, day.Add(9*time.Hour), 30)
+
+	scheduler, fake := c.scheduler()
+	result, err := c.list(scheduler)
+	if err != nil {
+		t.Fatalf("%v\n%s", err, c)
+	}
+	for _, slot := range result.Slots {
+		if slot.DateTime == slotContractDate+"T09:00" {
+			t.Errorf("listed %s %d/%d force=%v, want it full with two id-less appointments on a capacity-2 column\n%s", slot.DateTime, slot.SameStartBooked, slot.SameStartCapacity, slot.RequiresForce, c)
+		}
+	}
+	office, err := domain.ResolveOffice(target.office)
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := signSlotContractToken(t, now, office.ID, target.routing, c.column, slotContractToken{start: "09:00", duration: 30, booked: 1, capacity: 2, force: true})
+	_, err = c.book(scheduler, token)
+	if scheduling.CategoryOf(err) != scheduling.CategorySlotUnavailable || len(fake.Bookings) != 0 {
+		var booked []string
+		for _, booking := range fake.Bookings {
+			booked = append(booked, fmt.Sprintf("%s force=%v", domain.FormatSlotDateTime(booking.Start), booking.Force))
+		}
+		t.Fatalf("booking a third patient into 09:00 returned %q (%v) and booked %v, want slot_unavailable and no booking\n%s", scheduling.CategoryOf(err), err, booked, c)
+	}
+}

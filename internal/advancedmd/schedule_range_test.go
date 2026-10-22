@@ -238,3 +238,45 @@ func TestReadScheduleRangeFilesHoldsOnTheDaysTheyCover(t *testing.T) {
 		}
 	}
 }
+
+func TestScheduleReadsCountEveryRowWithoutAnID(t *testing.T) {
+	appointments := `[
+		{"id": 0, "startdatetime": "2026-10-15T09:00:00", "duration": 30, "columnid": 1513},
+		{"id": null, "startdatetime": "2026-10-15T09:00:00", "duration": 30, "columnid": 1513},
+		{"id": 7, "startdatetime": "2026-10-15T10:00:00", "duration": 30, "columnid": 1513},
+		{"id": 7, "startdatetime": "2026-10-15T10:00:00", "duration": 30, "columnid": 1513}
+	]`
+	holds := `[
+		{"startdatetime": "2026-10-15T12:00:00", "enddatetime": "2026-10-15T13:00:00", "column": {"id": 1513}},
+		{"id": 0, "startdatetime": "2026-10-15T12:00:00", "enddatetime": "2026-10-15T12:30:00", "column": {"id": 1513}},
+		{"id": 8, "startdatetime": "2026-10-15T14:00:00", "enddatetime": "2026-10-15T14:30:00", "column": {"id": 1513}},
+		{"id": 8, "startdatetime": "2026-10-15T14:00:00", "enddatetime": "2026-10-15T14:30:00", "column": {"id": 1513}}
+	]`
+	server := &monthScheduleServer{bodies: map[string]string{
+		"appointments 2026-10-15": appointments,
+		"blockholds 2026-10-15":   holds,
+		"appointments 2026-10-01": appointments,
+		"blockholds 2026-10-01":   holds,
+	}}
+	adapter := newMonthScheduleAdapter(t, server)
+	day, err := adapter.ReadSchedule(context.Background(), domain.ScheduleReadQuery{ColumnIDs: []string{"1513"}, Date: "2026-10-15"})
+	if err != nil {
+		t.Fatalf("ReadSchedule error = %v", err)
+	}
+	month, err := adapter.ReadScheduleRange(context.Background(), domain.ScheduleRangeQuery{
+		ColumnIDs: []string{"1513"},
+		Start:     time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC),
+		End:       time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatalf("ReadScheduleRange error = %v", err)
+	}
+	for view, column := range map[string]domain.ColumnSchedule{"day": day.Columns["1513"], "month": month["2026-10-15"].Columns["1513"]} {
+		gotAppointments, gotHolds := appointmentIDs(column), holdIDs(column)
+		slices.Sort(gotAppointments)
+		slices.Sort(gotHolds)
+		if !slices.Equal(gotAppointments, []int{0, 0, 7}) || !slices.Equal(gotHolds, []int{0, 0, 8}) {
+			t.Fatalf("%s view appointments = %v holds = %v, want both id-less rows of each kept and the repeated id 7 and 8 rows read once", view, gotAppointments, gotHolds)
+		}
+	}
+}
