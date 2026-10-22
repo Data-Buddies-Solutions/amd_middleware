@@ -20,7 +20,7 @@ var packageLayers = map[string]string{
 	"internal/session":                   "session",
 	"internal/clients":                   "transport",
 	"internal/advancedmd":                "records",
-	"internal/advancedmd/advancedmdtest": "records",
+	"internal/advancedmd/advancedmdtest": "testsupport",
 	"internal/insurance":                 "policy",
 	"internal/patient":                   "feature",
 	"internal/scheduling":                "feature",
@@ -38,6 +38,7 @@ var allowedLayerImports = map[string][]string{
 	"feature":     {"value", "records", "policy"},
 	"handler":     {"value", "session", "records", "policy", "feature"},
 	"composition": {"value", "session", "transport", "records", "policy", "feature", "handler", "composition"},
+	"testsupport": {"value", "session", "transport", "records"},
 }
 
 func TestPackagesImportOnlyLowerLayers(t *testing.T) {

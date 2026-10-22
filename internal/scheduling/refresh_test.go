@@ -51,7 +51,7 @@ func TestSetupWaiterCanCancelDuringRefresh(t *testing.T) {
 
 func TestSchedulerSetupStaleFallbackHasMaximumAge(t *testing.T) {
 	now := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
-	records := recordsWithSetup()
+	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "10:00", 15))
 	scheduler := scheduling.New(records, "secret", func() time.Time { return now })
 	command := scheduling.ListCommand{StartDate: "2026-06-10"}
 	if _, err := scheduler.List(context.Background(), command); err != nil {

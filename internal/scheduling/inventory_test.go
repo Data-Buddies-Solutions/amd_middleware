@@ -14,9 +14,6 @@ func TestListLoadsEveryEligibleSlotAcrossCalendarWindow(t *testing.T) {
 	const count = 14
 	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "10:00", 15))
 	first := time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC)
-	for i := 0; i < count; i++ {
-		records.ScheduleReads[first.AddDate(0, 0, i).Format("2006-01-02")] = completeRead("1513", nil, nil)
-	}
 	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only"})
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +44,7 @@ func TestListLoadsEveryEligibleSlotAcrossCalendarWindow(t *testing.T) {
 func TestListIncompleteCalendarCannotClaimCompleteInventory(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "10:00", 15))
-	records.ScheduleReads["2026-06-02"] = completeRead("1513", nil, nil)
+	records.IncompleteDays["2026-06-09"] = true
 	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only"})
 	if err != nil {
 		t.Fatal(err)
@@ -63,9 +60,6 @@ func TestListReadsOnlyTheRequestedWindow(t *testing.T) {
 	column := testColumn("1513", "620", "1568", "09:00", "10:00", 15)
 	column.Workweek = 62
 	records := recordsWithSetup(column)
-	for day := 0; day < 28; day++ {
-		records.ScheduleReads[first.AddDate(0, 0, day).Format("2006-01-02")] = completeRead("1513", nil, nil)
-	}
 	scheduler := scheduling.New(records, "test-secret", func() time.Time { return now })
 	for _, offset := range []int{0, 14} {
 		start := first.AddDate(0, 0, offset)
@@ -103,7 +97,7 @@ func TestListExcludesHeldAndFullSlots(t *testing.T) {
 	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "10:00", 15))
 	for i := 1; i <= 14; i++ {
 		day := time.Date(2026, 6, 1+i, 0, 0, 0, 0, time.UTC)
-		records.ScheduleReads[day.Format("2006-01-02")] = completeRead("1513", []domain.Appointment{
+		records.Schedule[day.Format("2006-01-02")] = scheduleRows("1513", []domain.Appointment{
 			{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
 			{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
 		}, []domain.BlockHold{{StartDateTime: day.Add(9*time.Hour + 30*time.Minute), EndDateTime: day.Add(10 * time.Hour)}})
@@ -127,7 +121,7 @@ func TestListBlocksSlotsOverlappedByMultiSlotAppointments(t *testing.T) {
 	records := recordsWithSetup(testColumn("1550", "2076", "1568", "08:30", "10:30", 30))
 	for i := 1; i <= 14; i++ {
 		day := time.Date(2026, 6, 1+i, 0, 0, 0, 0, time.UTC)
-		records.ScheduleReads[day.Format("2006-01-02")] = completeRead("1550", []domain.Appointment{
+		records.Schedule[day.Format("2006-01-02")] = scheduleRows("1550", []domain.Appointment{
 			{StartDateTime: day.Add(9 * time.Hour), Duration: 60},
 		}, nil)
 	}
@@ -157,7 +151,7 @@ func TestPreauthInventoryExcludesOccupiedAndHeldWallClockSlots(t *testing.T) {
 			records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "10:00", 15))
 			for i := 0; i < 14; i++ {
 				day := first.AddDate(0, 0, i)
-				records.ScheduleReads[day.Format("2006-01-02")] = completeRead("1513", []domain.Appointment{
+				records.Schedule[day.Format("2006-01-02")] = scheduleRows("1513", []domain.Appointment{
 					{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
 					{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
 				}, []domain.BlockHold{{StartDateTime: day.Add(9*time.Hour + 30*time.Minute), EndDateTime: day.Add(10 * time.Hour)}})
