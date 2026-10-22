@@ -3,6 +3,7 @@ package domain
 import (
 	"fmt"
 	"time"
+	_ "time/tzdata"
 )
 
 var easternLocation = loadEasternLocation()
@@ -14,7 +15,7 @@ func EasternLocation() *time.Location {
 func loadEasternLocation() *time.Location {
 	location, err := time.LoadLocation("America/New_York")
 	if err != nil {
-		return time.FixedZone("EST", -5*60*60)
+		panic(fmt.Sprintf("load America/New_York from the embedded tz database: %v", err))
 	}
 	return location
 }
