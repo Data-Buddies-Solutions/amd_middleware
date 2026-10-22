@@ -50,6 +50,7 @@ here.
 | --- | --- |
 | Each package has a layer and imports only the layers that layer allows | `TestPackagesImportOnlyLowerLayers` in `layers_test.go` |
 | Go files carry no code comments; only `//go:` directives are allowed | `TestNoCodeComments` in `comments_test.go` |
+| Code outside `cmd/api` reads the time from the injected `now func() time.Time` and reads calendar dates in `domain.EasternLocation()`; it calls `time.Now()` only to start a timer whose variable is used solely as the argument of `time.Since` | `TestNoWallClockOutsideMain` in `wall_clock_test.go` |
 | `Dockerfile` and `cloudbuild.yaml` build with the `go.mod` toolchain | `TestBuildImagesUseTheGoModToolchain` in `toolchain_test.go` |
 | Go files under `cmd` and `internal` are `gofmt` formatted | CI step `Format check` |
 | Every function is reachable from `main` or a test | CI step `Dead code check` |

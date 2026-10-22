@@ -87,10 +87,10 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 		return ResolveResult{Status: StatusMultipleMatches, Matches: candidates, Appointments: []Appointment{}, Message: "More than one patient matches this first name and date of birth. Ask office staff to resolve the identity.", Observation: observation}, nil
 	}
 	selected := matches[0]
-	started = time.Now()
+	demographicsStarted := time.Now()
 	demographics, err := p.advancedMD.GetPatientDemographics(ctx, selected.ID)
 	observation.DemographicReads = 1
-	observation.DemographicDurationMS = time.Since(started).Milliseconds()
+	observation.DemographicDurationMS = time.Since(demographicsStarted).Milliseconds()
 	if err != nil {
 		return unresolved("demographics_unavailable", advancedmd.CategoryOf(err))
 	}

@@ -83,19 +83,22 @@ func (c *SchedulerColumn) WorksOnDay(weekday time.Weekday) bool {
 }
 
 func (c *SchedulerColumn) HasUsableSchedule() bool {
-	_, _, err := c.ParseWorkHours(time.Now())
-	return c.Interval > 0 && c.Workweek != 0 && err == nil
+	_, startErr := time.Parse(workHoursLayout, c.StartTime)
+	_, endErr := time.Parse(workHoursLayout, c.EndTime)
+	return c.Interval > 0 && c.Workweek != 0 && startErr == nil && endErr == nil
 }
+
+const workHoursLayout = "15:04"
 
 func (c *SchedulerColumn) ParseWorkHours(date time.Time) (start, end time.Time, err error) {
 	loc := date.Location()
 
-	startTime, err := time.ParseInLocation("15:04", c.StartTime, loc)
+	startTime, err := time.ParseInLocation(workHoursLayout, c.StartTime, loc)
 	if err != nil {
 		return time.Time{}, time.Time{}, fmt.Errorf("invalid start time: %w", err)
 	}
 
-	endTime, err := time.ParseInLocation("15:04", c.EndTime, loc)
+	endTime, err := time.ParseInLocation(workHoursLayout, c.EndTime, loc)
 	if err != nil {
 		return time.Time{}, time.Time{}, fmt.Errorf("invalid end time: %w", err)
 	}
