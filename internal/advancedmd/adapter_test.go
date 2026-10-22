@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -1181,5 +1182,56 @@ func TestAdapterPatientCandidatesForwardsDOB(t *testing.T) {
 				t.Fatalf("read=%+v err=%v", got, err)
 			}
 		})
+	}
+}
+
+func TestAdapterPatientAppointmentWindowFollowsTheInjectedEasternClock(t *testing.T) {
+	domain.InitRegistry("")
+	clock := func() time.Time { return time.Date(2026, time.August, 1, 2, 30, 0, 0, time.UTC) }
+	var mu sync.Mutex
+	var requestedMonths []string
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		startDate := r.URL.Query().Get("startDate")
+		mu.Lock()
+		requestedMonths = append(requestedMonths, startDate)
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if startDate != "2026-07-01" {
+			w.Write([]byte(`[]`))
+			return
+		}
+		w.Write([]byte(`[
+			{"id": 40001, "startdatetime": "2026-07-31T22:00:00", "columnid": 1513, "provider": "BACH, AUSTIN", "appointmenttypeids": [1007], "patientid": 123},
+			{"id": 40002, "startdatetime": "2026-07-31T23:00:00", "columnid": 1513, "provider": "BACH, AUSTIN", "appointmenttypeids": [1007], "patientid": 123}
+		]`))
+	}))
+	defer server.Close()
+
+	adapter := NewAdapter(
+		staticSession{token: &session.TokenData{
+			Token:       "Bearer test-token",
+			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
+		}},
+		nil,
+		clients.NewAdvancedMDRestClient(server.Client()),
+		clock,
+	)
+	read, err := adapter.ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
+		PatientID: "123",
+		OfficeIDs: []string{"spring_hill"},
+	})
+	if err != nil {
+		t.Fatalf("ReadPatientAppointments() error = %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	slices.Sort(requestedMonths)
+	wantMonths := []string{"2026-07-01", "2026-08-01", "2026-09-01", "2026-10-01", "2026-11-01", "2026-12-01"}
+	if !slices.Equal(requestedMonths, wantMonths) {
+		t.Fatalf("requested months = %v, want the six Eastern months from July 2026: %v", requestedMonths, wantMonths)
+	}
+	if len(read.Appointments) != 1 || read.Appointments[0].ID != 40002 {
+		t.Fatalf("ReadPatientAppointments() = %#v, want only the 23:00 Eastern appointment after the 22:30 Eastern cutoff", read.Appointments)
 	}
 }
