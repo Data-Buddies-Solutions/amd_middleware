@@ -204,3 +204,37 @@ func TestReadScheduleRangeKeepsHoldSharedByProvidersForEachProvider(t *testing.T
 		}
 	}
 }
+
+func TestReadScheduleRangeFilesHoldsOnTheDaysTheyCover(t *testing.T) {
+	server := &monthScheduleServer{bodies: map[string]string{
+		"blockholds 2026-10-01": `[
+			{"id": 40, "startdatetime": "2026-10-06T00:00:00", "enddatetime": "2026-10-06T00:00:00", "column": {"id": 1513}},
+			{"id": 41, "startdatetime": "2026-10-06T12:00:00", "enddatetime": "2026-10-06T12:00:00", "column": {"id": 1513}},
+			{"id": 42, "startdatetime": "2026-10-05T18:00:00", "enddatetime": "2026-10-06T00:00:00", "column": {"id": 1513}},
+			{"id": 43, "startdatetime": "2026-10-07T09:00:00", "enddatetime": "2026-10-07T08:00:00", "column": {"id": 1513}},
+			{"id": 44, "startdatetime": "2026-10-05T23:59:00", "enddatetime": "2026-10-07T00:01:00", "column": {"id": 1513}}
+		]`,
+	}}
+	adapter := newMonthScheduleAdapter(t, server)
+
+	schedule, err := adapter.ReadScheduleRange(context.Background(), domain.ScheduleRangeQuery{
+		ColumnIDs: []string{"1513"},
+		Start:     time.Date(2026, 10, 5, 0, 0, 0, 0, time.UTC),
+		End:       time.Date(2026, 10, 7, 0, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatalf("ReadScheduleRange error = %v", err)
+	}
+	want := map[string][]int{
+		"2026-10-05": {42, 44},
+		"2026-10-06": {40, 41, 44},
+		"2026-10-07": {43, 44},
+	}
+	for date, ids := range want {
+		got := holdIDs(schedule[date].Columns["1513"])
+		slices.Sort(got)
+		if !slices.Equal(got, ids) {
+			t.Fatalf("%s holds = %v, want %v", date, got, ids)
+		}
+	}
+}
