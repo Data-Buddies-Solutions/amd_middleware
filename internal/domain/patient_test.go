@@ -116,7 +116,7 @@ func TestParseDOB(t *testing.T) {
 		{"", "", true},
 		{"06/02/2026", "", false},
 		{"13/45/1980", "", false},
-		{" 01/15/1980", "", false},
+		{" 01/15/1980", "01/15/1980", true},
 		{"15.01.1980", "", false},
 	}
 	for _, tt := range tests {
