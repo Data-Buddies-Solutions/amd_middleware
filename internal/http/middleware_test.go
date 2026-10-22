@@ -183,7 +183,7 @@ func TestRequestLogRecoversPanicWithoutLoggingRawError(t *testing.T) {
 	router.Use(loggingMiddleware(nil))
 	router.Use(recoveryMiddleware)
 	router.Get("/panic", func(http.ResponseWriter, *http.Request) {
-		panic("patientId=17604634 https://provider.example/private")
+		panic("patientId=17604634 https://provider.example/chart-x91q")
 	})
 	req := httptest.NewRequest(http.MethodGet, "/panic", nil)
 	w := httptest.NewRecorder()
@@ -197,7 +197,7 @@ func TestRequestLogRecoversPanicWithoutLoggingRawError(t *testing.T) {
 	if entry["outcome_category"] != "internal_failure" {
 		t.Errorf("outcome_category = %v, want internal_failure", entry["outcome_category"])
 	}
-	for _, forbidden := range []string{"17604634", "provider.example", "private"} {
+	for _, forbidden := range []string{"17604634", "provider.example", "chart-x91q"} {
 		if strings.Contains(logs.String(), forbidden) {
 			t.Errorf("logs exposed panic detail %q: %s", forbidden, logs.String())
 		}
