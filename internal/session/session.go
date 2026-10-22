@@ -2,10 +2,11 @@ package session
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"sync"
 	"time"
+
+	"advancedmd-token-management/internal/safeerrors"
 )
 
 type Session interface {
@@ -32,7 +33,7 @@ const (
 	defaultSessionRetryDelay   = time.Minute
 )
 
-var ErrSessionUnavailable = errors.New("advancedmd session unavailable")
+var ErrSessionUnavailable = safeerrors.New(safeerrors.CategoryUnavailable, "advancedmd session unavailable")
 
 type SessionStatus struct {
 	State     SessionState

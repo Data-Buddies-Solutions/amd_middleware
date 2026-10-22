@@ -297,6 +297,19 @@ func TestListPreservesAuthenticationFailureContract(t *testing.T) {
 	})
 }
 
+func TestListReportsAdapterInternalFailureAsInternal(t *testing.T) {
+	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
+	records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryInternal)
+	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
+		List(context.Background(), scheduling.ListCommand{
+			StartDate: "2026-06-03", Office: "Spring Hill", Routing: string(domain.RoutingBachOnly),
+		})
+	if got := scheduling.ProviderFailureOf(err); got != safeerrors.CategoryInternal {
+		t.Fatalf("ProviderFailureOf(error) = %q, want internal", got)
+	}
+}
+
 func recordsWithSetup(columns ...domain.SchedulerColumn) *advancedmdtest.Adapter {
 	records := advancedmdtest.NewAdapter()
 	records.SchedulerSetup = domain.SchedulerSetup{

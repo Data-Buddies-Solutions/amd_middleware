@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/safeerrors"
 	"advancedmd-token-management/internal/session"
 )
 
@@ -49,51 +50,64 @@ type AdvancedMDClient struct {
 	httpClient *http.Client
 }
 
-type ProviderRejectionError struct {
+type providerRejectionError struct {
 	operation string
 	code      string
 }
 
-func (e *ProviderRejectionError) Error() string {
+func (e *providerRejectionError) Error() string {
 	return e.operation + " rejected by provider"
 }
 
-type HTTPStatusError struct {
-	StatusCode int
+type httpStatusError struct {
+	statusCode int
 }
 
-func (e *HTTPStatusError) Error() string {
-	return fmt.Sprintf("unexpected status %d", e.StatusCode)
+func (e *httpStatusError) Error() string {
+	return fmt.Sprintf("unexpected status %d", e.statusCode)
+}
+
+func statusError(code int, kind requestKind) error {
+	category := safeerrors.CategoryUpstreamStatus
+	switch {
+	case code == http.StatusUnauthorized || code == http.StatusForbidden:
+		category = safeerrors.CategoryAuthentication
+	case kind == writeRequest && code == http.StatusConflict:
+		category = safeerrors.CategoryConflict
+	case kind == writeRequest && code >= 400 && code < 500 && code != http.StatusRequestTimeout:
+		category = safeerrors.CategoryRejected
+	}
+	return safeerrors.New(category, "%w", &httpStatusError{statusCode: code})
 }
 
 func NewAdvancedMDClient(httpClient *http.Client) *AdvancedMDClient {
 	return &AdvancedMDClient{httpClient: httpClient}
 }
 
-type xmlrpcKind int
+type requestKind int
 
 const (
-	xmlrpcRead xmlrpcKind = iota
-	xmlrpcWrite
+	readRequest requestKind = iota
+	writeRequest
 )
 
-func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *session.TokenData, payload interface{}, kind xmlrpcKind) ([]byte, error) {
+func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *session.TokenData, payload interface{}, kind requestKind) ([]byte, error) {
 	jsonBody, err := json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
+		return nil, safeerrors.NotSent("failed to marshal request: %w", err)
 	}
 
 	url := "https://" + tokenData.XmlrpcURL
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonBody))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, safeerrors.NotSent("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Cookie", tokenData.CookieToken)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	if kind == xmlrpcRead {
+	if kind == readRequest {
 		req.Header["Idempotency-Key"] = nil
 	}
 
@@ -106,10 +120,10 @@ func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *sessi
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to read response: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, &HTTPStatusError{StatusCode: resp.StatusCode}
+		return nil, statusError(resp.StatusCode, kind)
 	}
 
 	return body, nil
@@ -168,7 +182,7 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *sessi
 	expectedPages, expectedTotal := 0, 0
 	for page := 1; page <= maxLookupPages; page++ {
 		payload.PPMDMsg.Page = page
-		body, err := c.doXMLRPCRequest(ctx, tokenData, payload, xmlrpcRead)
+		body, err := c.doXMLRPCRequest(ctx, tokenData, payload, readRequest)
 		if err != nil {
 			return domain.PatientCandidateRead{}, err
 		}
@@ -179,7 +193,7 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *sessi
 		batch := pageRead.Patients
 		for _, patient := range batch {
 			if patient.ID == "" || seen[patient.ID] {
-				return domain.PatientCandidateRead{}, fmt.Errorf("patient lookup returned missing or repeated patient ID")
+				return domain.PatientCandidateRead{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "patient lookup returned missing or repeated patient ID")
 			}
 			seen[patient.ID] = true
 			patients = append(patients, patient)
@@ -188,7 +202,7 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *sessi
 			if meta.ItemCount != "" {
 				total, err := strconv.Atoi(meta.ItemCount)
 				if err != nil || total != len(patients) {
-					return domain.PatientCandidateRead{}, fmt.Errorf("incomplete legacy patient lookup results")
+					return domain.PatientCandidateRead{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "incomplete legacy patient lookup results")
 				}
 			}
 			return domain.PatientCandidateRead{Patients: patients, Complete: false}, nil
@@ -197,31 +211,31 @@ func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *sessi
 		pageCount, countErr := strconv.Atoi(meta.PageCount)
 		total, totalErr := strconv.Atoi(meta.ItemCount)
 		if pageErr != nil || countErr != nil || totalErr != nil || currentPage != page || pageCount < 0 || pageCount > maxLookupPages || total < 0 {
-			return domain.PatientCandidateRead{}, fmt.Errorf("invalid or excessive patient lookup pagination")
+			return domain.PatientCandidateRead{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "invalid or excessive patient lookup pagination")
 		}
 		if page == 1 && total == 0 && len(batch) == 0 && pageCount <= 1 {
 			if !pageRead.Complete {
-				return domain.PatientCandidateRead{}, fmt.Errorf("contradictory empty patient lookup")
+				return domain.PatientCandidateRead{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "contradictory empty patient lookup")
 			}
 			return domain.PatientCandidateRead{Patients: patients, Complete: true}, nil
 		}
 		if pageCount < page || len(batch) == 0 {
-			return domain.PatientCandidateRead{}, fmt.Errorf("incomplete patient lookup page")
+			return domain.PatientCandidateRead{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "incomplete patient lookup page")
 		}
 		if page == 1 {
 			expectedPages, expectedTotal = pageCount, total
 		}
 		if pageCount != expectedPages || total != expectedTotal {
-			return domain.PatientCandidateRead{}, fmt.Errorf("patient lookup changed during pagination")
+			return domain.PatientCandidateRead{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "patient lookup changed during pagination")
 		}
 		if page == pageCount {
 			if len(patients) < total {
-				return domain.PatientCandidateRead{}, fmt.Errorf("incomplete patient lookup results")
+				return domain.PatientCandidateRead{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "incomplete patient lookup results")
 			}
 			return domain.PatientCandidateRead{Patients: patients, Complete: len(patients) == total}, nil
 		}
 	}
-	return domain.PatientCandidateRead{}, fmt.Errorf("patient lookup exceeded page limit")
+	return domain.PatientCandidateRead{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "patient lookup exceeded page limit")
 }
 
 type patientList struct {
@@ -240,7 +254,7 @@ func parseLookupResponse(body []byte) (domain.PatientCandidateRead, patientList,
 		PatientList *patientList `json:"patientlist"`
 	}
 	if json.Unmarshal(results, &parsed) != nil || parsed.PatientList == nil {
-		return domain.PatientCandidateRead{}, patientList{}, fmt.Errorf("lookuppatient returned malformed patientlist")
+		return domain.PatientCandidateRead{}, patientList{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "lookuppatient returned malformed patientlist")
 	}
 	list := *parsed.PatientList
 	patients, patientsErr := oneOrMany[amdPatient](list.Patients)
@@ -253,7 +267,7 @@ func parseLookupResponse(body []byte) (domain.PatientCandidateRead, patientList,
 		}, list, nil
 	}
 	if patientsErr != nil || len(patients) == 0 {
-		return domain.PatientCandidateRead{}, patientList{}, fmt.Errorf("lookuppatient returned malformed patientlist")
+		return domain.PatientCandidateRead{}, patientList{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "lookuppatient returned malformed patientlist")
 	}
 	count, countErr := strconv.Atoi(list.ItemCount)
 	return domain.PatientCandidateRead{
@@ -299,7 +313,7 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *session.To
 		},
 	}
 
-	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, xmlrpcWrite)
+	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, writeRequest)
 	if err != nil {
 		return domain.CreatedPatient{}, fmt.Errorf("addpatient request failed: %w", err)
 	}
@@ -322,7 +336,7 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *session.To
 			}, nil
 		}
 	}
-	return domain.CreatedPatient{}, fmt.Errorf("addpatient returned unexpected response")
+	return domain.CreatedPatient{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "addpatient returned unexpected response")
 }
 
 func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *session.TokenData, patientID, respPartyID, carrierID, subscriberNum string) (resultErr error) {
@@ -352,7 +366,7 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *session.
 		},
 	}
 
-	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, xmlrpcWrite)
+	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, writeRequest)
 	if err != nil {
 		return fmt.Errorf("addinsurance request failed: %w", err)
 	}
@@ -387,7 +401,7 @@ func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *sess
 		},
 	}
 
-	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, xmlrpcWrite)
+	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, writeRequest)
 	if err != nil {
 		return fmt.Errorf("enddate insurance request failed: %w", err)
 	}
@@ -411,13 +425,13 @@ func decodeXMLRPC(body []byte, operation string) (json.RawMessage, error) {
 		} `json:"PPMDResults"`
 	}
 	if err := json.Unmarshal(body, &envelope); err != nil {
-		return nil, fmt.Errorf("%s returned malformed response: %w", operation, err)
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "%s returned malformed response: %w", operation, err)
 	}
 	if envelope.PPMDResults == nil {
-		return nil, fmt.Errorf("%s returned unexpected response", operation)
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "%s returned unexpected response", operation)
 	}
 	if providerErrorPresent(envelope.PPMDResults.Error) {
-		return nil, providerRejection(operation, body)
+		return nil, safeerrors.New(safeerrors.CategoryRejected, "%w", providerRejection(operation, body))
 	}
 	return envelope.PPMDResults.Results, nil
 }
@@ -451,7 +465,7 @@ func checkXMLRPCMutation(body []byte, operation string) error {
 	}
 	var fields map[string]interface{}
 	if json.Unmarshal(results, &fields) != nil || fields == nil {
-		return fmt.Errorf("%s returned unexpected response", operation)
+		return safeerrors.New(safeerrors.CategoryInvalidResponse, "%s returned unexpected response", operation)
 	}
 	return nil
 }
@@ -525,7 +539,7 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *sessio
 		},
 	}
 
-	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, xmlrpcRead)
+	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, readRequest)
 	if err != nil {
 		return domain.PatientDemographics{}, fmt.Errorf("getdemographic request failed: %w", err)
 	}
@@ -535,14 +549,14 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *sessio
 	}
 	var parsed amdDemographicResults
 	if err := json.Unmarshal(results, &parsed); err != nil {
-		return domain.PatientDemographics{}, fmt.Errorf("failed to parse demographic response: %w", err)
+		return domain.PatientDemographics{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to parse demographic response: %w", err)
 	}
 	patient := parsed.PatientList.Patient
 	if patient.ID == "" {
-		return domain.PatientDemographics{}, fmt.Errorf("getdemographic returned unexpected response")
+		return domain.PatientDemographics{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "getdemographic returned unexpected response")
 	}
 	if domain.StripPatientPrefix(patient.ID) != domain.StripPatientPrefix(patientID) {
-		return domain.PatientDemographics{}, fmt.Errorf("getdemographic returned mismatched patient")
+		return domain.PatientDemographics{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "getdemographic returned mismatched patient")
 	}
 
 	demographics = domain.PatientDemographics{
@@ -693,7 +707,7 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *ses
 		},
 	}
 
-	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, xmlrpcRead)
+	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, readRequest)
 	if err != nil {
 		return nil, fmt.Errorf("getschedulersetup request failed: %w", err)
 	}
@@ -707,14 +721,14 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *ses
 		} `json:"columnlist"`
 	}
 	if err := json.Unmarshal(results, &parsed); err != nil {
-		return nil, fmt.Errorf("failed to parse scheduler setup response: %w", err)
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to parse scheduler setup response: %w", err)
 	}
 	if parsed.ColumnList == nil || len(bytes.TrimSpace(parsed.ColumnList.Columns)) == 0 || string(bytes.TrimSpace(parsed.ColumnList.Columns)) == "null" {
-		return nil, fmt.Errorf("scheduler setup returned unexpected response: missing columnlist")
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "scheduler setup returned unexpected response: missing columnlist")
 	}
 	columns, err := oneOrMany[amdColumn](parsed.ColumnList.Columns)
 	if err != nil {
-		return nil, fmt.Errorf("scheduler setup returned invalid column collection")
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "scheduler setup returned invalid column collection")
 	}
 
 	setup := &domain.SchedulerSetup{}

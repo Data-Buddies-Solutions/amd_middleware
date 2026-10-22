@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/safeerrors"
 	"advancedmd-token-management/internal/session"
 )
 
@@ -66,7 +67,7 @@ func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *s
 
 	amdAppts, err := oneOrMany[AMDAppointmentResponse](body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse appointments: %w", err)
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to parse appointments: %w", err)
 	}
 
 	return ScheduledAppointments(amdAppts)
@@ -77,7 +78,7 @@ func ScheduledAppointments(amdAppts []AMDAppointmentResponse) ([]domain.Appointm
 	for _, a := range amdAppts {
 		startTime, err := ParseDateTime(a.StartDateTime)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse appointment start time: %w", err)
+			return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to parse appointment start time: %w", err)
 		}
 
 		appointments = append(appointments, domain.Appointment{
@@ -128,14 +129,14 @@ func (c *AdvancedMDRestClient) getBlockHolds(ctx context.Context, tokenData *ses
 
 	amdHolds, err := oneOrMany[amdBlockHoldResponse](body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse block holds: %w", err)
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to parse block holds: %w", err)
 	}
 
 	var holds []domain.BlockHold
 	for _, h := range amdHolds {
 		startTime, err := ParseDateTime(h.StartDateTime)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse block hold start time: %w", err)
+			return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to parse block hold start time: %w", err)
 		}
 
 		endTime, err := ParseDateTime(h.EndDateTime)
@@ -177,7 +178,7 @@ func (c *AdvancedMDRestClient) GetAppointmentsByMonth(ctx context.Context, token
 
 	appts, err := oneOrMany[AMDAppointmentResponse](body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse appointments: %w", err)
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to parse appointments: %w", err)
 	}
 	return appts, nil
 }
@@ -209,12 +210,12 @@ func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *s
 
 	bodyBytes, err := json.Marshal(params)
 	if err != nil {
-		return 0, fmt.Errorf("failed to marshal request body: %w", err)
+		return 0, safeerrors.NotSent("failed to marshal request body: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(bodyBytes))
 	if err != nil {
-		return 0, fmt.Errorf("failed to create request: %w", err)
+		return 0, safeerrors.NotSent("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Authorization", tokenData.Token)
@@ -229,20 +230,20 @@ func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *s
 	observeProviderStatus(ctx, resp.StatusCode)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return 0, &HTTPStatusError{StatusCode: resp.StatusCode}
+		return 0, statusError(resp.StatusCode, writeRequest)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return 0, fmt.Errorf("failed to read response: %w", err)
+		return 0, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to read response: %w", err)
 	}
 
 	var result bookAppointmentResponse
 	if err := json.Unmarshal(body, &result); err != nil {
-		return 0, fmt.Errorf("failed to parse response: %w", err)
+		return 0, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to parse response: %w", err)
 	}
 	if result.ID <= 0 {
-		return 0, fmt.Errorf("invalid booking response")
+		return 0, safeerrors.New(safeerrors.CategoryInvalidResponse, "invalid booking response")
 	}
 
 	return result.ID, nil
@@ -259,12 +260,12 @@ func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData 
 	}
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		return fmt.Errorf("failed to marshal request body: %w", err)
+		return safeerrors.NotSent("failed to marshal request body: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewReader(bodyBytes))
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return safeerrors.NotSent("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Authorization", tokenData.Token)
@@ -279,7 +280,7 @@ func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData 
 	observeProviderStatus(ctx, resp.StatusCode)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return &HTTPStatusError{StatusCode: resp.StatusCode}
+		return statusError(resp.StatusCode, writeRequest)
 	}
 
 	return nil
@@ -288,7 +289,7 @@ func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData 
 func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *session.TokenData, url, operation string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, safeerrors.NotSent("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Authorization", tokenData.Token)
@@ -306,15 +307,15 @@ func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *s
 			"WARNING: provider=advancedmd operation=%q upstream_http_status=%d",
 			operation, resp.StatusCode,
 		)
-		return nil, &HTTPStatusError{StatusCode: resp.StatusCode}
+		return nil, statusError(resp.StatusCode, readRequest)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to read response: %w", err)
 	}
 	if len(bytes.TrimSpace(body)) == 0 {
-		return nil, fmt.Errorf("failed to parse empty %s response", operation)
+		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to parse empty %s response", operation)
 	}
 	return body, nil
 }

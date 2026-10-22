@@ -50,11 +50,18 @@ func MutationFailureOf(err error) MutationFailure {
 	if IsAmbiguousWrite(err) {
 		return MutationAmbiguous
 	}
-	switch CategoryOf(err) {
-	case safeerrors.CategoryAuthentication, safeerrors.CategoryConflict, safeerrors.CategoryRejected:
+	if refusedWrite(CategoryOf(err)) {
 		return MutationRejected
+	}
+	return ""
+}
+
+func refusedWrite(category safeerrors.Category) bool {
+	switch category {
+	case safeerrors.CategoryAuthentication, safeerrors.CategoryConflict, safeerrors.CategoryRejected:
+		return true
 	default:
-		return ""
+		return false
 	}
 }
 

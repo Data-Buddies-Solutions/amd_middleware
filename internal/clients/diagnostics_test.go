@@ -3,7 +3,6 @@ package clients
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -120,9 +119,8 @@ func TestRestMutationDiagnosticsPreserveStatusError(t *testing.T) {
 	defer provider.Close()
 	ctx, diagnostics := safeerrors.WithDiagnostics(context.Background())
 	_, err := NewAdvancedMDRestClient(provider.Client()).BookAppointment(ctx, &session.TokenData{RestApiBase: strings.TrimPrefix(provider.URL, "https://")}, BookAppointmentParams{})
-	var status *HTTPStatusError
-	if !errors.As(err, &status) || status.StatusCode != 503 {
-		t.Fatalf("booking error = %v, want status 503", err)
+	if safeerrors.Classify(err) != safeerrors.CategoryUpstreamStatus || safeerrors.IsNotSent(err) {
+		t.Fatalf("booking error = %v, want a sent upstream_status failure", err)
 	}
 	failures, count := diagnostics.Snapshot()
 	if count != 1 || failures[0].HTTPStatus != 503 || failures[0].Operation != "book_appointment" {
