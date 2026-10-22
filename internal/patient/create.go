@@ -21,7 +21,8 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 	if err != nil {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
 	}
-	decision := decideInsurance(command.Insurance, command.InsurancePlanID, command.CoverageType, office, command.DOB, p.now())
+	now := p.now()
+	decision := decideInsurance(command.Insurance, command.InsurancePlanID, command.CoverageType, office, command.DOB, now)
 	command.SubscriberNum = subscriberNumber(decision.SelfPay, command.SubscriberNum)
 	if missing := createMissingFields(command); len(missing) > 0 {
 		return CreateResult{
@@ -29,6 +30,9 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 			Outcome: MutationValidationFailed,
 			Message: fmt.Sprintf("Missing required fields: %s", strings.Join(missing, ", ")),
 		}
+	}
+	if err := domain.ValidateOptionalDOB(command.DOB, now); err != nil {
+		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
 	}
 	if decision.Participation != "accepted" {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
