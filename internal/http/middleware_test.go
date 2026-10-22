@@ -688,3 +688,25 @@ func TestRequestIDMiddlewareLogsOnlyCanonicalUUIDv4AsIs(t *testing.T) {
 		t.Errorf("generated request ID %q is not a UUIDv4", generated)
 	}
 }
+
+func TestRequestLogSkipsSuccessfulReadinessProbes(t *testing.T) {
+	var logs bytes.Buffer
+	previousWriter := log.Writer()
+	log.SetOutput(&logs)
+	t.Cleanup(func() { log.SetOutput(previousWriter) })
+	router := NewRouter(NewHandlers(nil, nil, nil, testNow), "test-secret", nil)
+
+	ready := httptest.NewRecorder()
+	router.ServeHTTP(ready, httptest.NewRequest(http.MethodGet, "/ready", nil))
+	if ready.Code != http.StatusOK {
+		t.Fatalf("/ready status = %d, want 200", ready.Code)
+	}
+	if logs.Len() != 0 {
+		t.Fatalf("a successful readiness probe wrote a request log line: %s", logs.String())
+	}
+
+	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/live", nil))
+	if entry := decodeLastLogEntry(t, logs.String()); entry["route_template"] != "/live" {
+		t.Fatalf("route_template = %v, want /live still logged", entry["route_template"])
+	}
+}
