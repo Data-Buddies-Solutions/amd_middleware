@@ -13,7 +13,7 @@ type Status string
 
 const (
 	StatusVerified        Status = "verified"
-	StatusCandidate       Status = "candidate"
+	statusCandidate       Status = "candidate"
 	StatusMultipleMatches Status = "multiple_matches"
 	StatusNotFound        Status = "not_found"
 	StatusUnresolved      Status = "unresolved"
@@ -23,7 +23,7 @@ type AppointmentsStatus string
 
 const (
 	AppointmentsFound AppointmentsStatus = "found"
-	AppointmentsNone  AppointmentsStatus = "none"
+	appointmentsNone  AppointmentsStatus = "none"
 	AppointmentsError AppointmentsStatus = "error"
 )
 
@@ -31,7 +31,7 @@ type CreateStatus string
 
 const (
 	CreateStatusCreated CreateStatus = "created"
-	CreateStatusPartial CreateStatus = "partial"
+	createStatusPartial CreateStatus = "partial"
 	CreateStatusError   CreateStatus = "error"
 )
 

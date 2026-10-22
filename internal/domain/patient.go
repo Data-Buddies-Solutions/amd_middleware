@@ -140,7 +140,7 @@ func NormalizeDOB(dob string) string {
 	return dob
 }
 
-func IsMinor(dob string) bool {
+func isMinor(dob string) bool {
 	age, ok := AgeYears(dob)
 	if !ok {
 		return false

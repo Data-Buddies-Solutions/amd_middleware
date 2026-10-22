@@ -58,7 +58,7 @@ func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveR
 		results := make([]Candidate, 0, len(matches))
 		for _, candidate := range matches {
 			results = append(results, Candidate{
-				Status:    StatusCandidate,
+				Status:    statusCandidate,
 				PatientID: candidate.ID,
 				FirstName: patientFirstName(candidate),
 				LastName:  patientLastName(candidate),
@@ -263,7 +263,7 @@ func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate 
 		})
 	}
 	if len(result.Appointments) == 0 {
-		result.AppointmentsStatus = AppointmentsNone
+		result.AppointmentsStatus = appointmentsNone
 		result.Message = "Patient verified, no appointments found"
 		return result, nil
 	}

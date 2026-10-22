@@ -196,7 +196,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 		AvailabilityFound:     true,
 		RequestedDate:         originalRequestedDate,
 		ShouldRetrySameSearch: false,
-		NextAction:            AvailabilityNextActionOfferSlots,
+		NextAction:            availabilityNextActionOfferSlots,
 		ActualDate:            actualDate,
 		DateShifted:           actualDate != originalRequestedDate,
 		SearchedFrom:          searchStartDate,

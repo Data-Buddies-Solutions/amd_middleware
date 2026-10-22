@@ -54,7 +54,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 	})
 	if outcome != "" {
 		partial := CreateResult{
-			Status:    CreateStatusPartial,
+			Status:    createStatusPartial,
 			Outcome:   outcome,
 			PatientID: created.ID,
 			Name:      created.Name,

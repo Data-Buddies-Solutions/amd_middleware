@@ -216,7 +216,7 @@ func TestBookAppointment_IncludesForceWhenSet(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(BookAppointmentResponse{ID: 98765})
+		json.NewEncoder(w).Encode(bookAppointmentResponse{ID: 98765})
 	})
 
 	client, tokenData, cleanup := newTestRestClient(t, handler)

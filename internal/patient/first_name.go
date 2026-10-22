@@ -80,7 +80,7 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 	if len(matches) > 1 {
 		candidates := make([]Candidate, 0, len(matches))
 		for _, row := range matches {
-			candidates = append(candidates, Candidate{Status: StatusCandidate, PatientID: row.ID, FirstName: candidateName(row), LastName: patientLastName(row), DOB: domain.NormalizeDOB(row.DOB)})
+			candidates = append(candidates, Candidate{Status: statusCandidate, PatientID: row.ID, FirstName: candidateName(row), LastName: patientLastName(row), DOB: domain.NormalizeDOB(row.DOB)})
 		}
 		return ResolveResult{Status: StatusMultipleMatches, Matches: candidates, Appointments: []Appointment{}, Message: "More than one patient matches this first name and date of birth. Ask office staff to resolve the identity.", Observation: observation}, nil
 	}

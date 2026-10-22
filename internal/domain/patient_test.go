@@ -51,9 +51,9 @@ func TestIsMinor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := IsMinor(tt.dob)
+			got := isMinor(tt.dob)
 			if got != tt.expected {
-				t.Errorf("IsMinor(%q) = %v, want %v", tt.dob, got, tt.expected)
+				t.Errorf("isMinor(%q) = %v, want %v", tt.dob, got, tt.expected)
 			}
 		})
 	}

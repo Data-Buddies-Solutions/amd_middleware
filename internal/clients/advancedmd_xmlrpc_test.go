@@ -563,12 +563,12 @@ func TestAdvancedMDClient_GetSchedulerSetup(t *testing.T) {
 }
 
 func TestConvertPatients_PrefersCellPhone(t *testing.T) {
-	amdPatients := []AMDPatient{
+	amdPatients := []amdPatient{
 		{
 			ID:   "pat100",
 			Name: "DOE,JANE",
 			DOB:  "03/20/1990",
-			ContactInfo: AMDContactInfo{
+			ContactInfo: amdContactInfo{
 				HomePhone: "555-999-8888",
 				CellPhone: "555-111-2222",
 			},
@@ -603,7 +603,7 @@ func TestLookupPatientCandidatesCompleteness(t *testing.T) {
 			calls := 0
 			client, token, cleanup := newTestXMLRPCClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				calls++
-				var request AMDLookupRequest
+				var request amdLookupRequest
 				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 					t.Fatal(err)
 				}

@@ -268,8 +268,8 @@ func applyBookingPolicy(booking *bookingContext) (
 	})
 	if policyErr != nil {
 		category := CategoryValidation
-		if policyErr.Outcome == string(CategoryAppointmentTypeMissing) {
-			category = CategoryAppointmentTypeMissing
+		if policyErr.Outcome == string(categoryAppointmentTypeMissing) {
+			category = categoryAppointmentTypeMissing
 		}
 		return schedulingPolicy{}, bookingPolicyDecision{}, "", &Error{
 			category: category,

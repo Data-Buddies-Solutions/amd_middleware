@@ -15,11 +15,11 @@ import (
 	"advancedmd-token-management/internal/session"
 )
 
-type AMDLookupRequest struct {
-	PPMDMsg AMDLookupMsg `json:"ppmdmsg"`
+type amdLookupRequest struct {
+	PPMDMsg amdLookupMsg `json:"ppmdmsg"`
 }
 
-type AMDLookupMsg struct {
+type amdLookupMsg struct {
 	Action string `json:"@action"`
 	Class  string `json:"@class"`
 	Name   string `json:"@name,omitempty"`
@@ -28,15 +28,15 @@ type AMDLookupMsg struct {
 	Page   int    `json:"@page,omitempty"`
 }
 
-type AMDPatient struct {
+type amdPatient struct {
 	ID          string         `json:"@id"`
 	Name        string         `json:"@name"`
 	DOB         string         `json:"@dob"`
 	RespParty   string         `json:"@respparty"`
-	ContactInfo AMDContactInfo `json:"contactinfo"`
+	ContactInfo amdContactInfo `json:"contactinfo"`
 }
 
-type AMDContactInfo struct {
+type amdContactInfo struct {
 	HomePhone   string `json:"@homephone"`
 	CellPhone   string `json:"@cellphone"`
 	MobilePhone string `json:"@mobilephone"`
@@ -121,8 +121,8 @@ func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *session
 		name = lastName + "," + firstName
 	}
 
-	reqBody := AMDLookupRequest{
-		PPMDMsg: AMDLookupMsg{
+	reqBody := amdLookupRequest{
+		PPMDMsg: amdLookupMsg{
 			Action: "lookuppatient",
 			Class:  "api",
 			Name:   name,
@@ -134,7 +134,7 @@ func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *session
 }
 
 func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *session.TokenData, firstName, dob string) (read domain.PatientCandidateRead, resultErr error) {
-	read, err := c.doPatientLookup(ctx, tokenData, AMDLookupRequest{PPMDMsg: AMDLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName, DOB: dob}})
+	read, err := c.doPatientLookup(ctx, tokenData, amdLookupRequest{PPMDMsg: amdLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName, DOB: dob}})
 	if err != nil {
 		return read, err
 	}
@@ -153,7 +153,7 @@ func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenDat
 }
 
 func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *session.TokenData, phone string) ([]domain.Patient, error) {
-	payload := AMDLookupRequest{PPMDMsg: AMDLookupMsg{
+	payload := amdLookupRequest{PPMDMsg: amdLookupMsg{
 		Action: "lookuppatient", Class: "api", Phone: phone,
 	}}
 
@@ -161,7 +161,7 @@ func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *
 	return read.Patients, err
 }
 
-func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *session.TokenData, payload AMDLookupRequest) (read domain.PatientCandidateRead, resultErr error) {
+func (c *AdvancedMDClient) doPatientLookup(ctx context.Context, tokenData *session.TokenData, payload amdLookupRequest) (read domain.PatientCandidateRead, resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "lookuppatient")
 	defer func() { finish(resultErr) }()
 	const maxLookupPages = 100
@@ -245,7 +245,7 @@ func parseLookupResponse(body []byte) (domain.PatientCandidateRead, patientList,
 		return domain.PatientCandidateRead{}, patientList{}, fmt.Errorf("lookuppatient returned malformed patientlist")
 	}
 	list := *parsed.PatientList
-	patients, patientsErr := oneOrMany[AMDPatient](list.Patients)
+	patients, patientsErr := oneOrMany[amdPatient](list.Patients)
 	pages, pageErr := strconv.Atoi(list.PageCount)
 	if list.ItemCount == "0" {
 		empty := patientsErr == nil && len(patients) == 0
@@ -315,7 +315,7 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *session.To
 		} `json:"patientlist"`
 	}
 	if json.Unmarshal(results, &parsed) == nil {
-		patients, err := oneOrMany[AMDPatient](parsed.PatientList.Patient)
+		patients, err := oneOrMany[amdPatient](parsed.PatientList.Patient)
 		if err == nil && len(patients) > 0 && patients[0].ID != "" {
 			return domain.CreatedPatient{
 				ID:          domain.StripPatientPrefix(patients[0].ID),
@@ -487,7 +487,7 @@ func providerErrorPresent(value interface{}) bool {
 	}
 }
 
-type AMDDemographicResults struct {
+type amdDemographicResults struct {
 	PatientList struct {
 		Patient struct {
 			ID          string          `json:"@id"`
@@ -500,7 +500,7 @@ type AMDDemographicResults struct {
 	CarrierList json.RawMessage `json:"carrierlist"`
 }
 
-type AMDInsPlan struct {
+type amdInsPlan struct {
 	ID            string `json:"@id"`
 	Carrier       string `json:"@carrier"`
 	Subscriber    string `json:"@subscriber"`
@@ -509,7 +509,7 @@ type AMDInsPlan struct {
 	Coverage      string `json:"@coverage"`
 }
 
-type AMDCarrier struct {
+type amdCarrier struct {
 	ID   string `json:"@id"`
 	Name string `json:"@name"`
 }
@@ -535,7 +535,7 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *sessio
 	if err != nil {
 		return domain.PatientDemographics{}, err
 	}
-	var parsed AMDDemographicResults
+	var parsed amdDemographicResults
 	if err := json.Unmarshal(results, &parsed); err != nil {
 		return domain.PatientDemographics{}, fmt.Errorf("failed to parse demographic response: %w", err)
 	}
@@ -571,18 +571,18 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *sessio
 	return demographics, nil
 }
 
-func activePrimaryPlan(insPlanList json.RawMessage) (*AMDInsPlan, bool) {
+func activePrimaryPlan(insPlanList json.RawMessage) (*amdInsPlan, bool) {
 	var list struct {
 		InsPlan json.RawMessage `json:"insplan"`
 	}
 	if insPlanList != nil && json.Unmarshal(insPlanList, &list) != nil {
 		return nil, false
 	}
-	plans, err := oneOrMany[AMDInsPlan](list.InsPlan)
+	plans, err := oneOrMany[amdInsPlan](list.InsPlan)
 	if err != nil {
 		return nil, false
 	}
-	var active *AMDInsPlan
+	var active *amdInsPlan
 	for i := range plans {
 		if !isActivePrimaryPlan(plans[i]) {
 			continue
@@ -602,7 +602,7 @@ func carrierName(carrierList json.RawMessage, carrierID string) string {
 	if carrierList == nil || json.Unmarshal(carrierList, &list) != nil {
 		return carrierID
 	}
-	carriers, _ := oneOrMany[AMDCarrier](list.Carrier)
+	carriers, _ := oneOrMany[amdCarrier](list.Carrier)
 	for _, carrier := range carriers {
 		if carrier.ID == carrierID {
 			return carrier.Name
@@ -611,11 +611,11 @@ func carrierName(carrierList json.RawMessage, carrierID string) string {
 	return carrierID
 }
 
-func isActivePrimaryPlan(plan AMDInsPlan) bool {
+func isActivePrimaryPlan(plan amdInsPlan) bool {
 	return plan.EndDate == "" && (plan.Coverage == "" || plan.Coverage == "1")
 }
 
-func convertPatients(amdPatients []AMDPatient) []domain.Patient {
+func convertPatients(amdPatients []amdPatient) []domain.Patient {
 	patients := make([]domain.Patient, len(amdPatients))
 	for i, p := range amdPatients {
 		patients[i] = domain.Patient{
@@ -629,7 +629,7 @@ func convertPatients(amdPatients []AMDPatient) []domain.Patient {
 	return patients
 }
 
-func bestPatientPhone(contact AMDContactInfo) string {
+func bestPatientPhone(contact amdContactInfo) string {
 	for _, phone := range []string{
 		contact.CellPhone,
 		contact.MobilePhone,

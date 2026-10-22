@@ -79,5 +79,5 @@ func (s *service) verifyRescheduleOriginal(ctx context.Context, policy appointme
 			return nil
 		}
 	}
-	return categorizedError(CategoryOwnershipMismatch, "The original appointment changed or no longer exists. Load appointments again before another change.")
+	return categorizedError(categoryOwnershipMismatch, "The original appointment changed or no longer exists. Load appointments again before another change.")
 }
