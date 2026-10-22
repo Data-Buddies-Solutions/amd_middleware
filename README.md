@@ -358,6 +358,11 @@ Patient resolution records it in its `patient_resolution` object, and
 add-patient records its duplicate-check search as
 `patient_create.lookup_complete`.
 
+When a handler panics, the route returns HTTP 500 and the request log adds a
+`panic` object with the panic value's Go `type` and a `stack` of up to 64
+frames, each `function file:line`. It never records the panic value, its
+message, or frame arguments, because each can carry request data or IDs.
+
 Operational routes have separate contracts:
 
 | Route | Contract |
