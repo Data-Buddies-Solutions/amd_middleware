@@ -156,6 +156,9 @@ func loggingMiddleware(amdSession session.Session) func(http.Handler) http.Handl
 			if routeTemplate == "" {
 				routeTemplate = "unmatched"
 			}
+			if routeTemplate == "/ready" && wrapped.statusCode == http.StatusOK && state.panic == nil {
+				return
+			}
 			providerErrors, providerErrorCount := diagnostics.Snapshot()
 			writeRequestLog(requestLogEntry{
 				RequestID:          requestIDForLog(r.Context()),
