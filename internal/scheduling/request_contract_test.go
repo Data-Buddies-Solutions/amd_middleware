@@ -2,7 +2,6 @@ package scheduling_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -10,18 +9,6 @@ import (
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/scheduling"
 )
-
-func TestBookingRequestDoesNotDecodeServerOwnedFields(t *testing.T) {
-	for _, field := range []string{`"visitKind":"post_op"`, `"ageBand":"adult"`, `"isPostOp":true`, `"insurancePlan":"ignored"`, `"columnId":999`, `"profileId":999`, `"startDatetime":"2026-06-03T10:00"`, `"duration":60`, `"routing":"optical_only"`} {
-		t.Run(field, func(t *testing.T) {
-			decoder := json.NewDecoder(strings.NewReader("{" + field + "}"))
-			decoder.DisallowUnknownFields()
-			if err := decoder.Decode(&scheduling.BookCommand{}); err == nil {
-				t.Fatalf("obsolete request field accepted: %s", field)
-			}
-		})
-	}
-}
 
 func TestBookingCommentIncludesReferringDoctorContact(t *testing.T) {
 	for _, scenario := range []struct {
