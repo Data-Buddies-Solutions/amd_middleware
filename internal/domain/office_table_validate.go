@@ -4,8 +4,11 @@ import (
 	"cmp"
 	"fmt"
 	"maps"
+	"regexp"
 	"slices"
 )
+
+var e164Phone = regexp.MustCompile(`^\+1[0-9]{10}$`)
 
 func validateOfficeTable(table officeTable) error {
 	definitions := make(map[string]officeDefinition, len(table.Offices))
@@ -149,6 +152,9 @@ func validateEnvironment(offices []officeDefinition, definitions map[string]offi
 			return fmt.Errorf("office %s needs a phone, a facility, and a default profile", definition.ID)
 		}
 		for _, phone := range officeBinding.Phones {
+			if !e164Phone.MatchString(phone) {
+				return fmt.Errorf("office %s phone %s is not in +1XXXXXXXXXX form", definition.ID, phone)
+			}
 			if owner, ok := phoneOwners[phone]; ok {
 				return fmt.Errorf("phone %s is bound to %s and %s", phone, owner, definition.ID)
 			}

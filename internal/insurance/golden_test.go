@@ -108,7 +108,7 @@ func planRows(t *testing.T) string {
 }
 
 func forEachOfficeCoverage(t *testing.T, visit func(o *domain.OfficeConfig, coverage string)) {
-	officeIDs := domain.OfficeIDs()
+	officeIDs := domain.TableOfficeIDs()
 	slices.Sort(officeIDs)
 	for _, officeID := range officeIDs {
 		o := office(t, officeID)

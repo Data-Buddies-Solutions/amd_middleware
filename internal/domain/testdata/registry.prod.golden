@@ -1,5 +1,15 @@
 default	spring_hill
 officeIDs	crystal_river,hollywood,north_miami_beach_optical,spring_hill,sweetwater
+phone	+13055095333	north_miami_beach_optical
+phone	+13523202007	crystal_river
+phone	+17275919997	spring_hill
+phone	+17864654836	sweetwater
+phone	+17864654845	sweetwater
+phone	+17864654882	sweetwater
+phone	+17864657475	sweetwater
+phone	+17864657479	sweetwater
+phone	+17866134310	sweetwater
+phone	+19542872010	hollywood
 lookup	"+17275919997"	spring_hill
 lookup	"17275919997"	spring_hill
 lookup	"7275919997"	spring_hill

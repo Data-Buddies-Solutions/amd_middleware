@@ -3,6 +3,7 @@ package domain
 import (
 	"flag"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -102,7 +103,10 @@ func goldenRow(rows []string, i int) string {
 func registryRows() string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "default\t%s\n", DefaultOffice().ID)
-	fmt.Fprintf(&b, "officeIDs\t%s\n", strings.Join(OfficeIDs(), ","))
+	fmt.Fprintf(&b, "officeIDs\t%s\n", strings.Join(TableOfficeIDs(), ","))
+	for _, phone := range slices.Sorted(maps.Keys(selected().byPhone)) {
+		fmt.Fprintf(&b, "phone\t%s\t%s\n", phone, selected().byPhone[phone].ID)
+	}
 	for _, input := range goldenLookups {
 		office, ok := LookupOffice(input)
 		fmt.Fprintf(&b, "lookup\t%q\t%s\n", input, goldenOfficeID(office, ok))

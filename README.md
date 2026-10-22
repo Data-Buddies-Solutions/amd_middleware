@@ -468,6 +468,12 @@ An automatic deploy replaces the sandbox revision, so the new instance logs in
 to AdvancedMD again. A simulation running when a release lands can be
 interrupted; rerun it against the new revision.
 
+Roll the sandbox back only by sending traffic to an older revision, which keeps
+that revision's own image and `AMD_ENV`. Never deploy an image older than the
+`AMD_ENV=sandbox` migration onto it with `--image` or the bootstrap script: older
+code treats `sandbox` as unknown and loads the production office registry
+against the sandbox AdvancedMD account.
+
 For an ad hoc deploy from source, run the workflow manually and confirm
 `sandbox_idle`, or push a `staging-*` tag. Both share the `middleware-staging`
 concurrency group with release deploys, so deploys never overlap, and a deploy

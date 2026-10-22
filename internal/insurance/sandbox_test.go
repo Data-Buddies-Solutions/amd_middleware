@@ -59,7 +59,7 @@ func TestEveryCatalogOfficeIsServedOrDeclinedInEachEnvironment(t *testing.T) {
 			for _, officeID := range list.Offices {
 				o, ok := domain.LookupOfficeByID(officeID)
 				if !ok {
-					if _, inTable := domain.OfficeProviderNames(officeID); !inTable {
+					if _, inTable := domain.TableOfficeProviderNames(officeID); !inTable {
 						t.Errorf("%s: catalog office %s is not in the office table", env, officeID)
 					}
 					continue

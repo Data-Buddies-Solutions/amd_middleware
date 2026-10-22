@@ -28,7 +28,7 @@ func main() {
 
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("Failed to load config category=%s", safeerrors.Classify(err))
+		log.Fatalf("Failed to load config: %v", err)
 	}
 	domain.InitRegistry(cfg.AMDEnv)
 

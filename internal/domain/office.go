@@ -205,7 +205,7 @@ func (o *OfficeConfig) AppointmentTypeName(typeID int) (string, bool) {
 	return appointmentType.Name, ok
 }
 
-func OfficeIDs() []string {
+func TableOfficeIDs() []string {
 	ids := make([]string, 0, len(officeData.Offices))
 	for _, definition := range officeData.Offices {
 		ids = append(ids, definition.ID)
@@ -214,7 +214,7 @@ func OfficeIDs() []string {
 	return ids
 }
 
-func OfficeProviderNames(officeID string) ([]string, bool) {
+func TableOfficeProviderNames(officeID string) ([]string, bool) {
 	for _, definition := range officeData.Offices {
 		if definition.ID != officeID {
 			continue
