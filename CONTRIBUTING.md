@@ -41,6 +41,14 @@ commit. Its historical name is retained for the GitHub check integration.
 The Production status workflow tracks that build on the same tag push.
 Creating a matching tag manually also triggers production deployment.
 
+The same tag redeploys the staging (simulation) service with production's
+image once that build succeeds, so simulations never test an older middleware.
+That deploy logs the sandbox in to AdvancedMD again and can interrupt a
+simulation running at release time. The manual staging workflow and `staging-*`
+tags still deploy from source for ad hoc testing. Release deploys need three
+one-time grants; README.md's "Staging follows each release" section lists the
+commands.
+
 ## Enforced rules
 
 Each rule below fails a check today. A rule without a check does not belong
