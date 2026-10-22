@@ -393,13 +393,11 @@ curl http://localhost:8080/live
 curl http://localhost:8080/ready
 ```
 
-Build and verify. `go test ./...` also runs the layer and no-comments checks.
+Build and verify with the same script CI runs. Its tests include the layer,
+no-comments, wall-clock, and README route checks.
 
 ```bash
-go build ./...
-go test ./...
-go vet ./...
-test -z "$(gofmt -l cmd internal .)"
+scripts/check
 ```
 
 The container uses the same interface:

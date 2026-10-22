@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+step=""
+trap 'echo "check failed: ${step}" >&2' ERR
+
+step="gofmt"
+echo "==> ${step}"
+go_files=()
+while IFS= read -r -d '' file; do
+  if [[ -f "${file}" ]]; then
+    go_files+=("${file}")
+  fi
+done < <(git ls-files -z --cached --others --exclude-standard -- '*.go')
+unformatted="$(gofmt -l "${go_files[@]}")"
+if [[ -n "${unformatted}" ]]; then
+  echo "${unformatted}" >&2
+  echo "check failed: ${step}; run gofmt -w on the files above" >&2
+  exit 1
+fi
+
+step="build"
+echo "==> ${step}"
+go build ./...
+
+step="vet"
+echo "==> ${step}"
+go vet ./...
+
+step="race tests"
+echo "==> ${step}"
+go test -race ./...
+
+step="dead code"
+echo "==> ${step}"
+unreachable="$(go run golang.org/x/tools/cmd/deadcode@v0.51.0 -test ./...)"
+if [[ -n "${unreachable}" ]]; then
+  echo "${unreachable}" >&2
+  echo "check failed: ${step}; delete the unreachable code above or call it" >&2
+  exit 1
+fi
+
+echo "check passed"

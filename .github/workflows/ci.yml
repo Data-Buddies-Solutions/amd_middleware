@@ -27,25 +27,8 @@ jobs:
       - name: Download modules
         run: go mod download
 
-      - name: Format check
-        run: test -z "$(gofmt -l cmd internal)"
-
-      - name: Build
-        run: go build ./...
-
-      - name: Test
-        run: go test ./... -v
-
-      - name: Vet
-        run: go vet ./...
-
-      - name: Race test
-        run: go test -race ./...
-
-      - name: Dead code check
-        run: |
-          out="$(go run golang.org/x/tools/cmd/deadcode@v0.51.0 -test ./...)"
-          test -z "$out" || { echo "$out"; exit 1; }
+      - name: Go checks
+        run: scripts/check
 
       - name: Deployment script test
         run: scripts/deploy-cloud-run_test.sh
