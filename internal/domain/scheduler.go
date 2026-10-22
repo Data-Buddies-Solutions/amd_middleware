@@ -36,11 +36,6 @@ type SchedulerSetup struct {
 	Columns []SchedulerColumn
 }
 
-type ScheduleReadQuery struct {
-	ColumnIDs []string
-	Date      string
-}
-
 type ScheduleRangeQuery struct {
 	ColumnIDs []string
 	Start     time.Time

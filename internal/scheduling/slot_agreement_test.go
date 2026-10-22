@@ -78,15 +78,15 @@ func appointmentSpan(row clients.AMDAppointmentResponse) domain.Interval {
 type agreementRecords struct {
 	*advancedmdtest.Adapter
 	schedule *advancedmd.Adapter
-	days     map[string]domain.ScheduleReadResult
+	days     map[advancedmdtest.ColumnDay]domain.ColumnSchedule
 }
 
-func (r agreementRecords) ReadSchedule(ctx context.Context, query domain.ScheduleReadQuery) (domain.ScheduleReadResult, error) {
-	key := query.Date + " " + strings.Join(query.ColumnIDs, "-")
+func (r agreementRecords) ReadColumnDay(ctx context.Context, columnID, date string) (domain.ColumnSchedule, error) {
+	key := advancedmdtest.ColumnDay{Date: date, ColumnID: columnID}
 	if read, ok := r.days[key]; ok {
 		return read, nil
 	}
-	read, err := r.schedule.ReadSchedule(ctx, query)
+	read, err := r.schedule.ReadColumnDay(ctx, columnID, date)
 	if err == nil {
 		r.days[key] = read
 	}
@@ -201,7 +201,7 @@ func (c agreementCase) scheduler() (scheduling.Scheduling, *advancedmdtest.Adapt
 	fake.Demographics["12345"] = domain.PatientDemographics{CarrierName: "Self Pay", DOB: "01/15/1980"}
 	provider := &advancedmdtest.Provider{Appointments: c.rows.appointments, Holds: c.rows.holds, Responses: c.responses}
 	reads := provider.Adapter(func() time.Time { return c.now })
-	return scheduling.New(agreementRecords{Adapter: fake, schedule: reads, days: map[string]domain.ScheduleReadResult{}}, "test-booking-secret", func() time.Time { return c.now }), fake
+	return scheduling.New(agreementRecords{Adapter: fake, schedule: reads, days: map[advancedmdtest.ColumnDay]domain.ColumnSchedule{}}, "test-booking-secret", func() time.Time { return c.now }), fake
 }
 
 func (c agreementCase) list(scheduler scheduling.Scheduling) (scheduling.AvailabilityResponse, error) {

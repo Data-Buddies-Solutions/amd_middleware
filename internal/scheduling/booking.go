@@ -11,7 +11,6 @@ import (
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
-	"advancedmd-token-management/internal/safeerrors"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -324,23 +323,12 @@ func (s *service) revalidateBookingSlot(
 	if !slices.ContainsFunc(column.Slots(start), slot.Equal) {
 		return time.Time{}, false, slotUnavailableError()
 	}
-	read, err := s.records.ReadSchedule(ctx, domain.ScheduleReadQuery{
-		ColumnIDs: []string{strconv.Itoa(booking.token.ColumnID)},
-		Date:      start.Format("2006-01-02"),
-	})
+	schedule, err := s.records.ReadColumnDay(ctx, strconv.Itoa(booking.token.ColumnID), start.Format("2006-01-02"))
 	if err != nil {
 		return time.Time{}, false, categorizedProviderError(
 			CategoryWriteFailed,
 			providerCategory(err),
 			"Unable to revalidate the selected slot. Please check availability again.",
-		)
-	}
-	schedule := read.Columns[strconv.Itoa(booking.token.ColumnID)]
-	if !schedule.Complete() {
-		return time.Time{}, false, categorizedProviderError(
-			CategoryWriteFailed,
-			safeerrors.CategoryInvalidResponse,
-			"Unable to verify the selected time because appointment data is incomplete. Please try once more or contact the office.",
 		)
 	}
 	signed := slotDecision{

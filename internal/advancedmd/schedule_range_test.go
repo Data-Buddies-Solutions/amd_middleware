@@ -259,9 +259,9 @@ func TestScheduleReadsCountEveryRowWithoutAnID(t *testing.T) {
 		"blockholds 2026-10-01":   holds,
 	}}
 	adapter := newMonthScheduleAdapter(t, server)
-	day, err := adapter.ReadSchedule(context.Background(), domain.ScheduleReadQuery{ColumnIDs: []string{"1513"}, Date: "2026-10-15"})
+	day, err := adapter.ReadColumnDay(context.Background(), "1513", "2026-10-15")
 	if err != nil {
-		t.Fatalf("ReadSchedule error = %v", err)
+		t.Fatalf("ReadColumnDay error = %v", err)
 	}
 	month, err := adapter.ReadScheduleRange(context.Background(), domain.ScheduleRangeQuery{
 		ColumnIDs: []string{"1513"},
@@ -271,7 +271,7 @@ func TestScheduleReadsCountEveryRowWithoutAnID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadScheduleRange error = %v", err)
 	}
-	for view, column := range map[string]domain.ColumnSchedule{"day": day.Columns["1513"], "month": month["2026-10-15"].Columns["1513"]} {
+	for view, column := range map[string]domain.ColumnSchedule{"day": day, "month": month["2026-10-15"].Columns["1513"]} {
 		gotAppointments, gotHolds := appointmentIDs(column), holdIDs(column)
 		slices.Sort(gotAppointments)
 		slices.Sort(gotHolds)

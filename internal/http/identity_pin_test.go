@@ -251,8 +251,8 @@ func (pinRecords) GetSchedulerSetup(context.Context) (domain.SchedulerSetup, err
 	}}}, nil
 }
 
-func (pinRecords) ReadSchedule(_ context.Context, query domain.ScheduleReadQuery) (domain.ScheduleReadResult, error) {
-	return openSchedule(query.ColumnIDs), nil
+func (pinRecords) ReadColumnDay(context.Context, string, string) (domain.ColumnSchedule, error) {
+	return domain.ColumnSchedule{AppointmentsComplete: true, BlockHoldsComplete: true}, nil
 }
 
 func (pinRecords) ReadScheduleRange(_ context.Context, query domain.ScheduleRangeQuery) (map[string]domain.ScheduleReadResult, error) {

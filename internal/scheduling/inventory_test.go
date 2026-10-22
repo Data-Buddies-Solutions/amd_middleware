@@ -24,8 +24,8 @@ func TestListLoadsEveryEligibleSlotAcrossCalendarWindow(t *testing.T) {
 	if result.SearchedFrom != "2026-10-26" || result.SearchedThrough != first.AddDate(0, 0, count-1).Format("2006-01-02") {
 		t.Fatalf("wrong coverage: %s..%s", result.SearchedFrom, result.SearchedThrough)
 	}
-	if len(records.ScheduleRangeQueries) != 1 || len(records.ScheduleReadQueries) != 0 {
-		t.Fatalf("range reads=%d day reads=%d, want one range read", len(records.ScheduleRangeQueries), len(records.ScheduleReadQueries))
+	if len(records.ScheduleRangeQueries) != 1 || len(records.ColumnDayReads) != 0 {
+		t.Fatalf("range reads=%d day reads=%d, want one range read", len(records.ScheduleRangeQueries), len(records.ColumnDayReads))
 	}
 	if query := records.ScheduleRangeQueries[0]; !query.Start.Equal(first) || !query.End.Equal(first.AddDate(0, 0, count-1)) {
 		t.Fatalf("range read %s..%s", query.Start.Format("2006-01-02"), query.End.Format("2006-01-02"))
@@ -86,8 +86,8 @@ func TestListRejectsInvalidOrPastStartBeforeProviderRead(t *testing.T) {
 	for _, start := range []string{"2026-09-08", "2026-09-07", "2026-02-30", "November"} {
 		records := recordsWithSetup()
 		_, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", StartDate: start})
-		if err == nil || records.SchedulerSetupCalls != 0 || len(records.ScheduleReadQueries) != 0 {
-			t.Fatalf("start %q: error=%v setup reads=%d schedule reads=%d", start, err, records.SchedulerSetupCalls, len(records.ScheduleReadQueries))
+		if err == nil || records.SchedulerSetupCalls != 0 || len(records.ColumnDayReads) != 0 {
+			t.Fatalf("start %q: error=%v setup reads=%d schedule reads=%d", start, err, records.SchedulerSetupCalls, len(records.ColumnDayReads))
 		}
 	}
 }
