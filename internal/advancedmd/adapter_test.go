@@ -340,7 +340,9 @@ func TestAdapterUpcomingAppointmentsUsesControlledRESTServer(t *testing.T) {
 				 "facility": "ABITA EYE GROUP SPRING HILL", "appointmenttypeids": [1007], "patientid": 123},
 				{"id": 9570263, "startdatetime": "2026-08-14T12:00:00", "columnid": 1513, "provider": "BACH, AUSTIN",
 				 "facility": "ABITA EYE GROUP SPRING HILL", "appointmenttypeids": [1007], "patientid": 123},
-				{"id": 222, "startdatetime": "2026-08-14T13:00:00", "columnid": 1513, "patientid": 999}
+				{"id": 222, "startdatetime": "2026-08-14T13:00:00", "columnid": 1513, "patientid": 999},
+				{"id": 9570265, "startdatetime": "2026-08-14T15:00:00", "columnid": 1513, "provider": "BACH, AUSTIN",
+				 "facility": "ABITA EYE GROUP SPRING HILL", "appointmenttypeids": [1007], "patientid": 123}
 			]`))
 		case "2026-08-15":
 			w.Write([]byte(`[{"id": 9570264, "startdatetime": "2026-08-15T09:00:00", "columnid": 1593,
@@ -367,8 +369,8 @@ func TestAdapterUpcomingAppointmentsUsesControlledRESTServer(t *testing.T) {
 		t.Fatalf("ReadPatientAppointments() error = %v", err)
 	}
 	got := read.Appointments
-	if !read.Complete || len(got) != 3 {
-		t.Fatalf("ReadPatientAppointments() = %+v, want three complete", read)
+	if !read.Complete || len(got) != 4 {
+		t.Fatalf("ReadPatientAppointments() = %+v, want four complete", read)
 	}
 	if read.ProviderReads != 4 {
 		t.Fatalf("ProviderReads = %d, want one visit read and three day reads", read.ProviderReads)
@@ -377,12 +379,15 @@ func TestAdapterUpcomingAppointmentsUsesControlledRESTServer(t *testing.T) {
 		got[0].Type != "Established Adult Medical (Follow Up)" {
 		t.Fatalf("Spring Hill appointment = %+v", got[0])
 	}
-	if got[1].ID != 9570264 || got[1].OfficeID != "crystal_river" || got[1].Office != "Crystal River" ||
-		got[1].Type != "Crystal River Established Patient" {
-		t.Fatalf("Crystal River appointment = %+v", got[1])
+	if got[1].ID != 9570265 || got[1].OfficeID != "spring_hill" {
+		t.Fatalf("second same-day appointment = %+v", got[1])
 	}
-	if got[2].ID != 9570267 {
-		t.Fatalf("appointment beyond six months = %+v", got[2])
+	if got[2].ID != 9570264 || got[2].OfficeID != "crystal_river" || got[2].Office != "Crystal River" ||
+		got[2].Type != "Crystal River Established Patient" {
+		t.Fatalf("Crystal River appointment = %+v", got[2])
+	}
+	if got[3].ID != 9570267 || got[3].OfficeID != "spring_hill" {
+		t.Fatalf("appointment beyond six months = %+v", got[3])
 	}
 
 	message := visitRequest["ppmdmsg"].(map[string]any)
@@ -1224,5 +1229,67 @@ func TestAdapterPatientAppointmentWindowFollowsTheInjectedEasternClock(t *testin
 	}
 	if len(read.Appointments) != 1 || read.Appointments[0].ID != 40002 {
 		t.Fatalf("ReadPatientAppointments() = %#v, want only the 23:00 Eastern appointment after the 22:30 Eastern cutoff", read.Appointments)
+	}
+}
+
+func TestAdapterReturnsScheduledVisitsOutsideConfiguredColumns(t *testing.T) {
+	now := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
+	server := patientVisitServer(t, `[
+			{"@id": "9570263", "@visitstartdatetime": "2026-08-14T12:00:00", "@apptstatus": "0",
+			 "@providername": "BACH,AUSTIN", "@appointmenttype": "ADULT MEDICAL FOLLOW UP EXAM", "@facilityname": "ABITA EYE GROUP SPRING HILL"},
+			{"@id": "9570268", "@visitstartdatetime": "2026-08-20T08:30:00", "@apptstatus": "0",
+			 "@providername": "BACH,AUSTIN", "@appointmenttype": "ADULT NEW MEDICAL EXAM", "@facilityname": "ABITA EYE GROUP HOLLYWOOD"},
+			{"@id": "9570269", "@visitstartdatetime": "2026-08-21T08:30:00", "@apptstatus": "10",
+			 "@providername": "NOEL,DON", "@appointmenttype": "ADULT NEW MEDICAL EXAM", "@facilityname": ""}
+		]`, nil, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Query().Get("startDate") {
+		case "2026-08-14":
+			w.Write([]byte(`[{"id": 9570263, "startdatetime": "2026-08-14T12:00:00", "columnid": 1513, "provider": "BACH, AUSTIN",
+				"facility": "ABITA EYE GROUP SPRING HILL", "appointmenttypeids": [1007], "patientid": 123}]`))
+		case "2026-08-20":
+			w.Write([]byte(`[{"id": 444, "startdatetime": "2026-08-20T09:00:00", "columnid": 1513, "patientid": 999}]`))
+		default:
+			t.Fatalf("unexpected day read %q", r.URL.RawQuery)
+		}
+	})
+	defer server.Close()
+
+	read, err := patientVisitAdapter(server, now).ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
+		PatientID: "123",
+		OfficeIDs: []string{"spring_hill"},
+	})
+	if err != nil {
+		t.Fatalf("ReadPatientAppointments() error = %v", err)
+	}
+	if !read.Complete || read.ProviderReads != 3 || len(read.Appointments) != 2 || read.Appointments[0].OfficeID != "spring_hill" {
+		t.Fatalf("ReadPatientAppointments() = %#v, want the configured appointment then the unmapped one", read)
+	}
+	want := domain.PatientAppointment{
+		ID:       9570268,
+		Start:    time.Date(2026, time.August, 20, 8, 30, 0, 0, time.UTC),
+		Provider: "Austin Bach",
+		Type:     "Adult New Medical Exam",
+		Facility: "Abita Eye Group Hollywood",
+	}
+	if read.Appointments[1] != want {
+		t.Fatalf("unmapped appointment = %#v, want %#v", read.Appointments[1], want)
+	}
+}
+
+func TestVisitProviderNameReordersAdvancedMDNames(t *testing.T) {
+	for raw, want := range map[string]string{
+		"BACH,AUSTIN":      "Austin Bach",
+		"LICHT, JOSEPH":    "Joseph Licht",
+		"BACH , AUSTIN  J": "Austin J Bach",
+		"BACH":             "Bach",
+		",AUSTIN":          "Austin",
+		"BACH,":            "Bach",
+		",":                "",
+		"  ":               "",
+		"":                 "",
+	} {
+		if got := visitProviderName(raw); got != want {
+			t.Errorf("visitProviderName(%q) = %q, want %q", raw, got, want)
+		}
 	}
 }

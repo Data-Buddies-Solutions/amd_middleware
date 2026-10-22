@@ -29,8 +29,11 @@ func TestGetPatientVisitsRequestsStartAndStatusForOnePatient(t *testing.T) {
 				"@visitcount": "2",
 				"visitlist": {
 					"visit": [
-						{"@id": "9907455", "@visitstartdatetime": "2026-11-20T08:30:00", "@apptstatus": "0"},
-						{"@id": "10116371", "@visitstartdatetime": "2027-01-12T10:00:00", "@apptstatus": "10"}
+						{"@id": "9907455", "@visitstartdatetime": "2026-11-20T08:30:00", "@apptstatus": "0",
+						 "@providername": "BACH,AUSTIN", "@appointmenttype": "ADULT ESTABLISHED VISION EXAN",
+						 "@facilityname": "ABITA EYE GROUP HOLLYWOOD"},
+						{"@id": "10116371", "@visitstartdatetime": "2027-01-12T10:00:00", "@apptstatus": "10",
+						 "@providername": "NOEL,DON", "@appointmenttype": "", "@facilityname": ""}
 					]
 				}
 			},
@@ -44,8 +47,9 @@ func TestGetPatientVisitsRequestsStartAndStatusForOnePatient(t *testing.T) {
 		t.Fatalf("GetPatientVisits() error = %v", err)
 	}
 	want := []PatientVisit{
-		{Start: time.Date(2026, time.November, 20, 8, 30, 0, 0, time.UTC), Status: "0"},
-		{Start: time.Date(2027, time.January, 12, 10, 0, 0, 0, time.UTC), Status: "10"},
+		{ID: 9907455, Start: time.Date(2026, time.November, 20, 8, 30, 0, 0, time.UTC), Status: "0",
+			Provider: "BACH,AUSTIN", Type: "ADULT ESTABLISHED VISION EXAN", Facility: "ABITA EYE GROUP HOLLYWOOD"},
+		{ID: 10116371, Start: time.Date(2027, time.January, 12, 10, 0, 0, 0, time.UTC), Status: "10", Provider: "NOEL,DON"},
 	}
 	if len(visits) != len(want) {
 		t.Fatalf("GetPatientVisits() = %+v, want %+v", visits, want)
@@ -61,7 +65,8 @@ func TestGetPatientVisitsRequestsStartAndStatusForOnePatient(t *testing.T) {
 		t.Fatalf("ppmdmsg = %#v", message)
 	}
 	fields, ok := message["visit"].(map[string]any)
-	if !ok || fields["@visitstartdatetime"] != "VisitStartDateTime" || fields["@apptstatus"] != "ApptStatus" {
+	if !ok || len(fields) != 5 || fields["@visitstartdatetime"] != "VisitStartDateTime" || fields["@apptstatus"] != "ApptStatus" ||
+		fields["@providername"] != "ProviderName" || fields["@appointmenttype"] != "AppointmentType" || fields["@facilityname"] != "FacilityName" {
 		t.Fatalf("requested visit fields = %#v", message["visit"])
 	}
 }
@@ -91,6 +96,8 @@ func TestGetPatientVisitsRejectsUnprovableVisitLists(t *testing.T) {
 		"count mismatch": `{"PPMDResults": {"Results": {"@visitcount": "2", "visitlist": {"visit":
 			{"@id": "1", "@visitstartdatetime": "2026-10-26T12:00:00", "@apptstatus": "0"}}}, "Error": null}}`,
 		"missing count": `{"PPMDResults": {"Results": {"visitlist": null}, "Error": null}}`,
+		"missing id": `{"PPMDResults": {"Results": {"@visitcount": "1", "visitlist": {"visit":
+			{"@visitstartdatetime": "2026-10-26T12:00:00", "@apptstatus": "0"}}}, "Error": null}}`,
 		"unparseable start": `{"PPMDResults": {"Results": {"@visitcount": "1", "visitlist": {"visit":
 			{"@id": "1", "@visitstartdatetime": "soon", "@apptstatus": "0"}}}, "Error": null}}`,
 		"missing status": `{"PPMDResults": {"Results": {"@visitcount": "1", "visitlist": {"visit":

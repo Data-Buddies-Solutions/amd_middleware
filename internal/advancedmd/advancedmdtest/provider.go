@@ -186,6 +186,9 @@ func (p *Provider) patientVisits(request *http.Request) ([]byte, error) {
 				"@id":                 strconv.Itoa(row.ID),
 				"@visitstartdatetime": row.StartDateTime,
 				"@apptstatus":         "0",
+				"@providername":       row.Provider,
+				"@appointmenttype":    "",
+				"@facilityname":       row.Facility,
 			})
 		}
 	}

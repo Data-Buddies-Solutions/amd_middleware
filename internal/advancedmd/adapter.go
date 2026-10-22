@@ -194,12 +194,14 @@ func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.Pati
 	if err != nil {
 		return AppointmentRead{ProviderReads: 1}, classify(err)
 	}
+	var scheduled []clients.PatientVisit
 	var days []string
 	seenDays := make(map[string]bool)
 	for _, visit := range visits {
 		if visit.Status != scheduledVisitStatus || !visit.Start.After(cutoff) {
 			continue
 		}
+		scheduled = append(scheduled, visit)
 		day := appointmentDay(visit.Start)
 		if !seenDays[day] {
 			seenDays[day] = true
@@ -238,9 +240,29 @@ func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.Pati
 	}
 
 	read := patientAppointmentRead(rawAppointments, patientIDNumber, lookup.officeByColumn, nil, &cutoff)
+	appendUnmappedVisits(&read, scheduled)
 	normalizePatientAppointments(&read)
 	read.ProviderReads = providerReads
 	return read, nil
+}
+
+func appendUnmappedVisits(read *AppointmentRead, scheduled []clients.PatientVisit) {
+	mapped := make(map[int]bool, len(read.Appointments))
+	for _, appointment := range read.Appointments {
+		mapped[appointment.ID] = true
+	}
+	for _, visit := range scheduled {
+		if mapped[visit.ID] {
+			continue
+		}
+		read.Appointments = append(read.Appointments, domain.PatientAppointment{
+			ID:       visit.ID,
+			Start:    visit.Start,
+			Provider: visitProviderName(visit.Provider),
+			Type:     titleCase(visit.Type),
+			Facility: titleCase(visit.Facility),
+		})
+	}
 }
 
 func (a *Adapter) patientAppointmentsForOfficeDay(
@@ -372,7 +394,7 @@ func patientAppointmentRead(
 		if strings.TrimSpace(raw.Provider) == "" || provider == "" {
 			read.Complete = false
 		}
-		facility := friendlyFacilityName(raw.Facility)
+		facility := titleCase(raw.Facility)
 		if facility == "" {
 			facility = office.DisplayName
 		}
@@ -734,7 +756,14 @@ func classifyMutation(err error) error {
 	return NewAmbiguousWriteError(category)
 }
 
-func friendlyFacilityName(name string) string {
+func visitProviderName(name string) string {
+	if last, first, found := strings.Cut(name, ","); found {
+		name = first + " " + last
+	}
+	return titleCase(strings.Join(strings.Fields(name), " "))
+}
+
+func titleCase(name string) string {
 	if name == "" {
 		return ""
 	}

@@ -418,6 +418,13 @@ var lichtCrystalRiver = domain.PatientAppointment{
 	Office:            "Crystal River",
 }
 
+var lichtOutsideSpringHill = domain.PatientAppointment{
+	ID:       9570264,
+	Start:    time.Date(2026, 8, 15, 9, 0, 0, 0, time.UTC),
+	Provider: "Joseph Licht",
+	Facility: "Abita Eye Group Crystal River",
+}
+
 func patientRows(p *advancedmdtest.Provider) {
 	p.Appointments = []clients.AMDAppointmentResponse{
 		{ID: 9570263, StartDateTime: "2026-08-03T09:00:00", ColumnID: 1513, Provider: "BACH, AUSTIN", Facility: "ABITA EYE GROUP SPRING HILL", AppointmentTypes: []int{1007}, PatientID: 123},
@@ -436,16 +443,16 @@ func readPatientAppointments(patientID string) func(context.Context, records) (a
 func patientAppointmentScenarios() []scenario {
 	return []scenario{
 		{
-			name: "patient appointments found on their future visit days",
+			name: "patient appointments found on their future visit days, unmapped ones without an office",
 			op:   "ReadPatientAppointments",
 			amd:  patientRows,
 			fake: func(f *advancedmdtest.Adapter) {
 				f.AppointmentResults["123"] = advancedmdtest.AppointmentResult{Read: advancedmd.AppointmentRead{
-					Appointments: []domain.PatientAppointment{bachFollowUp}, Complete: true, ProviderReads: 3,
+					Appointments: []domain.PatientAppointment{bachFollowUp, lichtOutsideSpringHill}, Complete: true, ProviderReads: 3,
 				}}
 			},
 			call: readPatientAppointments("123"),
-			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{bachFollowUp}, Complete: true, ProviderReads: 3}},
+			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{bachFollowUp, lichtOutsideSpringHill}, Complete: true, ProviderReads: 3}},
 		},
 		{
 			name: "patient with no appointments",
@@ -472,11 +479,11 @@ func patientAppointmentScenarios() []scenario {
 			},
 			fake: func(f *advancedmdtest.Adapter) {
 				f.AppointmentResults["123"] = advancedmdtest.AppointmentResult{Read: advancedmd.AppointmentRead{
-					Appointments: []domain.PatientAppointment{bachFollowUp}, Complete: false, ProviderReads: 3,
+					Appointments: []domain.PatientAppointment{bachFollowUp, lichtOutsideSpringHill}, Complete: false, ProviderReads: 3,
 				}}
 			},
 			call: readPatientAppointments("123"),
-			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{bachFollowUp}, Complete: false, ProviderReads: 3}},
+			want: outcome{Value: advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{bachFollowUp, lichtOutsideSpringHill}, Complete: false, ProviderReads: 3}},
 		},
 		{
 			name: "patient appointments fail when the visit read fails",

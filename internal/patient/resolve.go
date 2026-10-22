@@ -237,33 +237,36 @@ func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate 
 	}
 
 	for _, appointment := range appointmentsRead.read.Appointments {
-		cancellationToken, tokenErr := p.appointmentTokens.IssueCancellationToken(candidate.ID, appointment)
-		rescheduleToken := ""
-		if tokenErr == nil {
-			rescheduleToken, tokenErr = p.appointmentTokens.IssueRescheduleToken(candidate.ID, appointment)
+		resolved := Appointment{
+			ID:       appointment.ID,
+			Date:     appointment.Start.Format("Monday, January 2, 2006"),
+			Time:     appointment.Start.Format("3:04 PM"),
+			Provider: appointment.Provider,
+			Type:     appointment.Type,
+			Facility: appointment.Facility,
 		}
-		if tokenErr != nil {
-			result.Appointments = []Appointment{}
-			result.AppointmentsStatus = AppointmentsError
-			result.AppointmentsMessage = "Failed to prepare appointments for cancellation. Please try again."
-			result.Message = "Patient verified, appointment lookup unavailable"
-			result.Observation.AppointmentOutcome = "error"
-			return result, nil
+		if appointment.OfficeID != "" {
+			cancellationToken, tokenErr := p.appointmentTokens.IssueCancellationToken(candidate.ID, appointment)
+			rescheduleToken := ""
+			if tokenErr == nil {
+				rescheduleToken, tokenErr = p.appointmentTokens.IssueRescheduleToken(candidate.ID, appointment)
+			}
+			if tokenErr != nil {
+				result.Appointments = []Appointment{}
+				result.AppointmentsStatus = AppointmentsError
+				result.AppointmentsMessage = "Failed to prepare appointments for cancellation. Please try again."
+				result.Message = "Patient verified, appointment lookup unavailable"
+				result.Observation.AppointmentOutcome = "error"
+				return result, nil
+			}
+			resolved.AppointmentTypeID = appointment.AppointmentTypeID
+			resolved.VisitType = domain.AppointmentVisitType(appointment.AppointmentTypeID)
+			resolved.OfficeID = appointment.OfficeID
+			resolved.Office = appointment.Office
+			resolved.CancellationToken = cancellationToken
+			resolved.RescheduleToken = rescheduleToken
 		}
-		result.Appointments = append(result.Appointments, Appointment{
-			ID:                appointment.ID,
-			Date:              appointment.Start.Format("Monday, January 2, 2006"),
-			Time:              appointment.Start.Format("3:04 PM"),
-			Provider:          appointment.Provider,
-			Type:              appointment.Type,
-			AppointmentTypeID: appointment.AppointmentTypeID,
-			VisitType:         domain.AppointmentVisitType(appointment.AppointmentTypeID),
-			Facility:          appointment.Facility,
-			OfficeID:          appointment.OfficeID,
-			Office:            appointment.Office,
-			CancellationToken: cancellationToken,
-			RescheduleToken:   rescheduleToken,
-		})
+		result.Appointments = append(result.Appointments, resolved)
 	}
 	if len(result.Appointments) == 0 {
 		result.AppointmentsStatus = appointmentsNone

@@ -570,13 +570,21 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *sessio
 }
 
 type PatientVisit struct {
-	Start  time.Time
-	Status string
+	ID       int
+	Start    time.Time
+	Status   string
+	Provider string
+	Type     string
+	Facility string
 }
 
 type amdPatientVisit struct {
-	Start  string `json:"@visitstartdatetime"`
-	Status string `json:"@apptstatus"`
+	ID       string `json:"@id"`
+	Start    string `json:"@visitstartdatetime"`
+	Status   string `json:"@apptstatus"`
+	Provider string `json:"@providername"`
+	Type     string `json:"@appointmenttype"`
+	Facility string `json:"@facilityname"`
 }
 
 func (c *AdvancedMDClient) GetPatientVisits(ctx context.Context, tokenData *session.TokenData, patientID string) (visits []PatientVisit, resultErr error) {
@@ -592,6 +600,9 @@ func (c *AdvancedMDClient) GetPatientVisits(ctx context.Context, tokenData *sess
 			"visit": map[string]string{
 				"@visitstartdatetime": "VisitStartDateTime",
 				"@apptstatus":         "ApptStatus",
+				"@providername":       "ProviderName",
+				"@appointmenttype":    "AppointmentType",
+				"@facilityname":       "FacilityName",
 			},
 		},
 	}
@@ -630,6 +641,10 @@ func (c *AdvancedMDClient) GetPatientVisits(ctx context.Context, tokenData *sess
 
 	visits = make([]PatientVisit, 0, len(rawVisits))
 	for _, raw := range rawVisits {
+		id, err := strconv.Atoi(raw.ID)
+		if err != nil || id <= 0 {
+			return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "getpatientvisits returned a visit without an ID")
+		}
 		start, err := ParseDateTime(raw.Start)
 		if err != nil {
 			return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "getpatientvisits returned a visit without a start: %w", err)
@@ -637,7 +652,14 @@ func (c *AdvancedMDClient) GetPatientVisits(ctx context.Context, tokenData *sess
 		if raw.Status == "" {
 			return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "getpatientvisits returned a visit without a status")
 		}
-		visits = append(visits, PatientVisit{Start: start, Status: raw.Status})
+		visits = append(visits, PatientVisit{
+			ID:       id,
+			Start:    start,
+			Status:   raw.Status,
+			Provider: raw.Provider,
+			Type:     raw.Type,
+			Facility: raw.Facility,
+		})
 	}
 	return visits, nil
 }

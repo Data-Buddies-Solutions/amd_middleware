@@ -339,6 +339,10 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 Patient resolution lists the patient's scheduled visits with one
 `getpatientvisits` read, then reads the office group's schedule only on the
 days those future visits fall, so upcoming appointments have no fixed horizon.
+A scheduled visit outside the office group's configured columns is still
+returned, with its date and time and, when AdvancedMD has them, its provider
+(AdvancedMD's name, not a configured doctor), type, and facility. It has no
+office and no cancellation or reschedule tokens.
 Patient resolution answers within 9 seconds, inside the voice agent's
 10-second budget. Its appointment read stops 1 second before that deadline, so
 a slow appointment read returns a verified patient with
