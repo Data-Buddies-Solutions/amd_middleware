@@ -82,19 +82,20 @@ type patientCreateLogEntry struct {
 }
 
 type requestLogEntry struct {
-	RequestID          string                          `json:"request_id"`
-	RouteTemplate      string                          `json:"route_template"`
-	Outcome            outcomeCategory                 `json:"outcome_category"`
-	LatencyMS          int64                           `json:"latency_ms"`
-	SessionState       session.SessionState            `json:"session_state"`
-	ProviderFailure    safeerrors.Category             `json:"provider_failure_category"`
-	Cancellation       *cancellationLogEntry           `json:"cancellation,omitempty"`
-	PatientResolution  *patientResolutionLogEntry      `json:"patient_resolution,omitempty"`
-	PatientCreate      *patientCreateLogEntry          `json:"patient_create,omitempty"`
-	Panic              *panicLogEntry                  `json:"panic,omitempty"`
-	ProviderErrors     []safeerrors.ProviderDiagnostic `json:"provider_errors,omitempty"`
-	ProviderErrorCount int                             `json:"provider_error_count,omitempty"`
-	HTTPStatus         int                             `json:"http_status"`
+	RequestID          string                           `json:"request_id"`
+	RouteTemplate      string                           `json:"route_template"`
+	Outcome            outcomeCategory                  `json:"outcome_category"`
+	LatencyMS          int64                            `json:"latency_ms"`
+	SessionState       session.SessionState             `json:"session_state"`
+	ProviderFailure    safeerrors.Category              `json:"provider_failure_category"`
+	Cancellation       *cancellationLogEntry            `json:"cancellation,omitempty"`
+	PatientResolution  *patientResolutionLogEntry       `json:"patient_resolution,omitempty"`
+	PatientCreate      *patientCreateLogEntry           `json:"patient_create,omitempty"`
+	Panic              *panicLogEntry                   `json:"panic,omitempty"`
+	ProviderErrors     []safeerrors.ProviderDiagnostic  `json:"provider_errors,omitempty"`
+	ProviderErrorCount int                              `json:"provider_error_count,omitempty"`
+	ProviderCalls      []safeerrors.ProviderCallSummary `json:"provider_calls,omitempty"`
+	HTTPStatus         int                              `json:"http_status"`
 }
 
 var requestLogMu sync.Mutex
@@ -173,6 +174,7 @@ func loggingMiddleware(amdSession session.Session) func(http.Handler) http.Handl
 				Panic:              state.panic,
 				ProviderErrors:     providerErrors,
 				ProviderErrorCount: providerErrorCount,
+				ProviderCalls:      diagnostics.Calls(),
 				HTTPStatus:         wrapped.statusCode,
 			})
 		})
