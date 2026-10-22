@@ -29,12 +29,10 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
 	amd.PatientSearches[search] = []domain.Patient{{
-		ID:        "123",
-		FirstName: "JANE",
-		LastName:  "DOE",
-		FullName:  "DOE,JANE",
-		DOB:       "01/15/1980",
-		Phone:     "850-373-3869",
+		ID:       "123",
+		FullName: "DOE,JANE",
+		DOB:      "01/15/1980",
+		Phone:    "850-373-3869",
 	}}
 	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true,
 		CarrierName: "HUMANA MEDICARE",
@@ -60,8 +58,8 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 	}
 
 	resolver := patient.New(amd, testAppointmentTokens, testNow)
-	got, err := resolver.Resolve(context.Background(), patient.ResolveCommand{
-		Phone:    "(954) 287-2010",
+	got, err := resolver.Resolve(context.Background(), patient.ResolveQuery{
+		Phone:    "9542872010",
 		OfficeID: office.ID,
 	})
 	if err != nil {
@@ -179,11 +177,10 @@ func TestCreateReconcilesAmbiguousWriteAfterTransientReadFailure(t *testing.T) {
 		{},
 		{Err: advancedmd.NewError(safeerrors.CategoryNetwork)},
 		{Patients: []domain.Patient{{
-			ID:        "123",
-			FirstName: "JANE",
-			FullName:  "DOE,JANE",
-			DOB:       "01/15/1980",
-			Phone:     "(954)287-2010",
+			ID:       "123",
+			FullName: "DOE,JANE",
+			DOB:      "01/15/1980",
+			Phone:    "(954)287-2010",
 		}}},
 	}
 	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true, RespPartyID: "resp456"}
@@ -232,11 +229,10 @@ func TestCreatePollsUntilNewPatientBecomesVisible(t *testing.T) {
 		{},
 		{},
 		{Patients: []domain.Patient{{
-			ID:        "123",
-			FirstName: "JANE",
-			FullName:  "DOE,JANE",
-			DOB:       "01/15/1980",
-			Phone:     "(954)287-2010",
+			ID:       "123",
+			FullName: "DOE,JANE",
+			DOB:      "01/15/1980",
+			Phone:    "(954)287-2010",
 		}}},
 	}
 	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true, RespPartyID: "resp456"}
@@ -262,17 +258,15 @@ func TestCreateKeepsUnidentifiablePostWriteMatchIndeterminate(t *testing.T) {
 		{},
 		{Patients: []domain.Patient{
 			{
-				ID:        "123",
-				FirstName: "JANE",
-				FullName:  "DOE,JANE",
-				DOB:       "01/15/1980",
-				Phone:     "(954)287-2010",
+				ID:       "123",
+				FullName: "DOE,JANE",
+				DOB:      "01/15/1980",
+				Phone:    "(954)287-2010",
 			},
 			{
-				FirstName: "JANE",
-				FullName:  "DOE,JANE",
-				DOB:       "01/15/1980",
-				Phone:     "(954)287-2010",
+				FullName: "DOE,JANE",
+				DOB:      "01/15/1980",
+				Phone:    "(954)287-2010",
 			},
 		}},
 	}
@@ -295,11 +289,10 @@ func TestCreateRefusesExistingPatientOnCallerPhone(t *testing.T) {
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
 	amd.PatientSearches[search] = []domain.Patient{{
-		ID:        "123",
-		FirstName: "JANE A",
-		FullName:  "DOE-SMITH,JANE A",
-		DOB:       "1/15/1980",
-		Phone:     "(954)287-2010",
+		ID:       "123",
+		FullName: "DOE-SMITH,JANE A",
+		DOB:      "1/15/1980",
+		Phone:    "(954)287-2010",
 	}}
 
 	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
@@ -319,11 +312,10 @@ func TestCreateAllowsHouseholdMemberOnCallerPhone(t *testing.T) {
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
 	amd.PatientSearches[search] = []domain.Patient{{
-		ID:        "123",
-		FirstName: "JOHN",
-		FullName:  "DOE,JOHN",
-		DOB:       "01/15/1980",
-		Phone:     "(954)287-2010",
+		ID:       "123",
+		FullName: "DOE,JOHN",
+		DOB:      "01/15/1980",
+		Phone:    "(954)287-2010",
 	}}
 
 	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
@@ -352,18 +344,16 @@ func TestCreateObservesBaselineSearchCompletenessWithoutChangingTheDecision(t *t
 func TestCreateDoesNotAdoptPreexistingPatientWhoseLookupDetailsChanged(t *testing.T) {
 	search := domain.PatientSearch{Phone: "9542872010"}
 	existing := domain.Patient{
-		ID:        "123",
-		FirstName: "JANE",
-		FullName:  "DOE,JANE",
-		DOB:       "01/15/1980",
-		Phone:     "(954)287-2010",
+		ID:       "123",
+		FullName: "DOE,JANE",
+		DOB:      "01/15/1980",
+		Phone:    "(954)287-2010",
 	}
 	amd := advancedmdtest.NewAdapter()
 	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 	amd.PatientSearchSequence[search] = []advancedmdtest.PatientSearchStep{{
 		Patients: []domain.Patient{{
-			ID:        "123",
-			FirstName: "JANE",
+			ID: "123",
 		}},
 	}}
 	amd.PatientSearches[search] = []domain.Patient{existing}
@@ -391,10 +381,9 @@ func TestCreateDoesNotWriteWithAnUnidentifiableBaselinePatient(t *testing.T) {
 		Name:        "DOE,JANE",
 	}
 	amd.PatientSearches[search] = []domain.Patient{{
-		FirstName: "JANE",
-		FullName:  "DOE,JANE",
-		DOB:       "01/15/1980",
-		Phone:     "(954)287-2010",
+		FullName: "DOE,JANE",
+		DOB:      "01/15/1980",
+		Phone:    "(954)287-2010",
 	}}
 
 	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
@@ -485,10 +474,10 @@ func TestResolveReturnsLightweightCandidatesWithoutHydrationForMultipleMatches(t
 	search := domain.PatientSearch{Phone: "5552223333"}
 	amd := advancedmdtest.NewAdapter()
 	amd.PatientSearches[search] = []domain.Patient{
-		{ID: "123", FirstName: "JANE", FullName: "DOE,JANE", DOB: "01/15/1980", Phone: "5552223333"},
-		{ID: "456", FirstName: "JOHN", FullName: "DOE,JOHN", DOB: "03/20/1982", Phone: "5552223333"},
+		{ID: "123", FullName: "DOE,JANE", DOB: "01/15/1980", Phone: "5552223333"},
+		{ID: "456", FullName: "DOE,JOHN", DOB: "03/20/1982", Phone: "5552223333"},
 	}
-	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
+	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveQuery{
 		Phone:    "5552223333",
 		OfficeID: office.ID,
 	})
@@ -536,11 +525,11 @@ func TestResolveDoesNotHydrateAmbiguousFirstNameCandidates(t *testing.T) {
 	search := domain.PatientSearch{Phone: "5552223333"}
 	amd := advancedmdtest.NewAdapter()
 	amd.PatientSearches[search] = []domain.Patient{
-		{ID: "123", FirstName: "JANE", FullName: "DOE,JANE", DOB: "01/15/1980"},
-		{ID: "456", FirstName: "JANET", FullName: "DOE,JANET", DOB: "03/20/1982"},
+		{ID: "123", FullName: "DOE,JANE", DOB: "01/15/1980"},
+		{ID: "456", FullName: "DOE,JANET", DOB: "03/20/1982"},
 	}
 
-	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
+	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveQuery{
 		Phone:     "5552223333",
 		FirstName: "Ja",
 		OfficeID:  office.ID,
@@ -576,7 +565,7 @@ func TestResolvePreservesMalformedAndTimeoutSearchErrors(t *testing.T) {
 			amd := advancedmdtest.NewAdapter()
 			amd.PatientErrors[search] = advancedmd.NewError(test.category)
 
-			got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
+			got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveQuery{
 				Phone:    "9542872010",
 				OfficeID: office.ID,
 			})
@@ -629,8 +618,8 @@ func validUpdateInsuranceCommand() patient.UpdateInsuranceCommand {
 func TestResolveSelectsPatientByVerifiedDemographics(t *testing.T) {
 	office, _ := domain.LookupOffice("Hollywood")
 	candidates := []domain.Patient{
-		{ID: "123", FirstName: "JANE", LastName: "DOE", FullName: "DOE,JANE", DOB: "01/15/1980"},
-		{ID: "456", FirstName: "JANET", LastName: "DOE", FullName: "DOE,JANET", DOB: "03/20/1982"},
+		{ID: "123", FullName: "DOE,JANE", DOB: "01/15/1980"},
+		{ID: "456", FullName: "DOE,JANET", DOB: "03/20/1982"},
 	}
 
 	tests := []struct {
@@ -641,31 +630,31 @@ func TestResolveSelectsPatientByVerifiedDemographics(t *testing.T) {
 	}{
 		{
 			name:    "phone and first name",
-			command: patient.ResolveCommand{Phone: "555-222-3333", FirstName: "Janet", OfficeID: office.ID},
+			command: patient.ResolveCommand{Phone: "555-222-3333", FirstName: "Janet"},
 			search:  domain.PatientSearch{Phone: "5552223333"},
 			wantID:  "456",
 		},
 		{
 			name:    "phone and DOB",
-			command: patient.ResolveCommand{Phone: "555-222-3333", DOB: "1/15/1980", OfficeID: office.ID},
+			command: patient.ResolveCommand{Phone: "555-222-3333", DOB: "1/15/1980"},
 			search:  domain.PatientSearch{Phone: "5552223333"},
 			wantID:  "123",
 		},
 		{
 			name:    "phone first name and DOB",
-			command: patient.ResolveCommand{Phone: "555-222-3333", FirstName: "Jane", DOB: "01-15-1980", OfficeID: office.ID},
+			command: patient.ResolveCommand{Phone: "555-222-3333", FirstName: "Jane", DOB: "01-15-1980"},
 			search:  domain.PatientSearch{Phone: "5552223333"},
 			wantID:  "123",
 		},
 		{
 			name:    "last name and DOB",
-			command: patient.ResolveCommand{LastName: "Döe", DOB: "03/20/1982", OfficeID: office.ID},
+			command: patient.ResolveCommand{LastName: "Döe", DOB: "03/20/1982"},
 			search:  domain.PatientSearch{LastName: "Doe"},
 			wantID:  "456",
 		},
 		{
 			name:    "last name first name and DOB",
-			command: patient.ResolveCommand{LastName: "Döe", FirstName: "Ja", DOB: "01/15/1980", OfficeID: office.ID},
+			command: patient.ResolveCommand{LastName: "Döe", FirstName: "Ja", DOB: "01/15/1980"},
 			search:  domain.PatientSearch{LastName: "Doe", FirstName: "Ja"},
 			wantID:  "123",
 		},
@@ -678,7 +667,11 @@ func TestResolveSelectsPatientByVerifiedDemographics(t *testing.T) {
 			amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true}
 			amd.Demographics["456"] = domain.PatientDemographics{InsuranceStateKnown: true}
 
-			got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), test.command)
+			query, message := test.command.Parse(office.ID, testNow())
+			if message != "" {
+				t.Fatalf("Parse() = %q", message)
+			}
+			got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), query)
 			if err != nil {
 				t.Fatalf("Resolve() error = %v", err)
 			}
@@ -693,7 +686,7 @@ func TestResolveReturnsNoMatchWithoutHydratingPatientData(t *testing.T) {
 	office, _ := domain.LookupOffice("Spring Hill")
 	amd := advancedmdtest.NewAdapter()
 
-	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
+	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveQuery{
 		Phone:    "9542872010",
 		OfficeID: office.ID,
 	})
@@ -732,7 +725,7 @@ func TestResolveRefreshesKnownPatientByID(t *testing.T) {
 		},
 	}
 
-	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
+	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveQuery{
 		PatientID: "123",
 		OfficeID:  office.ID,
 	})
@@ -770,10 +763,9 @@ func TestResolveStartsDemographicsAndAppointmentsConcurrently(t *testing.T) {
 	amd := advancedmdtest.NewAdapter()
 	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true}
 	amd.PatientSearches[domain.PatientSearch{Phone: "9542872010"}] = []domain.Patient{{
-		ID:        "123",
-		FirstName: "JANE",
-		FullName:  "DOE,JANE",
-		DOB:       "01/15/1980",
+		ID:       "123",
+		FullName: "DOE,JANE",
+		DOB:      "01/15/1980",
 	}}
 	amd.DemographicsStarted = demographicsStarted
 	amd.DemographicsRelease = demographicsRelease
@@ -788,7 +780,7 @@ func TestResolveStartsDemographicsAndAppointmentsConcurrently(t *testing.T) {
 	}
 	resolved := make(chan resolveResponse, 1)
 	go func() {
-		result, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(ctx, patient.ResolveCommand{
+		result, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(ctx, patient.ResolveQuery{
 			Phone:    "9542872010",
 			OfficeID: office.ID,
 		})
@@ -833,7 +825,7 @@ func TestResolveKeepsVerifiedPatientWhenAppointmentsFail(t *testing.T) {
 	log.SetOutput(&logs)
 	t.Cleanup(func() { log.SetOutput(previousWriter) })
 
-	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
+	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveQuery{
 		Phone:    "9542872010",
 		OfficeID: office.ID,
 	})
@@ -901,7 +893,7 @@ func TestResolveReturnsVerifiedPatientBeforeDeadlineWhenAppointmentsStall(t *tes
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1250*time.Millisecond)
 	defer cancel()
-	got, err := patient.New(records, testAppointmentTokens, testNow).Resolve(ctx, patient.ResolveCommand{
+	got, err := patient.New(records, testAppointmentTokens, testNow).Resolve(ctx, patient.ResolveQuery{
 		Phone:    "9542872010",
 		OfficeID: office.ID,
 	})
@@ -924,7 +916,7 @@ func TestResolveKnownPatientReturnsUnavailableWhenAdvancedMDCannotAuthenticate(t
 	amd := advancedmdtest.NewAdapter()
 	amd.DemographicErrors["123"] = advancedmd.NewError(safeerrors.CategoryUnavailable)
 
-	_, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
+	_, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveQuery{
 		PatientID: "123",
 		OfficeID:  office.ID,
 	})
@@ -962,7 +954,7 @@ func TestResolveDoesNotVerifyPatientWithoutIdentity(t *testing.T) {
 				amd.DemographicErrors["123"] = test.err
 			}
 
-			got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
+			got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveQuery{
 				PatientID: "123",
 				OfficeID:  office.ID,
 			})
@@ -1042,7 +1034,7 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 			}}
 			amd.Demographics["123"] = test.demographics
 
-			got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
+			got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveQuery{
 				Phone:    "9542872010",
 				OfficeID: office.ID,
 			})
@@ -1116,7 +1108,7 @@ func TestResolveReportsAppointmentsErrorWhenTokensCannotBeIssued(t *testing.T) {
 			Complete: true,
 		},
 	}
-	got, err := patient.New(amd, scheduling.NewAppointmentTokens("", testNow), testNow).Resolve(context.Background(), patient.ResolveCommand{PatientID: "123", OfficeID: "spring_hill"})
+	got, err := patient.New(amd, scheduling.NewAppointmentTokens("", testNow), testNow).Resolve(context.Background(), patient.ResolveQuery{PatientID: "123", OfficeID: "spring_hill"})
 	if err != nil || got.AppointmentsStatus != patient.AppointmentsError || len(got.Appointments) != 0 {
 		t.Fatalf("Resolve() = %+v, err = %v", got, err)
 	}

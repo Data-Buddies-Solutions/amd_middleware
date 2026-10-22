@@ -24,7 +24,13 @@ func (h *Handlers) HandleInsuranceDecision(w http.ResponseWriter, r *http.Reques
 		rejectInvalidRequest(w, r, errorResponse{Status: "error", Message: "Unknown office"})
 		return
 	}
-	respond(w, insurance.DecideOfferedAnswer(req.Plan, req.Offered, req.CoverageType, office, req.DOB, h.now()))
+	now := h.now()
+	dob, err := domain.ParseDOB(req.DOB, now)
+	if err != nil {
+		rejectInvalidRequest(w, r, errorResponse{Status: "error", Message: err.Error()})
+		return
+	}
+	respond(w, insurance.DecideOfferedAnswer(req.Plan, req.Offered, req.CoverageType, office, string(dob), now))
 }
 
 func (h *Handlers) HandleInsurancePlans(w http.ResponseWriter, r *http.Request) {

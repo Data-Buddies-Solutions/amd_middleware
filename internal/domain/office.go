@@ -414,14 +414,6 @@ func stripToDigits(s string) string {
 	return b.String()
 }
 
-func NormalizePhoneDigits(s string) string {
-	digits := stripToDigits(s)
-	if len(digits) == 11 && digits[0] == '1' {
-		return digits[1:]
-	}
-	return digits
-}
-
 func LookupOffice(phone string) (*OfficeConfig, bool) {
 	phone = strings.TrimSpace(phone)
 	for _, key := range officePhoneLookupKeys(phone) {

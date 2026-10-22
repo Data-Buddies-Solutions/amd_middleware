@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 	"time"
 
@@ -16,23 +15,20 @@ import (
 
 const appointmentReserve = time.Second
 
-func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveResult, error) {
-	office, ok := domain.LookupOfficeByID(command.OfficeID)
+func (p *patient) Resolve(ctx context.Context, query ResolveQuery) (ResolveResult, error) {
+	office, ok := domain.LookupOfficeByID(query.OfficeID)
 	if !ok {
 		return ResolveResult{}, advancedmd.NewError(safeerrors.CategoryInternal)
 	}
-	if command.PatientID != "" {
-		return p.resolvePatient(ctx, domain.Patient{ID: command.PatientID}, "", office)
+	if query.PatientID != "" {
+		return p.resolvePatient(ctx, domain.Patient{ID: string(query.PatientID)}, "", office)
 	}
 
-	if command.Phone == "" && command.LastName == "" && command.FirstName != "" && command.DOB != "" {
-		if err := domain.ValidateOptionalDOB(command.DOB, p.now()); err != nil {
-			return ResolveResult{}, advancedmd.NewError(safeerrors.CategoryRejected)
-		}
-		return p.resolveFirstNameDOB(ctx, command, office)
+	if query.Phone == "" && query.LastName == "" && query.FirstName != "" && query.DOB != "" {
+		return p.resolveFirstNameDOB(ctx, query, office)
 	}
 
-	search := patientSearch(command)
+	search := patientSearch(query)
 	searchStarted := time.Now()
 	read, err := p.advancedMD.SearchPatients(ctx, search)
 	observation := ResolutionObservation{
@@ -47,24 +43,25 @@ func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveR
 		return ResolveResult{Observation: observation}, err
 	}
 	observation.PatientSearchComplete = new(read.Complete)
-	matches := selectPatients(read.Patients, command)
+	matches := selectPatients(read.Patients, query)
 	observation.CandidateCountBucket = candidateCountBucket(len(matches))
 	if len(matches) == 0 {
 		return ResolveResult{
 			Status:       StatusNotFound,
 			Appointments: []Appointment{},
-			Message:      notFoundMessage(command),
+			Message:      notFoundMessage(query),
 			Observation:  observation,
 		}, nil
 	}
 	if len(matches) > 1 {
 		results := make([]Candidate, 0, len(matches))
 		for _, candidate := range matches {
+			name := candidate.Name()
 			results = append(results, Candidate{
 				Status:    statusCandidate,
 				PatientID: candidate.ID,
-				FirstName: patientFirstName(candidate),
-				LastName:  patientLastName(candidate),
+				FirstName: name.Given,
+				LastName:  name.Last,
 				DOB:       candidate.DOB,
 			})
 		}
@@ -73,12 +70,12 @@ func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveR
 			Status:       StatusMultipleMatches,
 			Appointments: []Appointment{},
 			Matches:      results,
-			Message:      multipleMatchesMessage(command, len(results)),
+			Message:      multipleMatchesMessage(query, len(results)),
 			Observation:  observation,
 		}, nil
 	}
 
-	result, err := p.resolvePatient(ctx, matches[0], command.Phone, office)
+	result, err := p.resolvePatient(ctx, matches[0], query.Phone, office)
 	result.Observation.PatientSearchDurationMS = observation.PatientSearchDurationMS
 	result.Observation.PatientSearchReads = observation.PatientSearchReads
 	result.Observation.CandidateCountBucket = observation.CandidateCountBucket
@@ -86,54 +83,51 @@ func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveR
 	return result, err
 }
 
-func patientSearch(command ResolveCommand) domain.PatientSearch {
-	if command.Phone != "" {
-		return domain.PatientSearch{Phone: domain.NormalizePhoneDigits(command.Phone)}
+func patientSearch(query ResolveQuery) domain.PatientSearch {
+	if query.Phone != "" {
+		return domain.PatientSearch{Phone: string(query.Phone)}
 	}
 	return domain.PatientSearch{
-		FirstName: domain.StripDiacritics(command.FirstName),
-		LastName:  domain.StripDiacritics(command.LastName),
+		FirstName: string(query.FirstName),
+		LastName:  string(query.LastName),
 	}
 }
 
-func selectPatients(patients []domain.Patient, command ResolveCommand) []domain.Patient {
+func selectPatients(patients []domain.Patient, query ResolveQuery) []domain.Patient {
 	matches := patients
-	if command.DOB != "" {
-		normalizedDOB := domain.NormalizeDOB(command.DOB)
+	if query.DOB != "" {
 		matches = nil
 		for _, candidate := range patients {
-			if domain.NormalizeDOB(candidate.DOB) == normalizedDOB {
+			if query.DOB.Matches(candidate.DOB) {
 				matches = append(matches, candidate)
 			}
 		}
 	}
 
-	if command.FirstName == "" {
+	if query.FirstName == "" {
 		return matches
 	}
 	firstNameMatches := make([]domain.Patient, 0, len(matches))
 	for _, candidate := range matches {
-		candidateFirstName := strings.ToUpper(domain.StripDiacritics(candidate.FirstName))
-		requestFirstName := strings.ToUpper(domain.StripDiacritics(command.FirstName))
-		if strings.HasPrefix(candidateFirstName, requestFirstName) {
+		if candidate.Name().GivenStartsWith(query.FirstName) {
 			firstNameMatches = append(firstNameMatches, candidate)
 		}
 	}
 	return firstNameMatches
 }
 
-func (p *patient) resolvePatient(ctx context.Context, candidate domain.Patient, lookupPhone string, office *domain.OfficeConfig) (ResolveResult, error) {
+func (p *patient) resolvePatient(ctx context.Context, candidate domain.Patient, lookupPhone domain.Phone, office *domain.OfficeConfig) (ResolveResult, error) {
 	return p.resolvePatientWithDemographics(ctx, candidate, lookupPhone, office, nil)
 }
 
-func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate domain.Patient, lookupPhone string, office *domain.OfficeConfig, loaded *domain.PatientDemographics) (ResolveResult, error) {
+func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate domain.Patient, lookupPhone domain.Phone, office *domain.OfficeConfig, loaded *domain.PatientDemographics) (ResolveResult, error) {
 	officeIDs := office.AppointmentLookupOfficeIDs
 	result := ResolveResult{
 		Status:       StatusVerified,
 		PatientID:    candidate.ID,
 		Name:         candidate.FullName,
 		DOB:          candidate.DOB,
-		Phone:        firstNonEmpty(candidate.Phone, lookupPhone),
+		Phone:        firstNonEmpty(candidate.Phone, string(lookupPhone)),
 		Appointments: []Appointment{},
 		Observation: ResolutionObservation{
 			Recorded:             true,
@@ -321,20 +315,6 @@ func appointmentLoadOutcome(appointments []domain.PatientAppointment, err error)
 	return "found"
 }
 
-func patientFirstName(candidate domain.Patient) string {
-	if candidate.FirstName != "" {
-		return candidate.FirstName
-	}
-	return domain.ParseFirstName(candidate.FullName)
-}
-
-func patientLastName(candidate domain.Patient) string {
-	if candidate.LastName != "" {
-		return candidate.LastName
-	}
-	return strings.TrimSpace(strings.SplitN(candidate.FullName, ",", 2)[0])
-}
-
 func applyDemographics(result *ResolveResult, demographics domain.PatientDemographics, office *domain.OfficeConfig, patientDOB string, asOf time.Time) {
 	result.InsuranceCarrier = demographics.CarrierName
 	result.InsPlanID = demographics.InsPlanID
@@ -359,48 +339,54 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-func notFoundMessage(command ResolveCommand) string {
-	if command.Phone != "" && command.FirstName == "" && command.DOB == "" {
+func notFoundMessage(query ResolveQuery) string {
+	if query.Phone != "" && query.FirstName == "" && query.DOB == "" {
 		return "No patient found for that phone number"
 	}
-	if command.FirstName != "" {
+	if query.FirstName != "" {
 		return "No patient found matching that first name"
 	}
 	return "No patient found matching the provided information"
 }
 
-func multipleMatchesMessage(command ResolveCommand, count int) string {
-	if command.Phone != "" && command.FirstName != "" && command.DOB == "" {
+func multipleMatchesMessage(query ResolveQuery, count int) string {
+	if query.Phone != "" && query.FirstName != "" && query.DOB == "" {
 		return fmt.Sprintf("Found %d patients with that name and phone number. Please provide date of birth.", count)
 	}
-	if command.Phone != "" {
+	if query.Phone != "" {
 		return fmt.Sprintf("Found %d patients for this phone number. Ask the caller to confirm their name.", count)
 	}
 	return fmt.Sprintf("Found %d patients with that last name and DOB. Please provide first name.", count)
 }
 
-func (c ResolveCommand) Validate(asOf time.Time) string {
+func (c ResolveCommand) Parse(officeID string, asOf time.Time) (ResolveQuery, string) {
 	hasLookupFields := c.Phone != "" || c.FirstName != "" || c.LastName != "" || c.DOB != ""
 	if c.PatientID != "" {
-		if _, err := strconv.Atoi(c.PatientID); err != nil {
-			return "patientId must be numeric"
+		id, err := domain.ParsePatientID(c.PatientID)
+		if err != nil || id == "" {
+			return ResolveQuery{}, "patientId must be numeric"
 		}
 		if hasLookupFields {
-			return "Provide either patientId or lookup fields, not both"
+			return ResolveQuery{}, "Provide either patientId or lookup fields, not both"
 		}
-		return ""
+		return ResolveQuery{PatientID: id, OfficeID: officeID}, ""
 	}
-	if c.Phone != "" {
-		if domain.NormalizePhoneDigits(c.Phone) == "" {
-			return "phone must contain at least one digit"
-		}
-		return ""
+	phone, err := domain.ParsePhone(c.Phone)
+	if err != nil {
+		return ResolveQuery{}, err.Error()
 	}
-	if (c.FirstName != "" || c.LastName != "") && c.DOB != "" {
-		if err := domain.ValidateOptionalDOB(c.DOB, asOf); err != nil {
-			return err.Error()
-		}
-		return ""
+	if phone == "" && (c.FirstName == "" && c.LastName == "" || c.DOB == "") {
+		return ResolveQuery{}, "Provide patientId, phone, phone + firstName, phone + dob, firstName + dob, or lastName + dob"
 	}
-	return "Provide patientId, phone, phone + firstName, phone + dob, firstName + dob, or lastName + dob"
+	dob, err := domain.ParseDOB(c.DOB, asOf)
+	if err != nil {
+		return ResolveQuery{}, err.Error()
+	}
+	return ResolveQuery{
+		Phone:     phone,
+		FirstName: domain.NewPersonName(c.FirstName),
+		LastName:  domain.NewPersonName(c.LastName),
+		DOB:       dob,
+		OfficeID:  officeID,
+	}, ""
 }

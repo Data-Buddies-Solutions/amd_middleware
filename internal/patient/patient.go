@@ -62,7 +62,15 @@ type ResolveCommand struct {
 	FirstName string `json:"firstName"`
 	Phone     string `json:"phone"`
 	Office    string `json:"office"`
-	OfficeID  string `json:"-"`
+}
+
+type ResolveQuery struct {
+	PatientID domain.PatientID
+	Phone     domain.Phone
+	FirstName domain.PersonName
+	LastName  domain.PersonName
+	DOB       domain.DOB
+	OfficeID  string
 }
 
 type Appointment struct {
@@ -189,7 +197,7 @@ type UpdateInsuranceResult struct {
 }
 
 type Patient interface {
-	Resolve(context.Context, ResolveCommand) (ResolveResult, error)
+	Resolve(context.Context, ResolveQuery) (ResolveResult, error)
 	Create(context.Context, CreateCommand) CreateResult
 	UpdateInsurance(context.Context, UpdateInsuranceCommand) UpdateInsuranceResult
 }

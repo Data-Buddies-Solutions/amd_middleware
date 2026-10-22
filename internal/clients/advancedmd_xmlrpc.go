@@ -147,23 +147,8 @@ func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *session
 	return c.doPatientLookup(ctx, tokenData, reqBody)
 }
 
-func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *session.TokenData, firstName, dob string) (read domain.PatientCandidateRead, resultErr error) {
-	read, err := c.doPatientLookup(ctx, tokenData, amdLookupRequest{PPMDMsg: amdLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName, DOB: dob}})
-	if err != nil {
-		return read, err
-	}
-	for index, patient := range read.Patients {
-		parts := strings.SplitN(patient.FullName, ",", 2)
-		if len(parts) == 2 {
-			patient.LastName = strings.TrimSpace(parts[0])
-			if names := strings.Fields(parts[1]); len(names) > 0 {
-				patient.FirstName = names[0]
-			}
-			read.Patients[index].LastName = patient.LastName
-			read.Patients[index].FirstName = patient.FirstName
-		}
-	}
-	return read, nil
+func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *session.TokenData, firstName, dob string) (domain.PatientCandidateRead, error) {
+	return c.doPatientLookup(ctx, tokenData, amdLookupRequest{PPMDMsg: amdLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName, DOB: dob}})
 }
 
 func (c *AdvancedMDClient) LookupPatientByPhone(ctx context.Context, tokenData *session.TokenData, phone string) (domain.PatientCandidateRead, error) {
@@ -632,11 +617,10 @@ func convertPatients(amdPatients []amdPatient) []domain.Patient {
 	patients := make([]domain.Patient, len(amdPatients))
 	for i, p := range amdPatients {
 		patients[i] = domain.Patient{
-			ID:        domain.StripPatientPrefix(p.ID),
-			FullName:  p.Name,
-			FirstName: domain.ParseFirstName(p.Name),
-			DOB:       p.DOB,
-			Phone:     bestPatientPhone(p.ContactInfo),
+			ID:       domain.StripPatientPrefix(p.ID),
+			FullName: p.Name,
+			DOB:      p.DOB,
+			Phone:    bestPatientPhone(p.ContactInfo),
 		}
 	}
 	return patients

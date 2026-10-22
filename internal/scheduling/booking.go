@@ -62,7 +62,7 @@ type preparedBooking struct {
 	token                   SlotPolicy
 	command                 BookCommand
 	office                  *domain.OfficeConfig
-	patientID               int
+	patientID               domain.PatientID
 	start                   time.Time
 	force                   bool
 	comments                string
@@ -72,6 +72,8 @@ type preparedBooking struct {
 
 type bookingContext struct {
 	command                  BookCommand
+	patientID                domain.PatientID
+	dob                      domain.DOB
 	office                   *domain.OfficeConfig
 	token                    SlotPolicy
 	preservedAppointmentType int
@@ -93,7 +95,7 @@ func (s *service) book(ctx context.Context, booking bookingContext) (BookReceipt
 	}
 
 	appointmentID, err := s.records.BookAppointment(ctx, advancedmd.Booking{
-		PatientID:                 prepared.patientID,
+		PatientID:                 prepared.patientID.Int(),
 		OfficeID:                  prepared.office.ID,
 		ColumnID:                  prepared.token.ColumnID,
 		ProfileID:                 prepared.token.ProfileID,
@@ -119,8 +121,7 @@ func (s *service) book(ctx context.Context, booking bookingContext) (BookReceipt
 }
 
 func (s *service) prepareBooking(ctx context.Context, booking bookingContext) (preparedBooking, error) {
-	patientID, err := s.verifyBookingPatient(ctx, &booking)
-	if err != nil {
+	if err := s.verifyBookingPatient(ctx, &booking); err != nil {
 		return preparedBooking{}, err
 	}
 	policy, decision, comments, err := applyBookingPolicy(&booking)
@@ -135,7 +136,7 @@ func (s *service) prepareBooking(ctx context.Context, booking bookingContext) (p
 		command:                 booking.command,
 		token:                   booking.token,
 		office:                  booking.office,
-		patientID:               patientID,
+		patientID:               booking.patientID,
 		start:                   start,
 		force:                   force,
 		comments:                comments,
@@ -145,7 +146,7 @@ func (s *service) prepareBooking(ctx context.Context, booking bookingContext) (p
 }
 
 func (s *service) resolveBookingContext(command BookCommand) (bookingContext, error) {
-	command.PatientID = domain.StripPatientPrefix(command.PatientID)
+	patientID, patientIDErr := domain.ParsePatientID(command.PatientID)
 	booking := bookingContext{
 		command: command,
 		asOf:    s.now(),
@@ -171,18 +172,19 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 			return bookingContext{}, invalidBookingTokenError()
 		}
 	}
-	if token.DOB != "" && command.DOB != "" && domain.NormalizeDOB(command.DOB) != token.DOB {
+	dob, dobErr := domain.ParseDOB(command.DOB, booking.asOf)
+	if token.DOB != "" && command.DOB != "" && (dobErr != nil || dob != token.DOB) {
 		return bookingContext{}, invalidBookingTokenError()
 	}
 	if token.DOB != "" {
-		command.DOB = token.DOB
+		dob, dobErr = token.DOB, nil
 	}
 	booking.token = token
 	booking.office = office
 
 	if command.RescheduleToken != "" {
 		policy, err := s.appointmentTokens.verifyReschedule(command.RescheduleToken, s.now().UTC())
-		if err != nil || command.PatientID != policy.PatientID {
+		if err != nil || patientID != policy.PatientID {
 			return bookingContext{}, invalidRescheduleTokenError()
 		}
 		command.AppointmentTypeID = policy.AppointmentTypeID
@@ -190,15 +192,17 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 	}
 	booking.command = command
 
-	if command.PatientID == "" {
+	if patientIDErr != nil {
+		return bookingContext{}, schedulingError(patientIDErr.Error())
+	}
+	if patientID == "" {
 		return bookingContext{}, schedulingError("patientId is required")
 	}
-	if _, err := strconv.Atoi(command.PatientID); err != nil {
-		return bookingContext{}, schedulingError("patientId must be numeric")
+	if dobErr != nil {
+		return bookingContext{}, schedulingError(dobErr.Error())
 	}
-	if err := domain.ValidateOptionalDOB(command.DOB, booking.asOf); err != nil {
-		return bookingContext{}, schedulingError(err.Error())
-	}
+	booking.patientID = patientID
+	booking.dob = dob
 	if (command.VisitCategory != "" || command.AppointmentTypeID == 0) && command.VisitCategory != domain.AppointmentVisitMedical && command.VisitCategory != domain.AppointmentVisitRoutineVision {
 		return bookingContext{}, schedulingError("visitCategory must be medical or routine_vision")
 	}
@@ -208,36 +212,30 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 	return booking, nil
 }
 
-func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingContext) (int, error) {
-	demographics, err := s.records.GetPatientDemographics(ctx, booking.command.PatientID)
+func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingContext) error {
+	demographics, err := s.records.GetPatientDemographics(ctx, string(booking.patientID))
 	if err != nil {
-		return 0, categorizedProviderError(
+		return categorizedProviderError(
 			CategoryWriteFailed,
 			providerCategory(err),
 			"Unable to verify patient before booking. Please try again.",
 		)
 	}
-	if demographics.DOB == "" || domain.ValidateOptionalDOB(demographics.DOB, booking.asOf) != nil {
-		return 0, categorizedError(
+	verifiedDOB, err := domain.ParseDOB(demographics.DOB, booking.asOf)
+	if err != nil || verifiedDOB == "" {
+		return categorizedError(
 			CategoryWriteFailed,
 			"Unable to verify patient before booking. Please try again.",
 		)
 	}
-	verifiedDOB := domain.NormalizeDOB(demographics.DOB)
-	expectedDOB := booking.token.DOB
-	if expectedDOB != "" && verifiedDOB != domain.NormalizeDOB(expectedDOB) {
-		return 0, categorizedError(
+	if booking.token.DOB != "" && verifiedDOB != booking.token.DOB {
+		return categorizedError(
 			CategoryPatientContextMismatch,
 			"The selected slot does not match the verified patient. Please check availability again.",
 		)
 	}
-	booking.command.DOB = verifiedDOB
-
-	patientID, err := strconv.Atoi(booking.command.PatientID)
-	if err != nil {
-		return 0, schedulingError("patientId must be numeric")
-	}
-	return patientID, nil
+	booking.dob = verifiedDOB
+	return nil
 }
 
 func applyBookingPolicy(booking *bookingContext) (
@@ -260,11 +258,11 @@ func applyBookingPolicy(booking *bookingContext) (
 		ProfileID:         booking.token.ProfileID,
 		AppointmentTypeID: command.AppointmentTypeID,
 		Routing:           booking.token.Routing,
-		DOB:               command.DOB,
+		DOB:               string(booking.dob),
 		Intent: appointmentIntent{
 			VisitCategory: command.VisitCategory,
 			PatientStatus: command.PatientStatus,
-			DOB:           command.DOB,
+			DOB:           string(booking.dob),
 			VisitReason:   command.VisitReason,
 		},
 		PreservedAppointmentTypeID: booking.preservedAppointmentType,
@@ -360,7 +358,7 @@ func (s *service) revalidateBookingSlot(
 
 func (s *service) reconcileBooking(ctx context.Context, prepared preparedBooking) (BookReceipt, error) {
 	read, err := s.records.ReadPatientAppointmentsForMonth(ctx, advancedmd.AppointmentMonthQuery{
-		PatientID: prepared.command.PatientID,
+		PatientID: string(prepared.patientID),
 		OfficeIDs: prepared.office.AppointmentLookupOfficeIDs,
 		Month:     prepared.start,
 	})
@@ -421,7 +419,7 @@ func currentBookingColumn(
 	eligible := newSchedulingPolicy(booking.office, booking.asOf).EligibleColumns(
 		setup.Columns,
 		booking.token.Routing,
-		booking.command.DOB,
+		string(booking.dob),
 	)
 	for _, column := range eligible {
 		if column.ID == strconv.Itoa(booking.token.ColumnID) &&
@@ -443,7 +441,7 @@ func buildBookReceipt(prepared preparedBooking, appointmentID int) BookReceipt {
 		Office:              office.DisplayName,
 		VisitType:           domain.AppointmentVisitType(command.AppointmentTypeID),
 		AppointmentID:       appointmentID,
-		PatientID:           command.PatientID,
+		PatientID:           string(prepared.patientID),
 		PatientName:         normalizePatientName(command.PatientName),
 		ProviderName:        column.DisplayName,
 		ProfileID:           strconv.Itoa(prepared.token.ProfileID),
@@ -462,19 +460,17 @@ func (s *service) buildBookReceipt(prepared preparedBooking, appointmentID int) 
 		ID: appointmentID, Start: prepared.start,
 		AppointmentTypeID: prepared.command.AppointmentTypeID, OfficeID: prepared.office.ID,
 	}
-	receipt.RescheduleToken, _ = s.appointmentTokens.IssueRescheduleToken(prepared.command.PatientID, appointment)
-	receipt.CancellationToken, _ = s.appointmentTokens.IssueCancellationToken(prepared.command.PatientID, appointment)
+	receipt.RescheduleToken, _ = s.appointmentTokens.IssueRescheduleToken(string(prepared.patientID), appointment)
+	receipt.CancellationToken, _ = s.appointmentTokens.IssueCancellationToken(string(prepared.patientID), appointment)
 
 	return receipt
 }
 
-func normalizePatientName(name string) string {
-	name = strings.TrimSpace(name)
+func normalizePatientName(full string) string {
+	recorded := domain.ParseRecordName(full)
+	name := strings.TrimSpace(recorded.Given + " " + recorded.Last)
 	if name == "" {
 		return ""
-	}
-	if parts := strings.SplitN(name, ",", 2); len(parts) == 2 {
-		name = strings.TrimSpace(parts[1]) + " " + strings.TrimSpace(parts[0])
 	}
 	if name == strings.ToUpper(name) || name == strings.ToLower(name) {
 		return cases.Title(language.English).String(strings.ToLower(name))

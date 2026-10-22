@@ -107,15 +107,15 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 		rejectInvalidRequest(w, r, patientmodule.ResolveResult{Status: "error", Message: err.Error()})
 		return
 	}
-	if message := command.Validate(h.now()); message != "" {
+	query, message := command.Parse(office.ID, h.now())
+	if message != "" {
 		rejectInvalidRequest(w, r, patientmodule.ResolveResult{Status: "error", Message: message})
 		return
 	}
-	command.OfficeID = office.ID
 
 	ctx, cancel := context.WithTimeout(r.Context(), patientResolveBudget)
 	defer cancel()
-	result, err := h.patient.Resolve(ctx, command)
+	result, err := h.patient.Resolve(ctx, query)
 	recordPatientResolutionObservation(r.Context(), result.Observation)
 	if err != nil {
 		category := advancedmd.CategoryOf(err)

@@ -5,33 +5,6 @@ import (
 	"time"
 )
 
-func TestNormalizeDOB(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{"already correct format", "01/15/1980", "01/15/1980"},
-		{"ISO format", "1980-01-15", "01/15/1980"},
-		{"dash format", "01-15-1980", "01/15/1980"},
-		{"single digit month/day", "1/5/1980", "01/05/1980"},
-		{"full month name", "January 15 1980", "01/15/1980"},
-		{"full month with comma", "January 15, 1980", "01/15/1980"},
-		{"short month name", "Jan 15 1980", "01/15/1980"},
-		{"short month with comma", "Jan 15, 1980", "01/15/1980"},
-		{"unknown format returns as-is", "15.01.1980", "15.01.1980"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := NormalizeDOB(tt.input)
-			if got != tt.expected {
-				t.Errorf("NormalizeDOB(%q) = %q, want %q", tt.input, got, tt.expected)
-			}
-		})
-	}
-}
-
 var testNow = time.Date(2026, time.June, 1, 16, 0, 0, 0, time.UTC)
 
 func TestIsMinor(t *testing.T) {
@@ -85,24 +58,92 @@ func TestAgeYearsOn(t *testing.T) {
 	}
 }
 
-func TestParseFirstName(t *testing.T) {
+func TestParseRecordName(t *testing.T) {
 	tests := []struct {
-		input    string
-		expected string
+		full, last, given, first string
 	}{
-		{"SMITH,JOHN", "JOHN"},
-		{"DOE,JANE MARIE", "JANE MARIE"},
-		{"SMITH, JOHN", "JOHN"},
-		{"SMITH", ""},
-		{"", ""},
+		{"SMITH,JOHN", "SMITH", "JOHN", "JOHN"},
+		{"DOE,JANE MARIE", "DOE", "JANE MARIE", "JANE"},
+		{"SMITH, JOHN ", "SMITH", "JOHN", "JOHN"},
+		{"SMITH", "SMITH", "", ""},
+		{"SMITH,", "SMITH", "", ""},
+		{",JANE", "", "JANE", "JANE"},
+		{"", "", "", ""},
 	}
-
 	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			got := ParseFirstName(tt.input)
-			if got != tt.expected {
-				t.Errorf("ParseFirstName(%q) = %q, want %q", tt.input, got, tt.expected)
-			}
-		})
+		name := ParseRecordName(tt.full)
+		if name.Last != tt.last || name.Given != tt.given || name.First() != tt.first {
+			t.Errorf("ParseRecordName(%q) = %+v first %q, want %q %q %q", tt.full, name, name.First(), tt.last, tt.given, tt.first)
+		}
+	}
+}
+
+func TestParsePatientID(t *testing.T) {
+	tests := []struct {
+		raw   string
+		want  PatientID
+		valid bool
+	}{
+		{"123", "123", true},
+		{"pat123", "123", true},
+		{" pat123 ", "123", true},
+		{"", "", true},
+		{"pat", "", true},
+		{"PAT123", "", false},
+		{"abc", "", false},
+	}
+	for _, tt := range tests {
+		got, err := ParsePatientID(tt.raw)
+		if got != tt.want || (err == nil) != tt.valid {
+			t.Errorf("ParsePatientID(%q) = %q, %v; want %q valid=%v", tt.raw, got, err, tt.want, tt.valid)
+		}
+	}
+}
+
+func TestParseDOB(t *testing.T) {
+	tests := []struct {
+		raw   string
+		want  DOB
+		valid bool
+	}{
+		{"01/15/1980", "01/15/1980", true},
+		{"1980-01-15", "01/15/1980", true},
+		{"01-15-1980", "01/15/1980", true},
+		{"1/5/1980", "01/05/1980", true},
+		{"January 15, 1980", "01/15/1980", true},
+		{"Jan 15 1980", "01/15/1980", true},
+		{"06/01/2026", "06/01/2026", true},
+		{"", "", true},
+		{"06/02/2026", "", false},
+		{"13/45/1980", "", false},
+		{" 01/15/1980", "01/15/1980", true},
+		{"15.01.1980", "", false},
+	}
+	for _, tt := range tests {
+		got, err := ParseDOB(tt.raw, testNow)
+		if got != tt.want || (err == nil) != tt.valid {
+			t.Errorf("ParseDOB(%q) = %q, %v; want %q valid=%v", tt.raw, got, err, tt.want, tt.valid)
+		}
+	}
+}
+
+func TestRecordNameMatchesFirstName(t *testing.T) {
+	tests := []struct {
+		record, spoken string
+		match          bool
+	}{
+		{"SMITH,MARY ANN", "Mary", true},
+		{"SMITH,MARY ANN", "Mary Ann", true},
+		{"SMITH,MARY ANN", "maryann", true},
+		{"SMITH,MARY ANN", "Mary-Ann", true},
+		{"SMITH,MARY ANN", "Ann", false},
+		{"SMITH,MARY ANN", "Mar", false},
+		{"GARCÍA,JOSÉ", "Jose", true},
+		{"LEE,MARYANN", "Mary", false},
+	}
+	for _, tt := range tests {
+		if got := ParseRecordName(tt.record).MatchesFirstName(NewPersonName(tt.spoken)); got != tt.match {
+			t.Errorf("%q matches %q = %v, want %v", tt.record, tt.spoken, got, tt.match)
+		}
 	}
 }

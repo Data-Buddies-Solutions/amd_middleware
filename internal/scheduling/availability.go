@@ -46,7 +46,8 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 	if err != nil {
 		return empty, schedulingError("Invalid date format. Use YYYY-MM-DD.")
 	}
-	if err := domain.ValidateOptionalDOB(command.DOB, now); err != nil {
+	dob, err := domain.ParseDOB(command.DOB, now)
+	if err != nil {
 		return empty, schedulingError(err.Error())
 	}
 	requestedRouting, err := domain.ParseRoutingRule(command.Routing)
@@ -83,11 +84,11 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 		(command.VisitType == domain.AppointmentVisitRoutineVision && !office.SupportsRouting(domain.RoutingOpticalOnly)) {
 		return unsupportedVisit(), nil
 	}
-	if age, ok := domain.AgeYearsOn(command.DOB, nowEastern); ok && command.VisitType == domain.AppointmentVisitRoutineVision && routineVisionTooYoung(office, age) {
+	if age, ok := domain.AgeYearsOn(string(dob), nowEastern); ok && command.VisitType == domain.AppointmentVisitRoutineVision && routineVisionTooYoung(office, age) {
 		return empty, schedulingError(office.RoutineVisionMinimumAge.Message)
 	}
 
-	routing := office.SchedulingRouting(requestedRouting, command.DOB, now)
+	routing := office.SchedulingRouting(requestedRouting, string(dob), now)
 	if (command.VisitType == domain.AppointmentVisitMedical && routing == domain.RoutingOpticalOnly) ||
 		(command.VisitType == domain.AppointmentVisitRoutineVision && routing != domain.RoutingOpticalOnly) {
 		return unsupportedVisit(), nil
@@ -102,7 +103,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 		)
 	}
 
-	allowedColumns := policy.EligibleColumns(setup.Columns, routing, command.DOB)
+	allowedColumns := policy.EligibleColumns(setup.Columns, routing, string(dob))
 	if len(allowedColumns) == 0 {
 		return AvailabilityResponse{
 			Status:                AvailabilityStatusSuccess,
@@ -193,7 +194,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 
 	actualDate := slots[0].DateTime[:len("2006-01-02")]
 	tokenIssuedAt := s.now().UTC()
-	slots, tokenExpiresAt, err := s.signSlots(slots, office, routing, command.DOB, tokenIssuedAt)
+	slots, tokenExpiresAt, err := s.signSlots(slots, office, routing, dob, tokenIssuedAt)
 	if err != nil {
 		return empty, schedulingError("Failed to create booking tokens: " + err.Error())
 	}
