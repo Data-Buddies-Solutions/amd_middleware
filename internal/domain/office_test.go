@@ -371,18 +371,16 @@ func TestOfficeConfig_HollywoodSweetwaterRoutineSameStartWindows(t *testing.T) {
 
 func TestOfficeConfig_RoutineAgeRules(t *testing.T) {
 	office := prodOffices["+17864657475"]
-	now := time.Now()
-
-	if got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, ""); len(got) != 3 {
+	if got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, "", testNow); len(got) != 3 {
 		t.Fatalf("missing DOB routine providers = %v, want all without an age filter", got)
 	}
-	if got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, "not-a-date"); len(got) != 0 {
+	if got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, "not-a-date", testNow); len(got) != 0 {
 		t.Fatalf("invalid DOB routine providers = %v, want none", got)
 	}
-	if !office.ColumnAllowsDOB("682", "") {
+	if !office.ColumnAllowsDOB("682", "", testNow) {
 		t.Fatal("Bach column should allow missing DOB because it has no minimum age")
 	}
-	if office.ColumnAllowsDOB("1296", "") {
+	if office.ColumnAllowsDOB("1296", "", testNow) {
 		t.Fatal("Casas column should require DOB because it has a minimum age")
 	}
 
@@ -399,8 +397,8 @@ func TestOfficeConfig_RoutineAgeRules(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dob := now.AddDate(-tt.age, 0, 0).Format("01/02/2006")
-			got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, dob)
+			dob := testNow.AddDate(-tt.age, 0, 0).Format("01/02/2006")
+			got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, dob, testNow)
 			if len(got) != len(tt.wantNames) {
 				t.Fatalf("got %v, want %v", got, tt.wantNames)
 			}

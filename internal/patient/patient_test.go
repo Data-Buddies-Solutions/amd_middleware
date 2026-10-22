@@ -60,7 +60,7 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 		},
 	}
 
-	resolver := patient.New(amd, testAppointmentTokens)
+	resolver := patient.New(amd, testAppointmentTokens, testNow)
 	got, err := resolver.Resolve(context.Background(), patient.ResolveCommand{
 		Phone:    "(954) 287-2010",
 		OfficeID: office.ID,
@@ -108,7 +108,7 @@ func TestCreateOwnsValidationAndOfficeResolution(t *testing.T) {
 	command := validCreateCommand()
 	command.Office = "Unknown"
 	command.FirstName = ""
-	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), command)
+	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), command)
 
 	if got.Status != patient.CreateStatusError || got.Outcome != patient.MutationValidationFailed {
 		t.Fatalf("Create() = %+v, want validation failure", got)
@@ -126,7 +126,7 @@ func TestCreateReturnsStableRejectionWithoutRetry(t *testing.T) {
 	amd := advancedmdtest.NewAdapter()
 	amd.CreatePatientError = advancedmd.NewError(safeerrors.CategoryRejected)
 
-	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
 
 	if got.Status != patient.CreateStatusError || got.Outcome != patient.MutationRejected {
 		t.Fatalf("Create() = %+v, want stable rejection", got)
@@ -157,7 +157,7 @@ func TestCreateReconcilesAmbiguousWriteAfterTransientReadFailure(t *testing.T) {
 	}
 	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true, RespPartyID: "resp456"}
 
-	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
 
 	if got.Status != patient.CreateStatusCreated || got.Outcome != patient.MutationReconciledSuccess {
 		t.Fatalf("Create() = %+v, want reconciled success", got)
@@ -178,7 +178,7 @@ func TestCreateKeepsEmptyReconciliationLookupIndeterminate(t *testing.T) {
 	amd := advancedmdtest.NewAdapter()
 	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 
-	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
 
 	if got.Status != patient.CreateStatusError || got.Outcome != patient.MutationIndeterminateWrite {
 		t.Fatalf("Create() = %+v, want indeterminate write", got)
@@ -212,7 +212,7 @@ func TestCreatePollsUntilNewPatientBecomesVisible(t *testing.T) {
 	}
 	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true, RespPartyID: "resp456"}
 
-	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
 
 	if got.Status != patient.CreateStatusCreated || got.Outcome != patient.MutationReconciledSuccess {
 		t.Fatalf("Create() = %+v, want reconciled success after visibility delay", got)
@@ -250,7 +250,7 @@ func TestCreateKeepsUnidentifiablePostWriteMatchIndeterminate(t *testing.T) {
 	}
 	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true, RespPartyID: "resp456"}
 
-	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
 
 	if got.Status != patient.CreateStatusError || got.Outcome != patient.MutationIndeterminateWrite {
 		t.Fatalf("Create() = %+v, want unidentifiable post-write match to remain indeterminate", got)
@@ -275,7 +275,7 @@ func TestCreateRefusesExistingPatientOnCallerPhone(t *testing.T) {
 		Phone:     "(954)287-2010",
 	}}
 
-	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
 
 	if got.Status != patient.CreateStatusError || got.Outcome != patient.MutationValidationFailed {
 		t.Fatalf("Create() = %+v, want existing-patient validation failure", got)
@@ -300,7 +300,7 @@ func TestCreateAllowsHouseholdMemberOnCallerPhone(t *testing.T) {
 		Phone:     "(954)287-2010",
 	}}
 
-	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
 
 	if got.Status != patient.CreateStatusCreated || amd.CreatePatientCalls != 1 {
 		t.Fatalf("Create() = %+v with %d writes, want one created patient", got, amd.CreatePatientCalls)
@@ -313,7 +313,7 @@ func TestCreateObservesBaselineSearchCompletenessWithoutChangingTheDecision(t *t
 		amd := advancedmdtest.NewAdapter()
 		amd.IncompletePatientSearch = map[domain.PatientSearch]bool{{Phone: "9542872010"}: incomplete}
 
-		got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+		got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
 
 		if got.Status != patient.CreateStatusCreated || amd.CreatePatientCalls != 1 {
 			t.Fatalf("incomplete=%v: Create() = %+v with %d writes, want one created patient", incomplete, got, amd.CreatePatientCalls)
@@ -345,7 +345,7 @@ func TestCreateDoesNotAdoptPreexistingPatientWhoseLookupDetailsChanged(t *testin
 	amd.PatientSearches[search] = []domain.Patient{existing}
 	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true, RespPartyID: "resp456"}
 
-	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
 
 	if got.Status != patient.CreateStatusError || got.Outcome != patient.MutationIndeterminateWrite {
 		t.Fatalf("Create() = %+v, want changed pre-existing match to remain indeterminate", got)
@@ -374,7 +374,7 @@ func TestCreateDoesNotWriteWithAnUnidentifiableBaselinePatient(t *testing.T) {
 		Phone:     "(954)287-2010",
 	}}
 
-	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
 
 	if got.Status != patient.CreateStatusError || got.Outcome != patient.MutationFailed {
 		t.Fatalf("Create() = %+v, want safe pre-write failure", got)
@@ -393,7 +393,7 @@ func TestCreateDoesNotWriteWithoutAReconciliationBaseline(t *testing.T) {
 	amd := advancedmdtest.NewAdapter()
 	amd.PatientErrors[search] = advancedmd.NewError(safeerrors.CategoryNetwork)
 
-	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
 
 	if got.Status != patient.CreateStatusError || got.Outcome != patient.MutationFailed {
 		t.Fatalf("Create() = %+v, want safe pre-write failure", got)
@@ -418,7 +418,7 @@ func TestCreateReturnsIndeterminateWhenReconciliationCannotProveOutcome(t *testi
 		{Err: advancedmd.NewError(safeerrors.CategoryNetwork)},
 	}
 
-	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
 
 	if got.Status != patient.CreateStatusError || got.Outcome != patient.MutationIndeterminateWrite {
 		t.Fatalf("Create() = %+v, want indeterminate write", got)
@@ -449,7 +449,7 @@ func TestCreateReconcilesAmbiguousInsuranceAttachment(t *testing.T) {
 		InsuranceStateKnown: true,
 	}
 
-	got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+	got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
 
 	if got.Status != patient.CreateStatusCreated || got.Outcome != patient.MutationReconciledSuccess {
 		t.Fatalf("Create() = %+v, want reconciled insurance success", got)
@@ -469,7 +469,7 @@ func TestResolveReturnsLightweightCandidatesWithoutHydrationForMultipleMatches(t
 		{ID: "123", FirstName: "JANE", FullName: "DOE,JANE", DOB: "01/15/1980", Phone: "5552223333"},
 		{ID: "456", FirstName: "JOHN", FullName: "DOE,JOHN", DOB: "03/20/1982", Phone: "5552223333"},
 	}
-	got, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{
+	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
 		Phone:    "5552223333",
 		OfficeID: office.ID,
 	})
@@ -522,7 +522,7 @@ func TestResolveDoesNotHydrateAmbiguousFirstNameCandidates(t *testing.T) {
 		{ID: "456", FirstName: "JANET", FullName: "DOE,JANET", DOB: "03/20/1982"},
 	}
 
-	got, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{
+	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
 		Phone:     "5552223333",
 		FirstName: "Ja",
 		OfficeID:  office.ID,
@@ -559,7 +559,7 @@ func TestResolvePreservesMalformedAndTimeoutSearchErrors(t *testing.T) {
 			amd := advancedmdtest.NewAdapter()
 			amd.PatientErrors[search] = advancedmd.NewError(test.category)
 
-			got, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{
+			got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
 				Phone:    "9542872010",
 				OfficeID: office.ID,
 			})
@@ -662,7 +662,7 @@ func TestResolveSelectsPatientByVerifiedDemographics(t *testing.T) {
 			amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true}
 			amd.Demographics["456"] = domain.PatientDemographics{InsuranceStateKnown: true}
 
-			got, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), test.command)
+			got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), test.command)
 			if err != nil {
 				t.Fatalf("Resolve() error = %v", err)
 			}
@@ -678,7 +678,7 @@ func TestResolveReturnsNoMatchWithoutHydratingPatientData(t *testing.T) {
 	office, _ := domain.LookupOffice("Spring Hill")
 	amd := advancedmdtest.NewAdapter()
 
-	got, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{
+	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
 		Phone:    "9542872010",
 		OfficeID: office.ID,
 	})
@@ -718,7 +718,7 @@ func TestResolveRefreshesKnownPatientByID(t *testing.T) {
 		},
 	}
 
-	got, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{
+	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
 		PatientID: "123",
 		OfficeID:  office.ID,
 	})
@@ -775,7 +775,7 @@ func TestResolveStartsDemographicsAndAppointmentsConcurrently(t *testing.T) {
 	}
 	resolved := make(chan resolveResponse, 1)
 	go func() {
-		result, err := patient.New(amd, testAppointmentTokens).Resolve(ctx, patient.ResolveCommand{
+		result, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(ctx, patient.ResolveCommand{
 			Phone:    "9542872010",
 			OfficeID: office.ID,
 		})
@@ -821,7 +821,7 @@ func TestResolveKeepsVerifiedPatientWhenAppointmentsFail(t *testing.T) {
 	log.SetOutput(&logs)
 	t.Cleanup(func() { log.SetOutput(previousWriter) })
 
-	got, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{
+	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
 		Phone:    "9542872010",
 		OfficeID: office.ID,
 	})
@@ -890,7 +890,7 @@ func TestResolveReturnsVerifiedPatientBeforeDeadlineWhenAppointmentsStall(t *tes
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1250*time.Millisecond)
 	defer cancel()
-	got, err := patient.New(records, testAppointmentTokens).Resolve(ctx, patient.ResolveCommand{
+	got, err := patient.New(records, testAppointmentTokens, testNow).Resolve(ctx, patient.ResolveCommand{
 		Phone:    "9542872010",
 		OfficeID: office.ID,
 	})
@@ -914,7 +914,7 @@ func TestResolveKnownPatientReturnsUnavailableWhenAdvancedMDCannotAuthenticate(t
 	amd := advancedmdtest.NewAdapter()
 	amd.DemographicErrors["123"] = advancedmd.NewError(safeerrors.CategoryUnavailable)
 
-	_, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{
+	_, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
 		PatientID: "123",
 		OfficeID:  office.ID,
 	})
@@ -953,7 +953,7 @@ func TestResolveDoesNotVerifyPatientWithoutIdentity(t *testing.T) {
 				amd.DemographicErrors["123"] = test.err
 			}
 
-			got, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{
+			got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
 				PatientID: "123",
 				OfficeID:  office.ID,
 			})
@@ -1034,7 +1034,7 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 			}}
 			amd.Demographics["123"] = test.demographics
 
-			got, err := patient.New(amd, testAppointmentTokens).Resolve(context.Background(), patient.ResolveCommand{
+			got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{
 				Phone:    "9542872010",
 				OfficeID: office.ID,
 			})
@@ -1088,7 +1088,11 @@ func assertResolveResult(t *testing.T, got, want patient.ResolveResult) {
 	}
 }
 
-var testAppointmentTokens = scheduling.NewAppointmentTokens("test-scheduling-secret", nil)
+var testAppointmentTokens = scheduling.NewAppointmentTokens("test-scheduling-secret", testNow)
+
+func testNow() time.Time {
+	return time.Date(2026, time.June, 1, 16, 0, 0, 0, time.UTC)
+}
 
 func TestResolveReportsAppointmentsErrorWhenTokensCannotBeIssued(t *testing.T) {
 	domain.InitRegistry("")
@@ -1105,7 +1109,7 @@ func TestResolveReportsAppointmentsErrorWhenTokensCannotBeIssued(t *testing.T) {
 			Complete: true,
 		},
 	}
-	got, err := patient.New(amd, scheduling.NewAppointmentTokens("", nil)).Resolve(context.Background(), patient.ResolveCommand{PatientID: "123", OfficeID: "spring_hill"})
+	got, err := patient.New(amd, scheduling.NewAppointmentTokens("", testNow), testNow).Resolve(context.Background(), patient.ResolveCommand{PatientID: "123", OfficeID: "spring_hill"})
 	if err != nil || got.AppointmentsStatus != patient.AppointmentsError || len(got.Appointments) != 0 {
 		t.Fatalf("Resolve() = %+v, err = %v", got, err)
 	}

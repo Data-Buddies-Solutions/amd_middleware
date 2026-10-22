@@ -11,12 +11,12 @@ func TestRealDataEmbossSpecialtyKeepsPremierCarrier(t *testing.T) {
 	for _, officeID := range []string{"hollywood", "sweetwater", "north_miami_beach_optical", "spring_hill"} {
 		t.Run(officeID, func(t *testing.T) {
 			o := office(t, officeID)
-			want := DecidePlan("premier-eye-care", "routine_vision", o, adultDOB)
+			want := DecidePlan("premier-eye-care", "routine_vision", o, adultDOB, testNow)
 			if want.Outcome != "accepted" || want.CanonicalPlan != "Emboss Specialty" || want.CarrierCode != "PREM1" || want.CarrierID != "car281317" {
 				t.Errorf("renamed plan = %+v", want)
 			}
 			for _, name := range []string{"Emboss Specialty", "Premier Eye Care", "Premier"} {
-				if got := DecideInsurance(name, "routine_vision", o, adultDOB); !reflect.DeepEqual(got, want) {
+				if got := DecideInsurance(name, "routine_vision", o, adultDOB, testNow); !reflect.DeepEqual(got, want) {
 					t.Errorf("%q: got %+v, want %+v", name, got, want)
 				}
 			}
@@ -38,9 +38,9 @@ func TestEveryPlanNameResolvesToItsPlan(t *testing.T) {
 				if !officeSupports(o, p.Coverage) {
 					continue
 				}
-				byID := DecidePlan(p.ID, p.Coverage, o, adultDOB)
+				byID := DecidePlan(p.ID, p.Coverage, o, adultDOB, testNow)
 				for _, name := range planNames(p) {
-					if byName := DecideInsurance(name, p.Coverage, o, adultDOB); byName.PlanID != p.ID || byName.Outcome != byID.Outcome {
+					if byName := DecideInsurance(name, p.Coverage, o, adultDOB, testNow); byName.PlanID != p.ID || byName.Outcome != byID.Outcome {
 						t.Errorf("%s %q: by name %+v, by id %+v", officeID, name, byName, byID)
 					}
 				}
@@ -50,8 +50,8 @@ func TestEveryPlanNameResolvesToItsPlan(t *testing.T) {
 }
 
 func TestRealDataAetnaBetterAtSouthFloridaOffices(t *testing.T) {
-	hollywood := DecideInsurance("Aetna Better", "medical", office(t, "hollywood"), adultDOB)
-	sweetwater := DecideInsurance("Aetna Better", "medical", office(t, "sweetwater"), adultDOB)
+	hollywood := DecideInsurance("Aetna Better", "medical", office(t, "hollywood"), adultDOB, testNow)
+	sweetwater := DecideInsurance("Aetna Better", "medical", office(t, "sweetwater"), adultDOB, testNow)
 	if hollywood.Outcome != "not_accepted" || hollywood.PlanID != sweetwater.PlanID || hollywood.PlanID == "" {
 		t.Fatalf("hollywood = %+v", hollywood)
 	}
@@ -63,12 +63,12 @@ func TestRealDataAetnaBetterAtSouthFloridaOffices(t *testing.T) {
 func TestRealDataBareAetnaAsksWithResolvableOptions(t *testing.T) {
 	for _, officeID := range []string{"hollywood", "sweetwater"} {
 		o := office(t, officeID)
-		d := DecideInsurance("Aetna", "medical", o, adultDOB)
+		d := DecideInsurance("Aetna", "medical", o, adultDOB, testNow)
 		if d.Outcome != "needs_clarification" || len(d.Options) < 2 {
 			t.Fatalf("%s: decision = %+v", officeID, d)
 		}
 		for _, option := range d.Options {
-			if again := DecideInsurance(option.Label, "medical", o, adultDOB); again.PlanID != option.PlanID {
+			if again := DecideInsurance(option.Label, "medical", o, adultDOB, testNow); again.PlanID != option.PlanID {
 				t.Fatalf("%s: option %q resolved to %+v", officeID, option.Label, again)
 			}
 		}
@@ -81,14 +81,14 @@ func TestRealDataSouthFloridaKnowsTheNamesMainAccepted(t *testing.T) {
 		"Tricare Humana Military (Select)": "tricare-select",
 		"Tricare Humana Military (Prime)":  "tricare-prime",
 	} {
-		if d := DecideInsurance(heard, "medical", office(t, "hollywood"), adultDOB); d.PlanID != planID {
+		if d := DecideInsurance(heard, "medical", office(t, "hollywood"), adultDOB, testNow); d.PlanID != planID {
 			t.Errorf("%q: decision = %+v", heard, d)
 		}
 	}
 }
 
 func TestRealDataSpringHillHumanaMedicareKeepsItsCarrier(t *testing.T) {
-	d := DecideInsurance("Humana Medicare", "medical", office(t, "spring_hill"), adultDOB)
+	d := DecideInsurance("Humana Medicare", "medical", office(t, "spring_hill"), adultDOB, testNow)
 	if d.Outcome != "accepted" || d.CarrierID != "car40906" || !slices.Equal(d.AllowedProviders, []string{"Dr. Bach"}) {
 		t.Fatalf("decision = %+v", d)
 	}
@@ -101,7 +101,7 @@ func TestRealDataSimplyMedicaidAsksForTheSubscriberNumber(t *testing.T) {
 		{"north_miami_beach_optical", "routine_vision"},
 		{"spring_hill", "medical"}, {"spring_hill", "routine_vision"},
 	} {
-		d := DecideInsurance("Simply Medicaid", c.coverage, office(t, c.office), adultDOB)
+		d := DecideInsurance("Simply Medicaid", c.coverage, office(t, c.office), adultDOB, testNow)
 		if d.Outcome != "accepted" || d.CallerNotice != simplySubscriberNotice || !strings.HasSuffix(d.Answer, simplySubscriberNotice) {
 			t.Errorf("%s %s: decision = %+v", c.office, c.coverage, d)
 		}

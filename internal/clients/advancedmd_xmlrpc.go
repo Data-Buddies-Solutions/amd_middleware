@@ -48,6 +48,7 @@ type amdContactInfo struct {
 
 type AdvancedMDClient struct {
 	httpClient *http.Client
+	now        func() time.Time
 }
 
 type providerRejectionError struct {
@@ -80,8 +81,8 @@ func statusError(code int, kind requestKind) error {
 	return safeerrors.New(category, "%w", &httpStatusError{statusCode: code})
 }
 
-func NewAdvancedMDClient(httpClient *http.Client) *AdvancedMDClient {
-	return &AdvancedMDClient{httpClient: httpClient}
+func NewAdvancedMDClient(httpClient *http.Client, now func() time.Time) *AdvancedMDClient {
+	return &AdvancedMDClient{httpClient: httpClient, now: now}
 }
 
 type requestKind int
@@ -284,7 +285,7 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *session.To
 		"ppmdmsg": map[string]interface{}{
 			"@action":   "addpatient",
 			"@class":    "api",
-			"@msgtime":  msgTime(),
+			"@msgtime":  c.msgTime(),
 			"@nocookie": "0",
 			"patientlist": map[string]interface{}{
 				"patient": map[string]interface{}{
@@ -346,7 +347,7 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *session.
 		"ppmdmsg": map[string]interface{}{
 			"@action":  "addinsurance",
 			"@class":   "api",
-			"@msgtime": msgTime(),
+			"@msgtime": c.msgTime(),
 			"patient": map[string]interface{}{
 				"@id":      patientID,
 				"@changed": "1",
@@ -381,13 +382,13 @@ func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *session.
 func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *session.TokenData, patientID, insPlanID string) (resultErr error) {
 	ctx, finish := beginProviderOperation(ctx, "enddateinsurance")
 	defer func() { finish(resultErr) }()
-	today := time.Now().Format("01/02/2006")
+	today := c.now().In(domain.EasternLocation()).Format("01/02/2006")
 
 	payload := map[string]interface{}{
 		"ppmdmsg": map[string]interface{}{
 			"@action":  "addinsurance",
 			"@class":   "api",
-			"@msgtime": msgTime(),
+			"@msgtime": c.msgTime(),
 			"patient": map[string]interface{}{
 				"@id":      patientID,
 				"@changed": "1",
@@ -413,8 +414,8 @@ func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *sess
 	return nil
 }
 
-func msgTime() string {
-	return time.Now().Format("01/02/2006 03:04:05 PM")
+func (c *AdvancedMDClient) msgTime() string {
+	return c.now().Format("01/02/2006 03:04:05 PM")
 }
 
 func decodeXMLRPC(body []byte, operation string) (json.RawMessage, error) {
@@ -534,7 +535,7 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *sessio
 		"ppmdmsg": map[string]interface{}{
 			"@action":    "getdemographic",
 			"@class":     "demographics",
-			"@msgtime":   msgTime(),
+			"@msgtime":   c.msgTime(),
 			"@patientid": patientID,
 		},
 	}
@@ -702,7 +703,7 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *ses
 		"ppmdmsg": map[string]interface{}{
 			"@action":   "getschedulersetup",
 			"@class":    "masterfiles",
-			"@msgtime":  msgTime(),
+			"@msgtime":  c.msgTime(),
 			"@nocookie": "0",
 		},
 	}

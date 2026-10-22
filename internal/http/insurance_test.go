@@ -13,7 +13,7 @@ import (
 )
 
 func TestInsuranceDecisionHTTPContract(t *testing.T) {
-	handlers := &Handlers{}
+	handlers := NewHandlers(nil, nil, nil, testNow)
 	office, _ := domain.ResolveOffice("Hollywood")
 	for _, plan := range []string{"Self Pay", "Aetna", "unknown words"} {
 		w := httptest.NewRecorder()
@@ -23,7 +23,7 @@ func TestInsuranceDecisionHTTPContract(t *testing.T) {
 		if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
 			t.Fatal(err)
 		}
-		want := insurance.DecideInsurance(plan, "medical", office, "01/15/1980")
+		want := insurance.DecideInsurance(plan, "medical", office, "01/15/1980", testNow())
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("%s: response=%s want=%+v", plan, w.Body.String(), want)
 		}
@@ -46,7 +46,7 @@ func TestInsuranceDecisionHTTPContract(t *testing.T) {
 
 func getInsurancePlans(t *testing.T, query, auth string) *httptest.ResponseRecorder {
 	t.Helper()
-	router := NewRouter(NewHandlers(nil, nil, nil), "test-secret", nil)
+	router := NewRouter(NewHandlers(nil, nil, nil, testNow), "test-secret", nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/insurance/plans?"+query, nil)
 	if auth != "" {
 		req.Header.Set("Authorization", auth)

@@ -10,8 +10,10 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
+var testNow = time.Date(2026, time.June, 1, 16, 0, 0, 0, time.UTC)
+
 func dobYearsAgo(years int) string {
-	return time.Now().AddDate(-years, 0, -1).Format("01/02/2006")
+	return testNow.AddDate(-years, 0, -1).Format("01/02/2006")
 }
 
 func springHillPlans() []plan {
@@ -53,7 +55,7 @@ func TestDecidePlanFiltersOfficeDoctorsByThePlan(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			d := DecidePlan(tc.planID, tc.coverage, office(t, tc.office), tc.dob)
+			d := DecidePlan(tc.planID, tc.coverage, office(t, tc.office), tc.dob, testNow)
 			if d.Outcome != tc.outcome || d.PlanID != tc.planID || !slices.Equal(d.AllowedProviders, tc.allowed) {
 				t.Fatalf("decision = %+v", d)
 			}
@@ -66,12 +68,12 @@ func TestDecidePlanFiltersOfficeDoctorsByThePlan(t *testing.T) {
 		{"licht-only", "medical", "spring_hill", dobYearsAgo(10)},
 		{"vsp", "routine_vision", "hollywood", dobYearsAgo(3)},
 	} {
-		d := DecidePlan(tc.planID, tc.coverage, office(t, tc.office), tc.dob)
+		d := DecidePlan(tc.planID, tc.coverage, office(t, tc.office), tc.dob, testNow)
 		if d.Participation != "accepted" || d.Answer != answerNoDoctorForAge {
 			t.Fatalf("%+v: child decision = %+v", tc, d)
 		}
 	}
-	if d := DecidePlan("otero-vision", "routine_vision", springHill, adultDOB); d.Answer != "success: Yes, we accept Otero Vision. Bring your card." {
+	if d := DecidePlan("otero-vision", "routine_vision", springHill, adultDOB, testNow); d.Answer != "success: Yes, we accept Otero Vision. Bring your card." {
 		t.Fatalf("answer = %q", d.Answer)
 	}
 }
@@ -80,25 +82,25 @@ func TestDecidePlanSendsPendingAndRequirementsToStaff(t *testing.T) {
 	useSyntheticCatalog(t, syntheticSouthFlorida(), springHillPlans(), nil)
 	springHill := office(t, "spring_hill")
 
-	pending := DecidePlan("pending-plan", "medical", springHill, adultDOB)
+	pending := DecidePlan("pending-plan", "medical", springHill, adultDOB, testNow)
 	if pending.Outcome != "needs_staff_task" || pending.Participation != "unknown" || pending.CanSchedule ||
 		pending.Answer != "blocked: The office needs to confirm this coverage. Staff will call you back." {
 		t.Fatalf("pending = %+v", pending)
 	}
 
-	auth := DecidePlan("prior-auth-plan", "medical", springHill, adultDOB)
+	auth := DecidePlan("prior-auth-plan", "medical", springHill, adultDOB, testNow)
 	want := []InsuranceRequirement{{Kind: "prior_authorization", Channel: "availity", Verification: "unverified"}}
 	if auth.Outcome != "needs_staff_task" || auth.Participation != "accepted" || auth.CanSchedule ||
 		!slices.Equal(auth.Requirements, want) || auth.Answer != answerPriorAuth {
 		t.Fatalf("prior auth = %+v", auth)
 	}
 
-	verify := DecidePlan("verify-plan", "medical", springHill, adultDOB)
+	verify := DecidePlan("verify-plan", "medical", springHill, adultDOB, testNow)
 	if verify.Outcome != "needs_staff_task" || verify.Participation != "accepted" || verify.CanSchedule || verify.Answer != answerStaffVerify {
 		t.Fatalf("staff verify = %+v", verify)
 	}
 
-	referral := DecidePlan("referral-plan", "medical", springHill, adultDOB)
+	referral := DecidePlan("referral-plan", "medical", springHill, adultDOB, testNow)
 	if referral.Outcome != "needs_staff_task" || referral.Answer != answerReferral {
 		t.Fatalf("referral = %+v", referral)
 	}
@@ -107,10 +109,10 @@ func TestDecidePlanSendsPendingAndRequirementsToStaff(t *testing.T) {
 func TestDecidePlanHonorsOnlyOffices(t *testing.T) {
 	plans := append(syntheticSouthFlorida(), plan{ID: "miami-dade-plan", Label: "Miami Dade Plan", Coverage: "medical", CarrierID: "car1", Doctors: bach("yes"), OnlyOffices: []string{"sweetwater"}})
 	useSyntheticCatalog(t, plans, nil, nil)
-	if d := DecidePlan("miami-dade-plan", "medical", office(t, "sweetwater"), adultDOB); d.Outcome != "accepted" {
+	if d := DecidePlan("miami-dade-plan", "medical", office(t, "sweetwater"), adultDOB, testNow); d.Outcome != "accepted" {
 		t.Fatalf("sweetwater = %+v", d)
 	}
-	if d := DecidePlan("miami-dade-plan", "medical", office(t, "hollywood"), adultDOB); d.Outcome != "not_accepted" || d.Answer != answerNotAccepted {
+	if d := DecidePlan("miami-dade-plan", "medical", office(t, "hollywood"), adultDOB, testNow); d.Outcome != "not_accepted" || d.Answer != answerNotAccepted {
 		t.Fatalf("hollywood = %+v", d)
 	}
 }
@@ -123,7 +125,7 @@ func TestDecidePlanRequiresThePlanInTheOfficeListAndCoverage(t *testing.T) {
 		{"missing", "medical", "hollywood"},
 		{"", "medical", "hollywood"},
 	} {
-		d := DecidePlan(tc.planID, tc.coverage, office(t, tc.office), adultDOB)
+		d := DecidePlan(tc.planID, tc.coverage, office(t, tc.office), adultDOB, testNow)
 		if d.Outcome != "needs_clarification" || d.PlanID != "" || d.Answer != answerAskCard {
 			t.Fatalf("%+v: decision = %+v", tc, d)
 		}
@@ -132,11 +134,11 @@ func TestDecidePlanRequiresThePlanInTheOfficeListAndCoverage(t *testing.T) {
 
 func TestDecisionsRejectUnsupportedCoverage(t *testing.T) {
 	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
-	d := DecideInsurance("Aetna Medicare", "medical", office(t, "north_miami_beach_optical"), adultDOB)
+	d := DecideInsurance("Aetna Medicare", "medical", office(t, "north_miami_beach_optical"), adultDOB, testNow)
 	if d.Outcome != "not_accepted" || d.Answer != answerOfficeNoCoverage {
 		t.Fatalf("office without medical = %+v", d)
 	}
-	d = DecidePlan("aetna-medicare", "dental", office(t, "hollywood"), adultDOB)
+	d = DecidePlan("aetna-medicare", "dental", office(t, "hollywood"), adultDOB, testNow)
 	if d.Outcome != "needs_clarification" || d.Answer != answerAskCoverage {
 		t.Fatalf("unknown coverage = %+v", d)
 	}
@@ -144,7 +146,7 @@ func TestDecisionsRejectUnsupportedCoverage(t *testing.T) {
 
 func TestInsuranceDecisionJSON(t *testing.T) {
 	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
-	accepted, err := json.Marshal(DecideInsurance("Aetna Medicare", "medical", office(t, "hollywood"), adultDOB))
+	accepted, err := json.Marshal(DecideInsurance("Aetna Medicare", "medical", office(t, "hollywood"), adultDOB, testNow))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +155,7 @@ func TestInsuranceDecisionJSON(t *testing.T) {
 			t.Fatalf("missing %s in %s", field, accepted)
 		}
 	}
-	asked, err := json.Marshal(DecideInsurance("Aetna", "medical", office(t, "hollywood"), adultDOB))
+	asked, err := json.Marshal(DecideInsurance("Aetna", "medical", office(t, "hollywood"), adultDOB, testNow))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,18 +181,18 @@ func TestDecisionsNameTheirReasonAndCallerNotice(t *testing.T) {
 		reason string
 		notice string
 	}{
-		{"accepted", DecidePlan("all-three", "medical", springHill, adultDOB), "accepted", ""},
-		{"accepted with notice", DecidePlan("otero-vision", "routine_vision", springHill, adultDOB), "accepted", "Bring your card."},
-		{"pending", DecidePlan("pending-plan", "medical", springHill, adultDOB), "pending_confirmation", "Staff will call you back."},
-		{"requirement", DecidePlan("prior-auth-plan", "medical", springHill, adultDOB), "requirement", ""},
-		{"no doctor for age", DecidePlan("licht-only", "medical", springHill, dobYearsAgo(10)), "no_provider_for_age", ""},
-		{"not accepted", DecidePlan("aetna-commercial", "medical", hollywood, adultDOB), "not_accepted", ""},
-		{"unknown plan", DecidePlan("missing", "medical", hollywood, adultDOB), "ask_card", ""},
-		{"unknown coverage", DecidePlan("aetna-medicare", "dental", hollywood, adultDOB), "ask_coverage", ""},
-		{"office without coverage", DecideInsurance("Aetna Medicare", "medical", office(t, "north_miami_beach_optical"), adultDOB), "office_no_coverage", ""},
-		{"several plans", DecideInsurance("Aetna", "medical", hollywood, adultDOB), "choose_plan", ""},
-		{"program only", DecideInsurance("Medicare please", "medical", hollywood, adultDOB), "ask_full_name", ""},
-		{"chart carrier unknown", DecideChartInsurance(domain.PatientDemographics{CarrierID: "car999"}, "medical", hollywood, adultDOB), "chart_unverified", ""},
+		{"accepted", DecidePlan("all-three", "medical", springHill, adultDOB, testNow), "accepted", ""},
+		{"accepted with notice", DecidePlan("otero-vision", "routine_vision", springHill, adultDOB, testNow), "accepted", "Bring your card."},
+		{"pending", DecidePlan("pending-plan", "medical", springHill, adultDOB, testNow), "pending_confirmation", "Staff will call you back."},
+		{"requirement", DecidePlan("prior-auth-plan", "medical", springHill, adultDOB, testNow), "requirement", ""},
+		{"no doctor for age", DecidePlan("licht-only", "medical", springHill, dobYearsAgo(10), testNow), "no_provider_for_age", ""},
+		{"not accepted", DecidePlan("aetna-commercial", "medical", hollywood, adultDOB, testNow), "not_accepted", ""},
+		{"unknown plan", DecidePlan("missing", "medical", hollywood, adultDOB, testNow), "ask_card", ""},
+		{"unknown coverage", DecidePlan("aetna-medicare", "dental", hollywood, adultDOB, testNow), "ask_coverage", ""},
+		{"office without coverage", DecideInsurance("Aetna Medicare", "medical", office(t, "north_miami_beach_optical"), adultDOB, testNow), "office_no_coverage", ""},
+		{"several plans", DecideInsurance("Aetna", "medical", hollywood, adultDOB, testNow), "choose_plan", ""},
+		{"program only", DecideInsurance("Medicare please", "medical", hollywood, adultDOB, testNow), "ask_full_name", ""},
+		{"chart carrier unknown", DecideChartInsurance(domain.PatientDemographics{CarrierID: "car999"}, "medical", hollywood, adultDOB, testNow), "chart_unverified", ""},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -213,7 +215,7 @@ func TestCandidatesWithDifferentNoticesAreAskedNotMerged(t *testing.T) {
 		{ID: "blue-a", Label: "Blue A", Coverage: "medical", CarrierID: "car9", Doctors: bach("yes")},
 		{ID: "blue-b", Label: "Blue B", Coverage: "medical", CarrierID: "car9", Doctors: bach("yes"), CallerNotice: "Bring your referral."},
 	}
-	d := decideCandidates(newDecision("medical", hollywood), plans, hollywood, adultDOB)
+	d := decideCandidates(newDecision("medical", hollywood), plans, hollywood, adultDOB, testNow)
 	if d.Reason != "choose_plan" || len(d.Options) != 2 {
 		t.Fatalf("decision = %+v", d)
 	}

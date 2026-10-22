@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"advancedmd-token-management/internal/safeerrors"
 )
@@ -55,7 +56,7 @@ func TestMaintainReportsLoginFailureCategories(t *testing.T) {
 				}
 				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body)), Header: http.Header{}}, nil
 			})}
-			err := NewSession(Credentials{Username: "user", Password: "password", OfficeKey: "office", AppName: "app"}, client).
+			err := NewSession(Credentials{Username: "user", Password: "password", OfficeKey: "office", AppName: "app"}, client, time.Now).
 				Maintain(context.Background())
 			if got := safeerrors.Classify(err); got != tt.wanted {
 				t.Fatalf("Classify(%v) = %q, want %q", err, got, tt.wanted)

@@ -51,6 +51,7 @@ func newMonthScheduleAdapter(t *testing.T, server *monthScheduleServer) *Adapter
 		}},
 		nil,
 		clients.NewAdvancedMDRestClient(httpServer.Client()),
+		time.Now,
 	)
 }
 

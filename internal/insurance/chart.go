@@ -1,8 +1,11 @@
 package insurance
 
-import "advancedmd-token-management/internal/domain"
+import (
+	"advancedmd-token-management/internal/domain"
+	"time"
+)
 
-func DecideChartInsurance(chart domain.PatientDemographics, coverage string, office *domain.OfficeConfig, dob string) InsuranceDecision {
+func DecideChartInsurance(chart domain.PatientDemographics, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
 	d, list, ok := startDecision(coverage, office)
 	if !ok {
 		return d
@@ -13,7 +16,7 @@ func DecideChartInsurance(chart domain.PatientDemographics, coverage string, off
 			plans = append(plans, p)
 		}
 	}
-	groups := distinctOutcomes(plans, office, dob)
+	groups := distinctOutcomes(plans, office, dob, asOf)
 	if len(groups) != 1 || groups[0].Participation != "accepted" {
 		d.Outcome = "needs_staff_task"
 		d.Reason, d.Answer = "chart_unverified", answerChartStaff

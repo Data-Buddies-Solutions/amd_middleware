@@ -58,19 +58,19 @@ func TestProvidersForRoutingAndDOB(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			names := office.ProvidersForRoutingAndDOB(tt.rule, "1980-01-01")
+			names := office.ProvidersForRoutingAndDOB(tt.rule, "1980-01-01", testNow)
 			if tt.wantNames == nil {
 				if names != nil {
-					t.Errorf("ProvidersForRoutingAndDOB(%q) = %v, want nil", tt.rule, names)
+					t.Errorf("ProvidersForRoutingAndDOB(%q, testNow) = %v, want nil", tt.rule, names)
 				}
 				return
 			}
 			if len(names) != len(tt.wantNames) {
-				t.Fatalf("ProvidersForRoutingAndDOB(%q) len = %d, want %d", tt.rule, len(names), len(tt.wantNames))
+				t.Fatalf("ProvidersForRoutingAndDOB(%q, testNow) len = %d, want %d", tt.rule, len(names), len(tt.wantNames))
 			}
 			for i, name := range tt.wantNames {
 				if names[i] != name {
-					t.Errorf("ProvidersForRoutingAndDOB(%q)[%d] = %q, want %q", tt.rule, i, names[i], name)
+					t.Errorf("ProvidersForRoutingAndDOB(%q, testNow)[%d] = %q, want %q", tt.rule, i, names[i], name)
 				}
 			}
 		})

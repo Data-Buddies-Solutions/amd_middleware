@@ -50,17 +50,19 @@ type loginFault struct {
 type advancedMDLogin struct {
 	creds  Credentials
 	client *http.Client
+	now    func() time.Time
 }
 
-func newAdvancedMDLogin(creds Credentials, client *http.Client) *advancedMDLogin {
+func newAdvancedMDLogin(creds Credentials, client *http.Client, now func() time.Time) *advancedMDLogin {
 	return &advancedMDLogin{
 		creds:  creds,
 		client: client,
+		now:    now,
 	}
 }
 
 func (a *advancedMDLogin) buildLoginXML() string {
-	now := time.Now().Format("1/2/2006 3:04:05 PM")
+	now := a.now().Format("1/2/2006 3:04:05 PM")
 	return fmt.Sprintf(
 		`<ppmdmsg action="login" class="login" msgtime="%s" username="%s" psw="%s" officecode="%s" appname="%s"/>`,
 		now,

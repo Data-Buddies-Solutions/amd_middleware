@@ -7,26 +7,28 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
+var policyTestNow = time.Date(2026, time.June, 1, 16, 0, 0, 0, time.UTC)
+
 func TestAppointmentTypeMatchesDOBUsesCatalogAgeBand(t *testing.T) {
-	pediatricDOB := time.Now().AddDate(-10, 0, 0).Format("01/02/2006")
-	adultDOB := time.Now().AddDate(-40, 0, 0).Format("01/02/2006")
+	pediatricDOB := policyTestNow.AddDate(-10, 0, 0).Format("01/02/2006")
+	adultDOB := policyTestNow.AddDate(-40, 0, 0).Format("01/02/2006")
 	for id, appointmentType := range domain.AppointmentTypes {
 		wantPediatric := appointmentType.AgeBand != domain.AppointmentAgeAdult
 		wantAdult := appointmentType.AgeBand != domain.AppointmentAgePediatric
-		if got := appointmentTypeMatchesDOB(id, pediatricDOB); got != wantPediatric {
-			t.Errorf("appointmentTypeMatchesDOB(%d, pediatric DOB) = %v, want %v", id, got, wantPediatric)
+		if got := appointmentTypeMatchesDOB(id, pediatricDOB, policyTestNow); got != wantPediatric {
+			t.Errorf("appointmentTypeMatchesDOB(%d, pediatric DOB, policyTestNow) = %v, want %v", id, got, wantPediatric)
 		}
-		if got := appointmentTypeMatchesDOB(id, adultDOB); got != wantAdult {
-			t.Errorf("appointmentTypeMatchesDOB(%d, adult DOB) = %v, want %v", id, got, wantAdult)
+		if got := appointmentTypeMatchesDOB(id, adultDOB, policyTestNow); got != wantAdult {
+			t.Errorf("appointmentTypeMatchesDOB(%d, adult DOB, policyTestNow) = %v, want %v", id, got, wantAdult)
 		}
 	}
-	if !appointmentTypeMatchesDOB(9999, "01/01/1980") {
+	if !appointmentTypeMatchesDOB(9999, "01/01/1980", policyTestNow) {
 		t.Error("unknown appointment type should retain age-agnostic behavior")
 	}
 }
 
 func TestInvalidAppointmentTypeMessageUsesCatalog(t *testing.T) {
-	policy := newSchedulingPolicy(domain.DefaultOffice())
+	policy := newSchedulingPolicy(domain.DefaultOffice(), policyTestNow)
 	columnID := 1513
 	profileID := 620
 	_, policyErr := policy.PrepareBooking(bookingPolicyRequest{
@@ -39,8 +41,8 @@ func TestInvalidAppointmentTypeMessageUsesCatalog(t *testing.T) {
 }
 
 func TestSchedulingPolicy_PrepareBookingRejectsAppointmentTypeForWrongAge(t *testing.T) {
-	policy := newSchedulingPolicy(domain.DefaultOffice())
-	adultDOB := time.Now().AddDate(-30, 0, 0).Format("01/02/2006")
+	policy := newSchedulingPolicy(domain.DefaultOffice(), policyTestNow)
+	adultDOB := policyTestNow.AddDate(-30, 0, 0).Format("01/02/2006")
 
 	_, policyErr := policy.PrepareBooking(bookingPolicyRequest{
 		ColumnID:          1513,

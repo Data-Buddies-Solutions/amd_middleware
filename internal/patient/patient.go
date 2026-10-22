@@ -2,6 +2,7 @@ package patient
 
 import (
 	"context"
+	"time"
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
@@ -196,6 +197,7 @@ type Patient interface {
 type patient struct {
 	advancedMD        advancedmd.PatientRecords
 	appointmentTokens AppointmentTokenIssuer
+	now               func() time.Time
 }
 
 type AppointmentTokenIssuer interface {
@@ -203,9 +205,10 @@ type AppointmentTokenIssuer interface {
 	IssueRescheduleToken(string, domain.PatientAppointment) (string, error)
 }
 
-func New(advancedMD advancedmd.PatientRecords, appointmentTokens AppointmentTokenIssuer) Patient {
+func New(advancedMD advancedmd.PatientRecords, appointmentTokens AppointmentTokenIssuer, now func() time.Time) Patient {
 	return &patient{
 		advancedMD:        advancedMD,
 		appointmentTokens: appointmentTokens,
+		now:               now,
 	}
 }

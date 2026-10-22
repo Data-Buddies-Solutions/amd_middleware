@@ -21,7 +21,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 	if err != nil {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
 	}
-	decision := decideInsurance(command.Insurance, command.InsurancePlanID, command.CoverageType, office, command.DOB)
+	decision := decideInsurance(command.Insurance, command.InsurancePlanID, command.CoverageType, office, command.DOB, p.now())
 	command.SubscriberNum = subscriberNumber(decision.SelfPay, command.SubscriberNum)
 	if missing := createMissingFields(command); len(missing) > 0 {
 		return CreateResult{

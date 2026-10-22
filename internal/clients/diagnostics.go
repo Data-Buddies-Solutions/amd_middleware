@@ -10,12 +10,12 @@ import (
 	"advancedmd-token-management/internal/safeerrors"
 )
 
-func observeProviderFailure(ctx context.Context, operation string, started time.Time, err error) {
+func observeProviderFailure(ctx context.Context, operation string, elapsed time.Duration, err error) {
 	if err == nil {
 		return
 	}
 	diagnostic := safeerrors.ProviderDiagnostic{
-		Operation: operation, Category: safeerrors.Classify(err), DurationMS: time.Since(started).Milliseconds(),
+		Operation: operation, Category: safeerrors.Classify(err), DurationMS: elapsed.Milliseconds(),
 	}
 	if observation, _ := ctx.Value(providerObservationKey{}).(*providerObservation); observation != nil {
 		diagnostic.HTTPStatus = observation.httpStatus
@@ -64,7 +64,7 @@ type providerObservation struct{ httpStatus int }
 func beginProviderOperation(ctx context.Context, operation string) (context.Context, func(error)) {
 	started := time.Now()
 	ctx = context.WithValue(ctx, providerObservationKey{}, &providerObservation{})
-	return ctx, func(err error) { observeProviderFailure(ctx, operation, started, err) }
+	return ctx, func(err error) { observeProviderFailure(ctx, operation, time.Since(started), err) }
 }
 func observeProviderStatus(ctx context.Context, status int) {
 	if observation, _ := ctx.Value(providerObservationKey{}).(*providerObservation); observation != nil {

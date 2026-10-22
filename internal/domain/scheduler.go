@@ -3,6 +3,7 @@ package domain
 import (
 	"fmt"
 	"time"
+	_ "time/tzdata"
 )
 
 var easternLocation = loadEasternLocation()
@@ -14,7 +15,7 @@ func EasternLocation() *time.Location {
 func loadEasternLocation() *time.Location {
 	location, err := time.LoadLocation("America/New_York")
 	if err != nil {
-		return time.FixedZone("EST", -5*60*60)
+		panic(fmt.Sprintf("load America/New_York from the embedded tz database: %v", err))
 	}
 	return location
 }
@@ -83,19 +84,22 @@ func (c *SchedulerColumn) WorksOnDay(weekday time.Weekday) bool {
 }
 
 func (c *SchedulerColumn) HasUsableSchedule() bool {
-	_, _, err := c.ParseWorkHours(time.Now())
-	return c.Interval > 0 && c.Workweek != 0 && err == nil
+	_, startErr := time.Parse(workHoursLayout, c.StartTime)
+	_, endErr := time.Parse(workHoursLayout, c.EndTime)
+	return c.Interval > 0 && c.Workweek != 0 && startErr == nil && endErr == nil
 }
+
+const workHoursLayout = "15:04"
 
 func (c *SchedulerColumn) ParseWorkHours(date time.Time) (start, end time.Time, err error) {
 	loc := date.Location()
 
-	startTime, err := time.ParseInLocation("15:04", c.StartTime, loc)
+	startTime, err := time.ParseInLocation(workHoursLayout, c.StartTime, loc)
 	if err != nil {
 		return time.Time{}, time.Time{}, fmt.Errorf("invalid start time: %w", err)
 	}
 
-	endTime, err := time.ParseInLocation("15:04", c.EndTime, loc)
+	endTime, err := time.ParseInLocation(workHoursLayout, c.EndTime, loc)
 	if err != nil {
 		return time.Time{}, time.Time{}, fmt.Errorf("invalid end time: %w", err)
 	}

@@ -136,7 +136,7 @@ func TestJSONRoutesRejectUnknownFieldsBeforeTheFeature(t *testing.T) {
 
 func newDecodingRouter() (http.Handler, *featureCalls) {
 	features := &featureCalls{}
-	return NewRouter(&Handlers{patient: features, scheduling: features}, "agent-secret", nil), features
+	return NewRouter(&Handlers{patient: features, scheduling: features, now: testNow}, "agent-secret", nil), features
 }
 
 type featureCalls struct {

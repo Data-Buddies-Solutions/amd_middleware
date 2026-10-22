@@ -591,7 +591,7 @@ func TestNewSessionDoesNotAuthenticateUntilRequested(t *testing.T) {
 		Password:  "password",
 		OfficeKey: "office",
 		AppName:   "app",
-	}, client)
+	}, client, time.Now)
 
 	if got := session.Status().State; got != SessionUninitialized {
 		t.Fatalf("state = %q, want %q", got, SessionUninitialized)

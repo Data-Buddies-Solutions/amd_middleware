@@ -217,6 +217,40 @@ func TestListExcludesRestrictedProviders(t *testing.T) {
 	}
 }
 
+func TestListRoutesAPatientByTheirAgeOnTheEasternCalendar(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		now     time.Time
+		outcome string
+	}{
+		{"17 at 22:00 EDT on the eve of the 18th birthday", time.Date(2026, 10, 21, 2, 0, 0, 0, time.UTC), scheduling.AvailabilityOutcomeNoEligibleProviders},
+		{"18 at 00:30 EDT on the 18th birthday", time.Date(2026, 10, 21, 4, 30, 0, 0, time.UTC), scheduling.AvailabilityOutcomeFound},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			records := recordsWithSetup(testColumn("1550", "2076", "1568", "09:00", "09:15", 15))
+			for day := 0; day < 14; day++ {
+				date := time.Date(2026, 10, 22+day, 0, 0, 0, 0, time.UTC).Format("2006-01-02")
+				records.ScheduleReads[date] = completeRead("1550", nil, nil)
+			}
+
+			result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return tt.now }).
+				List(context.Background(), scheduling.ListCommand{
+					StartDate: "2026-10-22",
+					Office:    "Spring Hill",
+					Routing:   string(domain.RoutingAll),
+					VisitType: domain.AppointmentVisitMedical,
+					DOB:       "10/21/2008",
+				})
+			if err != nil {
+				t.Fatalf("List error = %v", err)
+			}
+			if result.Outcome != tt.outcome {
+				t.Fatalf("outcome = %s, want %s: a minor routes to Dr. Bach only, an adult may see Dr. Noel", result.Outcome, tt.outcome)
+			}
+		})
+	}
+}
+
 func TestListRejectsInvalidDOB(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	records := recordsWithSetup(

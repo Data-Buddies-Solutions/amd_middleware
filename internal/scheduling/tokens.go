@@ -94,9 +94,6 @@ type AppointmentTokens struct {
 }
 
 func NewAppointmentTokens(secret string, now func() time.Time) *AppointmentTokens {
-	if now == nil {
-		now = time.Now
-	}
 	return &AppointmentTokens{secret: secret, now: now}
 }
 

@@ -26,7 +26,6 @@ type CancelReceipt struct {
 type cancellationTelemetry struct {
 	scheduleReads     int
 	providerMutations int
-	startedAt         time.Time
 }
 
 type CancellationObservation struct {
@@ -45,7 +44,7 @@ func WithCancellationObserver(
 	return context.WithValue(ctx, cancellationObserverKey{}, observer)
 }
 
-func (t cancellationTelemetry) record(ctx context.Context, err error) {
+func (t cancellationTelemetry) record(ctx context.Context, err error, elapsed time.Duration) {
 	observer, ok := ctx.Value(cancellationObserverKey{}).(func(CancellationObservation))
 	if !ok {
 		return
@@ -58,13 +57,14 @@ func (t cancellationTelemetry) record(ctx context.Context, err error) {
 		Outcome:           outcome,
 		ScheduleReads:     t.scheduleReads,
 		ProviderMutations: t.providerMutations,
-		DurationMS:        time.Since(t.startedAt).Milliseconds(),
+		DurationMS:        elapsed.Milliseconds(),
 	})
 }
 
 func (s *service) Cancel(ctx context.Context, command CancelCommand) (receipt CancelReceipt, err error) {
-	telemetry := cancellationTelemetry{startedAt: time.Now()}
-	defer func() { telemetry.record(ctx, err) }()
+	started := time.Now()
+	var telemetry cancellationTelemetry
+	defer func() { telemetry.record(ctx, err, time.Since(started)) }()
 	if command.CancellationToken == "" {
 		return CancelReceipt{}, schedulingError("cancellationToken is required")
 	}

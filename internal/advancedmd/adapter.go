@@ -32,12 +32,8 @@ func NewAdapter(
 	amdSession session.Session,
 	xmlClient *clients.AdvancedMDClient,
 	restClient *clients.AdvancedMDRestClient,
-	clock ...func() time.Time,
+	now func() time.Time,
 ) *Adapter {
-	now := time.Now
-	if len(clock) > 0 && clock[0] != nil {
-		now = clock[0]
-	}
 	return &Adapter{
 		session:    amdSession,
 		xmlClient:  xmlClient,

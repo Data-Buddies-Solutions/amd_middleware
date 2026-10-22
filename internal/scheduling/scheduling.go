@@ -98,9 +98,6 @@ func New(
 	bookingTokenSecret string,
 	now func() time.Time,
 ) Scheduling {
-	if now == nil {
-		now = time.Now
-	}
 	return &service{
 		records:            records,
 		bookingTokenSecret: bookingTokenSecret,

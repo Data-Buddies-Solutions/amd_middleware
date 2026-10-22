@@ -32,28 +32,28 @@ func TestNormalizeDOB(t *testing.T) {
 	}
 }
 
-func TestIsMinor(t *testing.T) {
-	now := time.Now()
+var testNow = time.Date(2026, time.June, 1, 16, 0, 0, 0, time.UTC)
 
+func TestIsMinor(t *testing.T) {
 	tests := []struct {
 		name     string
 		dob      string
 		expected bool
 	}{
-		{"adult born 30 years ago", now.AddDate(-30, 0, 0).Format("01/02/2006"), false},
-		{"child born 10 years ago", now.AddDate(-10, 0, 0).Format("01/02/2006"), true},
-		{"turns 18 tomorrow", now.AddDate(-18, 0, 1).Format("01/02/2006"), true},
-		{"exactly 18 today", now.AddDate(-18, 0, 0).Format("01/02/2006"), false},
-		{"turned 18 yesterday", now.AddDate(-18, 0, -1).Format("01/02/2006"), false},
+		{"adult born 30 years ago", testNow.AddDate(-30, 0, 0).Format("01/02/2006"), false},
+		{"child born 10 years ago", testNow.AddDate(-10, 0, 0).Format("01/02/2006"), true},
+		{"turns 18 tomorrow", testNow.AddDate(-18, 0, 1).Format("01/02/2006"), true},
+		{"exactly 18 today", testNow.AddDate(-18, 0, 0).Format("01/02/2006"), false},
+		{"turned 18 yesterday", testNow.AddDate(-18, 0, -1).Format("01/02/2006"), false},
 		{"invalid format returns false", "not-a-date", false},
 		{"empty string returns false", "", false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := isMinor(tt.dob)
+			got := isMinor(tt.dob, testNow)
 			if got != tt.expected {
-				t.Errorf("isMinor(%q) = %v, want %v", tt.dob, got, tt.expected)
+				t.Errorf("isMinor(%q, testNow) = %v, want %v", tt.dob, got, tt.expected)
 			}
 		})
 	}

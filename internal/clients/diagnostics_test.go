@@ -37,7 +37,7 @@ func TestPatientLookupDiagnostics(t *testing.T) {
 					ctx, cancel = context.WithDeadline(ctx, time.Now().Add(-time.Second))
 					defer cancel()
 				}
-				client := NewAdvancedMDClient(provider.Client())
+				client := NewAdvancedMDClient(provider.Client(), xmlrpcTestNow)
 				token := &session.TokenData{XmlrpcURL: strings.TrimPrefix(provider.URL, "https://")}
 				var err error
 				if lookup == "phone" {
@@ -90,7 +90,7 @@ func TestProviderDiagnosticsPreserveStatusAndNumericFaultWithoutPayload(t *testi
 			}))
 			defer provider.Close()
 			ctx, diagnostics := safeerrors.WithDiagnostics(context.Background())
-			client := NewAdvancedMDClient(provider.Client())
+			client := NewAdvancedMDClient(provider.Client(), xmlrpcTestNow)
 			_, err := client.GetDemographic(ctx, &session.TokenData{XmlrpcURL: strings.TrimPrefix(provider.URL, "https://")}, "synthetic-patient")
 			if err == nil {
 				t.Fatal("expected failure")

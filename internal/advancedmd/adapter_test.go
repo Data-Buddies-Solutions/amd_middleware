@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -39,8 +40,9 @@ func TestAdapterSearchPatientsByNameUsesControlledXMLRPCServer(t *testing.T) {
 			CookieToken: "token=test-cookie",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 		}},
-		clients.NewAdvancedMDClient(server.Client()),
+		clients.NewAdvancedMDClient(server.Client(), time.Now),
 		nil,
+		time.Now,
 	)
 	got, err := adapter.SearchPatients(context.Background(), domain.PatientSearch{
 		LastName:  "Doe",
@@ -100,8 +102,9 @@ func TestAdapterDemographicsUsesControlledXMLRPCServer(t *testing.T) {
 			CookieToken: "token=test-cookie",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 		}},
-		clients.NewAdvancedMDClient(server.Client()),
+		clients.NewAdvancedMDClient(server.Client(), time.Now),
 		nil,
+		time.Now,
 	)
 	got, err := adapter.GetPatientDemographics(context.Background(), "123")
 	if err != nil {
@@ -130,8 +133,9 @@ func TestAdapterReturnsStableRedactedErrors(t *testing.T) {
 	t.Run("session unavailable", func(t *testing.T) {
 		adapter := NewAdapter(
 			staticSession{err: errors.New("login failed password=secret")},
-			clients.NewAdvancedMDClient(http.DefaultClient),
+			clients.NewAdvancedMDClient(http.DefaultClient, time.Now),
 			nil,
+			time.Now,
 		)
 		_, err := adapter.SearchPatients(context.Background(), domain.PatientSearch{Phone: "9542872010"})
 		if CategoryOf(err) != safeerrors.CategoryUnavailable || err.Error() != "unavailable" {
@@ -150,8 +154,9 @@ func TestAdapterReturnsStableRedactedErrors(t *testing.T) {
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 			}},
-			clients.NewAdvancedMDClient(server.Client()),
+			clients.NewAdvancedMDClient(server.Client(), time.Now),
 			nil,
+			time.Now,
 		)
 		_, err := adapter.SearchPatients(context.Background(), domain.PatientSearch{Phone: "9542872010"})
 		if CategoryOf(err) != safeerrors.CategoryUpstreamStatus || err.Error() != "upstream_status" {
@@ -191,8 +196,9 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 			}},
-			clients.NewAdvancedMDClient(server.Client()),
+			clients.NewAdvancedMDClient(server.Client(), time.Now),
 			nil,
+			time.Now,
 		)
 		_, err := adapter.CreatePatient(context.Background(), command)
 		if MutationFailureOf(err) != MutationRejected {
@@ -216,8 +222,9 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 			}},
-			clients.NewAdvancedMDClient(server.Client()),
+			clients.NewAdvancedMDClient(server.Client(), time.Now),
 			nil,
+			time.Now,
 		)
 		_, err := adapter.CreatePatient(context.Background(), command)
 		if MutationFailureOf(err) != MutationAmbiguous {
@@ -241,8 +248,9 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 			}},
-			clients.NewAdvancedMDClient(server.Client()),
+			clients.NewAdvancedMDClient(server.Client(), time.Now),
 			nil,
+			time.Now,
 		)
 		_, err := adapter.CreatePatient(context.Background(), command)
 		if MutationFailureOf(err) != MutationRejected {
@@ -272,8 +280,9 @@ func TestAdapterInsuranceMutationUsesControlledXMLRPCServer(t *testing.T) {
 			CookieToken: "token=test-cookie",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 		}},
-		clients.NewAdvancedMDClient(server.Client()),
+		clients.NewAdvancedMDClient(server.Client(), time.Now),
 		nil,
+		time.Now,
 	)
 	err := adapter.AddPatientInsurance(context.Background(), domain.PatientInsurance{
 		PatientID:     "123",
@@ -541,6 +550,7 @@ func TestAdapterPreservesUnrecognizedProductionAppointmentType(t *testing.T) {
 		}},
 		nil,
 		clients.NewAdvancedMDRestClient(server.Client()),
+		time.Now,
 	)
 	_, err := adapter.BookAppointment(context.Background(), Booking{
 		PatientID:                 12345,
@@ -749,6 +759,7 @@ func TestAdapterIntendedMonthReadPreservesPerOfficeReconciliation(t *testing.T) 
 		}},
 		nil,
 		clients.NewAdvancedMDRestClient(server.Client()),
+		time.Now,
 	)
 	read, err := adapter.ReadPatientAppointmentsForMonth(context.Background(), AppointmentMonthQuery{
 		PatientID: "12345",
@@ -795,6 +806,7 @@ func TestAdapterMarksMissingPatientIDIncomplete(t *testing.T) {
 		}},
 		nil,
 		clients.NewAdvancedMDRestClient(server.Client()),
+		time.Now,
 	)
 	read, err := adapter.ReadPatientAppointmentsForMonth(context.Background(), AppointmentMonthQuery{
 		PatientID: "12345",
@@ -909,8 +921,9 @@ func TestAdapterReadsCompleteScheduleThroughDomainSeam(t *testing.T) {
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://") + "/xmlrpc",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
 		}},
-		clients.NewAdvancedMDClient(server.Client()),
+		clients.NewAdvancedMDClient(server.Client(), time.Now),
 		clients.NewAdvancedMDRestClient(server.Client()),
+		time.Now,
 	)
 
 	setup, err := adapter.GetSchedulerSetup(context.Background())
@@ -951,6 +964,7 @@ func TestAdapterPreservesPartialScheduleReads(t *testing.T) {
 		}},
 		nil,
 		clients.NewAdvancedMDRestClient(server.Client()),
+		time.Now,
 	)
 	read, err := adapter.ReadSchedule(context.Background(), domain.ScheduleReadQuery{
 		ColumnIDs: []string{"1513", "1598"},
@@ -998,6 +1012,7 @@ func TestAdapterBooksAndCancelsThroughControlledRESTServer(t *testing.T) {
 		}},
 		nil,
 		clients.NewAdvancedMDRestClient(server.Client()),
+		time.Now,
 	)
 	appointmentID, err := adapter.BookAppointment(context.Background(), Booking{
 		PatientID:                 12345,
@@ -1060,6 +1075,7 @@ func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
 				}},
 				nil,
 				clients.NewAdvancedMDRestClient(server.Client()),
+				time.Now,
 			)
 			_, err := adapter.BookAppointment(context.Background(), Booking{
 				PatientID:                 12345,
@@ -1080,8 +1096,9 @@ func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
 					CookieToken: "token=test-cookie",
 					XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 				}},
-				clients.NewAdvancedMDClient(server.Client()),
+				clients.NewAdvancedMDClient(server.Client(), time.Now),
 				nil,
+				time.Now,
 			)
 			_, err = xmlAdapter.CreatePatient(context.Background(), domain.PatientCreate{FirstName: "JANE", LastName: "DOE", OfficeID: "spring_hill"})
 			if CategoryOf(err) != tt.category || IsAmbiguousWrite(err) != tt.ambiguous {
@@ -1121,7 +1138,7 @@ func TestScheduleReadsAreConcurrentAndCannotUseMalformedOccupancy(t *testing.T) 
 		w.Write([]byte(`[]`))
 	}))
 	defer server.Close()
-	adapter := NewAdapter(staticSession{token: &session.TokenData{RestApiBase: strings.TrimPrefix(server.URL, "https://")}}, nil, clients.NewAdvancedMDRestClient(server.Client()))
+	adapter := NewAdapter(staticSession{token: &session.TokenData{RestApiBase: strings.TrimPrefix(server.URL, "https://")}}, nil, clients.NewAdvancedMDRestClient(server.Client()), time.Now)
 	done := make(chan error, 1)
 	go func() {
 		read, err := adapter.ReadSchedule(context.Background(), domain.ScheduleReadQuery{ColumnIDs: []string{"1513", "1598"}, Date: "2026-09-15"})
@@ -1175,11 +1192,62 @@ func TestAdapterPatientCandidatesForwardsDOB(t *testing.T) {
 				w.Write([]byte(`{"PPMDResults":{"Results":{"patientlist":{"@page":"1","@pagecount":"1","@itemcount":"0"}}}}`))
 			}))
 			defer server.Close()
-			adapter := NewAdapter(staticSession{token: &session.TokenData{CookieToken: "token=test", XmlrpcURL: strings.TrimPrefix(server.URL, "https://")}}, clients.NewAdvancedMDClient(server.Client()), nil)
+			adapter := NewAdapter(staticSession{token: &session.TokenData{CookieToken: "token=test", XmlrpcURL: strings.TrimPrefix(server.URL, "https://")}}, clients.NewAdvancedMDClient(server.Client(), time.Now), nil, time.Now)
 			got, err := adapter.ReadPatientCandidates(context.Background(), "Jane", dob)
 			if err != nil || !got.Complete || len(got.Patients) != 0 {
 				t.Fatalf("read=%+v err=%v", got, err)
 			}
 		})
+	}
+}
+
+func TestAdapterPatientAppointmentWindowFollowsTheInjectedEasternClock(t *testing.T) {
+	domain.InitRegistry("")
+	clock := func() time.Time { return time.Date(2026, time.August, 1, 2, 30, 0, 0, time.UTC) }
+	var mu sync.Mutex
+	var requestedMonths []string
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		startDate := r.URL.Query().Get("startDate")
+		mu.Lock()
+		requestedMonths = append(requestedMonths, startDate)
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if startDate != "2026-07-01" {
+			w.Write([]byte(`[]`))
+			return
+		}
+		w.Write([]byte(`[
+			{"id": 40001, "startdatetime": "2026-07-31T22:00:00", "columnid": 1513, "provider": "BACH, AUSTIN", "appointmenttypeids": [1007], "patientid": 123},
+			{"id": 40002, "startdatetime": "2026-07-31T23:00:00", "columnid": 1513, "provider": "BACH, AUSTIN", "appointmenttypeids": [1007], "patientid": 123}
+		]`))
+	}))
+	defer server.Close()
+
+	adapter := NewAdapter(
+		staticSession{token: &session.TokenData{
+			Token:       "Bearer test-token",
+			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
+		}},
+		nil,
+		clients.NewAdvancedMDRestClient(server.Client()),
+		clock,
+	)
+	read, err := adapter.ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
+		PatientID: "123",
+		OfficeIDs: []string{"spring_hill"},
+	})
+	if err != nil {
+		t.Fatalf("ReadPatientAppointments() error = %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	slices.Sort(requestedMonths)
+	wantMonths := []string{"2026-07-01", "2026-08-01", "2026-09-01", "2026-10-01", "2026-11-01", "2026-12-01"}
+	if !slices.Equal(requestedMonths, wantMonths) {
+		t.Fatalf("requested months = %v, want the six Eastern months from July 2026: %v", requestedMonths, wantMonths)
+	}
+	if len(read.Appointments) != 1 || read.Appointments[0].ID != 40002 {
+		t.Fatalf("ReadPatientAppointments() = %#v, want only the 23:00 Eastern appointment after the 22:30 Eastern cutoff", read.Appointments)
 	}
 }

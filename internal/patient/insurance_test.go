@@ -89,7 +89,7 @@ func TestInsuranceReplacementOwnsReferencesAndWriteEffects(t *testing.T) {
 			}
 			records.EndInsuranceError = tc.endErr
 			records.AddInsuranceError = tc.addErr
-			got := patient.New(records, testAppointmentTokens).UpdateInsurance(context.Background(), validUpdateInsuranceCommand())
+			got := patient.New(records, testAppointmentTokens, testNow).UpdateInsurance(context.Background(), validUpdateInsuranceCommand())
 			if got.Effect != tc.effect || got.Outcome != tc.outcome {
 				t.Fatalf("result=%+v, want %s/%s", got, tc.effect, tc.outcome)
 			}
@@ -126,7 +126,7 @@ func TestInsuranceReconciliationRetriesOnlyReads(t *testing.T) {
 		{chart: initial}, {err: advancedmd.NewError(safeerrors.CategoryTimeout)}, {chart: attached},
 	}}
 	records.AddInsuranceError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryTimeout)
-	got := patient.New(records, testAppointmentTokens).UpdateInsurance(context.Background(), validUpdateInsuranceCommand())
+	got := patient.New(records, testAppointmentTokens, testNow).UpdateInsurance(context.Background(), validUpdateInsuranceCommand())
 	if got.Effect != "completed" || got.Outcome != patient.MutationReconciledSuccess || records.AddInsuranceCalls != 1 || records.EndInsuranceCalls != 0 || records.DemographicCalls != 3 {
 		t.Fatalf("result=%+v reads=%d end/add=%d/%d", got, records.DemographicCalls, records.EndInsuranceCalls, records.AddInsuranceCalls)
 	}

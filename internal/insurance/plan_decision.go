@@ -2,11 +2,12 @@ package insurance
 
 import (
 	"slices"
+	"time"
 
 	"advancedmd-token-management/internal/domain"
 )
 
-func decidePlanAtOffice(p plan, office *domain.OfficeConfig, dob string) InsuranceDecision {
+func decidePlanAtOffice(p plan, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
 	d := newDecision(p.Coverage, office)
 	d.PlanID = p.ID
 	d.CanonicalPlan = p.Label
@@ -32,7 +33,7 @@ func decidePlanAtOffice(p plan, office *domain.OfficeConfig, dob string) Insuran
 	}
 	d.Participation = "accepted"
 	d.Outcome = "needs_staff_task"
-	d.AllowedProviders = doctorsForPatient(accepting, p.Coverage, office, dob)
+	d.AllowedProviders = doctorsForPatient(accepting, p.Coverage, office, dob, asOf)
 	if len(d.AllowedProviders) == 0 {
 		d.Reason = "no_provider_for_age"
 		d.Answer = withNotice(answerNoDoctorForAge, d.CallerNotice)
@@ -60,7 +61,7 @@ func visitRouting(coverage string) domain.RoutingRule {
 func acceptingDoctors(p plan, office *domain.OfficeConfig) ([]string, bool) {
 	accepting := []string{}
 	pending := false
-	for _, doctor := range office.ProvidersForRoutingAndDOB(visitRouting(p.Coverage), "") {
+	for _, doctor := range office.ProvidersForRouting(visitRouting(p.Coverage)) {
 		switch p.Doctors[displayName(office, doctor)] {
 		case "yes":
 			accepting = append(accepting, doctor)
@@ -71,9 +72,9 @@ func acceptingDoctors(p plan, office *domain.OfficeConfig) ([]string, bool) {
 	return accepting, pending
 }
 
-func doctorsForPatient(accepting []string, coverage string, office *domain.OfficeConfig, dob string) []string {
+func doctorsForPatient(accepting []string, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) []string {
 	allowed := []string{}
-	for _, doctor := range office.ProvidersForRoutingAndDOB(office.SchedulingRouting(visitRouting(coverage), dob), dob) {
+	for _, doctor := range office.ProvidersForRoutingAndDOB(office.SchedulingRouting(visitRouting(coverage), dob, asOf), dob, asOf) {
 		if slices.Contains(accepting, doctor) {
 			allowed = append(allowed, doctor)
 		}

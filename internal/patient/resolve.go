@@ -26,7 +26,7 @@ func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveR
 	}
 
 	if command.Phone == "" && command.LastName == "" && command.FirstName != "" && command.DOB != "" {
-		if err := domain.ValidateOptionalDOB(command.DOB); err != nil {
+		if err := domain.ValidateOptionalDOB(command.DOB, p.now()); err != nil {
 			return ResolveResult{}, advancedmd.NewError(safeerrors.CategoryRejected)
 		}
 		return p.resolveFirstNameDOB(ctx, command, office)
@@ -219,7 +219,7 @@ func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate 
 	if !demographicsRead.demographics.InsuranceStateKnown {
 		return unverifiedPatient(result.Observation, "insurance_unknown", safeerrors.CategoryInvalidResponse), nil
 	}
-	applyDemographics(&result, demographicsRead.demographics, office, result.DOB)
+	applyDemographics(&result, demographicsRead.demographics, office, result.DOB, p.now())
 
 	if appointmentsRead.err != nil {
 		result.ProviderFailure = advancedmd.CategoryOf(appointmentsRead.err)
@@ -335,7 +335,7 @@ func patientLastName(candidate domain.Patient) string {
 	return strings.TrimSpace(strings.SplitN(candidate.FullName, ",", 2)[0])
 }
 
-func applyDemographics(result *ResolveResult, demographics domain.PatientDemographics, office *domain.OfficeConfig, patientDOB string) {
+func applyDemographics(result *ResolveResult, demographics domain.PatientDemographics, office *domain.OfficeConfig, patientDOB string, asOf time.Time) {
 	result.InsuranceCarrier = demographics.CarrierName
 	result.InsPlanID = demographics.InsPlanID
 	result.RespPartyID = demographics.RespPartyID
@@ -343,7 +343,7 @@ func applyDemographics(result *ResolveResult, demographics domain.PatientDemogra
 	if demographics.CarrierID == "" {
 		return
 	}
-	decision := insurance.DecideChartInsurance(demographics, "medical", office, patientDOB)
+	decision := insurance.DecideChartInsurance(demographics, "medical", office, patientDOB, asOf)
 	result.InsuranceDecision = &decision
 	result.AllowedProviders = decision.AllowedProviders
 	result.RoutingAmbiguous = decision.Participation == "unknown"
@@ -379,7 +379,7 @@ func multipleMatchesMessage(command ResolveCommand, count int) string {
 	return fmt.Sprintf("Found %d patients with that last name and DOB. Please provide first name.", count)
 }
 
-func (c ResolveCommand) Validate() string {
+func (c ResolveCommand) Validate(asOf time.Time) string {
 	hasLookupFields := c.Phone != "" || c.FirstName != "" || c.LastName != "" || c.DOB != ""
 	if c.PatientID != "" {
 		if _, err := strconv.Atoi(c.PatientID); err != nil {
@@ -397,7 +397,7 @@ func (c ResolveCommand) Validate() string {
 		return ""
 	}
 	if (c.FirstName != "" || c.LastName != "") && c.DOB != "" {
-		if err := domain.ValidateOptionalDOB(c.DOB); err != nil {
+		if err := domain.ValidateOptionalDOB(c.DOB, asOf); err != nil {
 			return err.Error()
 		}
 		return ""

@@ -25,7 +25,7 @@ func TestDecideInsuranceMatchesWhatTheCallerSaid(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			d := DecideInsurance(tc.heard, "medical", hollywood, adultDOB)
+			d := DecideInsurance(tc.heard, "medical", hollywood, adultDOB, testNow)
 			if d.Outcome != tc.outcome || d.PlanID != tc.planID || len(d.Options) != 0 {
 				t.Fatalf("decision = %+v", d)
 			}
@@ -35,7 +35,7 @@ func TestDecideInsuranceMatchesWhatTheCallerSaid(t *testing.T) {
 
 func TestDecideInsuranceAsksWithOptionsWhenPlansEndDifferently(t *testing.T) {
 	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
-	d := DecideInsurance("Aetna", "medical", office(t, "hollywood"), adultDOB)
+	d := DecideInsurance("Aetna", "medical", office(t, "hollywood"), adultDOB, testNow)
 	want := []InsuranceOption{
 		{PlanID: "aetna-medicare", Label: "Aetna Medicare"},
 		{PlanID: "aetna-commercial", Label: "Aetna Commercial"},
@@ -48,7 +48,7 @@ func TestDecideInsuranceAsksWithOptionsWhenPlansEndDifferently(t *testing.T) {
 		t.Fatalf("answer = %q", d.Answer)
 	}
 	for _, option := range d.Options {
-		if again := DecideInsurance(option.Label, "medical", office(t, "hollywood"), adultDOB); again.PlanID != option.PlanID {
+		if again := DecideInsurance(option.Label, "medical", office(t, "hollywood"), adultDOB, testNow); again.PlanID != option.PlanID {
 			t.Fatalf("option %q resolved to %q", option.Label, again.PlanID)
 		}
 	}
@@ -60,12 +60,12 @@ func TestDecideInsuranceLimitsOptions(t *testing.T) {
 		plans = append(plans, plan{ID: "acme-" + id, Label: "Acme " + id, Coverage: "medical", CarrierID: fmt.Sprintf("car%d", i+1), Doctors: bach("yes")})
 	}
 	useSyntheticCatalog(t, plans, nil, nil)
-	d := DecideInsurance("Acme", "medical", office(t, "hollywood"), adultDOB)
+	d := DecideInsurance("Acme", "medical", office(t, "hollywood"), adultDOB, testNow)
 	if d.Outcome != "needs_clarification" || len(d.Options) != 0 || d.Answer != answerAskFullName {
 		t.Fatalf("decision = %+v", d)
 	}
 	useSyntheticCatalog(t, plans[:maxOptions], nil, nil)
-	d = DecideInsurance("Acme", "medical", office(t, "hollywood"), adultDOB)
+	d = DecideInsurance("Acme", "medical", office(t, "hollywood"), adultDOB, testNow)
 	if len(d.Options) != maxOptions || d.Answer != "needs_input: Which of these is on your card: Acme alpha, Acme bravo, Acme delta, or Acme charlie?" {
 		t.Fatalf("decision = %+v", d)
 	}
@@ -74,7 +74,7 @@ func TestDecideInsuranceLimitsOptions(t *testing.T) {
 func TestDecideInsuranceAsksForTheCardWhenNothingSpecificMatches(t *testing.T) {
 	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
 	for _, heard := range []string{"", "health plan", "my insurance", "Blue Cross", "the second one", "Tier 1"} {
-		d := DecideInsurance(heard, "medical", office(t, "hollywood"), adultDOB)
+		d := DecideInsurance(heard, "medical", office(t, "hollywood"), adultDOB, testNow)
 		if d.Outcome != "needs_clarification" || d.Answer != answerAskCard || len(d.Options) != 0 {
 			t.Fatalf("%q: decision = %+v", heard, d)
 		}
@@ -84,7 +84,7 @@ func TestDecideInsuranceAsksForTheCardWhenNothingSpecificMatches(t *testing.T) {
 func TestDecideInsuranceAsksForTheFullNameWhenOnlyTheProgramIsNamed(t *testing.T) {
 	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
 	for _, heard := range []string{"Medicare", "Medicaid", "Medicare Advantage", "my Medicaid card"} {
-		d := DecideInsurance(heard, "medical", office(t, "hollywood"), adultDOB)
+		d := DecideInsurance(heard, "medical", office(t, "hollywood"), adultDOB, testNow)
 		if d.Outcome != "needs_clarification" || d.Answer != answerAskFullName || len(d.Options) != 0 {
 			t.Fatalf("%q: decision = %+v", heard, d)
 		}
@@ -94,7 +94,7 @@ func TestDecideInsuranceAsksForTheFullNameWhenOnlyTheProgramIsNamed(t *testing.T
 func TestDecideInsuranceAsksWhenThePlanIsOnlyInTheOtherCoverage(t *testing.T) {
 	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
 	for _, c := range []struct{ heard, coverage, answer string }{{"VSP", "medical", answerAskCard}, {"Aetna Medicare", "routine_vision", answerAskFullName}} {
-		d := DecideInsurance(c.heard, c.coverage, office(t, "hollywood"), adultDOB)
+		d := DecideInsurance(c.heard, c.coverage, office(t, "hollywood"), adultDOB, testNow)
 		if d.Outcome != "needs_clarification" || d.Participation != "unknown" || d.PlanID != "" || d.Answer != c.answer {
 			t.Fatalf("%q %s: decision = %+v", c.heard, c.coverage, d)
 		}
