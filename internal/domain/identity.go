@@ -21,7 +21,7 @@ func ParsePatientID(raw string) (PatientID, error) {
 	if id == "" {
 		return "", nil
 	}
-	if _, err := strconv.Atoi(id); err != nil {
+	if id[0] == '0' || strings.ContainsFunc(id, func(r rune) bool { return r < '0' || r > '9' }) {
 		return "", errPatientIDNotNumeric
 	}
 	return PatientID(id), nil
@@ -77,6 +77,7 @@ var dobLayouts = []string{
 }
 
 func ParseDOB(raw string, asOf time.Time) (DOB, error) {
+	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return "", nil
 	}
@@ -164,7 +165,7 @@ func ParseRecordName(full string) RecordName {
 }
 
 func (n RecordName) First() string {
-	if names := strings.Fields(n.Given); len(names) > 0 {
+	if names := strings.FieldsFunc(n.Given, func(r rune) bool { return !unicode.IsLetter(r) }); len(names) > 0 {
 		return names[0]
 	}
 	return ""
