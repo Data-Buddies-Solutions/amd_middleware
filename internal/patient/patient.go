@@ -66,7 +66,7 @@ type ResolveCommand struct {
 
 type ResolveQuery struct {
 	PatientID domain.PatientID
-	Phone     string
+	Phone     domain.Phone
 	FirstName domain.PersonName
 	LastName  domain.PersonName
 	DOB       string

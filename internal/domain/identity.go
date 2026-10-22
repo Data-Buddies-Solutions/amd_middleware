@@ -36,6 +36,29 @@ func StripPatientPrefix(id string) string {
 	return strings.TrimPrefix(strings.TrimSpace(id), "pat")
 }
 
+type Phone string
+
+var errPhoneDigits = errors.New("phone must contain at least one digit")
+
+func ParsePhone(raw string) (Phone, error) {
+	if raw == "" {
+		return "", nil
+	}
+	digits := stripToDigits(raw)
+	if len(digits) == 11 && digits[0] == '1' {
+		digits = digits[1:]
+	}
+	if digits == "" {
+		return "", errPhoneDigits
+	}
+	return Phone(digits), nil
+}
+
+func (p Phone) Matches(recorded string) bool {
+	other, err := ParsePhone(recorded)
+	return err == nil && p != "" && other == p
+}
+
 type DOB string
 
 const dobLayout = "01/02/2006"

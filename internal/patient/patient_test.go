@@ -59,7 +59,7 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 
 	resolver := patient.New(amd, testAppointmentTokens, testNow)
 	got, err := resolver.Resolve(context.Background(), patient.ResolveQuery{
-		Phone:    "(954) 287-2010",
+		Phone:    "9542872010",
 		OfficeID: office.ID,
 	})
 	if err != nil {

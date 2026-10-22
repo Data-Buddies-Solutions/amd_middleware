@@ -88,7 +88,7 @@ func (p *patient) Resolve(ctx context.Context, query ResolveQuery) (ResolveResul
 
 func patientSearch(query ResolveQuery) domain.PatientSearch {
 	if query.Phone != "" {
-		return domain.PatientSearch{Phone: domain.NormalizePhoneDigits(query.Phone)}
+		return domain.PatientSearch{Phone: string(query.Phone)}
 	}
 	return domain.PatientSearch{
 		FirstName: string(query.FirstName),
@@ -120,18 +120,18 @@ func selectPatients(patients []domain.Patient, query ResolveQuery) []domain.Pati
 	return firstNameMatches
 }
 
-func (p *patient) resolvePatient(ctx context.Context, candidate domain.Patient, lookupPhone string, office *domain.OfficeConfig) (ResolveResult, error) {
+func (p *patient) resolvePatient(ctx context.Context, candidate domain.Patient, lookupPhone domain.Phone, office *domain.OfficeConfig) (ResolveResult, error) {
 	return p.resolvePatientWithDemographics(ctx, candidate, lookupPhone, office, nil)
 }
 
-func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate domain.Patient, lookupPhone string, office *domain.OfficeConfig, loaded *domain.PatientDemographics) (ResolveResult, error) {
+func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate domain.Patient, lookupPhone domain.Phone, office *domain.OfficeConfig, loaded *domain.PatientDemographics) (ResolveResult, error) {
 	officeIDs := office.AppointmentLookupOfficeIDs
 	result := ResolveResult{
 		Status:       StatusVerified,
 		PatientID:    candidate.ID,
 		Name:         candidate.FullName,
 		DOB:          candidate.DOB,
-		Phone:        firstNonEmpty(candidate.Phone, lookupPhone),
+		Phone:        firstNonEmpty(candidate.Phone, string(lookupPhone)),
 		Appointments: []Appointment{},
 		Observation: ResolutionObservation{
 			Recorded:             true,
@@ -375,17 +375,18 @@ func (c ResolveCommand) Parse(officeID string, asOf time.Time) (ResolveQuery, st
 		}
 		return ResolveQuery{PatientID: id, OfficeID: officeID}, ""
 	}
+	phone, err := domain.ParsePhone(c.Phone)
+	if err != nil {
+		return ResolveQuery{}, err.Error()
+	}
 	query := ResolveQuery{
-		Phone:     c.Phone,
+		Phone:     phone,
 		FirstName: domain.NewPersonName(c.FirstName),
 		LastName:  domain.NewPersonName(c.LastName),
 		DOB:       c.DOB,
 		OfficeID:  officeID,
 	}
-	if c.Phone != "" {
-		if domain.NormalizePhoneDigits(c.Phone) == "" {
-			return ResolveQuery{}, "phone must contain at least one digit"
-		}
+	if phone != "" {
 		return query, ""
 	}
 	if (c.FirstName != "" || c.LastName != "") && c.DOB != "" {

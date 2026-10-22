@@ -35,6 +35,10 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 	if dobErr != nil {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: dobErr.Error()}
 	}
+	phone, err := domain.ParsePhone(command.Phone)
+	if err != nil {
+		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
+	}
 	if decision.Participation != "accepted" {
 		return CreateResult{Status: CreateStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
@@ -43,7 +47,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 		firstName: domain.NewPersonName(command.FirstName),
 		lastName:  domain.NewPersonName(command.LastName),
 		dob:       dob,
-		phone:     command.Phone,
+		phone:     phone,
 	}
 	created, createReconciled, outcome, observation := p.createPatient(ctx, command, identity, office)
 	switch outcome {
@@ -133,7 +137,7 @@ type chartIdentity struct {
 	firstName domain.PersonName
 	lastName  domain.PersonName
 	dob       domain.DOB
-	phone     string
+	phone     domain.Phone
 }
 
 func (p *patient) createPatient(ctx context.Context, command CreateCommand, identity chartIdentity, office *domain.OfficeConfig) (domain.CreatedPatient, bool, MutationOutcome, CreateObservation) {
@@ -177,7 +181,7 @@ func (p *patient) createPatient(ctx context.Context, command CreateCommand, iden
 var errExistingPatient = errors.New("existing patient matches first name and DOB")
 
 func (p *patient) creationBaseline(ctx context.Context, identity chartIdentity) (map[string]struct{}, CreateObservation, error) {
-	search := domain.PatientSearch{Phone: domain.NormalizePhoneDigits(identity.phone)}
+	search := domain.PatientSearch{Phone: string(identity.phone)}
 	read, err := retryRead(ctx, func() (domain.PatientCandidateRead, error) {
 		return p.advancedMD.SearchPatients(ctx, search)
 	})
@@ -205,7 +209,7 @@ func (p *patient) reconcileCreatedPatient(
 	identity chartIdentity,
 	baseline map[string]struct{},
 ) (domain.CreatedPatient, MutationOutcome) {
-	search := domain.PatientSearch{Phone: domain.NormalizePhoneDigits(identity.phone)}
+	search := domain.PatientSearch{Phone: string(identity.phone)}
 	for attempt := 1; attempt <= maxReadAttempts; attempt++ {
 		read, err := p.advancedMD.SearchPatients(ctx, search)
 		if err == nil {
@@ -276,15 +280,14 @@ func (p *patient) loadCreatedPatient(ctx context.Context, match domain.Patient) 
 func creationMatch(candidate domain.Patient, identity chartIdentity) bool {
 	return candidate.Name().WrittenAs(identity.firstName, identity.lastName) &&
 		identity.dob.Matches(candidate.DOB) &&
-		(candidate.Phone == "" || domain.NormalizePhoneDigits(candidate.Phone) == domain.NormalizePhoneDigits(identity.phone))
+		(candidate.Phone == "" || identity.phone.Matches(candidate.Phone))
 }
 
-func formatPhone(phone string) string {
-	digits := domain.NormalizePhoneDigits(phone)
-	if len(digits) != 10 {
-		return phone
+func formatPhone(phone domain.Phone) string {
+	if len(phone) != 10 {
+		return string(phone)
 	}
-	return fmt.Sprintf("(%s)%s-%s", digits[:3], digits[3:6], digits[6:])
+	return fmt.Sprintf("(%s)%s-%s", phone[:3], phone[3:6], phone[6:])
 }
 
 func normalizeSex(sex string) string {

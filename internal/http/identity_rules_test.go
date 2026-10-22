@@ -37,3 +37,25 @@ func TestEveryPatientRouteStripsThePatPrefixAndPadding(t *testing.T) {
 		t.Errorf("update-insurance abc = %v, calls %s", rejected, calls)
 	}
 }
+
+func TestEveryPatientRouteReadsPhonesAsTheSameDigits(t *testing.T) {
+	registration := map[string]any{
+		"firstName": "Jane", "lastName": "Roe", "dob": "01/15/1980",
+		"street": "1 Main St", "city": "Spring Hill", "state": "FL", "zip": "34606", "sex": "female",
+		"insurance": "Meritain Health", "subscriberName": "Jane Roe", "subscriberNum": "M123", "office": "Spring Hill",
+	}
+	for _, raw := range []string{" ", "abc", "+"} {
+		created, calls := postIdentity(t, "/api/add-patient", with(registration, map[string]any{"phone": raw}))
+		if created["outcome"] != "validation_failed" || created["message"] != "phone must contain at least one digit" || calls != "" {
+			t.Errorf("add-patient phone %q = %v, calls %s", raw, created, calls)
+		}
+	}
+	created, calls := postIdentity(t, "/api/add-patient", with(registration, map[string]any{"phone": "555-0199"}))
+	if created["status"] != "created" || !strings.Contains(calls, `homephone="5550199"`) || !strings.Contains(calls, `lookuppatient phone="5550199"`) {
+		t.Errorf("add-patient seven digits = %v, calls %s", created, calls)
+	}
+	resolved, _ := postIdentity(t, "/api/patient/resolve", map[string]any{"office": "Spring Hill", "phone": "+1 954 555 0105"})
+	if resolved["status"] != "verified" || resolved["phone"] != "9545550105" {
+		t.Errorf("resolve phone echo = %v", resolved)
+	}
+}
