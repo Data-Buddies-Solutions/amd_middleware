@@ -23,7 +23,7 @@ func TestDecideChartInsuranceUsesTheChartCarrier(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			chart := domain.PatientDemographics{CarrierID: tc.carrierID, CarrierName: "DIRECTORY NAME"}
-			d := DecideChartInsurance(chart, "medical", hollywood, adultDOB)
+			d := DecideChartInsurance(chart, "medical", hollywood, adultDOB, testNow)
 			if d.Outcome != tc.outcome || d.PlanID != tc.planID {
 				t.Fatalf("decision = %+v", d)
 			}
@@ -37,7 +37,7 @@ func TestDecideChartInsuranceUsesTheChartCarrier(t *testing.T) {
 func TestDecideChartInsuranceKeepsRequirementDecisions(t *testing.T) {
 	useSyntheticCatalog(t, syntheticSouthFlorida(), springHillPlans(), nil)
 	chart := domain.PatientDemographics{CarrierID: "car4"}
-	d := DecideChartInsurance(chart, "medical", office(t, "spring_hill"), adultDOB)
+	d := DecideChartInsurance(chart, "medical", office(t, "spring_hill"), adultDOB, testNow)
 	if d.PlanID != "prior-auth-plan" || d.Participation != "accepted" || d.CanSchedule || d.Answer != answerPriorAuth {
 		t.Fatalf("decision = %+v", d)
 	}

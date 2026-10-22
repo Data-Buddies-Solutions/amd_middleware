@@ -222,7 +222,7 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := resolveAppointmentTypeForIntent(tt.office, tt.routing, tt.intent)
+			got := resolveAppointmentTypeForIntent(tt.office, tt.routing, tt.intent, policyTestNow)
 			if got.AppointmentTypeID != tt.wantID {
 				t.Fatalf("AppointmentTypeID = %d, want %d (missing=%v message=%q)", got.AppointmentTypeID, tt.wantID, got.Missing, got.Message)
 			}
@@ -241,7 +241,7 @@ func TestResolveAppointmentTypeForIntent_SpringHillUnderSevenRoutineVision(t *te
 		VisitCategory: domain.AppointmentVisitRoutineVision,
 		PatientStatus: domain.AppointmentPatientNew,
 		DOB:           "01/01/2021",
-	})
+	}, policyTestNow)
 
 	if got.AppointmentTypeID != 0 {
 		t.Fatalf("AppointmentTypeID = %d, want unresolved", got.AppointmentTypeID)

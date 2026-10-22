@@ -29,7 +29,8 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 	if err != nil {
 		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
 	}
-	decision := decideInsurance(command.Insurance, command.InsurancePlanID, command.CoverageType, office, command.DOB)
+	now := p.now()
+	decision := decideInsurance(command.Insurance, command.InsurancePlanID, command.CoverageType, office, command.DOB, now)
 	command.SubscriberNum = subscriberNumber(decision.SelfPay, command.SubscriberNum)
 	if command.PatientID == "" || command.DOB == "" || command.Insurance == "" || command.SubscriberNum == "" {
 		return UpdateInsuranceResult{
@@ -38,7 +39,7 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 			Message: "patientId, dob, insurance, and subscriberNum are required",
 		}
 	}
-	if err := domain.ValidateOptionalDOB(command.DOB); err != nil {
+	if err := domain.ValidateOptionalDOB(command.DOB, now); err != nil {
 		return UpdateInsuranceResult{
 			Status:  UpdateInsuranceStatusError,
 			Outcome: MutationValidationFailed,

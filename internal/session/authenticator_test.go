@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestAdvancedMDLoginGetsAuthToken(t *testing.T) {
@@ -28,6 +29,7 @@ func TestAdvancedMDLoginGetsAuthToken(t *testing.T) {
 			AppName:   "testapp",
 		},
 		client: server.Client(),
+		now:    loginTestNow,
 	}
 
 	token, err := login.getAuthToken(context.Background(), server.URL)
@@ -71,7 +73,7 @@ func TestAdvancedMDLoginEscapesCredentialAttributes(t *testing.T) {
 	}))
 	defer server.Close()
 
-	login := &advancedMDLogin{creds: creds, client: server.Client()}
+	login := &advancedMDLogin{creds: creds, client: server.Client(), now: loginTestNow}
 	if _, err := login.getAuthToken(context.Background(), server.URL); err != nil {
 		t.Fatalf("getAuthToken failed: %v", err)
 	}
@@ -105,6 +107,7 @@ func TestAdvancedMDLoginRejectsFailedAuthToken(t *testing.T) {
 			AppName:   "testapp",
 		},
 		client: server.Client(),
+		now:    loginTestNow,
 	}
 
 	_, err := login.getAuthToken(context.Background(), server.URL)
@@ -168,4 +171,8 @@ func TestParseXMLResponse(t *testing.T) {
 			}
 		})
 	}
+}
+
+func loginTestNow() time.Time {
+	return time.Date(2026, time.June, 1, 16, 0, 0, 0, time.UTC)
 }

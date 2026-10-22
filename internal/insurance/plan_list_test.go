@@ -57,7 +57,7 @@ func TestListPlansMatchesPlanDecisionsAtEveryOffice(t *testing.T) {
 					if slices.Contains(s.Names, s.Label) {
 						t.Fatalf("%s %s: names of %s include the label", officeID, coverage, s.PlanID)
 					}
-					d := DecidePlan(s.PlanID, coverage, o, "")
+					d := DecidePlan(s.PlanID, coverage, o, "", testNow)
 					kinds := []string{}
 					for _, r := range d.Requirements {
 						kinds = append(kinds, r.Kind)

@@ -24,7 +24,7 @@ func (h *Handlers) HandleInsuranceDecision(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Unknown office", http.StatusBadRequest)
 		return
 	}
-	respond(w, insurance.DecideOfferedAnswer(req.Plan, req.Offered, req.CoverageType, office, req.DOB))
+	respond(w, insurance.DecideOfferedAnswer(req.Plan, req.Offered, req.CoverageType, office, req.DOB, h.now()))
 }
 
 func (h *Handlers) HandleInsurancePlans(w http.ResponseWriter, r *http.Request) {

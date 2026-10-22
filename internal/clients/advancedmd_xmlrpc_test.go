@@ -9,13 +9,23 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/safeerrors"
 	"advancedmd-token-management/internal/session"
 )
 
+func xmlrpcTestNow() time.Time {
+	return time.Date(2026, time.June, 1, 16, 0, 0, 0, time.UTC)
+}
+
 func newTestXMLRPCClient(t *testing.T, handler http.Handler) (*AdvancedMDClient, *session.TokenData, func()) {
+	t.Helper()
+	return newTestXMLRPCClientAt(t, handler, xmlrpcTestNow)
+}
+
+func newTestXMLRPCClientAt(t *testing.T, handler http.Handler, now func() time.Time) (*AdvancedMDClient, *session.TokenData, func()) {
 	t.Helper()
 	server := httptest.NewTLSServer(handler)
 
@@ -33,7 +43,7 @@ func newTestXMLRPCClient(t *testing.T, handler http.Handler) (*AdvancedMDClient,
 		XmlrpcURL:   xmlrpcURL,
 	}
 
-	return NewAdvancedMDClient(httpClient), tokenData, server.Close
+	return NewAdvancedMDClient(httpClient, now), tokenData, server.Close
 }
 
 func TestAdvancedMDClient_LookupPatient_SingleResult(t *testing.T) {

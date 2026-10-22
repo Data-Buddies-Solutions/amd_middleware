@@ -37,7 +37,7 @@ func TestDecideInsuranceNeverPicksAPlanTheCallerContradicted(t *testing.T) {
 		{"Cigna PPO", "routine_vision", "cigna-vision"},
 	}
 	for _, tc := range tests {
-		d := DecideInsurance(tc.heard, tc.coverage, hollywood, adultDOB)
+		d := DecideInsurance(tc.heard, tc.coverage, hollywood, adultDOB, testNow)
 		if d.PlanID != tc.planID {
 			t.Errorf("%q %s: decision = %+v", tc.heard, tc.coverage, d)
 		}
@@ -61,7 +61,7 @@ func TestRealDataNeverPicksAPlanTheCallerContradicted(t *testing.T) {
 		{"Medicare Supplement", "medical", "tricare-for-life"},
 	}
 	for _, tc := range tests {
-		d := DecideInsurance(tc.heard, tc.coverage, hollywood, adultDOB)
+		d := DecideInsurance(tc.heard, tc.coverage, hollywood, adultDOB, testNow)
 		if d.PlanID == tc.contradicted {
 			t.Errorf("%q %s resolved to contradicted plan: %+v", tc.heard, tc.coverage, d)
 		}

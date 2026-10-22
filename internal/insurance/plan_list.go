@@ -5,6 +5,7 @@ import (
 	"path"
 	"slices"
 	"strings"
+	"time"
 
 	"advancedmd-token-management/internal/domain"
 )
@@ -37,7 +38,7 @@ func ListPlans(coverage string, office *domain.OfficeConfig) ([]PlanSummary, boo
 		if p.Coverage != coverage {
 			continue
 		}
-		d := decidePlanAtOffice(p, office, "")
+		d := decidePlanAtOffice(p, office, "", time.Time{})
 		s := PlanSummary{
 			PlanID:           p.ID,
 			Label:            p.Label,
@@ -78,7 +79,7 @@ func acceptedElsewhere(p plan, list planList, office *domain.OfficeConfig) []str
 		}
 		for _, id := range other.Offices {
 			o, _ := domain.LookupOfficeByID(id)
-			if id != office.ID && DecidePlan(p.ID, p.Coverage, o, "").Participation == "accepted" {
+			if id != office.ID && DecidePlan(p.ID, p.Coverage, o, "", time.Time{}).Participation == "accepted" {
 				offices = append(offices, o.DisplayName)
 			}
 		}

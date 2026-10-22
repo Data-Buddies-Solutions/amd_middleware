@@ -7,7 +7,7 @@ import (
 
 func TestDecideOfferedAnswerResolvesAmongTheOfferedPlans(t *testing.T) {
 	springHill := office(t, "spring_hill")
-	asked := DecideInsurance("Aetna", "medical", springHill, adultDOB)
+	asked := DecideInsurance("Aetna", "medical", springHill, adultDOB, testNow)
 	offered := []string{}
 	for _, option := range asked.Options {
 		offered = append(offered, option.PlanID)
@@ -30,7 +30,7 @@ func TestDecideOfferedAnswerResolvesAmongTheOfferedPlans(t *testing.T) {
 		{"Humana Medicare", "humana-medicare", nil},
 	}
 	for _, tc := range tests {
-		d := DecideOfferedAnswer(tc.heard, offered, "medical", springHill, adultDOB)
+		d := DecideOfferedAnswer(tc.heard, offered, "medical", springHill, adultDOB, testNow)
 		got := []string{}
 		for _, option := range d.Options {
 			got = append(got, option.PlanID)
@@ -44,16 +44,16 @@ func TestDecideOfferedAnswerResolvesAmongTheOfferedPlans(t *testing.T) {
 func TestDecideOfferedAnswerNarrowsOrFallsBack(t *testing.T) {
 	hollywood := office(t, "hollywood")
 	blue := []string{"florida-blue-hmo", "florida-blue-medicare-hmo-medical"}
-	if d := DecideOfferedAnswer("It's Florida Blue HMO", blue, "medical", hollywood, adultDOB); d.PlanID != "florida-blue-hmo" {
+	if d := DecideOfferedAnswer("It's Florida Blue HMO", blue, "medical", hollywood, adultDOB, testNow); d.PlanID != "florida-blue-hmo" {
 		t.Fatalf("exact offered name = %+v", d)
 	}
-	if d := DecideOfferedAnswer("the HMO", blue, "medical", hollywood, adultDOB); len(d.Options) != 2 {
+	if d := DecideOfferedAnswer("the HMO", blue, "medical", hollywood, adultDOB, testNow); len(d.Options) != 2 {
 		t.Fatalf("ambiguous answer = %+v", d)
 	}
-	if d, plain := DecideOfferedAnswer("Sunshine Health", blue, "medical", hollywood, adultDOB), DecideInsurance("Sunshine Health", "medical", hollywood, adultDOB); d.PlanID != plain.PlanID || d.PlanID == "" {
+	if d, plain := DecideOfferedAnswer("Sunshine Health", blue, "medical", hollywood, adultDOB, testNow), DecideInsurance("Sunshine Health", "medical", hollywood, adultDOB, testNow); d.PlanID != plain.PlanID || d.PlanID == "" {
 		t.Fatalf("another plan = %+v, plain = %+v", d, plain)
 	}
-	if d, plain := DecideOfferedAnswer("Aetna", nil, "medical", hollywood, adultDOB), DecideInsurance("Aetna", "medical", hollywood, adultDOB); d.Answer != plain.Answer {
+	if d, plain := DecideOfferedAnswer("Aetna", nil, "medical", hollywood, adultDOB, testNow), DecideInsurance("Aetna", "medical", hollywood, adultDOB, testNow); d.Answer != plain.Answer {
 		t.Fatalf("no offered plans = %+v", d)
 	}
 }

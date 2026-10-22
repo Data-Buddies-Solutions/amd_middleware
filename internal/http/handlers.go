@@ -25,17 +25,20 @@ type Handlers struct {
 	session    session.Session
 	patient    patientmodule.Patient
 	scheduling schedulingmodule.Scheduling
+	now        func() time.Time
 }
 
 func NewHandlers(
 	amdSession session.Session,
 	patient patientmodule.Patient,
 	scheduling schedulingmodule.Scheduling,
+	now func() time.Time,
 ) *Handlers {
 	return &Handlers{
 		session:    amdSession,
 		patient:    patient,
 		scheduling: scheduling,
+		now:        now,
 	}
 }
 
@@ -104,7 +107,7 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 		rejectInvalidRequest(w, r, patientmodule.ResolveResult{Status: "error", Message: err.Error()})
 		return
 	}
-	if message := command.Validate(); message != "" {
+	if message := command.Validate(h.now()); message != "" {
 		rejectInvalidRequest(w, r, patientmodule.ResolveResult{Status: "error", Message: message})
 		return
 	}

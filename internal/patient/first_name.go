@@ -30,8 +30,8 @@ func candidateName(row domain.Patient) string {
 	return ""
 }
 
-func usableDOB(dob string) bool {
-	return strings.TrimSpace(dob) != "" && domain.ValidateOptionalDOB(dob) == nil
+func usableDOB(dob string, asOf time.Time) bool {
+	return strings.TrimSpace(dob) != "" && domain.ValidateOptionalDOB(dob, asOf) == nil
 }
 
 func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveCommand, office *domain.OfficeConfig) (ResolveResult, error) {
@@ -59,13 +59,14 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 		return unresolved("incomplete_search", safeerrors.CategoryInvalidResponse)
 	}
 	name, dob := exactFirstName(command.FirstName), domain.NormalizeDOB(command.DOB)
+	now := p.now()
 	if name == "" {
 		return unresolved("invalid_identity", safeerrors.CategoryRejected)
 	}
 	matches := []domain.Patient{}
 	seen := map[string]bool{}
 	for _, row := range read.Patients {
-		if exactFirstName(candidateName(row)) != name || !usableDOB(row.DOB) || domain.NormalizeDOB(row.DOB) != dob {
+		if exactFirstName(candidateName(row)) != name || !usableDOB(row.DOB, now) || domain.NormalizeDOB(row.DOB) != dob {
 			continue
 		}
 		if row.ID == "" || seen[row.ID] {
@@ -99,7 +100,7 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 		}
 		selected.FullName = demographics.FullName
 	}
-	if demographics.DOB != "" && (!usableDOB(demographics.DOB) || domain.NormalizeDOB(demographics.DOB) != dob) {
+	if demographics.DOB != "" && (!usableDOB(demographics.DOB, now) || domain.NormalizeDOB(demographics.DOB) != dob) {
 		return unresolved("identity_not_verified", safeerrors.CategoryInvalidResponse)
 	}
 	result, err := p.resolvePatientWithDemographics(ctx, selected, "", office, &demographics)

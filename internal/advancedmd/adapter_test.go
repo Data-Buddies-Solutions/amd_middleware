@@ -39,7 +39,7 @@ func TestAdapterSearchPatientsByNameUsesControlledXMLRPCServer(t *testing.T) {
 			CookieToken: "token=test-cookie",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 		}},
-		clients.NewAdvancedMDClient(server.Client()),
+		clients.NewAdvancedMDClient(server.Client(), time.Now),
 		nil,
 	)
 	got, err := adapter.SearchPatients(context.Background(), domain.PatientSearch{
@@ -100,7 +100,7 @@ func TestAdapterDemographicsUsesControlledXMLRPCServer(t *testing.T) {
 			CookieToken: "token=test-cookie",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 		}},
-		clients.NewAdvancedMDClient(server.Client()),
+		clients.NewAdvancedMDClient(server.Client(), time.Now),
 		nil,
 	)
 	got, err := adapter.GetPatientDemographics(context.Background(), "123")
@@ -130,7 +130,7 @@ func TestAdapterReturnsStableRedactedErrors(t *testing.T) {
 	t.Run("session unavailable", func(t *testing.T) {
 		adapter := NewAdapter(
 			staticSession{err: errors.New("login failed password=secret")},
-			clients.NewAdvancedMDClient(http.DefaultClient),
+			clients.NewAdvancedMDClient(http.DefaultClient, time.Now),
 			nil,
 		)
 		_, err := adapter.SearchPatients(context.Background(), domain.PatientSearch{Phone: "9542872010"})
@@ -150,7 +150,7 @@ func TestAdapterReturnsStableRedactedErrors(t *testing.T) {
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 			}},
-			clients.NewAdvancedMDClient(server.Client()),
+			clients.NewAdvancedMDClient(server.Client(), time.Now),
 			nil,
 		)
 		_, err := adapter.SearchPatients(context.Background(), domain.PatientSearch{Phone: "9542872010"})
@@ -191,7 +191,7 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 			}},
-			clients.NewAdvancedMDClient(server.Client()),
+			clients.NewAdvancedMDClient(server.Client(), time.Now),
 			nil,
 		)
 		_, err := adapter.CreatePatient(context.Background(), command)
@@ -216,7 +216,7 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 			}},
-			clients.NewAdvancedMDClient(server.Client()),
+			clients.NewAdvancedMDClient(server.Client(), time.Now),
 			nil,
 		)
 		_, err := adapter.CreatePatient(context.Background(), command)
@@ -241,7 +241,7 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 				CookieToken: "token=test-cookie",
 				XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 			}},
-			clients.NewAdvancedMDClient(server.Client()),
+			clients.NewAdvancedMDClient(server.Client(), time.Now),
 			nil,
 		)
 		_, err := adapter.CreatePatient(context.Background(), command)
@@ -272,7 +272,7 @@ func TestAdapterInsuranceMutationUsesControlledXMLRPCServer(t *testing.T) {
 			CookieToken: "token=test-cookie",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 		}},
-		clients.NewAdvancedMDClient(server.Client()),
+		clients.NewAdvancedMDClient(server.Client(), time.Now),
 		nil,
 	)
 	err := adapter.AddPatientInsurance(context.Background(), domain.PatientInsurance{
@@ -909,7 +909,7 @@ func TestAdapterReadsCompleteScheduleThroughDomainSeam(t *testing.T) {
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://") + "/xmlrpc",
 			RestApiBase: strings.TrimPrefix(server.URL, "https://"),
 		}},
-		clients.NewAdvancedMDClient(server.Client()),
+		clients.NewAdvancedMDClient(server.Client(), time.Now),
 		clients.NewAdvancedMDRestClient(server.Client()),
 	)
 
@@ -1080,7 +1080,7 @@ func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
 					CookieToken: "token=test-cookie",
 					XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 				}},
-				clients.NewAdvancedMDClient(server.Client()),
+				clients.NewAdvancedMDClient(server.Client(), time.Now),
 				nil,
 			)
 			_, err = xmlAdapter.CreatePatient(context.Background(), domain.PatientCreate{FirstName: "JANE", LastName: "DOE", OfficeID: "spring_hill"})
@@ -1175,7 +1175,7 @@ func TestAdapterPatientCandidatesForwardsDOB(t *testing.T) {
 				w.Write([]byte(`{"PPMDResults":{"Results":{"patientlist":{"@page":"1","@pagecount":"1","@itemcount":"0"}}}}`))
 			}))
 			defer server.Close()
-			adapter := NewAdapter(staticSession{token: &session.TokenData{CookieToken: "token=test", XmlrpcURL: strings.TrimPrefix(server.URL, "https://")}}, clients.NewAdvancedMDClient(server.Client()), nil)
+			adapter := NewAdapter(staticSession{token: &session.TokenData{CookieToken: "token=test", XmlrpcURL: strings.TrimPrefix(server.URL, "https://")}}, clients.NewAdvancedMDClient(server.Client(), time.Now), nil)
 			got, err := adapter.ReadPatientCandidates(context.Background(), "Jane", dob)
 			if err != nil || !got.Complete || len(got.Patients) != 0 {
 				t.Fatalf("read=%+v err=%v", got, err)

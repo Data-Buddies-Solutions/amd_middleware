@@ -67,11 +67,11 @@ type PatientAppointmentsQuery struct {
 	OfficeIDs []string
 }
 
-func ValidateOptionalDOB(dob string) error {
+func ValidateOptionalDOB(dob string, asOf time.Time) error {
 	if dob == "" {
 		return nil
 	}
-	if _, ok := AgeYears(dob); !ok {
+	if _, ok := AgeYearsOn(dob, asOf); !ok {
 		return fmt.Errorf("dob must be a valid date")
 	}
 	return nil
@@ -140,16 +140,12 @@ func NormalizeDOB(dob string) string {
 	return dob
 }
 
-func isMinor(dob string) bool {
-	age, ok := AgeYears(dob)
+func isMinor(dob string, asOf time.Time) bool {
+	age, ok := AgeYearsOn(dob, asOf)
 	if !ok {
 		return false
 	}
 	return age < 18
-}
-
-func AgeYears(dob string) (int, bool) {
-	return AgeYearsOn(dob, time.Now())
 }
 
 func AgeYearsOn(dob string, asOf time.Time) (int, bool) {

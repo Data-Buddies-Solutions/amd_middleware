@@ -1,6 +1,9 @@
 package insurance
 
-import "advancedmd-token-management/internal/domain"
+import (
+	"advancedmd-token-management/internal/domain"
+	"time"
+)
 
 const (
 	answerAskCard          = "needs_input: What insurance plan is listed on your card?"
@@ -48,7 +51,7 @@ type InsuranceDecision struct {
 	Options          []InsuranceOption      `json:"options,omitempty"`
 }
 
-func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob string) InsuranceDecision {
+func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
 	d, list, ok := startDecision(coverage, office)
 	if !ok {
 		return d
@@ -60,7 +63,7 @@ func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob st
 		return d
 	}
 	if p, ok := exactPlan(list, coverage, words); ok {
-		return decidePlanAtOffice(p, office, dob)
+		return decidePlanAtOffice(p, office, dob, asOf)
 	}
 	found := bestCandidates(list, coverage, words)
 	if len(found) == 0 {
@@ -69,17 +72,17 @@ func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob st
 		}
 		return d
 	}
-	return decideCandidates(d, found, office, dob)
+	return decideCandidates(d, found, office, dob, asOf)
 }
 
-func DecidePlan(planID, coverage string, office *domain.OfficeConfig, dob string) InsuranceDecision {
+func DecidePlan(planID, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
 	d, list, ok := startDecision(coverage, office)
 	if !ok {
 		return d
 	}
 	for _, p := range list.Plans {
 		if p.ID == planID && p.Coverage == coverage {
-			return decidePlanAtOffice(p, office, dob)
+			return decidePlanAtOffice(p, office, dob, asOf)
 		}
 	}
 	return d

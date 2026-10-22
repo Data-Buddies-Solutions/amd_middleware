@@ -47,22 +47,22 @@ func main() {
 		Password:  cfg.AdvancedMDPassword,
 		OfficeKey: cfg.AdvancedMDOfficeKey,
 		AppName:   cfg.AdvancedMDAppName,
-	}, httpClient)
+	}, httpClient, time.Now)
 
-	amdClient := clients.NewAdvancedMDClient(httpClient)
+	amdClient := clients.NewAdvancedMDClient(httpClient, time.Now)
 
 	amdRestClient := clients.NewAdvancedMDRestClient(httpClient)
 
 	patientRecords := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient)
 	appointmentTokens := scheduling.NewAppointmentTokens(cfg.BookingTokenSecret, time.Now)
-	patients := patient.New(patientRecords, appointmentTokens)
+	patients := patient.New(patientRecords, appointmentTokens, time.Now)
 	scheduler := scheduling.New(
 		patientRecords,
 		cfg.BookingTokenSecret,
 		time.Now,
 	)
 
-	handlers := apphttp.NewHandlers(amdSession, patients, scheduler)
+	handlers := apphttp.NewHandlers(amdSession, patients, scheduler, time.Now)
 
 	maintenanceAuthorizer := apphttp.NewMaintenanceAuthorizer(
 		cfg.MaintenanceOIDCAudience,

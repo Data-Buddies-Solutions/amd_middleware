@@ -75,6 +75,7 @@ type bookingContext struct {
 	office                   *domain.OfficeConfig
 	token                    SlotPolicy
 	preservedAppointmentType int
+	asOf                     time.Time
 }
 
 func (s *service) Book(ctx context.Context, command BookCommand) (BookReceipt, error) {
@@ -147,6 +148,7 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 	command.PatientID = domain.StripPatientPrefix(command.PatientID)
 	booking := bookingContext{
 		command: command,
+		asOf:    s.now(),
 	}
 	if command.BookingToken == "" {
 		return bookingContext{}, categorizedError(
@@ -194,7 +196,7 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 	if _, err := strconv.Atoi(command.PatientID); err != nil {
 		return bookingContext{}, schedulingError("patientId must be numeric")
 	}
-	if err := domain.ValidateOptionalDOB(command.DOB); err != nil {
+	if err := domain.ValidateOptionalDOB(command.DOB, booking.asOf); err != nil {
 		return bookingContext{}, schedulingError(err.Error())
 	}
 	if (command.VisitCategory != "" || command.AppointmentTypeID == 0) && command.VisitCategory != domain.AppointmentVisitMedical && command.VisitCategory != domain.AppointmentVisitRoutineVision {
@@ -214,7 +216,7 @@ func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingCont
 			"Unable to verify patient before booking. Please try again.",
 		)
 	}
-	if demographics.DOB == "" || domain.ValidateOptionalDOB(demographics.DOB) != nil {
+	if demographics.DOB == "" || domain.ValidateOptionalDOB(demographics.DOB, booking.asOf) != nil {
 		return 0, categorizedError(
 			CategoryWriteFailed,
 			"Unable to verify patient before booking. Please try again.",
@@ -251,7 +253,7 @@ func applyBookingPolicy(booking *bookingContext) (
 		)
 	}
 
-	policy := newSchedulingPolicy(booking.office)
+	policy := newSchedulingPolicy(booking.office, booking.asOf)
 	decision, policyErr := policy.PrepareBooking(bookingPolicyRequest{
 		ColumnID:          booking.token.ColumnID,
 		ProfileID:         booking.token.ProfileID,
@@ -419,7 +421,7 @@ func currentBookingColumn(
 	if setup == nil {
 		return domain.SchedulerColumn{}, false
 	}
-	eligible := newSchedulingPolicy(booking.office).EligibleColumns(
+	eligible := newSchedulingPolicy(booking.office, booking.asOf).EligibleColumns(
 		setup.Columns,
 		domain.ParseRoutingRule(booking.token.Routing),
 		booking.command.DOB,

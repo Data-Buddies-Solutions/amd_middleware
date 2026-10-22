@@ -15,7 +15,7 @@ func (s *service) signSlots(
 ) ([]AvailabilitySlotOption, time.Time, error) {
 	issuedAt := now.Unix()
 	expiresAt := now.Add(tokenTTL).Unix()
-	appointmentTypeIDs := newSchedulingPolicy(office).AllowedAppointmentTypeIDs(routing, dob)
+	appointmentTypeIDs := newSchedulingPolicy(office, now).AllowedAppointmentTypeIDs(routing, dob)
 	for i := range slots {
 		token, err := SignSlotToken(s.bookingTokenSecret, SlotPolicy{
 			OfficeID:           office.ID,

@@ -43,7 +43,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 	if err != nil {
 		return empty, schedulingError("Invalid date format. Use YYYY-MM-DD.")
 	}
-	if err := domain.ValidateOptionalDOB(command.DOB); err != nil {
+	if err := domain.ValidateOptionalDOB(command.DOB, now); err != nil {
 		return empty, schedulingError(err.Error())
 	}
 
@@ -61,7 +61,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 	if err != nil {
 		return empty, schedulingError(err.Error())
 	}
-	policy := newSchedulingPolicy(office)
+	policy := newSchedulingPolicy(office, now)
 	if command.VisitType != "" && command.VisitType != domain.AppointmentVisitMedical && command.VisitType != domain.AppointmentVisitRoutineVision {
 		return empty, schedulingError("visitType must be medical or routine_vision")
 	}
@@ -80,7 +80,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 		return empty, schedulingError(underSevenRoutineVisionMessage)
 	}
 
-	routing := office.SchedulingRouting(domain.ParseRoutingRule(command.Routing), command.DOB)
+	routing := office.SchedulingRouting(domain.ParseRoutingRule(command.Routing), command.DOB, now)
 	if (command.VisitType == domain.AppointmentVisitMedical && routing == domain.RoutingOpticalOnly) ||
 		(command.VisitType == domain.AppointmentVisitRoutineVision && routing != domain.RoutingOpticalOnly) {
 		return unsupportedVisit(), nil

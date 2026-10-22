@@ -134,7 +134,7 @@ func TestAdapterReportsWritesThatNeverLeftAsDefiniteFailures(t *testing.T) {
 	}
 	adapter := NewAdapter(
 		staticSession{token: unbuildable},
-		clients.NewAdvancedMDClient(http.DefaultClient),
+		clients.NewAdvancedMDClient(http.DefaultClient, time.Now),
 		clients.NewAdvancedMDRestClient(http.DefaultClient),
 	)
 	ctx := context.Background()
@@ -304,7 +304,7 @@ func TestAdapterClassifiesReadStatusesWithoutWriteSemantics(t *testing.T) {
 			base := strings.TrimPrefix(server.URL, "https://")
 			adapter := NewAdapter(
 				staticSession{token: &session.TokenData{Token: "Bearer test-token", CookieToken: "token=test-cookie", XmlrpcURL: base, RestApiBase: base}},
-				clients.NewAdvancedMDClient(server.Client()),
+				clients.NewAdvancedMDClient(server.Client(), time.Now),
 				clients.NewAdvancedMDRestClient(server.Client()),
 			)
 			_, xmlrpcErr := adapter.GetPatientDemographics(context.Background(), "123")
@@ -329,7 +329,7 @@ func xmlrpcAdapter(t *testing.T, handler http.HandlerFunc) *Adapter {
 			CookieToken: "token=test-cookie",
 			XmlrpcURL:   strings.TrimPrefix(server.URL, "https://"),
 		}},
-		clients.NewAdvancedMDClient(server.Client()),
+		clients.NewAdvancedMDClient(server.Client(), time.Now),
 		nil,
 	)
 }

@@ -91,7 +91,7 @@ func (o *OfficeConfig) ColumnsForRouting(rule RoutingRule) map[string]bool {
 	return result
 }
 
-func (o *OfficeConfig) ColumnsForRoutingAndDOB(rule RoutingRule, dob string) map[string]bool {
+func (o *OfficeConfig) ColumnsForRoutingAndDOB(rule RoutingRule, dob string, asOf time.Time) map[string]bool {
 	cols := o.ColumnsForRouting(rule)
 	if cols == nil {
 		return cols
@@ -99,23 +99,23 @@ func (o *OfficeConfig) ColumnsForRoutingAndDOB(rule RoutingRule, dob string) map
 
 	filtered := make(map[string]bool, len(cols))
 	for id := range cols {
-		if dob == "" || o.ColumnAllowsDOB(id, dob) {
+		if dob == "" || o.ColumnAllowsDOB(id, dob, asOf) {
 			filtered[id] = true
 		}
 	}
 	return filtered
 }
 
-func (o *OfficeConfig) ProvidersForRoutingAndDOB(rule RoutingRule, dob string) []string {
+func (o *OfficeConfig) ProvidersForRoutingAndDOB(rule RoutingRule, dob string, asOf time.Time) []string {
 	colIDs, ok := o.columnIDsForRouting(rule)
 	if !ok {
 		return nil
 	}
-	colMap := o.ColumnsForRoutingAndDOB(rule, dob)
+	colMap := o.ColumnsForRoutingAndDOB(rule, dob, asOf)
 	return o.providerNamesForColumnIDs(colIDs, colMap)
 }
 
-func (o *OfficeConfig) ColumnAllowsDOB(columnID, dob string) bool {
+func (o *OfficeConfig) ColumnAllowsDOB(columnID, dob string, asOf time.Time) bool {
 	col, ok := o.Columns[columnID]
 	if !ok {
 		return false
@@ -123,7 +123,7 @@ func (o *OfficeConfig) ColumnAllowsDOB(columnID, dob string) bool {
 	if col.MinAgeYears == 0 {
 		return true
 	}
-	age, ok := AgeYears(dob)
+	age, ok := AgeYearsOn(dob, asOf)
 	if !ok {
 		return false
 	}
@@ -591,8 +591,8 @@ func normalizeOfficeLookup(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
-func (o *OfficeConfig) SchedulingRouting(routing RoutingRule, dob string) RoutingRule {
-	if routing == RoutingNotAccepted || routing == RoutingOpticalOnly || !isMinor(dob) {
+func (o *OfficeConfig) SchedulingRouting(routing RoutingRule, dob string, asOf time.Time) RoutingRule {
+	if routing == RoutingNotAccepted || routing == RoutingOpticalOnly || !isMinor(dob, asOf) {
 		return routing
 	}
 	return o.PediatricRouting

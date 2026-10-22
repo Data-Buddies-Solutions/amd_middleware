@@ -3,6 +3,7 @@ package scheduling
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"advancedmd-token-management/internal/domain"
 )
@@ -20,7 +21,7 @@ type appointmentTypeResolution struct {
 	Message           string
 }
 
-func resolveAppointmentTypeForIntent(office *domain.OfficeConfig, routing domain.RoutingRule, intent appointmentIntent) appointmentTypeResolution {
+func resolveAppointmentTypeForIntent(office *domain.OfficeConfig, routing domain.RoutingRule, intent appointmentIntent, asOf time.Time) appointmentTypeResolution {
 	if office == nil {
 		return unresolvedAppointmentType([]string{"office"}, "Office is required to resolve appointment type.")
 	}
@@ -28,7 +29,7 @@ func resolveAppointmentTypeForIntent(office *domain.OfficeConfig, routing domain
 	postOp := appointmentReasonLooksPostOp(intent.VisitReason)
 	category := intent.VisitCategory
 	status := intent.PatientStatus
-	ageBand := appointmentAgeBand(intent.DOB)
+	ageBand := appointmentAgeBand(intent.DOB, asOf)
 
 	if postOp {
 		if routing == domain.RoutingOpticalOnly {
@@ -50,7 +51,7 @@ func resolveAppointmentTypeForIntent(office *domain.OfficeConfig, routing domain
 			return unresolvedAppointmentType(missing, appointmentTypeMissingFactsMessage(missing))
 		}
 		if office.ID == "spring_hill" && ageBand == domain.AppointmentAgePediatric {
-			age, ok := domain.AgeYears(intent.DOB)
+			age, ok := domain.AgeYearsOn(intent.DOB, asOf)
 			if !ok {
 				return unresolvedAppointmentType([]string{"dob"}, "Patient DOB is required before scheduling pediatric routine vision at Spring Hill.")
 			}
@@ -154,8 +155,8 @@ func appointmentTypeMissingFactsMessage(missing []string) string {
 	}
 }
 
-func appointmentAgeBand(dob string) string {
-	if age, ok := domain.AgeYears(dob); ok {
+func appointmentAgeBand(dob string, asOf time.Time) string {
+	if age, ok := domain.AgeYearsOn(dob, asOf); ok {
 		if age < 18 {
 			return domain.AppointmentAgePediatric
 		}

@@ -83,8 +83,8 @@ func newSession(login loginAdapter, now func() time.Time, policy sessionPolicy) 
 	}
 }
 
-func NewSession(creds Credentials, client *http.Client) Session {
-	return newSession(newAdvancedMDLogin(creds, client), time.Now, sessionPolicy{
+func NewSession(creds Credentials, client *http.Client, now func() time.Time) Session {
+	return newSession(newAdvancedMDLogin(creds, client, now), now, sessionPolicy{
 		staleAfter:   defaultSessionStaleAfter,
 		expiresAfter: defaultSessionExpiresAfter,
 		loginTimeout: DefaultSessionLoginTimeout,

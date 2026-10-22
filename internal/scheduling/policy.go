@@ -14,10 +14,11 @@ const defaultSameStartCapacity = 1
 
 type schedulingPolicy struct {
 	office *domain.OfficeConfig
+	asOf   time.Time
 }
 
-func newSchedulingPolicy(office *domain.OfficeConfig) schedulingPolicy {
-	return schedulingPolicy{office: office}
+func newSchedulingPolicy(office *domain.OfficeConfig, asOf time.Time) schedulingPolicy {
+	return schedulingPolicy{office: office, asOf: asOf}
 }
 
 func (p schedulingPolicy) AllowedAppointmentTypeIDs(routing domain.RoutingRule, dob string) []int {
@@ -27,7 +28,7 @@ func (p schedulingPolicy) AllowedAppointmentTypeIDs(routing domain.RoutingRule, 
 
 	typeIDs := make([]int, 0, len(domain.AppointmentTypes))
 	for typeID := range domain.AppointmentTypes {
-		if p.office.AllowsAppointmentType(typeID, routing) && appointmentTypeMatchesDOB(typeID, dob) {
+		if p.office.AllowsAppointmentType(typeID, routing) && appointmentTypeMatchesDOB(typeID, dob, p.asOf) {
 			typeIDs = append(typeIDs, typeID)
 		}
 	}
@@ -35,8 +36,8 @@ func (p schedulingPolicy) AllowedAppointmentTypeIDs(routing domain.RoutingRule, 
 	return typeIDs
 }
 
-func appointmentTypeMatchesDOB(typeID int, dob string) bool {
-	age, ok := domain.AgeYears(dob)
+func appointmentTypeMatchesDOB(typeID int, dob string, asOf time.Time) bool {
+	age, ok := domain.AgeYearsOn(dob, asOf)
 	if !ok {
 		return true
 	}
@@ -63,7 +64,7 @@ func (p schedulingPolicy) EligibleColumns(columns []domain.SchedulerColumn, rout
 
 	eligible := make([]domain.SchedulerColumn, 0, len(columns))
 	for _, column := range columns {
-		if column.FacilityID != p.office.FacilityID || !routingColumns[column.ID] || !p.office.ColumnAllowsDOB(column.ID, dob) {
+		if column.FacilityID != p.office.FacilityID || !routingColumns[column.ID] || !p.office.ColumnAllowsDOB(column.ID, dob, p.asOf) {
 			continue
 		}
 		eligible = append(eligible, column)
@@ -108,14 +109,14 @@ func (p schedulingPolicy) PrepareBooking(req bookingPolicyRequest) (bookingPolic
 		return bookingPolicyDecision{}, &schedulingPolicyError{Message: fmt.Sprintf("Profile %d is not valid for column %d at %s", req.ProfileID, req.ColumnID, p.office.DisplayName)}
 	}
 
-	routing := p.office.SchedulingRouting(req.Routing, req.DOB)
+	routing := p.office.SchedulingRouting(req.Routing, req.DOB, p.asOf)
 	typeID := req.AppointmentTypeID
 	preservesExistingType := req.PreservedAppointmentTypeID > 0
 	if preservesExistingType {
 		typeID = req.PreservedAppointmentTypeID
 	}
 	if typeID == 0 {
-		resolution := resolveAppointmentTypeForIntent(p.office, routing, req.Intent)
+		resolution := resolveAppointmentTypeForIntent(p.office, routing, req.Intent, p.asOf)
 		if resolution.AppointmentTypeID == 0 {
 			message := resolution.Message
 			if message == "" {
@@ -155,7 +156,7 @@ func (p schedulingPolicy) PrepareBooking(req bookingPolicyRequest) (bookingPolic
 	if !preservesExistingType && !slices.Contains(p.AllowedAppointmentTypeIDs(routing, ""), typeID) {
 		return bookingPolicyDecision{}, &schedulingPolicyError{Message: fmt.Sprintf("Appointment type %d is not valid for routing %q at %s", typeID, routing, p.office.DisplayName)}
 	}
-	if !p.office.ColumnAllowsDOB(columnID, req.DOB) {
+	if !p.office.ColumnAllowsDOB(columnID, req.DOB, p.asOf) {
 		message := fmt.Sprintf("%s requires patient age %d or older", column.ShortName, column.MinAgeYears)
 		if req.DOB == "" {
 			message = fmt.Sprintf("%s requires patient DOB to verify age %d or older", column.ShortName, column.MinAgeYears)

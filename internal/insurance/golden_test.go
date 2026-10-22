@@ -76,7 +76,7 @@ func phrasingRows(t *testing.T) string {
 	b.WriteString("office\tcoverage\theard\toutcome\tplanId\tcarrierId\toptions\treason\tcallerNotice\tanswer\n")
 	forEachOfficeCoverage(t, func(o *domain.OfficeConfig, coverage string) {
 		for _, heard := range callerPhrasings {
-			d := DecideInsurance(heard, coverage, o, adultDOB)
+			d := DecideInsurance(heard, coverage, o, adultDOB, testNow)
 			options := []string{}
 			for _, option := range d.Options {
 				options = append(options, option.PlanID)
@@ -95,8 +95,8 @@ func planRows(t *testing.T) string {
 			if p.Coverage != coverage {
 				continue
 			}
-			adult := DecidePlan(p.ID, coverage, o, adultDOB)
-			child := DecidePlan(p.ID, coverage, o, dobYearsAgo(8))
+			adult := DecidePlan(p.ID, coverage, o, adultDOB, testNow)
+			child := DecidePlan(p.ID, coverage, o, dobYearsAgo(8), testNow)
 			kinds := []string{}
 			for _, r := range adult.Requirements {
 				kinds = append(kinds, r.Kind)
