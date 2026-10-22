@@ -15,6 +15,10 @@ while IFS= read -r -d '' file; do
     go_files+=("${file}")
   fi
 done < <(git ls-files -z --cached --others --exclude-standard -- '*.go')
+if [[ ${#go_files[@]} -eq 0 ]]; then
+  echo "check failed: ${step}; no Go files listed" >&2
+  exit 1
+fi
 unformatted="$(gofmt -l "${go_files[@]}")"
 if [[ -n "${unformatted}" ]]; then
   echo "${unformatted}" >&2
