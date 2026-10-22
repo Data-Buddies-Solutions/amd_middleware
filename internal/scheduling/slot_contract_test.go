@@ -163,11 +163,7 @@ func TestSlotContractListsAndRevalidatesRepresentativeSchedules(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			records := recordsWithSetup(tt.column)
 			records.Demographics["12345"] = domain.PatientDemographics{CarrierName: "Self Pay", DOB: "01/15/1980"}
-			first, _ := time.Parse("2006-01-02", slotContractDate)
-			for day := 0; day < 14; day++ {
-				records.ScheduleReads[first.AddDate(0, 0, day).Format("2006-01-02")] = completeRead(tt.column.ID, nil, nil)
-			}
-			records.ScheduleReads[slotContractDate] = completeRead(tt.column.ID, tt.appointments, tt.holds)
+			records.Schedule[slotContractDate] = scheduleRows(tt.column.ID, tt.appointments, tt.holds)
 			scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
 
 			result, err := scheduler.List(context.Background(), scheduling.ListCommand{

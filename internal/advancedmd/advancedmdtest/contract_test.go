@@ -49,7 +49,10 @@ var contractNow = time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("E
 
 const springHillColumns = "1513-1550-1551-1598-1600"
 
-var writeRoutes = []string{"book", "cancel", "addpatient", "addinsurance"}
+var (
+	writeRoutes = []string{"book", "cancel", "addpatient", "addinsurance"}
+	writeOps    = []string{"BookAppointment", "CancelAppointment", "CreatePatient", "AddPatientInsurance", "EndDatePatientInsurance"}
+)
 
 func TestFakeAndRealAdapterAgree(t *testing.T) {
 	scenarios := slices.Concat(
@@ -96,12 +99,12 @@ func TestFakeAndRealAdapterAgree(t *testing.T) {
 				value, err := s.call(context.Background(), fake)
 				got := observe(value, err)
 				calls := fakeCalls(fake)
-				for _, op := range []string{"BookAppointment", "CancelAppointment", "CreatePatient", "AddPatientInsurance", "EndDatePatientInsurance"} {
+				for _, op := range writeOps {
 					got.Writes += calls[op]
 				}
 				assertOutcome(t, "fake adapter", got, s.want)
 				want := map[string]int{s.op: 1}
-				if slices.Contains([]string{"BookAppointment", "CancelAppointment", "CreatePatient", "AddPatientInsurance", "EndDatePatientInsurance"}, s.op) {
+				if slices.Contains(writeOps, s.op) {
 					want = map[string]int{}
 					if s.want.Writes > 0 {
 						want[s.op] = s.want.Writes
@@ -129,7 +132,7 @@ func observe(value any, err error) outcome {
 func assertOutcome(t *testing.T, side string, got, want outcome) {
 	t.Helper()
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("%s disagrees with production (nil and empty slices differ)\n got: %s\nwant: %s", side, describe(got), describe(want))
+		t.Errorf("%s breaks the contract (nil and empty slices differ)\n got: %s\nwant: %s", side, describe(got), describe(want))
 	}
 }
 
@@ -661,17 +664,17 @@ func scheduleDayScenarios() []scenario {
 		}
 	}
 	filedRows := func(f *advancedmdtest.Adapter) {
-		f.ScheduleReads[day] = domain.ScheduleReadResult{Columns: map[string]domain.ColumnSchedule{
-			"1513": complete(
-				[]domain.Appointment{
+		f.Schedule[day] = map[string]advancedmdtest.ColumnRows{
+			"1513": {
+				Appointments: []domain.Appointment{
 					scheduled(18, 1513, at(day, "09:00"), 30),
 					scheduled(18, 1513, at(day, "09:00"), 30),
 					scheduled(0, 1513, at(day, "10:00"), 15),
 					scheduled(0, 1513, at(day, "10:00"), 15),
 				},
-				[]domain.BlockHold{held(7, 1513, at(day, "12:00"), at(day, "13:00")), held(7, 1513, at(day, "12:00"), at(day, "13:00"))},
-			),
-		}}
+				BlockHolds: []domain.BlockHold{held(7, 1513, at(day, "12:00"), at(day, "13:00")), held(7, 1513, at(day, "12:00"), at(day, "13:00"))},
+			},
+		}
 	}
 	bach := complete(
 		[]domain.Appointment{
@@ -756,21 +759,21 @@ func scheduleRangeScenarios() []scenario {
 	}
 	overnight := held(7, 1513, at("2026-06-30", "22:00"), at("2026-07-01", "02:00"))
 	filedRows := func(f *advancedmdtest.Adapter) {
-		f.ScheduleReads["2026-06-30"] = domain.ScheduleReadResult{Columns: map[string]domain.ColumnSchedule{
-			"1513": complete(
-				[]domain.Appointment{scheduled(18, 1513, at("2026-06-30", "09:00"), 30), scheduled(18, 1513, at("2026-06-30", "09:00"), 30)},
-				[]domain.BlockHold{overnight},
-			),
-		}}
-		f.ScheduleReads["2026-07-01"] = domain.ScheduleReadResult{Columns: map[string]domain.ColumnSchedule{
-			"1513": complete(
-				[]domain.Appointment{scheduled(0, 1513, at("2026-07-01", "10:00"), 15), scheduled(0, 1513, at("2026-07-01", "10:00"), 15)},
-				[]domain.BlockHold{overnight},
-			),
-		}}
-		f.ScheduleReads["2026-07-02"] = domain.ScheduleReadResult{Columns: map[string]domain.ColumnSchedule{
-			"1598": complete([]domain.Appointment{scheduled(19, 1598, at("2026-07-02", "11:00"), 15)}, nil),
-		}}
+		f.Schedule["2026-06-30"] = map[string]advancedmdtest.ColumnRows{
+			"1513": {
+				Appointments: []domain.Appointment{scheduled(18, 1513, at("2026-06-30", "09:00"), 30), scheduled(18, 1513, at("2026-06-30", "09:00"), 30)},
+				BlockHolds:   []domain.BlockHold{overnight},
+			},
+		}
+		f.Schedule["2026-07-01"] = map[string]advancedmdtest.ColumnRows{
+			"1513": {
+				Appointments: []domain.Appointment{scheduled(0, 1513, at("2026-07-01", "10:00"), 15), scheduled(0, 1513, at("2026-07-01", "10:00"), 15)},
+				BlockHolds:   []domain.BlockHold{overnight},
+			},
+		}
+		f.Schedule["2026-07-02"] = map[string]advancedmdtest.ColumnRows{
+			"1598": {Appointments: []domain.Appointment{scheduled(19, 1598, at("2026-07-02", "11:00"), 15)}},
+		}
 	}
 	empty := complete(nil, nil)
 	read := map[string]domain.ScheduleReadResult{
@@ -973,6 +976,7 @@ func patientCreateScenarios() []scenario {
 			op:   "CreatePatient",
 			amd:  func(p *advancedmdtest.Provider) { reply(p, "addpatient", rejected("Duplicate name/DOB")) },
 			fake: func(f *advancedmdtest.Adapter) {
+				f.CreatedPatient = created
 				f.CreatePatientError = advancedmd.NewError(safeerrors.CategoryRejected)
 			},
 			call: createPatient("spring_hill"),

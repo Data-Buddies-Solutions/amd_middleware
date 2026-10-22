@@ -28,45 +28,31 @@ func TestBookRejectsInvalidSignedSlotBeforeWrite(t *testing.T) {
 	}
 }
 
-func TestBookIncompleteRevalidationCanRetryWithoutClaimingSlotConflict(t *testing.T) {
-	for _, tc := range []struct {
-		name    string
-		columns map[string]domain.ColumnSchedule
-	}{
-		{"appointments unavailable", map[string]domain.ColumnSchedule{
-			"1513": {BlockHoldsComplete: true},
-		}},
-		{"block holds unavailable", map[string]domain.ColumnSchedule{
-			"1513": {AppointmentsComplete: true},
-		}},
-		{"provider column missing", nil},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			now := mutationTestNow()
-			records := bookingRecords()
-			records.BookAppointmentID = 98765
-			records.ScheduleReads["2026-06-03"] = domain.ScheduleReadResult{Columns: tc.columns}
-			command := signedBookCommand(t, now)
-			scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
+func TestBookFailedRevalidationCanRetryWithoutClaimingSlotConflict(t *testing.T) {
+	now := mutationTestNow()
+	records := bookingRecords()
+	records.BookAppointmentID = 98765
+	failedRead := advancedmdtest.ColumnDay{Date: "2026-06-03", ColumnID: "1513"}
+	records.ColumnReadErrors[failedRead] = advancedmd.NewError(safeerrors.CategoryInvalidResponse)
+	command := signedBookCommand(t, now)
+	scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
 
-			_, err := scheduler.Book(context.Background(), command)
-			if scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed ||
-				scheduling.ProviderFailureOf(err) != safeerrors.CategoryInvalidResponse {
-				t.Fatalf("Book error = %v, category = %q, provider failure = %q; want retryable provider-read failure", err, scheduling.CategoryOf(err), scheduling.ProviderFailureOf(err))
-			}
-			if err.Error() != "Unable to verify the selected time because appointment data is incomplete. Please try once more or contact the office." {
-				t.Fatalf("Book message = %q, want an explanation of failed verification", err.Error())
-			}
-			if len(records.Bookings) != 0 {
-				t.Fatalf("provider bookings = %d, want none before complete verification", len(records.Bookings))
-			}
+	_, err := scheduler.Book(context.Background(), command)
+	if scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed ||
+		scheduling.ProviderFailureOf(err) != safeerrors.CategoryInvalidResponse {
+		t.Fatalf("Book error = %v, category = %q, provider failure = %q; want retryable provider-read failure", err, scheduling.CategoryOf(err), scheduling.ProviderFailureOf(err))
+	}
+	if err.Error() != "Unable to revalidate the selected slot. Please check availability again." {
+		t.Fatalf("Book message = %q, want an explanation of failed revalidation", err.Error())
+	}
+	if len(records.Bookings) != 0 {
+		t.Fatalf("provider bookings = %d, want none before complete verification", len(records.Bookings))
+	}
 
-			records.ScheduleReads["2026-06-03"] = completeRead("1513", nil, nil)
-			receipt, err := scheduler.Book(context.Background(), command)
-			if err != nil || receipt.Status != "booked" || len(records.Bookings) != 1 {
-				t.Fatalf("retry receipt = %#v, error = %v, provider bookings = %d; want one successful booking", receipt, err, len(records.Bookings))
-			}
-		})
+	delete(records.ColumnReadErrors, failedRead)
+	receipt, err := scheduler.Book(context.Background(), command)
+	if err != nil || receipt.Status != "booked" || len(records.Bookings) != 1 {
+		t.Fatalf("retry receipt = %#v, error = %v, provider bookings = %d; want one successful booking", receipt, err, len(records.Bookings))
 	}
 }
 
@@ -112,7 +98,6 @@ func TestBookPreservesAnyAppointmentTypeFromSignedRescheduleToken(t *testing.T) 
 
 	corrected := signedBookCommand(t, now)
 	corrected.RescheduleToken = receipt.RescheduleToken
-	records.ScheduleReads["2026-06-03"] = completeRead("1513", nil, nil)
 	if _, err := scheduling.New(
 		records,
 		"test-booking-secret",
@@ -198,14 +183,14 @@ func TestBookRevalidatesProviderFromCachedSchedulerSetup(t *testing.T) {
 	now := mutationTestNow()
 	records := bookingRecords()
 	records.BookAppointmentID = 98765
-	records.ScheduleReads["2026-06-03"] = domain.ScheduleReadResult{}
+	records.ScheduleReadErrors["2026-06-03"] = advancedmd.NewError(safeerrors.CategoryUnavailable)
 	command := signedBookCommand(t, now)
 	scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
 
 	if _, err := scheduler.Book(context.Background(), command); scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed {
-		t.Fatalf("first Book error = %v, want write_failed from the incomplete schedule read", err)
+		t.Fatalf("first Book error = %v, want write_failed from the failed schedule read", err)
 	}
-	records.ScheduleReads["2026-06-03"] = completeRead("1513", nil, nil)
+	delete(records.ScheduleReadErrors, "2026-06-03")
 	receipt, err := scheduler.Book(context.Background(), command)
 	if err != nil || receipt.Status != "booked" {
 		t.Fatalf("second Book receipt = %#v, error = %v", receipt, err)
@@ -274,7 +259,7 @@ func TestBookRevalidatesPatientOfficeTypeProviderCapacityAndForce(t *testing.T) 
 		{
 			name: "capacity and force decision",
 			mutate: func(records *advancedmdtest.Adapter, _ *scheduling.BookCommand) {
-				records.ScheduleReads["2026-06-03"] = completeRead("1513", []domain.Appointment{{
+				records.Schedule["2026-06-03"] = scheduleRows("1513", []domain.Appointment{{
 					StartDateTime: time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
 					Duration:      15,
 				}}, nil)
@@ -403,7 +388,6 @@ func TestBookReconcilesAmbiguousWriteInIntendedMonth(t *testing.T) {
 	now := mutationTestNow()
 	start := time.Date(2027, time.January, 3, 9, 0, 0, 0, time.UTC)
 	records := bookingRecords()
-	records.ScheduleReads[start.Format("2006-01-02")] = completeRead("1513", nil, nil)
 	records.BookAppointmentErr = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryNetwork)
 	records.AppointmentResults["12345"] = appointmentResult(
 		[]domain.PatientAppointment{matchingAppointmentAt(98766, start)},
@@ -641,7 +625,6 @@ func mutationTestNow() time.Time {
 func bookingRecords() *advancedmdtest.Adapter {
 	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
 	records.Demographics["12345"] = domain.PatientDemographics{CarrierName: "Self Pay", CarrierID: "car301672", DOB: "01/15/1980"}
-	records.ScheduleReads["2026-06-03"] = completeRead("1513", nil, nil)
 	return records
 }
 

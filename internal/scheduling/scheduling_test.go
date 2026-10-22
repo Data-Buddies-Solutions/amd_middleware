@@ -18,7 +18,7 @@ func TestListReturnsNoneOnlyAfterACompleteWindow(t *testing.T) {
 	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
 	for day := 0; day <= 14; day++ {
 		date := searchDate.AddDate(0, 0, day)
-		records.ScheduleReads[date.Format("2006-01-02")] = completeRead("1513", nil, []domain.BlockHold{{
+		records.Schedule[date.Format("2006-01-02")] = scheduleRows("1513", nil, []domain.BlockHold{{
 			StartDateTime: date.Add(9 * time.Hour),
 			EndDateTime:   date.Add(9*time.Hour + 15*time.Minute),
 		}})
@@ -57,9 +57,6 @@ func TestListReportsIncompleteForUnusableColumnSchedule(t *testing.T) {
 	}
 	for name, column := range columns {
 		records := recordsWithSetup(column)
-		for day := 0; day <= 14; day++ {
-			records.ScheduleReads[searchDate.AddDate(0, 0, day).Format("2006-01-02")] = completeRead("1513", nil, nil)
-		}
 
 		type searchResult struct {
 			response scheduling.AvailabilityResponse
@@ -94,13 +91,13 @@ func TestListStartsAtStartDate(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	searchDate := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC)
 	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "16:00", 60))
-	records.ScheduleReads["2026-06-04"] = completeRead("1513", nil, []domain.BlockHold{{
+	records.Schedule["2026-06-04"] = scheduleRows("1513", nil, []domain.BlockHold{{
 		StartDateTime: time.Date(2026, 6, 4, 10, 0, 0, 0, time.UTC),
 		EndDateTime:   time.Date(2026, 6, 4, 16, 0, 0, 0, time.UTC),
 	}})
 	for day := 2; day <= 14; day++ {
 		date := searchDate.AddDate(0, 0, day)
-		records.ScheduleReads[date.Format("2006-01-02")] = completeRead("1513", nil, []domain.BlockHold{{
+		records.Schedule[date.Format("2006-01-02")] = scheduleRows("1513", nil, []domain.BlockHold{{
 			StartDateTime: date.Add(9 * time.Hour),
 			EndDateTime:   date.Add(16 * time.Hour),
 		}})
@@ -125,15 +122,7 @@ func TestListReturnsIncompleteWhenProviderReadsCannotProveNone(t *testing.T) {
 	searchDate := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC)
 	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
 	for day := 0; day <= 14; day++ {
-		date := searchDate.AddDate(0, 0, day).Format("2006-01-02")
-		records.ScheduleReads[date] = domain.ScheduleReadResult{
-			Columns: map[string]domain.ColumnSchedule{
-				"1513": {
-					AppointmentsComplete: false,
-					BlockHoldsComplete:   true,
-				},
-			},
-		}
+		records.IncompleteDays[searchDate.AddDate(0, 0, day).Format("2006-01-02")] = true
 	}
 
 	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
@@ -165,23 +154,13 @@ func TestListReturnsIncompleteAfterPartialProviderFailure(t *testing.T) {
 	)
 	for day := 0; day <= 14; day++ {
 		date := searchDate.AddDate(0, 0, day)
-		records.ScheduleReads[date.Format("2006-01-02")] = domain.ScheduleReadResult{
-			Columns: map[string]domain.ColumnSchedule{
-				"1513": {
-					AppointmentsComplete: false,
-					BlockHoldsComplete:   true,
-				},
-				"1598": {
-					BlockHolds: []domain.BlockHold{{
-						StartDateTime: date.Add(9 * time.Hour),
-						EndDateTime:   date.Add(9*time.Hour + 15*time.Minute),
-					}},
-					AppointmentsComplete: true,
-					BlockHoldsComplete:   true,
-				},
-			},
+		hold := []domain.BlockHold{{StartDateTime: date.Add(9 * time.Hour), EndDateTime: date.Add(9*time.Hour + 15*time.Minute)}}
+		records.Schedule[date.Format("2006-01-02")] = map[string]advancedmdtest.ColumnRows{
+			"1513": {BlockHolds: hold},
+			"1598": {BlockHolds: hold},
 		}
 	}
+	records.IncompleteDays[searchDate.Format("2006-01-02")] = true
 
 	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		List(context.Background(), scheduling.ListCommand{
@@ -228,10 +207,6 @@ func TestListRoutesAPatientByTheirAgeOnTheEasternCalendar(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			records := recordsWithSetup(testColumn("1550", "2076", "1568", "09:00", "09:15", 15))
-			for day := 0; day < 14; day++ {
-				date := time.Date(2026, 10, 22+day, 0, 0, 0, 0, time.UTC).Format("2006-01-02")
-				records.ScheduleReads[date] = completeRead("1550", nil, nil)
-			}
 
 			result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return tt.now }).
 				List(context.Background(), scheduling.ListCommand{
@@ -266,34 +241,6 @@ func TestListRejectsInvalidDOB(t *testing.T) {
 		t.Fatalf("invalid DOB error = %v", err)
 	}
 
-}
-
-func TestListTreatsMissingBlockHoldsAsIncomplete(t *testing.T) {
-	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	searchDate := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC)
-	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
-	for day := 0; day <= 14; day++ {
-		date := searchDate.AddDate(0, 0, day).Format("2006-01-02")
-		records.ScheduleReads[date] = domain.ScheduleReadResult{
-			Columns: map[string]domain.ColumnSchedule{
-				"1513": {
-					AppointmentsComplete: true,
-					BlockHoldsComplete:   false,
-				},
-			},
-		}
-	}
-
-	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-		List(context.Background(), scheduling.ListCommand{
-			StartDate: searchDate.Format("2006-01-02"), Office: "Spring Hill", Routing: string(domain.RoutingBachOnly),
-		})
-	if err != nil {
-		t.Fatalf("List error = %v", err)
-	}
-	if result.Outcome != scheduling.AvailabilityOutcomeSearchIncomplete {
-		t.Fatalf("result = %#v, want incomplete block-hold read", result)
-	}
 }
 
 func TestListPreservesAuthenticationFailureContract(t *testing.T) {
@@ -365,15 +312,6 @@ func testColumn(id, profileID, facilityID, start, end string, interval int) doma
 	}
 }
 
-func completeRead(columnID string, appointments []domain.Appointment, blockHolds []domain.BlockHold) domain.ScheduleReadResult {
-	return domain.ScheduleReadResult{
-		Columns: map[string]domain.ColumnSchedule{
-			columnID: {
-				Appointments:         appointments,
-				BlockHolds:           blockHolds,
-				AppointmentsComplete: true,
-				BlockHoldsComplete:   true,
-			},
-		},
-	}
+func scheduleRows(columnID string, appointments []domain.Appointment, blockHolds []domain.BlockHold) map[string]advancedmdtest.ColumnRows {
+	return map[string]advancedmdtest.ColumnRows{columnID: {Appointments: appointments, BlockHolds: blockHolds}}
 }
