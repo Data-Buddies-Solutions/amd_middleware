@@ -243,7 +243,11 @@ func agreementCaseAt(index int) agreementCase {
 				minute = gridMinute()
 			}
 			duration := []int{0, 5, 10, 15, 20, 30, 45, 60, 90}[rng.Intn(9)]
-			c.rows.addAppointment(id(), target.id, at(minute), duration)
+			appointmentID := id()
+			c.rows.addAppointment(appointmentID, target.id, at(minute), duration)
+			if rng.Intn(6) == 0 {
+				c.rows.addAppointment(appointmentID, target.id, at(minute), duration)
+			}
 			for rng.Intn(4) == 0 {
 				c.rows.addAppointment(id(), target.id, at(minute), []int{0, 15, 30, 60}[rng.Intn(4)])
 			}
@@ -412,6 +416,30 @@ func TestEveryListedSlotBooksAgainstTheSameSchedule(t *testing.T) {
 		t.Fatalf("listed=%d forced=%d month-crossing searches=%d across %d schedules; the generator is too narrow to prove agreement", listed, forced, crossingMonths, agreementCases)
 	}
 	t.Logf("%d schedules (%d crossing a month), %d listed slots (%d same-start with force), every one booked", agreementCases, crossingMonths, listed, forced)
+}
+
+func TestListedSlotBooksWhenAdvancedMDRepeatsAnAppointmentRow(t *testing.T) {
+	target := agreementColumns[0]
+	day := time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC)
+	c := agreementCase{
+		target: target,
+		now:    time.Date(2026, 10, 13, 16, 0, 0, 0, time.UTC),
+		first:  day,
+		column: domain.SchedulerColumn{
+			ID: target.id, Name: "AGREEMENT", ProfileID: target.profileID, FacilityID: target.facilityID,
+			StartTime: "09:00", EndTime: "09:30", Interval: 30, Workweek: 1 << day.Weekday(),
+		},
+	}
+	c.rows.addAppointment(18, target.id, day.Add(9*time.Hour), 30)
+	c.rows.addAppointment(18, target.id, day.Add(9*time.Hour), 30)
+
+	slots, err := c.check()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, c)
+	}
+	if len(slots) != 2 || slots[0].DateTime != "2026-10-15T09:00" || slots[0].SameStartBooked != 1 || !slots[0].RequiresForce {
+		t.Fatalf("slots = %+v, want 09:00 on both Thursdays with the 2026-10-15 slot double-booked once\n%s", slots, c)
+	}
 }
 
 func TestSlotsOverlappingTheScheduleAreNeverListed(t *testing.T) {
