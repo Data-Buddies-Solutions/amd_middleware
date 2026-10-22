@@ -122,6 +122,11 @@ type ResolutionObservation struct {
 	OfficeGroupSize         int
 	CandidateCountBucket    string
 	AppointmentOutcome      string
+	PatientSearchComplete   *bool
+}
+
+type CreateObservation struct {
+	BaselineSearchComplete *bool
 }
 
 type CreateCommand struct {
@@ -155,6 +160,7 @@ type CreateResult struct {
 	AllowedProviders  []string                     `json:"allowedProviders,omitempty"`
 	PreauthRequired   bool                         `json:"preauthRequired,omitempty"`
 	Message           string                       `json:"message,omitempty"`
+	Observation       CreateObservation            `json:"-"`
 }
 
 type UpdateInsuranceCommand struct {

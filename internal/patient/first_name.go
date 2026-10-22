@@ -54,6 +54,7 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 	if err != nil {
 		return unresolved("search_unavailable", advancedmd.CategoryOf(err))
 	}
+	observation.PatientSearchComplete = new(read.Complete)
 	if !read.Complete {
 		return unresolved("incomplete_search", safeerrors.CategoryInvalidResponse)
 	}
@@ -106,5 +107,6 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 	result.Observation.PatientSearchDurationMS = observation.PatientSearchDurationMS
 	result.Observation.DemographicReads += observation.DemographicReads
 	result.Observation.DemographicDurationMS += observation.DemographicDurationMS
+	result.Observation.PatientSearchComplete = observation.PatientSearchComplete
 	return result, err
 }

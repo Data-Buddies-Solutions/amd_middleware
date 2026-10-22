@@ -49,7 +49,7 @@ func TestAdapterSearchPatientsByNameUsesControlledXMLRPCServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SearchPatients() error = %v", err)
 	}
-	if len(got) != 0 {
+	if len(got.Patients) != 0 {
 		t.Fatalf("SearchPatients() = %+v, want no matches", got)
 	}
 	message := requestBody["ppmdmsg"].(map[string]any)
