@@ -54,6 +54,7 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 	if err != nil {
 		return unresolved("search_unavailable", advancedmd.CategoryOf(err))
 	}
+	observation.PatientSearchComplete = new(read.Complete)
 	if !read.Complete {
 		return unresolved("incomplete_search", safeerrors.CategoryInvalidResponse)
 	}
@@ -80,7 +81,7 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 	if len(matches) > 1 {
 		candidates := make([]Candidate, 0, len(matches))
 		for _, row := range matches {
-			candidates = append(candidates, Candidate{Status: StatusCandidate, PatientID: row.ID, FirstName: candidateName(row), LastName: patientLastName(row), DOB: domain.NormalizeDOB(row.DOB)})
+			candidates = append(candidates, Candidate{Status: statusCandidate, PatientID: row.ID, FirstName: candidateName(row), LastName: patientLastName(row), DOB: domain.NormalizeDOB(row.DOB)})
 		}
 		return ResolveResult{Status: StatusMultipleMatches, Matches: candidates, Appointments: []Appointment{}, Message: "More than one patient matches this first name and date of birth. Ask office staff to resolve the identity.", Observation: observation}, nil
 	}
@@ -106,5 +107,6 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 	result.Observation.PatientSearchDurationMS = observation.PatientSearchDurationMS
 	result.Observation.DemographicReads += observation.DemographicReads
 	result.Observation.DemographicDurationMS += observation.DemographicDurationMS
+	result.Observation.PatientSearchComplete = observation.PatientSearchComplete
 	return result, err
 }

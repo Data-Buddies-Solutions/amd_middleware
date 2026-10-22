@@ -307,6 +307,23 @@ func TestCreateAllowsHouseholdMemberOnCallerPhone(t *testing.T) {
 	}
 }
 
+func TestCreateObservesBaselineSearchCompletenessWithoutChangingTheDecision(t *testing.T) {
+	domain.InitRegistry("")
+	for _, incomplete := range []bool{false, true} {
+		amd := advancedmdtest.NewAdapter()
+		amd.IncompletePatientSearch = map[domain.PatientSearch]bool{{Phone: "9542872010"}: incomplete}
+
+		got := patient.New(amd, testAppointmentTokens).Create(context.Background(), validCreateCommand())
+
+		if got.Status != patient.CreateStatusCreated || amd.CreatePatientCalls != 1 {
+			t.Fatalf("incomplete=%v: Create() = %+v with %d writes, want one created patient", incomplete, got, amd.CreatePatientCalls)
+		}
+		if complete := got.Observation.BaselineSearchComplete; complete == nil || *complete != !incomplete {
+			t.Fatalf("incomplete=%v: BaselineSearchComplete = %v, want %v", incomplete, complete, !incomplete)
+		}
+	}
+}
+
 func TestCreateDoesNotAdoptPreexistingPatientWhoseLookupDetailsChanged(t *testing.T) {
 	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
@@ -585,9 +602,6 @@ func validUpdateInsuranceCommand() patient.UpdateInsuranceCommand {
 	return patient.UpdateInsuranceCommand{
 		PatientID:      "123",
 		DOB:            "01/15/1980",
-		InsPlanID:      "ins123",
-		RespPartyID:    "resp123",
-		OldInsurance:   "Old",
 		Insurance:      writableMedicalPlan,
 		SubscriberName: "Jane Doe",
 		SubscriberNum:  "H123",

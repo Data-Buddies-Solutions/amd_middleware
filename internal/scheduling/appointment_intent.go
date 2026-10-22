@@ -15,10 +15,9 @@ type appointmentIntent struct {
 }
 
 type appointmentTypeResolution struct {
-	AppointmentTypeID   int
-	AppointmentTypeName string
-	Missing             []string
-	Message             string
+	AppointmentTypeID int
+	Missing           []string
+	Message           string
 }
 
 func resolveAppointmentTypeForIntent(office *domain.OfficeConfig, routing domain.RoutingRule, intent appointmentIntent) appointmentTypeResolution {
@@ -110,10 +109,7 @@ func routineVisionTooYoung(office *domain.OfficeConfig, age int) bool {
 }
 
 func resolvedAppointmentType(typeID int) appointmentTypeResolution {
-	return appointmentTypeResolution{
-		AppointmentTypeID:   typeID,
-		AppointmentTypeName: domain.AppointmentTypes[typeID].Name,
-	}
+	return appointmentTypeResolution{AppointmentTypeID: typeID}
 }
 
 func unresolvedAppointmentType(missing []string, message string) appointmentTypeResolution {

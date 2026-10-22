@@ -29,7 +29,6 @@ func (s *service) signSlots(
 			SameStartBooked:    slots[i].SameStartBooked,
 			SameStartCapacity:  slots[i].SameStartCapacity,
 			RequiresForce:      slots[i].RequiresForce,
-			Provider:           slots[i].Provider,
 			IssuedAt:           issuedAt,
 			ExpiresAt:          expiresAt,
 		})
@@ -50,7 +49,6 @@ func availableSlots(
 	appointments []domain.Appointment,
 	blockHolds []domain.BlockHold,
 	date time.Time,
-	nowEastern time.Time,
 ) []availableSlot {
 	slots := make([]availableSlot, 0)
 	if column.Interval <= 0 {
@@ -63,10 +61,6 @@ func availableSlots(
 
 	interval := time.Duration(column.Interval) * time.Minute
 	for slotTime := workStart; slotFitsWorkHours(slotTime, interval, workStart, workEnd, interval); slotTime = slotTime.Add(interval) {
-		if date.Format("2006-01-02") == nowEastern.Format("2006-01-02") &&
-			slotTime.Before(nowEastern.Add(30*time.Minute)) {
-			continue
-		}
 		if isBlockedByHold(slotTime, interval, blockHolds) ||
 			hasDifferentStartOverlap(slotTime, interval, appointments) {
 			continue

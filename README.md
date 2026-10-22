@@ -98,8 +98,10 @@ To add a capability:
    [advancedmdtest](internal/advancedmd/advancedmdtest/adapter.go).
 3. Parse the provider response in `clients` with `decodeXMLRPC` and `oneOrMany`, and
    return domain types.
-4. Add a handler that decodes (`decodeStrict` for new endpoints), calls the feature, and
-   calls `respond`. Register the route in [router.go](internal/http/router.go).
+4. Add a handler that decodes with `decodeStrict`, calls the feature, and calls
+   `respond`. Every JSON route decodes strictly, so an unknown field gets the route's
+   invalid-request response and never reaches the feature. Register the route in
+   [router.go](internal/http/router.go).
 5. Read any new environment variable in [config](internal/config/config.go) and wire the
    dependency in [main.go](cmd/api/main.go).
 
@@ -155,7 +157,8 @@ Examples of authoritative proof:
   post-write matches.
 - Insurance replacement requires patient ID and DOB, loads fresh demographics,
   verifies DOB, and derives the current primary plan and responsible party.
-  Legacy `insPlanId`, `respPartyId`, and `oldInsurance` inputs are ignored.
+  Legacy `insPlanId`, `respPartyId`, and `oldInsurance` inputs are rejected as
+  unknown fields.
   A known empty current plan attaches directly; an already-matching active
   replacement performs no writes. Missing references block the operation.
 - Booking reads the intended appointment month and matches the patient, office,
@@ -184,7 +187,7 @@ deploying this contract change (ACU-146).
 
 Booking and rescheduling obtain column, profile, start, duration, and routing
 from the verified `bookingToken`. Those fields and `insurancePlan` are no longer
-part of the booking request contract.
+part of the booking request contract and are rejected as unknown fields.
 
 `POST /api/scheduler/slots` errors preserve the inventory envelope with `slots: []`.
 `invalid_input` requires corrected input and never retries the same search.
@@ -348,6 +351,12 @@ analytics.
 The structured request log adds a PHI-free `cancellation` object for this route
 with semantic outcome, actual provider schedule-read count, cancellation
 mutation count, and duration.
+
+When a patient search runs, the request log records `lookup_complete`: whether
+AdvancedMD's page metadata proved the search returned every matching patient.
+Patient resolution records it in its `patient_resolution` object, and
+add-patient records its duplicate-check search as
+`patient_create.lookup_complete`.
 
 Operational routes have separate contracts:
 

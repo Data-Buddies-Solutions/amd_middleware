@@ -36,6 +36,7 @@ type Adapter struct {
 	PatientSearches          map[domain.PatientSearch][]domain.Patient
 	PatientErrors            map[domain.PatientSearch]error
 	PatientSearchSequence    map[domain.PatientSearch][]PatientSearchStep
+	IncompletePatientSearch  map[domain.PatientSearch]bool
 	Demographics             map[string]domain.PatientDemographics
 	DemographicErrors        map[string]error
 	DemographicErrorSequence map[string][]error
@@ -91,17 +92,18 @@ func NewAdapter() *Adapter {
 	}
 }
 
-func (a *Adapter) SearchPatients(_ context.Context, search domain.PatientSearch) ([]domain.Patient, error) {
+func (a *Adapter) SearchPatients(_ context.Context, search domain.PatientSearch) (domain.PatientCandidateRead, error) {
 	a.SearchPatientCalls++
+	complete := !a.IncompletePatientSearch[search]
 	if sequence := a.PatientSearchSequence[search]; len(sequence) > 0 {
 		step := sequence[0]
 		a.PatientSearchSequence[search] = sequence[1:]
-		return append([]domain.Patient(nil), step.Patients...), step.Err
+		return domain.PatientCandidateRead{Patients: append([]domain.Patient(nil), step.Patients...), Complete: complete}, step.Err
 	}
 	if err := a.PatientErrors[search]; err != nil {
-		return nil, err
+		return domain.PatientCandidateRead{}, err
 	}
-	return append([]domain.Patient(nil), a.PatientSearches[search]...), nil
+	return domain.PatientCandidateRead{Patients: append([]domain.Patient(nil), a.PatientSearches[search]...), Complete: complete}, nil
 }
 
 func (a *Adapter) ReadPatientCandidates(_ context.Context, firstName, dob string) (domain.PatientCandidateRead, error) {

@@ -60,7 +60,7 @@ func MutationFailureOf(err error) MutationFailure {
 
 type PatientRecords interface {
 	ReadPatientCandidates(ctx context.Context, firstName, dob string) (domain.PatientCandidateRead, error)
-	SearchPatients(ctx context.Context, search domain.PatientSearch) ([]domain.Patient, error)
+	SearchPatients(ctx context.Context, search domain.PatientSearch) (domain.PatientCandidateRead, error)
 	GetPatientDemographics(ctx context.Context, patientID string) (domain.PatientDemographics, error)
 	ReadPatientAppointments(ctx context.Context, query domain.PatientAppointmentsQuery) (AppointmentRead, error)
 	CreatePatient(ctx context.Context, command domain.PatientCreate) (domain.CreatedPatient, error)
@@ -73,7 +73,6 @@ type SchedulingRecords interface {
 	ReadSchedule(ctx context.Context, query domain.ScheduleReadQuery) (domain.ScheduleReadResult, error)
 	ReadScheduleRange(ctx context.Context, query domain.ScheduleRangeQuery) (map[string]domain.ScheduleReadResult, error)
 	GetPatientDemographics(ctx context.Context, patientID string) (domain.PatientDemographics, error)
-	ReadPatientAppointments(ctx context.Context, query domain.PatientAppointmentsQuery) (AppointmentRead, error)
 	ReadPatientAppointmentsForMonth(ctx context.Context, query AppointmentMonthQuery) (AppointmentRead, error)
 	ReadAppointmentState(ctx context.Context, query AppointmentStateQuery) (AppointmentState, error)
 	BookAppointment(ctx context.Context, booking Booking) (int, error)
@@ -110,7 +109,6 @@ type Booking struct {
 	ProfileID                 int
 	Start                     time.Time
 	Duration                  int
-	AppointmentTypeID         int
 	ProviderAppointmentTypeID int
 	AppointmentColor          string
 	Force                     bool
@@ -118,7 +116,5 @@ type Booking struct {
 }
 
 type Cancellation struct {
-	PatientID     string
 	AppointmentID int
-	OfficeID      string
 }

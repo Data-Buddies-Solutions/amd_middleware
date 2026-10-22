@@ -11,7 +11,7 @@ type Category string
 
 const (
 	CategoryNone            Category = "none"
-	CategoryCanceled        Category = "canceled"
+	categoryCanceled        Category = "canceled"
 	CategoryTimeout         Category = "timeout"
 	CategoryNetwork         Category = "network"
 	CategoryConflict        Category = "conflict"
@@ -29,7 +29,7 @@ func Classify(err error) Category {
 		return CategoryNone
 	}
 	if errors.Is(err, context.Canceled) {
-		return CategoryCanceled
+		return categoryCanceled
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return CategoryTimeout

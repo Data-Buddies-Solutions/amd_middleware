@@ -58,9 +58,7 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 		return partial, nil
 	}
 	office, _ := domain.LookupOfficeByID(policy.OfficeID)
-	cancellation, err := s.cancelVerifiedAppointment(ctx, advancedmd.Cancellation{
-		PatientID: policy.PatientID, AppointmentID: policy.AppointmentID, OfficeID: policy.OfficeID,
-	}, domain.PatientAppointment{ID: policy.AppointmentID, OfficeID: policy.OfficeID, Start: policy.start}, office, &cancellationTelemetry{})
+	cancellation, err := s.cancelVerifiedAppointment(ctx, advancedmd.Cancellation{AppointmentID: policy.AppointmentID}, domain.PatientAppointment{ID: policy.AppointmentID, OfficeID: policy.OfficeID, Start: policy.start}, office, &cancellationTelemetry{})
 	if err != nil {
 		partial.Outcome = string(CategoryOf(err))
 		partial.Failure = err
@@ -81,5 +79,5 @@ func (s *service) verifyRescheduleOriginal(ctx context.Context, policy appointme
 			return nil
 		}
 	}
-	return categorizedError(CategoryOwnershipMismatch, "The original appointment changed or no longer exists. Load appointments again before another change.")
+	return categorizedError(categoryOwnershipMismatch, "The original appointment changed or no longer exists. Load appointments again before another change.")
 }

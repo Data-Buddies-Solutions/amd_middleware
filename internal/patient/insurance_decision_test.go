@@ -96,7 +96,7 @@ func TestSelfPayWithoutSubscriberNumberWritesZeros(t *testing.T) {
 		t.Run(tc.plan+"/"+tc.subscriber, func(t *testing.T) {
 			records := advancedmdtest.NewAdapter()
 			records.Demographics["123"] = domain.PatientDemographics{DOB: "01/02/1980", RespPartyID: "resp123", InsuranceStateKnown: true}
-			result := patient.New(records, testAppointmentTokens).UpdateInsurance(context.Background(), patient.UpdateInsuranceCommand{PatientID: "123", RespPartyID: "resp123", Insurance: tc.plan, SubscriberNum: tc.subscriber, Office: "Hollywood", DOB: "01/02/1980"})
+			result := patient.New(records, testAppointmentTokens).UpdateInsurance(context.Background(), patient.UpdateInsuranceCommand{PatientID: "123", Insurance: tc.plan, SubscriberNum: tc.subscriber, Office: "Hollywood", DOB: "01/02/1980"})
 			if result.Status != patient.UpdateInsuranceStatusUpdated || len(records.Insurances) != 1 || records.Insurances[0].SubscriberNum != tc.want {
 				t.Fatalf("result=%+v records=%+v", result, records.Insurances)
 			}

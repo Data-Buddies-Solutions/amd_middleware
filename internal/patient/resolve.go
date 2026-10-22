@@ -34,7 +34,7 @@ func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveR
 
 	search := patientSearch(command)
 	searchStarted := time.Now()
-	patients, err := p.advancedMD.SearchPatients(ctx, search)
+	read, err := p.advancedMD.SearchPatients(ctx, search)
 	observation := ResolutionObservation{
 		Recorded:                true,
 		PatientSearchDurationMS: time.Since(searchStarted).Milliseconds(),
@@ -46,7 +46,8 @@ func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveR
 		observation.CandidateCountBucket = "unknown"
 		return ResolveResult{Observation: observation}, err
 	}
-	matches := selectPatients(patients, command)
+	observation.PatientSearchComplete = new(read.Complete)
+	matches := selectPatients(read.Patients, command)
 	observation.CandidateCountBucket = candidateCountBucket(len(matches))
 	if len(matches) == 0 {
 		return ResolveResult{
@@ -60,7 +61,7 @@ func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveR
 		results := make([]Candidate, 0, len(matches))
 		for _, candidate := range matches {
 			results = append(results, Candidate{
-				Status:    StatusCandidate,
+				Status:    statusCandidate,
 				PatientID: candidate.ID,
 				FirstName: patientFirstName(candidate),
 				LastName:  patientLastName(candidate),
@@ -81,6 +82,7 @@ func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveR
 	result.Observation.PatientSearchDurationMS = observation.PatientSearchDurationMS
 	result.Observation.PatientSearchReads = observation.PatientSearchReads
 	result.Observation.CandidateCountBucket = observation.CandidateCountBucket
+	result.Observation.PatientSearchComplete = observation.PatientSearchComplete
 	return result, err
 }
 
@@ -267,7 +269,7 @@ func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate 
 		})
 	}
 	if len(result.Appointments) == 0 {
-		result.AppointmentsStatus = AppointmentsNone
+		result.AppointmentsStatus = appointmentsNone
 		result.Message = "Patient verified, no appointments found"
 		return result, nil
 	}

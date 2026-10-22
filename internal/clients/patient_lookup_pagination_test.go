@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 func lookupPageFixture(page, pages, total int, id string) map[string]any {
@@ -91,9 +93,9 @@ func TestLookupPatientRejectsIncompletePages(t *testing.T) {
 			})
 			client, token, cleanup := newTestXMLRPCClient(t, handler)
 			defer cleanup()
-			patients, err := client.LookupPatient(context.Background(), token, "", "Jane")
-			if err == nil || len(patients) != 0 {
-				t.Fatalf("incomplete lookup returned patients: count=%d err=%v", len(patients), err)
+			read, err := client.LookupPatient(context.Background(), token, "", "Jane")
+			if err == nil || len(read.Patients) != 0 {
+				t.Fatalf("incomplete lookup returned patients: count=%d err=%v", len(read.Patients), err)
 			}
 		})
 	}
@@ -105,7 +107,7 @@ func TestLookupPatientRetainsRecordsWhenReportedCountIsTooLow(t *testing.T) {
 			t.Run(fmt.Sprintf("%s_%d_pages", lookup, pages), func(t *testing.T) {
 				reads := 0
 				client, token, cleanup := newTestXMLRPCClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					var request AMDLookupRequest
+					var request amdLookupRequest
 					if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 						t.Fatal(err)
 					}
@@ -130,25 +132,21 @@ func TestLookupPatientRetainsRecordsWhenReportedCountIsTooLow(t *testing.T) {
 					json.NewEncoder(w).Encode(fixture)
 				}))
 				defer cleanup()
+				var read domain.PatientCandidateRead
+				var err error
 				if lookup == "phone" {
-					patients, err := client.LookupPatientByPhone(context.Background(), token, "5551234567")
-					if err != nil {
-						t.Fatal(err)
-					}
-					if len(patients) != 5 || patients[4].ID != "5" {
-						t.Fatal("phone lookup lost returned candidates")
-					}
+					read, err = client.LookupPatientByPhone(context.Background(), token, "5551234567")
 				} else {
-					read, err := client.LookupPatientCandidates(context.Background(), token, "Jane", "01/15/1980")
-					if err != nil {
-						t.Fatal(err)
-					}
-					if len(read.Patients) != 5 || read.Patients[4].ID != "5" {
-						t.Fatal("first-name lookup lost returned candidates")
-					}
-					if read.Complete {
-						t.Fatal("inconsistent count must not prove completeness for first-name resolution")
-					}
+					read, err = client.LookupPatientCandidates(context.Background(), token, "Jane", "01/15/1980")
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(read.Patients) != 5 || read.Patients[4].ID != "5" {
+					t.Fatalf("%s lookup lost returned candidates", lookup)
+				}
+				if read.Complete {
+					t.Fatalf("inconsistent count must not prove completeness for %s lookup", lookup)
 				}
 				if reads != pages {
 					t.Fatalf("read %d pages, want %d", reads, pages)

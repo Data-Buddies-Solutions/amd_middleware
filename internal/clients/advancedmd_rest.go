@@ -42,21 +42,15 @@ func NewAdvancedMDRestClient(httpClient *http.Client) *AdvancedMDRestClient {
 }
 
 type AMDAppointmentResponse struct {
-	ID               int     `json:"id"`
-	StartDateTime    string  `json:"startdatetime"`
-	Duration         int     `json:"duration"`
-	ColumnID         int     `json:"columnid"`
-	ProfileID        int     `json:"profileid"`
-	Provider         string  `json:"provider"`
-	Heading          string  `json:"heading"`
-	Facility         string  `json:"facility"`
-	FacilityID       int     `json:"facilityid"`
-	AppointmentTypes []int   `json:"appointmenttypeids"`
-	PatientID        int     `json:"patientid"`
-	FirstName        string  `json:"firstname"`
-	LastName         string  `json:"lastname"`
-	ConfirmDate      *string `json:"confirmdate"`
-	ConfirmMethod    *string `json:"confirmmethod"`
+	ID               int    `json:"id"`
+	StartDateTime    string `json:"startdatetime"`
+	Duration         int    `json:"duration"`
+	ColumnID         int    `json:"columnid"`
+	ProfileID        int    `json:"profileid"`
+	Provider         string `json:"provider"`
+	Facility         string `json:"facility"`
+	AppointmentTypes []int  `json:"appointmenttypeids"`
+	PatientID        int    `json:"patientid"`
 }
 
 func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *session.TokenData, columnID string, startDate string) (appointmentsResult []domain.Appointment, resultErr error) {
@@ -99,7 +93,7 @@ func ScheduledAppointments(amdAppts []AMDAppointmentResponse) ([]domain.Appointm
 	return appointments, nil
 }
 
-type AMDBlockHoldResponse struct {
+type amdBlockHoldResponse struct {
 	ID            int    `json:"id"`
 	StartDateTime string `json:"startdatetime"`
 	EndDateTime   string `json:"enddatetime"`
@@ -108,7 +102,6 @@ type AMDBlockHoldResponse struct {
 	Column        struct {
 		ID int `json:"id"`
 	} `json:"column"`
-	Note       string `json:"note"`
 	Recurrence struct {
 		RecurrenceType int `json:"recurrencetype"`
 	} `json:"recurrence"`
@@ -133,7 +126,7 @@ func (c *AdvancedMDRestClient) getBlockHolds(ctx context.Context, tokenData *ses
 		return nil, err
 	}
 
-	amdHolds, err := oneOrMany[AMDBlockHoldResponse](body)
+	amdHolds, err := oneOrMany[amdBlockHoldResponse](body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse block holds: %w", err)
 	}
@@ -158,14 +151,13 @@ func (c *AdvancedMDRestClient) getBlockHolds(ctx context.Context, tokenData *ses
 			StartDateTime: startTime,
 			EndDateTime:   endTime,
 			ColumnID:      blockHoldColumnID(h),
-			Note:          h.Note,
 		})
 	}
 
 	return holds, nil
 }
 
-func blockHoldColumnID(hold AMDBlockHoldResponse) int {
+func blockHoldColumnID(hold amdBlockHoldResponse) int {
 	if hold.Column.ID != 0 {
 		return hold.Column.ID
 	}
@@ -206,7 +198,7 @@ type BookAppointmentParams struct {
 	Comments   string `json:"comments,omitempty"`
 }
 
-type BookAppointmentResponse struct {
+type bookAppointmentResponse struct {
 	ID int `json:"id"`
 }
 
@@ -245,7 +237,7 @@ func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *s
 		return 0, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	var result BookAppointmentResponse
+	var result bookAppointmentResponse
 	if err := json.Unmarshal(body, &result); err != nil {
 		return 0, fmt.Errorf("failed to parse response: %w", err)
 	}

@@ -43,7 +43,6 @@ type SlotPolicy struct {
 	SameStartBooked    int    `json:"sameStartBooked,omitempty"`
 	SameStartCapacity  int    `json:"sameStartCapacity,omitempty"`
 	RequiresForce      bool   `json:"requiresForce,omitempty"`
-	Provider           string `json:"provider,omitempty"`
 	IssuedAt           int64  `json:"iat"`
 	ExpiresAt          int64  `json:"exp"`
 }

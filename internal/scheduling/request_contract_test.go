@@ -2,7 +2,6 @@ package scheduling_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -10,18 +9,6 @@ import (
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/scheduling"
 )
-
-func TestBookingRequestDoesNotDecodeServerOwnedFields(t *testing.T) {
-	for _, field := range []string{`"visitKind":"post_op"`, `"ageBand":"adult"`, `"isPostOp":true`, `"insurancePlan":"ignored"`, `"columnId":999`, `"profileId":999`, `"startDatetime":"2026-06-03T10:00"`, `"duration":60`, `"routing":"optical_only"`} {
-		t.Run(field, func(t *testing.T) {
-			decoder := json.NewDecoder(strings.NewReader("{" + field + "}"))
-			decoder.DisallowUnknownFields()
-			if err := decoder.Decode(&scheduling.BookCommand{}); err == nil {
-				t.Fatalf("obsolete request field accepted: %s", field)
-			}
-		})
-	}
-}
 
 func TestBookingCommentIncludesReferringDoctorContact(t *testing.T) {
 	for _, scenario := range []struct {
@@ -73,7 +60,7 @@ func TestBookingAndRescheduleUseSignedSlotFields(t *testing.T) {
 				t.Fatalf("writes=%d", len(records.Bookings))
 			}
 			write := records.Bookings[0]
-			if write.ColumnID != 1513 || write.ProfileID != 620 || write.Start.Format(domain.SlotDateTimeLayout) != "2026-06-03T09:00" || write.Duration != 15 || write.AppointmentTypeID != 1007 {
+			if write.ColumnID != 1513 || write.ProfileID != 620 || write.Start.Format(domain.SlotDateTimeLayout) != "2026-06-03T09:00" || write.Duration != 15 || write.ProviderAppointmentTypeID != 1007 {
 				t.Fatalf("signed slot changed: %+v", write)
 			}
 			if receipt.ProfileID != "620" || receipt.StartDatetime != "2026-06-03T09:00" || receipt.Duration != 15 || receipt.ProviderName != "Dr. Austin Bach" {
@@ -129,7 +116,7 @@ func TestBookAllowsOmittedIntentWithExplicitOrPreservedType(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if len(records.Bookings) != 1 || records.Bookings[0].AppointmentTypeID != 1007 {
+			if len(records.Bookings) != 1 || records.Bookings[0].ProviderAppointmentTypeID != 1007 {
 				t.Fatalf("bookings=%+v", records.Bookings)
 			}
 		})

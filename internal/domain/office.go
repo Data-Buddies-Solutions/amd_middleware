@@ -162,15 +162,6 @@ func (o *OfficeConfig) providerNamesForColumnIDs(colIDs []string, allowed map[st
 	return names
 }
 
-func (o *OfficeConfig) ProviderDisplayName(profileID string) string {
-	for _, col := range o.Columns {
-		if col.ProfileID == profileID {
-			return col.DisplayName
-		}
-	}
-	return ""
-}
-
 func (o *OfficeConfig) FriendlyProviderName(amdName string) string {
 	upper := strings.ToUpper(amdName)
 	match := ""
@@ -499,18 +490,18 @@ var devOffices = map[string]*OfficeConfig{
 
 var officeRegistry = prodOffices
 
-var DefaultPhone = "+17275919997"
+var defaultPhone = "+17275919997"
 
 func InitRegistry(env string) {
 	switch env {
 	case "dev":
 		officeRegistry = devOffices
-		DefaultPhone = "+14843989071"
+		defaultPhone = "+14843989071"
 		isDevEnv = true
 		log.Printf("Office registry: dev")
 	default:
 		officeRegistry = prodOffices
-		DefaultPhone = "+17275919997"
+		defaultPhone = "+17275919997"
 		isDevEnv = false
 		log.Printf("Office registry: prod")
 	}
@@ -577,7 +568,7 @@ func officePhoneLookupKeys(phone string) []string {
 }
 
 func DefaultOffice() *OfficeConfig {
-	return officeRegistry[DefaultPhone]
+	return officeRegistry[defaultPhone]
 }
 
 func validOfficeNames() []string {
@@ -601,7 +592,7 @@ func normalizeOfficeLookup(s string) string {
 }
 
 func (o *OfficeConfig) SchedulingRouting(routing RoutingRule, dob string) RoutingRule {
-	if routing == RoutingNotAccepted || routing == RoutingOpticalOnly || !IsMinor(dob) {
+	if routing == RoutingNotAccepted || routing == RoutingOpticalOnly || !isMinor(dob) {
 		return routing
 	}
 	return o.PediatricRouting

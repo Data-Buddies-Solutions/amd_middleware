@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -79,12 +78,13 @@ func (h *Handlers) HandleSessionMaintenance(w http.ResponseWriter, r *http.Reque
 
 func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 	var command patientmodule.CreateCommand
-	if err := json.NewDecoder(r.Body).Decode(&command); err != nil {
+	if err := decodeStrict(r, &command); err != nil {
 		rejectInvalidRequest(w, r, patientmodule.CreateResult{Status: patientmodule.CreateStatusError, Message: "Invalid JSON body"})
 		return
 	}
 
 	result := h.patient.Create(r.Context(), command)
+	recordPatientCreateObservation(r.Context(), result.Observation)
 	recordPatientMutationOutcome(r.Context(), result.Outcome)
 	if result.Status == patientmodule.CreateStatusCreated {
 		result.Outcome = ""
@@ -94,7 +94,7 @@ func (h *Handlers) HandleAddPatient(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) {
 	var command patientmodule.ResolveCommand
-	if err := json.NewDecoder(r.Body).Decode(&command); err != nil {
+	if err := decodeStrict(r, &command); err != nil {
 		rejectInvalidRequest(w, r, patientmodule.ResolveResult{Status: "error", Message: "Invalid JSON body"})
 		return
 	}
@@ -182,7 +182,7 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 
 func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request) {
 	var req schedulingmodule.BookCommand
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := decodeStrict(r, &req); err != nil {
 		rejectInvalidRequest(w, r, schedulingmodule.BookReceipt{Status: "error", Message: "Invalid JSON body"})
 		return
 	}
@@ -242,7 +242,7 @@ func inventoryError(outcome, message string) schedulingmodule.AvailabilityRespon
 
 func (h *Handlers) HandleUpdateInsurance(w http.ResponseWriter, r *http.Request) {
 	var command patientmodule.UpdateInsuranceCommand
-	if err := json.NewDecoder(r.Body).Decode(&command); err != nil {
+	if err := decodeStrict(r, &command); err != nil {
 		rejectInvalidRequest(w, r, patientmodule.UpdateInsuranceResult{Effect: "no_effect", Status: patientmodule.UpdateInsuranceStatusError, Message: "Invalid JSON body"})
 		return
 	}
@@ -298,12 +298,8 @@ func (h *Handlers) HandleRescheduleAppointment(w http.ResponseWriter, r *http.Re
 		recordSchedulingError(r.Context(), err)
 		receipt = schedulingmodule.RescheduleReceipt{Status: "failed", Outcome: schedulingOutcome(err), Message: err.Error()}
 	}
-	if err == nil && receipt.Status != "completed" {
-		if receipt.Failure != nil {
-			recordSchedulingError(r.Context(), receipt.Failure)
-		} else {
-			recordRequestOutcome(r.Context(), outcomeCategory("reschedule_"+receipt.Status), safeerrors.CategoryNone)
-		}
+	if err == nil && receipt.Failure != nil {
+		recordSchedulingError(r.Context(), receipt.Failure)
 	}
 	respond(w, receipt)
 }

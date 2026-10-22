@@ -301,17 +301,6 @@ func recordsWithSetup(columns ...domain.SchedulerColumn) *advancedmdtest.Adapter
 	records := advancedmdtest.NewAdapter()
 	records.SchedulerSetup = domain.SchedulerSetup{
 		Columns: columns,
-		Profiles: []domain.SchedulerProfile{
-			{ID: "620", Name: "BACH, AUSTIN"},
-			{ID: "1993", Name: "CALERO, GISSELLE"},
-			{ID: "1983", Name: "OTERO, MELISSA"},
-			{ID: "2064", Name: "LICHT, JOSEPH"},
-			{ID: "2076", Name: "NOEL"},
-		},
-		Facilities: []domain.SchedulerFacility{
-			{ID: "1568", Name: "ABITA EYE GROUP SPRING HILL"},
-			{ID: "670", Name: "ABITA EYE GROUP SWEETWATER"},
-		},
 	}
 	return records
 }

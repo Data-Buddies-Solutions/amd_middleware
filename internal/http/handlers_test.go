@@ -410,7 +410,7 @@ func TestPatientMutationRoutesCallPatientInterface(t *testing.T) {
 
 	t.Run("update insurance", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/patient/update-insurance", strings.NewReader(`{
-			"patientId":"123","oldInsurance":"Old","insurance":"Humana Medicare",
+			"patientId":"123","insurance":"Humana Medicare",
 			"subscriberNum":"H123","office":"Spring Hill"
 		}`))
 		w := httptest.NewRecorder()
@@ -839,30 +839,32 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 	tests := []struct {
 		name             string
 		body             string
+		chartInsPlanID   string
 		wantProviders    []string
 		wantXMLRPCWrites int
 	}{
 		{
 			name:             "routine vision filters age-restricted providers",
-			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-6, 0, 0).Format("01/02/2006")),
+			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-6, 0, 0).Format("01/02/2006")),
 			wantProviders:    []string{"Dr. Farnan", "Dr. Calero"},
 			wantXMLRPCWrites: 1,
 		},
 		{
 			name:             "routine vision accepts Sunshine Health alias",
-			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"Sunshine Health","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-16, 0, 0).Format("01/02/2006")),
+			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","insurance":"Sunshine Health","coverageType":"routine_vision","subscriberNum":"ABC123","office":"Hollywood","dob":%q}`, time.Now().AddDate(-16, 0, 0).Format("01/02/2006")),
 			wantProviders:    []string{"Dr. Farnan", "Dr. Vidal", "Dr. Calero"},
 			wantXMLRPCWrites: 1,
 		},
 		{
 			name:             "north miami beach optical routine vision",
-			body:             `{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13055095333"}`,
+			body:             `{"dob":"01/15/1980","patientId":"123","insurance":"VSP","coverageType":"routine_vision","subscriberNum":"ABC123","office":"+13055095333"}`,
 			wantProviders:    []string{"Dr. Miriam Bach"},
 			wantXMLRPCWrites: 1,
 		},
 		{
 			name:             "medical minor uses pediatric routing",
-			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","respPartyId":"resp123","insPlanId":"ins123","oldInsurance":"Old","insurance":"Aetna Commercial","subscriberNum":"ABC123","office":"Spring Hill","dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
+			body:             fmt.Sprintf(`{"dob":"01/15/1980","patientId":"123","insurance":"Aetna Commercial","subscriberNum":"ABC123","office":"Spring Hill","dob":%q}`, time.Now().AddDate(-10, 0, 0).Format("01/02/2006")),
+			chartInsPlanID:   "ins123",
 			wantProviders:    []string{"Dr. Bach"},
 			wantXMLRPCWrites: 2,
 		},
@@ -874,7 +876,7 @@ func TestHandleUpdateInsurance_SuccessRoutingAndDOB(t *testing.T) {
 			if err := json.Unmarshal([]byte(tt.body), &input); err != nil {
 				t.Fatal(err)
 			}
-			handlers, writes := newUpdateInsuranceTestHandlers(t, input.DOB, input.InsPlanID)
+			handlers, writes := newUpdateInsuranceTestHandlers(t, input.DOB, tt.chartInsPlanID)
 			req := httptest.NewRequest("POST", "/api/patient/update-insurance", bytes.NewBufferString(tt.body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -1053,7 +1055,7 @@ func newPatientResolveTestHandlers(
 					"PPMDResults": {
 						"Results": {
 							"patientlist": {
-								"@itemcount": "4",
+								"@itemcount": "5",
 								"@page": "1",
 								"@pagecount": "1",
 								"patient": [

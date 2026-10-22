@@ -9,12 +9,11 @@ import (
 const (
 	AppointmentVisitMedical       = "medical"
 	AppointmentVisitRoutineVision = "routine_vision"
-	AppointmentVisitPostOp        = "post_op"
 
 	AppointmentPatientNew         = "new"
 	AppointmentPatientEstablished = "established"
 
-	AppointmentAgeAny       = "any"
+	appointmentAgeAny       = "any"
 	AppointmentAgeAdult     = "adult"
 	AppointmentAgePediatric = "pediatric"
 )
@@ -33,14 +32,14 @@ var AppointmentTypes = map[int]AppointmentType{
 	1005: {Name: "Established Pediatric Medical (Follow Up)", Color: "PINK", VisitType: AppointmentVisitMedical, AgeBand: AppointmentAgePediatric, DevelopmentTypeID: 8},
 	1006: {Name: "New Adult Medical", Color: "RED", VisitType: AppointmentVisitMedical, AgeBand: AppointmentAgeAdult, DevelopmentTypeID: 12},
 	1007: {Name: "Established Adult Medical (Follow Up)", Color: "ORANGE", VisitType: AppointmentVisitMedical, AgeBand: AppointmentAgeAdult, DevelopmentTypeID: 18},
-	1008: {Name: "Post Op", Color: "BLUE", VisitType: AppointmentVisitMedical, AgeBand: AppointmentAgeAny, DevelopmentTypeID: 1627},
+	1008: {Name: "Post Op", Color: "BLUE", VisitType: AppointmentVisitMedical, AgeBand: appointmentAgeAny, DevelopmentTypeID: 1627},
 	1010: {Name: "New Adult Vision", Color: "TEAL", VisitType: AppointmentVisitRoutineVision, AgeBand: AppointmentAgeAdult},
 	3364: {Name: "Established Adult Vision", Color: "ROSE", VisitType: AppointmentVisitRoutineVision, AgeBand: AppointmentAgeAdult},
 	4244: {Name: "New Pediatric Vision", Color: "BROWN", VisitType: AppointmentVisitRoutineVision, AgeBand: AppointmentAgePediatric},
 	4245: {Name: "Established Pediatric Vision", Color: "GRAY", VisitType: AppointmentVisitRoutineVision, AgeBand: AppointmentAgePediatric},
-	6167: {Name: "Crystal River New Patient", Color: "ORANGE", VisitType: AppointmentVisitMedical, AgeBand: AppointmentAgeAny, CrystalRiver: true},
-	6168: {Name: "Crystal River Post Op", Color: "TEAL", VisitType: AppointmentVisitMedical, AgeBand: AppointmentAgeAny, CrystalRiver: true},
-	6169: {Name: "Crystal River Established Patient", Color: "RED", VisitType: AppointmentVisitMedical, AgeBand: AppointmentAgeAny, CrystalRiver: true},
+	6167: {Name: "Crystal River New Patient", Color: "ORANGE", VisitType: AppointmentVisitMedical, AgeBand: appointmentAgeAny, CrystalRiver: true},
+	6168: {Name: "Crystal River Post Op", Color: "TEAL", VisitType: AppointmentVisitMedical, AgeBand: appointmentAgeAny, CrystalRiver: true},
+	6169: {Name: "Crystal River Established Patient", Color: "RED", VisitType: AppointmentVisitMedical, AgeBand: appointmentAgeAny, CrystalRiver: true},
 }
 
 func ValidAppointmentTypeIDs() string {
