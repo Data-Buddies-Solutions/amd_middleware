@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"log"
+	"maps"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -113,7 +115,10 @@ func assertProviderCalls(t *testing.T, entry map[string]any, wantOperations []st
 	}
 	for i, raw := range summaries {
 		summary, _ := raw.(map[string]any)
-		if len(summary) != 4 || summary["operation"] != wantOperations[i] || summary["calls"] != wantCalls[i] {
+		if keys := slices.Sorted(maps.Keys(summary)); !slices.Equal(keys, []string{"calls", "maxMs", "operation", "totalMs"}) {
+			t.Errorf("provider_calls[%d] keys = %v, want exactly calls, maxMs, operation, totalMs", i, keys)
+		}
+		if summary["operation"] != wantOperations[i] || summary["calls"] != wantCalls[i] {
 			t.Errorf("provider_calls[%d] = %#v, want %s called %v times", i, raw, wantOperations[i], wantCalls[i])
 		}
 		total, totalOK := summary["totalMs"].(float64)
