@@ -158,23 +158,23 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 			}
 
 			displayName := office.Columns[column.ID].DisplayName
-			allSlots := availableSlots(policy, column, columnSchedule.Appointments, columnSchedule.BlockHolds, searchDate)
-			if len(allSlots) == 0 {
-				continue
-			}
 			columnID, _ := strconv.Atoi(column.ID)
 			profileID, _ := strconv.Atoi(column.ProfileID)
-			for _, slot := range allSlots {
+			for _, slot := range column.Slots(searchDate) {
+				decision := policy.Slot(column.ID, slot, columnSchedule)
+				if !decision.Bookable {
+					continue
+				}
 				daySlots = append(daySlots, AvailabilitySlotOption{
 					Provider:          displayName,
-					Time:              slot.Time,
-					DateTime:          slot.DateTime,
+					Time:              formatSlotTime(slot.Start),
+					DateTime:          domain.FormatSlotDateTime(slot.Start),
 					ColumnID:          columnID,
 					ProfileID:         profileID,
 					Duration:          column.Interval,
-					SameStartBooked:   slot.SameStartBooked,
-					SameStartCapacity: slot.SameStartCapacity,
-					RequiresForce:     slot.RequiresForce,
+					SameStartBooked:   decision.Booked,
+					SameStartCapacity: decision.Capacity,
+					RequiresForce:     decision.RequiresForce,
 				})
 			}
 		}

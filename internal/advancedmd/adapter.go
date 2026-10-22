@@ -484,14 +484,14 @@ func (a *Adapter) ReadSchedule(ctx context.Context, query domain.ScheduleReadQue
 		go func() {
 			defer reads.Done()
 			rows, err := a.restClient.GetAppointments(ctx, token, columnID, query.Date)
-			columns[i].Appointments = rows
+			columns[i].Appointments = distinctRows(rows, appointmentKey)
 			columns[i].AppointmentsComplete = err == nil
 			failures[2*i] = err
 		}()
 		go func() {
 			defer reads.Done()
 			rows, err := a.restClient.GetBlockHolds(ctx, token, columnID, query.Date)
-			columns[i].BlockHolds = rows
+			columns[i].BlockHolds = distinctRows(rows, holdKey)
 			columns[i].BlockHoldsComplete = err == nil
 			failures[2*i+1] = err
 		}()
@@ -555,11 +555,19 @@ func (a *Adapter) ReadScheduleRange(ctx context.Context, query domain.ScheduleRa
 			return nil, failure
 		}
 	}
-	scheduled, err := clients.ScheduledAppointments(slices.Concat(appointments...))
-	if err != nil {
-		failure := classify(err)
-		log.Printf("schedule read incomplete category=%s", CategoryOf(failure))
-		return nil, failure
+	var scheduled []domain.Appointment
+	for i, month := range months {
+		rows, err := clients.ScheduledAppointments(appointments[i])
+		if err != nil {
+			failure := classify(err)
+			log.Printf("schedule read incomplete category=%s", CategoryOf(failure))
+			return nil, failure
+		}
+		for _, row := range rows {
+			if row.StartDateTime.Format("2006-01") == month[:len("2006-01")] {
+				scheduled = append(scheduled, row)
+			}
+		}
 	}
 	return scheduleByDate(query, scheduled, slices.Concat(holds...)), nil
 }
@@ -581,18 +589,7 @@ func scheduleByDate(query domain.ScheduleRangeQuery, appointments []domain.Appoi
 		}
 		result[date] = domain.ScheduleReadResult{Columns: columns}
 	}
-	type rowKey struct {
-		id     int
-		column int
-		start  time.Time
-	}
-	seen := make(map[rowKey]bool)
-	for _, appointment := range appointments {
-		key := rowKey{appointment.ID, appointment.ColumnID, appointment.StartDateTime}
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
+	for _, appointment := range distinctRows(appointments, appointmentKey) {
 		date := appointment.StartDateTime.Format("2006-01-02")
 		read, ok := result[date]
 		if !ok {
@@ -607,20 +604,14 @@ func scheduleByDate(query domain.ScheduleRangeQuery, appointments []domain.Appoi
 		column.Appointments = append(column.Appointments, appointment)
 		read.Columns[columnID] = column
 	}
-	seen = make(map[rowKey]bool)
-	for _, hold := range holds {
-		key := rowKey{hold.ID, hold.ColumnID, hold.StartDateTime}
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		end := hold.EndDateTime
-		if !end.After(hold.StartDateTime) {
-			end = hold.StartDateTime.Add(time.Nanosecond)
+	for _, hold := range distinctRows(holds, holdKey) {
+		span := hold.Interval()
+		if !span.End.After(span.Start) {
+			span.End = span.Start.Add(time.Nanosecond)
 		}
 		for date, read := range result {
 			dayStart, _ := time.Parse("2006-01-02", date)
-			if !hold.StartDateTime.Before(dayStart.AddDate(0, 0, 1)) || !end.After(dayStart) {
+			if !span.Overlaps(domain.Interval{Start: dayStart, End: dayStart.AddDate(0, 0, 1)}) {
 				continue
 			}
 			columnID, ok := queried[hold.ColumnID]
@@ -641,6 +632,33 @@ func scheduleByDate(query domain.ScheduleRangeQuery, appointments []domain.Appoi
 		}
 	}
 	return result
+}
+
+type rowKey struct {
+	id     int
+	column int
+	start  time.Time
+}
+
+func appointmentKey(appointment domain.Appointment) rowKey {
+	return rowKey{appointment.ID, appointment.ColumnID, appointment.StartDateTime}
+}
+
+func holdKey(hold domain.BlockHold) rowKey {
+	return rowKey{hold.ID, hold.ColumnID, hold.StartDateTime}
+}
+
+func distinctRows[T any](rows []T, key func(T) rowKey) []T {
+	seen := make(map[rowKey]bool, len(rows))
+	var distinct []T
+	for _, row := range rows {
+		key := key(row)
+		if key.id <= 0 || !seen[key] {
+			seen[key] = true
+			distinct = append(distinct, row)
+		}
+	}
+	return distinct
 }
 
 func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, error) {

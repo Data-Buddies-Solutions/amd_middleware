@@ -78,6 +78,27 @@ type BlockHold struct {
 	ColumnID      int
 }
 
+type Interval struct {
+	Start time.Time
+	End   time.Time
+}
+
+func (i Interval) Overlaps(other Interval) bool {
+	return i.Start.Before(other.End) && other.Start.Before(i.End)
+}
+
+func (i Interval) Equal(other Interval) bool {
+	return i.Start.Equal(other.Start) && i.End.Equal(other.End)
+}
+
+func (a Appointment) Interval() Interval {
+	return Interval{Start: a.StartDateTime, End: a.StartDateTime.Add(time.Duration(a.Duration) * time.Minute)}
+}
+
+func (h BlockHold) Interval() Interval {
+	return Interval{Start: h.StartDateTime, End: h.EndDateTime}
+}
+
 func (c *SchedulerColumn) WorksOnDay(weekday time.Weekday) bool {
 	bit := 1 << weekday
 	return c.Workweek&bit != 0
@@ -91,25 +112,24 @@ func (c *SchedulerColumn) HasUsableSchedule() bool {
 
 const workHoursLayout = "15:04"
 
-func (c *SchedulerColumn) ParseWorkHours(date time.Time) (start, end time.Time, err error) {
+func (c *SchedulerColumn) Slots(date time.Time) []Interval {
+	if !c.WorksOnDay(date.Weekday()) || c.Interval <= 0 {
+		return nil
+	}
 	loc := date.Location()
-
-	startTime, err := time.ParseInLocation(workHoursLayout, c.StartTime, loc)
-	if err != nil {
-		return time.Time{}, time.Time{}, fmt.Errorf("invalid start time: %w", err)
+	startTime, startErr := time.ParseInLocation(workHoursLayout, c.StartTime, loc)
+	endTime, endErr := time.ParseInLocation(workHoursLayout, c.EndTime, loc)
+	if startErr != nil || endErr != nil {
+		return nil
 	}
-
-	endTime, err := time.ParseInLocation(workHoursLayout, c.EndTime, loc)
-	if err != nil {
-		return time.Time{}, time.Time{}, fmt.Errorf("invalid end time: %w", err)
+	workStart := time.Date(date.Year(), date.Month(), date.Day(), startTime.Hour(), startTime.Minute(), 0, 0, loc)
+	workEnd := time.Date(date.Year(), date.Month(), date.Day(), endTime.Hour(), endTime.Minute(), 0, 0, loc)
+	length := time.Duration(c.Interval) * time.Minute
+	var slots []Interval
+	for start := workStart; !start.Add(length).After(workEnd); start = start.Add(length) {
+		slots = append(slots, Interval{Start: start, End: start.Add(length)})
 	}
-
-	start = time.Date(date.Year(), date.Month(), date.Day(),
-		startTime.Hour(), startTime.Minute(), 0, 0, loc)
-	end = time.Date(date.Year(), date.Month(), date.Day(),
-		endTime.Hour(), endTime.Minute(), 0, 0, loc)
-
-	return start, end, nil
+	return slots
 }
 
 const SlotDateTimeLayout = "2006-01-02T15:04"

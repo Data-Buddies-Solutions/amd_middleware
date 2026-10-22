@@ -43,74 +43,39 @@ func (s *service) signSlots(
 	return slots, time.Unix(expiresAt, 0).UTC(), nil
 }
 
-func availableSlots(
-	policy schedulingPolicy,
-	column domain.SchedulerColumn,
-	appointments []domain.Appointment,
-	blockHolds []domain.BlockHold,
-	date time.Time,
-) []availableSlot {
-	slots := make([]availableSlot, 0)
-	if column.Interval <= 0 {
-		return slots
-	}
-	workStart, workEnd, err := column.ParseWorkHours(date)
-	if err != nil {
-		return slots
-	}
+const defaultSameStartCapacity = 1
 
-	interval := time.Duration(column.Interval) * time.Minute
-	for slotTime := workStart; slotFitsWorkHours(slotTime, interval, workStart, workEnd, interval); slotTime = slotTime.Add(interval) {
-		if isBlockedByHold(slotTime, interval, blockHolds) ||
-			hasDifferentStartOverlap(slotTime, interval, appointments) {
-			continue
-		}
-
-		sameStartCount := countSameStart(slotTime, appointments)
-		sameStart := policy.SameStart(column.ID, slotTime, sameStartCount)
-		if !sameStart.Bookable {
-			continue
-		}
-		slot := availableSlot{
-			Time:              formatSlotTime(slotTime),
-			DateTime:          domain.FormatSlotDateTime(slotTime),
-			SameStartBooked:   sameStartCount,
-			SameStartCapacity: sameStart.Capacity,
-			RequiresForce:     sameStart.RequiresForce,
-		}
-		slots = append(slots, slot)
-	}
-	return slots
+type slotDecision struct {
+	Booked        int
+	Capacity      int
+	Bookable      bool
+	RequiresForce bool
 }
 
-func slotFitsWorkHours(start time.Time, duration time.Duration, workStart, workEnd time.Time, interval time.Duration) bool {
-	return interval > 0 &&
-		duration == interval &&
-		!start.Before(workStart) &&
-		!start.Add(duration).After(workEnd) &&
-		start.Sub(workStart)%interval == 0
-}
-
-func hasDifferentStartOverlap(slotTime time.Time, duration time.Duration, appointments []domain.Appointment) bool {
-	slotEnd := slotTime.Add(duration)
-	for _, appointment := range appointments {
-		if appointment.StartDateTime.Equal(slotTime) {
-			continue
-		}
-		appointmentEnd := appointment.StartDateTime.Add(time.Duration(appointment.Duration) * time.Minute)
-		if slotTime.Before(appointmentEnd) && appointment.StartDateTime.Before(slotEnd) {
-			return true
+func (p schedulingPolicy) Slot(columnID string, slot domain.Interval, schedule domain.ColumnSchedule) slotDecision {
+	for _, hold := range schedule.BlockHolds {
+		if slot.Overlaps(hold.Interval()) {
+			return slotDecision{}
 		}
 	}
-	return false
-}
-
-func countSameStart(slotTime time.Time, appointments []domain.Appointment) int {
-	count := 0
-	for _, appointment := range appointments {
-		if appointment.StartDateTime.Equal(slotTime) {
-			count++
+	booked := 0
+	for _, appointment := range schedule.Appointments {
+		if appointment.StartDateTime.Equal(slot.Start) {
+			booked++
+		} else if slot.Overlaps(appointment.Interval()) {
+			return slotDecision{}
 		}
 	}
-	return count
+	capacity := defaultSameStartCapacity
+	if p.office != nil {
+		if column, ok := p.office.Columns[columnID]; ok {
+			capacity = max(capacity, column.SameStartCapacityAt(slot.Start))
+		}
+	}
+	return slotDecision{
+		Booked:        booked,
+		Capacity:      capacity,
+		Bookable:      booked < capacity,
+		RequiresForce: booked > 0 && booked < capacity,
+	}
 }

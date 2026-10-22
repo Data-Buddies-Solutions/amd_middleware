@@ -1,18 +1,6 @@
 package scheduling
 
-import (
-	"time"
-
-	"advancedmd-token-management/internal/domain"
-)
-
-type availableSlot struct {
-	Time              string `json:"time"`
-	DateTime          string `json:"datetime"`
-	SameStartBooked   int    `json:"sameStartBooked,omitempty"`
-	SameStartCapacity int    `json:"sameStartCapacity,omitempty"`
-	RequiresForce     bool   `json:"requiresForce,omitempty"`
-}
+import "time"
 
 const (
 	AvailabilityStatusSuccess = "success"
@@ -60,14 +48,4 @@ type AvailabilityResponse struct {
 
 func formatSlotTime(t time.Time) string {
 	return t.Format("3:04 PM")
-}
-
-func isBlockedByHold(slotTime time.Time, slotDuration time.Duration, holds []domain.BlockHold) bool {
-	slotEnd := slotTime.Add(slotDuration)
-	for _, hold := range holds {
-		if slotTime.Before(hold.EndDateTime) && slotEnd.After(hold.StartDateTime) {
-			return true
-		}
-	}
-	return false
 }
