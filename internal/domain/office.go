@@ -106,6 +106,14 @@ func (o *OfficeConfig) ColumnsForRoutingAndDOB(rule RoutingRule, dob string, asO
 	return filtered
 }
 
+func (o *OfficeConfig) ProvidersForRouting(rule RoutingRule) []string {
+	colIDs, ok := o.columnIDsForRouting(rule)
+	if !ok {
+		return nil
+	}
+	return o.providerNamesForColumnIDs(colIDs, nil)
+}
+
 func (o *OfficeConfig) ProvidersForRoutingAndDOB(rule RoutingRule, dob string, asOf time.Time) []string {
 	colIDs, ok := o.columnIDsForRouting(rule)
 	if !ok {

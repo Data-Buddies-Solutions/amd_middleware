@@ -61,7 +61,7 @@ func visitRouting(coverage string) domain.RoutingRule {
 func acceptingDoctors(p plan, office *domain.OfficeConfig) ([]string, bool) {
 	accepting := []string{}
 	pending := false
-	for _, doctor := range office.ProvidersForRoutingAndDOB(visitRouting(p.Coverage), "", time.Time{}) {
+	for _, doctor := range office.ProvidersForRouting(visitRouting(p.Coverage)) {
 		switch p.Doctors[displayName(office, doctor)] {
 		case "yes":
 			accepting = append(accepting, doctor)
