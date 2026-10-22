@@ -2,31 +2,18 @@ package domain
 
 import (
 	"fmt"
-	"strings"
 	"time"
-	"unicode"
-
-	"golang.org/x/text/runes"
-	"golang.org/x/text/transform"
-	"golang.org/x/text/unicode/norm"
 )
 
-func StripDiacritics(s string) string {
-	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-	result, _, err := transform.String(t, s)
-	if err != nil {
-		return s
-	}
-	return result
+type Patient struct {
+	ID       string
+	FullName string
+	DOB      string
+	Phone    string
 }
 
-type Patient struct {
-	ID        string
-	FirstName string
-	LastName  string
-	FullName  string
-	DOB       string
-	Phone     string
+func (p Patient) Name() RecordName {
+	return ParseRecordName(p.FullName)
 }
 
 type PatientSearch struct {
@@ -111,10 +98,6 @@ type PatientInsuranceEnd struct {
 	InsPlanID string
 }
 
-func StripPatientPrefix(id string) string {
-	return strings.TrimPrefix(strings.TrimSpace(id), "pat")
-}
-
 func NormalizeDOB(dob string) string {
 	if len(dob) == 10 && dob[2] == '/' && dob[5] == '/' {
 		return dob
@@ -146,30 +129,4 @@ func isMinor(dob string, asOf time.Time) bool {
 		return false
 	}
 	return age < 18
-}
-
-func AgeYearsOn(dob string, asOf time.Time) (int, bool) {
-	asOf = asOf.In(easternLocation)
-	t, err := time.Parse("01/02/2006", NormalizeDOB(dob))
-	if err != nil {
-		return 0, false
-	}
-
-	age := asOf.Year() - t.Year()
-	birthdayThisYear := time.Date(asOf.Year(), t.Month(), t.Day(), 0, 0, 0, 0, asOf.Location())
-	if asOf.Before(birthdayThisYear) {
-		age--
-	}
-	if age < 0 {
-		return 0, false
-	}
-	return age, true
-}
-
-func ParseFirstName(fullName string) string {
-	parts := strings.SplitN(fullName, ",", 2)
-	if len(parts) == 2 {
-		return strings.TrimSpace(parts[1])
-	}
-	return ""
 }

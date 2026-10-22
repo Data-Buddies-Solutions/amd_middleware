@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"strconv"
 	"strings"
 	"time"
 
@@ -38,7 +37,7 @@ type SlotPolicy struct {
 	ProfileID          int                `json:"profileId"`
 	StartDatetime      string             `json:"startDatetime"`
 	Duration           int                `json:"duration"`
-	DOB                string             `json:"dob,omitempty"`
+	DOB                domain.DOB         `json:"dob,omitempty"`
 	AppointmentTypeIDs []int              `json:"appointmentTypeIds,omitempty"`
 	SameStartBooked    int                `json:"sameStartBooked,omitempty"`
 	SameStartCapacity  int                `json:"sameStartCapacity,omitempty"`
@@ -48,15 +47,15 @@ type SlotPolicy struct {
 }
 
 type appointmentTokenPolicy struct {
-	Version           int    `json:"v"`
-	Purpose           string `json:"purpose"`
-	PatientID         string `json:"patientId"`
-	AppointmentID     int    `json:"appointmentId"`
-	AppointmentTypeID int    `json:"appointmentTypeId,omitempty"`
-	OfficeID          string `json:"officeId"`
-	Start             string `json:"start"`
-	IssuedAt          int64  `json:"iat"`
-	ExpiresAt         int64  `json:"exp"`
+	Version           int              `json:"v"`
+	Purpose           string           `json:"purpose"`
+	PatientID         domain.PatientID `json:"patientId"`
+	AppointmentID     int              `json:"appointmentId"`
+	AppointmentTypeID int              `json:"appointmentTypeId,omitempty"`
+	OfficeID          string           `json:"officeId"`
+	Start             string           `json:"start"`
+	IssuedAt          int64            `json:"iat"`
+	ExpiresAt         int64            `json:"exp"`
 
 	start time.Time
 }
@@ -113,9 +112,9 @@ func (t *AppointmentTokens) verifyReschedule(token string, now time.Time) (appoi
 	return t.verify(token, now, rescheduleTokenPurpose, rescheduleTokenDomain)
 }
 
-func (t *AppointmentTokens) issue(patientID string, appointment domain.PatientAppointment, purpose, domainSeparator string) (string, error) {
-	patientID = domain.StripPatientPrefix(patientID)
-	if _, err := strconv.Atoi(patientID); err != nil ||
+func (t *AppointmentTokens) issue(rawPatientID string, appointment domain.PatientAppointment, purpose, domainSeparator string) (string, error) {
+	patientID, err := domain.ParsePatientID(rawPatientID)
+	if err != nil || patientID == "" ||
 		appointment.ID <= 0 ||
 		appointment.OfficeID == "" ||
 		appointment.Start.IsZero() {
@@ -153,7 +152,7 @@ func (t *AppointmentTokens) verify(token string, now time.Time, purpose, domainS
 		policy.ExpiresAt <= 0 {
 		return appointmentTokenPolicy{}, errTokenInvalid
 	}
-	if _, err := strconv.Atoi(policy.PatientID); err != nil {
+	if patientID, err := domain.ParsePatientID(string(policy.PatientID)); err != nil || patientID == "" || patientID != policy.PatientID {
 		return appointmentTokenPolicy{}, errTokenInvalid
 	}
 	if _, ok := domain.LookupOfficeByID(policy.OfficeID); !ok {

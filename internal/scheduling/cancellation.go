@@ -81,8 +81,8 @@ func (s *service) cancelWithToken(
 		return CancelReceipt{}, invalidCancellationTokenError()
 	}
 	if command.PatientID != "" {
-		patientID := domain.StripPatientPrefix(command.PatientID)
-		if patientID != policy.PatientID {
+		patientID, err := domain.ParsePatientID(command.PatientID)
+		if err != nil || patientID != policy.PatientID {
 			return CancelReceipt{}, invalidCancellationTokenError()
 		}
 	}

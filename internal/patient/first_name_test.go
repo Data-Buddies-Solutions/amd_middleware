@@ -11,19 +11,17 @@ import (
 )
 
 func TestFirstNameDOBResolution(t *testing.T) {
-	valid := domain.Patient{ID: "1", FirstName: "Jane", LastName: "Meyer", FullName: "MEYER,JANE", DOB: "01/01/1980"}
-	missing := domain.Patient{ID: "2", FirstName: "Jane", LastName: "Other", FullName: "OTHER,JANE"}
+	valid := domain.Patient{ID: "1", FullName: "MEYER,JANE", DOB: "01/01/1980"}
+	missing := domain.Patient{ID: "2", FullName: "OTHER,JANE"}
 	otherName := missing
-	otherName.FirstName = "Janet"
 	otherName.FullName = "OTHER,JANET"
 	sameDOBOtherName := otherName
 	sameDOBOtherName.DOB = valid.DOB
 	manyMissing := []domain.Patient{valid}
 	for i := 0; i < 20; i++ {
-		manyMissing = append(manyMissing, domain.Patient{ID: fmt.Sprint(i + 2), FirstName: "Jane", FullName: "OTHER,JANE"})
+		manyMissing = append(manyMissing, domain.Patient{ID: fmt.Sprint(i + 2), FullName: "OTHER,JANE"})
 	}
 	otherDOB := missing
-	otherDOB.FirstName = ""
 	otherDOB.FullName = ""
 	otherDOB.DOB = "01/01/1990"
 	for _, tc := range []struct {
@@ -35,7 +33,7 @@ func TestFirstNameDOBResolution(t *testing.T) {
 		reason              string
 		reads               int
 	}{
-		{name: "two exact matches remain ambiguous", rows: []domain.Patient{valid, {ID: "2", FirstName: "Jane", LastName: "Other", FullName: "OTHER,JANE", DOB: "01/01/1980"}}, want: patient.StatusMultipleMatches},
+		{name: "two exact matches remain ambiguous", rows: []domain.Patient{valid, {ID: "2", FullName: "OTHER,JANE", DOB: "01/01/1980"}}, want: patient.StatusMultipleMatches},
 		{name: "exact match ignores many missing DOB records", rows: manyMissing, want: patient.StatusVerified, reads: 1},
 		{name: "DOB results include other names", rows: []domain.Patient{sameDOBOtherName, valid}, want: patient.StatusVerified, reads: 1},
 		{name: "DOB results have no matching name", rows: []domain.Patient{sameDOBOtherName}, want: patient.StatusNotFound},
@@ -56,7 +54,7 @@ func TestFirstNameDOBResolution(t *testing.T) {
 			amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Patients: tc.rows, Complete: !tc.incomplete}
 			amd.Demographics["1"] = domain.PatientDemographics{InsuranceStateKnown: true, FullName: valid.FullName, DOB: valid.DOB}
 			amd.Demographics["2"] = tc.ignoredDemographics
-			result, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "1980-01-01", OfficeID: "spring_hill"})
+			result, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveQuery{FirstName: "Jane", DOB: "1980-01-01", OfficeID: "spring_hill"})
 			if err != nil || result.Status != tc.want || result.Reason != tc.reason {
 				t.Fatalf("status=%s reason=%s err=%v", result.Status, result.Reason, err)
 			}
@@ -88,14 +86,14 @@ func TestFirstNameDOBMissingRecordsAndChangedIdentity(t *testing.T) {
 		amd := advancedmdtest.NewAdapter()
 		rows := []domain.Patient{}
 		for i := 0; i < 6; i++ {
-			rows = append(rows, domain.Patient{ID: fmt.Sprint(i), FirstName: "Jane", FullName: "EXAMPLE,JANE"})
+			rows = append(rows, domain.Patient{ID: fmt.Sprint(i), FullName: "EXAMPLE,JANE"})
 		}
 		if changed {
-			rows = []domain.Patient{{ID: "0", FirstName: "Jane", FullName: "EXAMPLE,JANE", DOB: "01/01/1980"}}
+			rows = []domain.Patient{{ID: "0", FullName: "EXAMPLE,JANE", DOB: "01/01/1980"}}
 			amd.Demographics["0"] = domain.PatientDemographics{InsuranceStateKnown: true, FullName: "EXAMPLE,JOHN", DOB: "01/01/1980"}
 		}
 		amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Patients: rows, Complete: true}
-		result, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveCommand{FirstName: "Jane", DOB: "01/01/1980", OfficeID: "spring_hill"})
+		result, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveQuery{FirstName: "Jane", DOB: "01/01/1980", OfficeID: "spring_hill"})
 		want := patient.StatusNotFound
 		if changed {
 			want = patient.StatusUnresolved

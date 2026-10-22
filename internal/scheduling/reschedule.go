@@ -20,9 +20,9 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 	if command.BookingToken == "" {
 		return RescheduleReceipt{}, categorizedError(CategoryBookingTokenRequired, "A current bookingToken is required to reschedule.")
 	}
-	command.PatientID = domain.StripPatientPrefix(command.PatientID)
+	patientID, patientIDErr := domain.ParsePatientID(command.PatientID)
 	policy, err := s.appointmentTokens.verifyReschedule(command.RescheduleToken, s.now().UTC())
-	if err != nil || command.PatientID != policy.PatientID || policy.AppointmentTypeID == 0 {
+	if err != nil || patientIDErr != nil || patientID != policy.PatientID || policy.AppointmentTypeID == 0 {
 		return RescheduleReceipt{}, invalidRescheduleTokenError()
 	}
 	booking, err := s.resolveBookingContext(command)
@@ -69,7 +69,7 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 
 func (s *service) verifyRescheduleOriginal(ctx context.Context, policy appointmentTokenPolicy) error {
 	read, err := s.records.ReadPatientAppointmentsForMonth(ctx, advancedmd.AppointmentMonthQuery{
-		PatientID: policy.PatientID, OfficeIDs: []string{policy.OfficeID}, Month: policy.start,
+		PatientID: string(policy.PatientID), OfficeIDs: []string{policy.OfficeID}, Month: policy.start,
 	})
 	if err != nil || !read.Complete {
 		return ownershipCheckError()

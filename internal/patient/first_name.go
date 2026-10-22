@@ -10,33 +10,13 @@ import (
 	"advancedmd-token-management/internal/safeerrors"
 )
 
-func exactFirstName(name string) string {
-	return strings.Map(func(r rune) rune {
-		if r >= 'a' && r <= 'z' {
-			return r
-		}
-		return -1
-	}, strings.ToLower(domain.StripDiacritics(name)))
-}
-
-func candidateName(row domain.Patient) string {
-	if row.FirstName != "" {
-		return row.FirstName
-	}
-	parts := strings.Fields(domain.ParseFirstName(row.FullName))
-	if len(parts) > 0 {
-		return parts[0]
-	}
-	return ""
-}
-
 func usableDOB(dob string, asOf time.Time) bool {
 	return strings.TrimSpace(dob) != "" && domain.ValidateOptionalDOB(dob, asOf) == nil
 }
 
-func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveCommand, office *domain.OfficeConfig) (ResolveResult, error) {
+func (p *patient) resolveFirstNameDOB(ctx context.Context, query ResolveQuery, office *domain.OfficeConfig) (ResolveResult, error) {
 	started := time.Now()
-	read, err := p.advancedMD.ReadPatientCandidates(ctx, domain.StripDiacritics(command.FirstName), domain.NormalizeDOB(command.DOB))
+	read, err := p.advancedMD.ReadPatientCandidates(ctx, string(query.FirstName), domain.NormalizeDOB(query.DOB))
 	observation := ResolutionObservation{
 		Recorded: true, PatientSearchReads: 1,
 		PatientSearchDurationMS: time.Since(started).Milliseconds(),
@@ -58,15 +38,15 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 	if !read.Complete {
 		return unresolved("incomplete_search", safeerrors.CategoryInvalidResponse)
 	}
-	name, dob := exactFirstName(command.FirstName), domain.NormalizeDOB(command.DOB)
+	dob := domain.NormalizeDOB(query.DOB)
 	now := p.now()
-	if name == "" {
+	if query.FirstName.Key() == "" {
 		return unresolved("invalid_identity", safeerrors.CategoryRejected)
 	}
 	matches := []domain.Patient{}
 	seen := map[string]bool{}
 	for _, row := range read.Patients {
-		if exactFirstName(candidateName(row)) != name || !usableDOB(row.DOB, now) || domain.NormalizeDOB(row.DOB) != dob {
+		if !row.Name().MatchesFirstName(query.FirstName) || !usableDOB(row.DOB, now) || domain.NormalizeDOB(row.DOB) != dob {
 			continue
 		}
 		if row.ID == "" || seen[row.ID] {
@@ -82,7 +62,8 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 	if len(matches) > 1 {
 		candidates := make([]Candidate, 0, len(matches))
 		for _, row := range matches {
-			candidates = append(candidates, Candidate{Status: statusCandidate, PatientID: row.ID, FirstName: candidateName(row), LastName: patientLastName(row), DOB: domain.NormalizeDOB(row.DOB)})
+			name := row.Name()
+			candidates = append(candidates, Candidate{Status: statusCandidate, PatientID: row.ID, FirstName: name.First(), LastName: name.Last, DOB: domain.NormalizeDOB(row.DOB)})
 		}
 		return ResolveResult{Status: StatusMultipleMatches, Matches: candidates, Appointments: []Appointment{}, Message: "More than one patient matches this first name and date of birth. Ask office staff to resolve the identity.", Observation: observation}, nil
 	}
@@ -95,7 +76,7 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, command ResolveComman
 		return unresolved("demographics_unavailable", advancedmd.CategoryOf(err))
 	}
 	if demographics.FullName != "" {
-		if exactFirstName(candidateName(domain.Patient{FullName: demographics.FullName})) != name {
+		if !domain.ParseRecordName(demographics.FullName).MatchesFirstName(query.FirstName) {
 			return unresolved("identity_not_verified", safeerrors.CategoryInvalidResponse)
 		}
 		selected.FullName = demographics.FullName

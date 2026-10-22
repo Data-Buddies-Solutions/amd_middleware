@@ -367,7 +367,7 @@ func tokenClaims(value any) any {
 	return "claims:" + string(decoded)
 }
 
-func signedPinSlot(t *testing.T, dob string) string {
+func signedPinSlot(t *testing.T, dob domain.DOB) string {
 	t.Helper()
 	token, err := schedulingmodule.SignSlotToken(pinBookingSecret, schedulingmodule.SlotPolicy{
 		OfficeID: "spring_hill", Routing: domain.RoutingBachOnly, ColumnID: 1513, ProfileID: 620,

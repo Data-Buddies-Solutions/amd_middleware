@@ -143,7 +143,7 @@ type featureCalls struct {
 	calls []string
 }
 
-func (f *featureCalls) Resolve(context.Context, patientmodule.ResolveCommand) (patientmodule.ResolveResult, error) {
+func (f *featureCalls) Resolve(context.Context, patientmodule.ResolveQuery) (patientmodule.ResolveResult, error) {
 	f.calls = append(f.calls, "Resolve")
 	return patientmodule.ResolveResult{}, nil
 }

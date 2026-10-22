@@ -97,9 +97,6 @@ func TestAdvancedMDClient_LookupPatient_SingleResult(t *testing.T) {
 	if p.FullName != "SMITH,JOHN" {
 		t.Errorf("Expected FullName 'SMITH,JOHN', got %q", p.FullName)
 	}
-	if p.FirstName != "JOHN" {
-		t.Errorf("Expected FirstName 'JOHN', got %q", p.FirstName)
-	}
 	if p.DOB != "01/15/1980" {
 		t.Errorf("Expected DOB '01/15/1980', got %q", p.DOB)
 	}
@@ -673,10 +670,10 @@ func TestLookupPatientCandidatesCompleteness(t *testing.T) {
 			if read.Complete != tc.complete {
 				t.Errorf("complete=%v want %v", read.Complete, tc.complete)
 			}
-			if tc.complete && len(read.Patients) > 0 && read.Patients[0].LastName != "MEYER" {
+			if tc.complete && len(read.Patients) > 0 && read.Patients[0].Name().Last != "MEYER" {
 				t.Error("missing surname")
 			}
-			if tc.name == "middle names" && (len(read.Patients) != 2 || read.Patients[0].FirstName != "JANE" || read.Patients[1].FirstName != "JANE") {
+			if tc.name == "middle names" && (len(read.Patients) != 2 || read.Patients[0].Name().First() != "JANE" || read.Patients[1].Name().First() != "JANE") {
 				t.Fatal("first-and-middle parsing lost collision")
 			}
 			if calls != 1 {

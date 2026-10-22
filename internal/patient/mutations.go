@@ -103,14 +103,14 @@ func subscriberNumber(selfPay bool, subscriberNum string) string {
 	return subscriberNum
 }
 
-func decideInsurance(name, planID, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) insurance.InsuranceDecision {
+func decideInsurance(name, planID, coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) insurance.InsuranceDecision {
 	if coverage == "" {
 		coverage = "medical"
 	}
 	if planID != "" {
-		return insurance.DecidePlan(planID, coverage, office, dob, asOf)
+		return insurance.DecidePlan(planID, coverage, office, string(dob), asOf)
 	}
-	return insurance.DecideInsurance(name, coverage, office, dob, asOf)
+	return insurance.DecideInsurance(name, coverage, office, string(dob), asOf)
 }
 
 func recordMutation(operation, outcome string) {

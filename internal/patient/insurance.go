@@ -30,7 +30,8 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: err.Error()}
 	}
 	now := p.now()
-	decision := decideInsurance(command.Insurance, command.InsurancePlanID, command.CoverageType, office, command.DOB, now)
+	dob, dobErr := domain.ParseDOB(command.DOB, now)
+	decision := decideInsurance(command.Insurance, command.InsurancePlanID, command.CoverageType, office, dob, now)
 	command.SubscriberNum = subscriberNumber(decision.SelfPay, command.SubscriberNum)
 	if command.PatientID == "" || command.DOB == "" || command.Insurance == "" || command.SubscriberNum == "" {
 		return UpdateInsuranceResult{
@@ -39,11 +40,11 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 			Message: "patientId, dob, insurance, and subscriberNum are required",
 		}
 	}
-	if err := domain.ValidateOptionalDOB(command.DOB, now); err != nil {
+	if dobErr != nil {
 		return UpdateInsuranceResult{
 			Status:  UpdateInsuranceStatusError,
 			Outcome: MutationValidationFailed,
-			Message: err.Error(),
+			Message: dobErr.Error(),
 		}
 	}
 	if decision.Participation != "accepted" {
@@ -56,7 +57,7 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 	if err != nil {
 		return updateInsuranceFailure(failureOutcome(err), "Unable to read current insurance. No update was attempted.")
 	}
-	if chart.DOB == "" || domain.NormalizeDOB(chart.DOB) != domain.NormalizeDOB(command.DOB) {
+	if !dob.Matches(chart.DOB) {
 		return updateInsuranceFailure(MutationValidationFailed, "Patient details changed. Verify the patient again.")
 	}
 	if !chart.InsuranceStateKnown || chart.RespPartyID == "" ||

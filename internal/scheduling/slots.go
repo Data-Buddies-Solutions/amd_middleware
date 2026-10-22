@@ -10,12 +10,12 @@ func (s *service) signSlots(
 	slots []AvailabilitySlotOption,
 	office *domain.OfficeConfig,
 	routing domain.RoutingRule,
-	dob string,
+	dob domain.DOB,
 	now time.Time,
 ) ([]AvailabilitySlotOption, time.Time, error) {
 	issuedAt := now.Unix()
 	expiresAt := now.Add(tokenTTL).Unix()
-	appointmentTypeIDs := newSchedulingPolicy(office, now).AllowedAppointmentTypeIDs(routing, dob)
+	appointmentTypeIDs := newSchedulingPolicy(office, now).AllowedAppointmentTypeIDs(routing, string(dob))
 	for i := range slots {
 		token, err := SignSlotToken(s.bookingTokenSecret, SlotPolicy{
 			OfficeID:           office.ID,
@@ -24,7 +24,7 @@ func (s *service) signSlots(
 			ProfileID:          slots[i].ProfileID,
 			StartDatetime:      slots[i].DateTime,
 			Duration:           slots[i].Duration,
-			DOB:                domain.NormalizeDOB(dob),
+			DOB:                dob,
 			AppointmentTypeIDs: appointmentTypeIDs,
 			SameStartBooked:    slots[i].SameStartBooked,
 			SameStartCapacity:  slots[i].SameStartCapacity,
