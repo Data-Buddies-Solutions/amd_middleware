@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.3.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.3.0...v8.3.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* **scheduling:** decide every slot on one interval model ([#285](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/285)) ([5d0b192](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/5d0b19205589bb6e7d583c7dcd4954c6a9f2e637))
+
 ## [8.3.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.2.0...v8.3.0) (2026-10-22)
 
 
