@@ -1,7 +1,9 @@
 package http
 
 import (
+	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -37,10 +39,43 @@ func TestInsuranceDecisionHTTPContract(t *testing.T) {
 	if !strings.Contains(w.Body.String(), `"planId":"aetna-medicare"`) {
 		t.Fatalf("offered answer response=%s", w.Body.String())
 	}
-	w = httptest.NewRecorder()
-	handlers.HandleInsuranceDecision(w, httptest.NewRequest(http.MethodPost, "/api/insurance/decision", strings.NewReader(`{"plan":"Self Pay","coverageType":"medical","office":"Hollywood","referralVerified":true}`)))
-	if w.Code != http.StatusBadRequest {
-		t.Fatal("caller verification flag accepted")
+}
+
+func TestInsuranceRoutesRejectInvalidInputWithTheSharedErrorContract(t *testing.T) {
+	for _, tc := range []struct{ name, method, target, body string }{
+		{"decision caller verification flag", http.MethodPost, "/api/insurance/decision", `{"plan":"Self Pay","coverageType":"medical","office":"Hollywood","referralVerified":true}`},
+		{"decision invalid JSON", http.MethodPost, "/api/insurance/decision", `{"plan":`},
+		{"decision unknown office", http.MethodPost, "/api/insurance/decision", `{"plan":"Aetna","coverageType":"medical","office":"atlantis"}`},
+		{"plans unknown office", http.MethodGet, "/api/insurance/plans?office=atlantis&coverage=medical", ""},
+		{"plans missing office", http.MethodGet, "/api/insurance/plans?coverage=medical", ""},
+		{"plans empty office", http.MethodGet, "/api/insurance/plans?office=&coverage=medical", ""},
+		{"plans unknown coverage", http.MethodGet, "/api/insurance/plans?office=hollywood&coverage=dental", ""},
+		{"plans missing coverage", http.MethodGet, "/api/insurance/plans?office=hollywood", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var logs bytes.Buffer
+			previousWriter := log.Writer()
+			log.SetOutput(&logs)
+			t.Cleanup(func() { log.SetOutput(previousWriter) })
+			router := NewRouter(NewHandlers(nil, nil, nil, testNow), "test-secret", nil)
+			req := httptest.NewRequest(tc.method, tc.target, strings.NewReader(tc.body))
+			req.Header.Set("Authorization", "Bearer test-secret")
+			w := httptest.NewRecorder()
+
+			router.ServeHTTP(w, req)
+
+			var got errorResponse
+			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+				t.Fatalf("body is not JSON: %q", w.Body.String())
+			}
+			if w.Code != http.StatusOK || w.Header().Get("Content-Type") != "application/json" || got.Status != "error" || got.Message == "" {
+				t.Fatalf("status=%d type=%q body=%s", w.Code, w.Header().Get("Content-Type"), w.Body.String())
+			}
+			entry := decodeLastLogEntry(t, logs.String())
+			if entry["outcome_category"] != "invalid_request" || entry["provider_failure_category"] != "none" {
+				t.Fatalf("log=%v", entry)
+			}
+		})
 	}
 }
 
@@ -86,20 +121,6 @@ func TestInsurancePlansOfficeWithoutTheCoverageReturnsNoPlans(t *testing.T) {
 	w := getInsurancePlans(t, "office=north-miami-beach-optical&coverage=medical", "Bearer test-secret")
 	if w.Code != http.StatusOK || strings.TrimSpace(w.Body.String()) != `{"officeId":"north_miami_beach_optical","coverage":"medical","plans":[]}` {
 		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
-	}
-}
-
-func TestInsurancePlansRejectsUnknownOfficeOrCoverage(t *testing.T) {
-	for _, query := range []string{
-		"office=atlantis&coverage=medical",
-		"coverage=medical",
-		"office=&coverage=medical",
-		"office=hollywood&coverage=dental",
-		"office=hollywood",
-	} {
-		if w := getInsurancePlans(t, query, "Bearer test-secret"); w.Code != http.StatusBadRequest {
-			t.Fatalf("%s: status=%d body=%s", query, w.Code, w.Body.String())
-		}
 	}
 }
 
