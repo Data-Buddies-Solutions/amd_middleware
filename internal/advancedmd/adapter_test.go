@@ -623,7 +623,7 @@ func TestAdapterSingleOfficeUsesSixReadsAndMarksUnreconciledRowsIncomplete(t *te
 	}
 }
 
-func TestAdapterCancelsRemainingMonthReadsWhenOneMonthFails(t *testing.T) {
+func TestAdapterCancelsAndWaitsForRemainingMonthReadsWhenOneMonthFails(t *testing.T) {
 	fixedNow := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
 	blockedStarted := make(chan struct{}, 5)
 	blockedCancelled := make(chan struct{}, 5)
@@ -659,20 +659,28 @@ func TestAdapterCancelsRemainingMonthReadsWhenOneMonthFails(t *testing.T) {
 		clients.NewAdvancedMDRestClient(server.Client()),
 		func() time.Time { return fixedNow },
 	)
-	readErr := make(chan error, 1)
+	type readOutcome struct {
+		err   error
+		calls []safeerrors.ProviderCallSummary
+	}
+	readDone := make(chan readOutcome, 1)
 	go func() {
-		_, err := adapter.ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
+		ctx, diagnostics := safeerrors.WithDiagnostics(context.Background())
+		_, err := adapter.ReadPatientAppointments(ctx, domain.PatientAppointmentsQuery{
 			PatientID: "12345",
 			OfficeIDs: []string{"spring_hill"},
 		})
-		readErr <- err
+		readDone <- readOutcome{err: err, calls: diagnostics.Calls()}
 	}()
 
 	guard := time.After(5 * time.Second)
 	select {
-	case err := <-readErr:
-		if CategoryOf(err) != safeerrors.CategoryUpstreamStatus {
-			t.Fatalf("ReadPatientAppointments() error = %v, want the failed month's upstream status", err)
+	case outcome := <-readDone:
+		if CategoryOf(outcome.err) != safeerrors.CategoryUpstreamStatus {
+			t.Fatalf("ReadPatientAppointments() error = %v, want the failed month's upstream status", outcome.err)
+		}
+		if len(outcome.calls) != 1 || outcome.calls[0].Operation != "get_appointments_by_month" || outcome.calls[0].Calls != 6 {
+			t.Fatalf("provider calls recorded when ReadPatientAppointments() returned = %+v, want all 6 month reads finished", outcome.calls)
 		}
 	case <-guard:
 		t.Fatal("ReadPatientAppointments() did not return after one month read failed")
