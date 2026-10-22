@@ -42,6 +42,11 @@ jobs:
       - name: Race test
         run: go test -race ./...
 
+      - name: Dead code check
+        run: |
+          out="$(go run golang.org/x/tools/cmd/deadcode@v0.51.0 -test ./...)"
+          test -z "$out" || { echo "$out"; exit 1; }
+
       - name: Deployment script test
         run: scripts/deploy-cloud-run_test.sh
 
