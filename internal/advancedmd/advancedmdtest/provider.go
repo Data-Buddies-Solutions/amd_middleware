@@ -82,6 +82,19 @@ func (p *Provider) Requests() []string {
 	return slices.Clone(p.requests)
 }
 
+func (p *Provider) Unused() []string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	var routes []string
+	for route, queue := range p.Responses {
+		if len(queue) > 0 {
+			routes = append(routes, route)
+		}
+	}
+	slices.Sort(routes)
+	return routes
+}
+
 func (p *Provider) RoundTrip(request *http.Request) (*http.Response, error) {
 	route, err := requestRoute(request)
 	if err != nil {

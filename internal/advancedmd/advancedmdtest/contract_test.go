@@ -84,10 +84,8 @@ func TestFakeAndRealAdapterAgree(t *testing.T) {
 						got.Writes++
 					}
 				}
-				for route, unused := range provider.Responses {
-					if len(unused) > 0 {
-						t.Errorf("scripted AdvancedMD response for %q was never requested; requests were %q", route, provider.Requests())
-					}
+				for _, route := range provider.Unused() {
+					t.Errorf("scripted AdvancedMD response for %q was never requested; requests were %q", route, provider.Requests())
 				}
 				assertOutcome(t, "real adapter", got, s.want)
 			})

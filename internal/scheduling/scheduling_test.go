@@ -145,7 +145,7 @@ func TestListReturnsIncompleteWhenProviderReadsCannotProveNone(t *testing.T) {
 	}
 }
 
-func TestListReturnsIncompleteAfterPartialProviderFailure(t *testing.T) {
+func TestListReturnsIncompleteWhenOneDayIsIncompleteAndTheRestAreFull(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	searchDate := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC)
 	records := recordsWithSetup(
