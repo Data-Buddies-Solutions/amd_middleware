@@ -40,3 +40,18 @@ when a commit lands on `main`. The Cloud Build trigger
 commit. Its historical name is retained for the GitHub check integration.
 The Production status workflow tracks that build on the same tag push.
 Creating a matching tag manually also triggers production deployment.
+
+## Enforced rules
+
+Each rule below fails a check today. A rule without a check does not belong
+here.
+
+| Rule | What enforces it |
+| --- | --- |
+| Each package has a layer and imports only the layers that layer allows | `TestPackagesImportOnlyLowerLayers` in `layers_test.go` |
+| Go files carry no code comments; only `//go:` directives are allowed | `TestNoCodeComments` in `comments_test.go` |
+| `Dockerfile` and `cloudbuild.yaml` build with the `go.mod` toolchain | `TestBuildImagesUseTheGoModToolchain` in `toolchain_test.go` |
+| Go files under `cmd` and `internal` are `gofmt` formatted | CI step `Format check` |
+| Every function is reachable from `main` or a test | CI step `Dead code check` |
+| README.md's HTTP interface tables list every route the router serves and no others | `TestReadmeRouteTableMatchesRouter` in `readme_routes_test.go` |
+| Tests pass under the race detector | CI step `Race test` |
