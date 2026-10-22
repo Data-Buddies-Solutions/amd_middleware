@@ -744,3 +744,35 @@ func TestBookAcceptsPrefixedPatientID(t *testing.T) {
 		t.Fatalf("receipt=%+v err=%v bookings=%+v", receipt, err, records.Bookings)
 	}
 }
+
+func TestBookReportsTheProviderCategoryWhenAPreBookingReadFails(t *testing.T) {
+	now := mutationTestNow()
+	tests := []struct {
+		name   string
+		inject func(*advancedmdtest.Adapter, error)
+	}{
+		{"patient demographics", func(records *advancedmdtest.Adapter, err error) { records.DemographicErrors["12345"] = err }},
+		{"scheduler setup", func(records *advancedmdtest.Adapter, err error) { records.SchedulerSetupError = err }},
+		{"day schedule", func(records *advancedmdtest.Adapter, err error) { records.ScheduleReadErrors["2026-06-03"] = err }},
+	}
+	for _, tt := range tests {
+		for _, failure := range []safeerrors.Category{safeerrors.CategoryTimeout, safeerrors.CategoryAuthentication} {
+			t.Run(tt.name+"/"+string(failure), func(t *testing.T) {
+				records := bookingRecords()
+				tt.inject(records, advancedmd.NewError(failure))
+
+				_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
+					Book(context.Background(), signedBookCommand(t, now))
+				if scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed {
+					t.Fatalf("Book error = %v, category = %q, want write_failed", err, scheduling.CategoryOf(err))
+				}
+				if got := scheduling.ProviderFailureOf(err); got != failure {
+					t.Fatalf("ProviderFailureOf(error) = %q, want %q from the failed %s read", got, failure, tt.name)
+				}
+				if len(records.Bookings) != 0 {
+					t.Fatalf("provider bookings = %d, want none", len(records.Bookings))
+				}
+			})
+		}
+	}
+}
