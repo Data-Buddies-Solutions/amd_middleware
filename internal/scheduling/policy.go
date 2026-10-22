@@ -10,8 +10,6 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
-const defaultSameStartCapacity = 1
-
 type schedulingPolicy struct {
 	office *domain.OfficeConfig
 	asOf   time.Time
@@ -172,26 +170,4 @@ func (p schedulingPolicy) PrepareBooking(req bookingPolicyRequest) (bookingPolic
 		EnvironmentTypeID: environmentTypeID,
 		Color:             color,
 	}, nil
-}
-
-type sameStartDecision struct {
-	Capacity      int
-	Bookable      bool
-	RequiresForce bool
-}
-
-func (p schedulingPolicy) SameStart(columnID string, start time.Time, booked int) sameStartDecision {
-	capacity := defaultSameStartCapacity
-	if p.office != nil {
-		if column, ok := p.office.Columns[columnID]; ok {
-			if configured := column.SameStartCapacityAt(start); configured > capacity {
-				capacity = configured
-			}
-		}
-	}
-	return sameStartDecision{
-		Capacity:      capacity,
-		Bookable:      booked < capacity,
-		RequiresForce: booked > 0 && booked < capacity,
-	}
 }

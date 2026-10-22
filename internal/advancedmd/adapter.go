@@ -614,13 +614,13 @@ func scheduleByDate(query domain.ScheduleRangeQuery, appointments []domain.Appoi
 			continue
 		}
 		seen[key] = true
-		end := hold.EndDateTime
-		if !end.After(hold.StartDateTime) {
-			end = hold.StartDateTime.Add(time.Nanosecond)
+		span := hold.Interval()
+		if !span.End.After(span.Start) {
+			span.End = span.Start.Add(time.Nanosecond)
 		}
 		for date, read := range result {
 			dayStart, _ := time.Parse("2006-01-02", date)
-			if !hold.StartDateTime.Before(dayStart.AddDate(0, 0, 1)) || !end.After(dayStart) {
+			if !span.Overlaps(domain.Interval{Start: dayStart, End: dayStart.AddDate(0, 0, 1)}) {
 				continue
 			}
 			columnID, ok := queried[hold.ColumnID]

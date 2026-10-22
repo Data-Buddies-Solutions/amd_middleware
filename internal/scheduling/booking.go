@@ -322,8 +322,8 @@ func (s *service) revalidateBookingSlot(
 	if err != nil {
 		return time.Time{}, false, invalidBookingTokenError()
 	}
-	duration := time.Duration(booking.token.Duration) * time.Minute
-	if !currentColumnSupportsSlot(column, start, duration) {
+	slot := domain.Interval{Start: start, End: start.Add(time.Duration(booking.token.Duration) * time.Minute)}
+	if !slices.ContainsFunc(column.Slots(start), slot.Equal) {
 		return time.Time{}, false, slotUnavailableError()
 	}
 	read, err := s.records.ReadSchedule(ctx, domain.ScheduleReadQuery{
@@ -345,23 +345,17 @@ func (s *service) revalidateBookingSlot(
 			"Unable to verify the selected time because appointment data is incomplete. Please try once more or contact the office.",
 		)
 	}
-	if isBlockedByHold(start, duration, schedule.BlockHolds) ||
-		hasDifferentStartOverlap(start, duration, schedule.Appointments) {
+	signed := slotDecision{
+		Booked:        booking.token.SameStartBooked,
+		Capacity:      booking.token.SameStartCapacity,
+		Bookable:      true,
+		RequiresForce: booking.token.RequiresForce,
+	}
+	if policy.Slot(column.ID, slot, schedule) != signed {
 		return time.Time{}, false, slotUnavailableError()
 	}
 
-	booked := countSameStart(start, schedule.Appointments)
-	sameStart := policy.SameStart(strconv.Itoa(booking.token.ColumnID), start, booked)
-	if !sameStart.Bookable {
-		return time.Time{}, false, slotUnavailableError()
-	}
-	if booking.token.SameStartBooked != booked ||
-		booking.token.SameStartCapacity != sameStart.Capacity ||
-		booking.token.RequiresForce != sameStart.RequiresForce {
-		return time.Time{}, false, slotUnavailableError()
-	}
-
-	return start, sameStart.RequiresForce, nil
+	return start, signed.RequiresForce, nil
 }
 
 func (s *service) reconcileBooking(ctx context.Context, prepared preparedBooking) (BookReceipt, error) {
@@ -437,18 +431,6 @@ func currentBookingColumn(
 		}
 	}
 	return domain.SchedulerColumn{}, false
-}
-
-func currentColumnSupportsSlot(column domain.SchedulerColumn, start time.Time, duration time.Duration) bool {
-	if !column.WorksOnDay(start.Weekday()) || column.Interval <= 0 {
-		return false
-	}
-	workStart, workEnd, err := column.ParseWorkHours(start)
-	if err != nil {
-		return false
-	}
-	interval := time.Duration(column.Interval) * time.Minute
-	return slotFitsWorkHours(start, duration, workStart, workEnd, interval)
 }
 
 func buildBookReceipt(prepared preparedBooking, appointmentID int) BookReceipt {
