@@ -270,9 +270,7 @@ func TestListSlotsIncompleteSearchCarriesTheRetryHint(t *testing.T) {
 	}{
 		{"incomplete schedule reads", func(records *advancedmdtest.Adapter) {
 			for day := 0; day <= 14; day++ {
-				records.ScheduleReads[searchDate.AddDate(0, 0, day).Format("2006-01-02")] = domain.ScheduleReadResult{
-					Columns: map[string]domain.ColumnSchedule{"1513": {AppointmentsComplete: false, BlockHoldsComplete: true}},
-				}
+				records.IncompleteDays[searchDate.AddDate(0, 0, day).Format("2006-01-02")] = true
 			}
 		}},
 		{"failed scheduler setup read", func(records *advancedmdtest.Adapter) {

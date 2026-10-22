@@ -2,11 +2,16 @@ package advancedmdtest
 
 import (
 	"context"
+	"strconv"
 	"sync"
+	"time"
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/safeerrors"
 )
+
+const patientAppointmentMonths = 6
 
 type AppointmentResult struct {
 	Read advancedmd.AppointmentRead
@@ -28,6 +33,16 @@ type CandidateQuery struct {
 	DOB       string
 }
 
+type ColumnRows struct {
+	Appointments []domain.Appointment
+	BlockHolds   []domain.BlockHold
+}
+
+type ColumnDay struct {
+	Date     string
+	ColumnID string
+}
+
 type Adapter struct {
 	scheduleMu               sync.Mutex
 	CandidateReads           map[string]domain.PatientCandidateRead
@@ -45,7 +60,6 @@ type Adapter struct {
 	AppointmentResults       map[string]AppointmentResult
 	AppointmentsStarted      chan<- struct{}
 	AppointmentsRelease      <-chan struct{}
-	AppointmentQueries       []domain.PatientAppointmentsQuery
 	AppointmentMonthQueries  []advancedmd.AppointmentMonthQuery
 	AppointmentStateResults  map[int]AppointmentStateResult
 	AppointmentStateQueries  []advancedmd.AppointmentStateQuery
@@ -64,8 +78,10 @@ type Adapter struct {
 	SchedulerSetup           domain.SchedulerSetup
 	SchedulerSetupError      error
 	SchedulerSetupCalls      int
-	ScheduleReads            map[string]domain.ScheduleReadResult
+	Schedule                 map[string]map[string]ColumnRows
 	ScheduleReadErrors       map[string]error
+	ColumnReadErrors         map[ColumnDay]error
+	IncompleteDays           map[string]bool
 	ScheduleRangeQueries     []domain.ScheduleRangeQuery
 	ScheduleReadQueries      []domain.ScheduleReadQuery
 	BookAppointmentID        int
@@ -87,29 +103,43 @@ func NewAdapter() *Adapter {
 		DemographicErrorSequence: make(map[string][]error),
 		AppointmentResults:       make(map[string]AppointmentResult),
 		AppointmentStateResults:  make(map[int]AppointmentStateResult),
-		ScheduleReads:            make(map[string]domain.ScheduleReadResult),
+		Schedule:                 make(map[string]map[string]ColumnRows),
 		ScheduleReadErrors:       make(map[string]error),
+		ColumnReadErrors:         make(map[ColumnDay]error),
+		IncompleteDays:           make(map[string]bool),
 	}
+}
+
+func internalError() error {
+	return advancedmd.NewError(safeerrors.CategoryInternal)
 }
 
 func (a *Adapter) SearchPatients(_ context.Context, search domain.PatientSearch) (domain.PatientCandidateRead, error) {
 	a.SearchPatientCalls++
-	complete := !a.IncompletePatientSearch[search]
+	patients, err := a.PatientSearches[search], a.PatientErrors[search]
 	if sequence := a.PatientSearchSequence[search]; len(sequence) > 0 {
-		step := sequence[0]
+		patients, err = sequence[0].Patients, sequence[0].Err
 		a.PatientSearchSequence[search] = sequence[1:]
-		return domain.PatientCandidateRead{Patients: append([]domain.Patient(nil), step.Patients...), Complete: complete}, step.Err
 	}
-	if err := a.PatientErrors[search]; err != nil {
+	if err != nil {
 		return domain.PatientCandidateRead{}, err
 	}
-	return domain.PatientCandidateRead{Patients: append([]domain.Patient(nil), a.PatientSearches[search]...), Complete: complete}, nil
+	return domain.PatientCandidateRead{
+		Patients: append([]domain.Patient{}, patients...),
+		Complete: !a.IncompletePatientSearch[search],
+	}, nil
 }
 
 func (a *Adapter) ReadPatientCandidates(_ context.Context, firstName, dob string) (domain.PatientCandidateRead, error) {
 	a.CandidateQueries = append(a.CandidateQueries, CandidateQuery{FirstName: firstName, DOB: dob})
-	a.SearchPatientCalls++
-	return a.CandidateReads[firstName], a.CandidateReadErrors[firstName]
+	if err := a.CandidateReadErrors[firstName]; err != nil {
+		return domain.PatientCandidateRead{}, err
+	}
+	read, configured := a.CandidateReads[firstName]
+	return domain.PatientCandidateRead{
+		Patients: append([]domain.Patient{}, read.Patients...),
+		Complete: read.Complete || !configured,
+	}, nil
 }
 
 func (a *Adapter) GetPatientDemographics(ctx context.Context, patientID string) (domain.PatientDemographics, error) {
@@ -131,39 +161,61 @@ func (a *Adapter) GetPatientDemographics(ctx context.Context, patientID string) 
 }
 
 func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.PatientAppointmentsQuery) (advancedmd.AppointmentRead, error) {
-	if err := a.recordAppointmentRead(ctx, query); err != nil {
+	a.AppointmentReadCalls++
+	if err := waitBarrier(ctx, a.AppointmentsStarted, a.AppointmentsRelease); err != nil {
 		return advancedmd.AppointmentRead{}, err
 	}
-	return a.nextAppointmentRead(query.PatientID)
+	if !numeric(query.PatientID) || len(query.OfficeIDs) == 0 || !knownOffices(query.OfficeIDs) {
+		return advancedmd.AppointmentRead{}, internalError()
+	}
+	result, configured := a.AppointmentResults[query.PatientID]
+	if result.Err != nil {
+		return advancedmd.AppointmentRead{ProviderReads: patientAppointmentMonths}, result.Err
+	}
+	return advancedmd.AppointmentRead{
+		Appointments:  append([]domain.PatientAppointment{}, result.Read.Appointments...),
+		Complete:      result.Read.Complete || !configured,
+		ProviderReads: patientAppointmentMonths,
+	}, nil
 }
 
-func (a *Adapter) ReadPatientAppointmentsForMonth(_ context.Context, query advancedmd.AppointmentMonthQuery) (advancedmd.AppointmentRead, error) {
+func (a *Adapter) ReadPatientAppointmentsForMonth(ctx context.Context, query advancedmd.AppointmentMonthQuery) (advancedmd.AppointmentRead, error) {
 	query.OfficeIDs = append([]string(nil), query.OfficeIDs...)
 	a.AppointmentMonthQueries = append(a.AppointmentMonthQueries, query)
-	return a.nextAppointmentRead(query.PatientID)
-}
-
-func (a *Adapter) nextAppointmentRead(patientID string) (advancedmd.AppointmentRead, error) {
-	result, configured := a.AppointmentResults[patientID]
-	read := result.Read
-	if read.ProviderReads == 0 {
-		read.ProviderReads = 1
+	if err := waitBarrier(ctx, a.AppointmentsStarted, a.AppointmentsRelease); err != nil {
+		return advancedmd.AppointmentRead{}, err
 	}
-	if result.Err != nil {
-		return read, result.Err
+	if query.Month.IsZero() || !numeric(query.PatientID) {
+		return advancedmd.AppointmentRead{}, internalError()
 	}
-	read.Appointments = append([]domain.PatientAppointment(nil), read.Appointments...)
-	if !configured {
-		read.Complete = true
+	result, configured := a.AppointmentResults[query.PatientID]
+	read := advancedmd.AppointmentRead{Appointments: []domain.PatientAppointment{}, Complete: true}
+	for _, officeID := range query.OfficeIDs {
+		if _, ok := domain.LookupOfficeByID(officeID); !ok {
+			return read, internalError()
+		}
+		read.ProviderReads++
+		if result.Err != nil {
+			return read, result.Err
+		}
 	}
+	read.Appointments = append(read.Appointments, result.Read.Appointments...)
+	read.Complete = result.Read.Complete || !configured
 	return read, nil
 }
 
-func (a *Adapter) recordAppointmentRead(ctx context.Context, query domain.PatientAppointmentsQuery) error {
-	a.AppointmentReadCalls++
-	query.OfficeIDs = append([]string(nil), query.OfficeIDs...)
-	a.AppointmentQueries = append(a.AppointmentQueries, query)
-	return waitBarrier(ctx, a.AppointmentsStarted, a.AppointmentsRelease)
+func numeric(id string) bool {
+	_, err := strconv.Atoi(id)
+	return err == nil
+}
+
+func knownOffices(officeIDs []string) bool {
+	for _, officeID := range officeIDs {
+		if _, ok := domain.LookupOfficeByID(officeID); !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func waitBarrier(ctx context.Context, started chan<- struct{}, release <-chan struct{}) error {
@@ -186,6 +238,9 @@ func waitBarrier(ctx context.Context, started chan<- struct{}, release <-chan st
 
 func (a *Adapter) ReadAppointmentState(_ context.Context, query advancedmd.AppointmentStateQuery) (advancedmd.AppointmentState, error) {
 	a.AppointmentStateQueries = append(a.AppointmentStateQueries, query)
+	if _, ok := domain.LookupOfficeByID(query.OfficeID); !ok || query.AppointmentID <= 0 || query.Start.IsZero() {
+		return advancedmd.AppointmentState{}, internalError()
+	}
 	result, configured := a.AppointmentStateResults[query.AppointmentID]
 	if result.Err != nil {
 		return advancedmd.AppointmentState{}, result.Err
@@ -201,7 +256,27 @@ func (a *Adapter) GetSchedulerSetup(_ context.Context) (domain.SchedulerSetup, e
 	if a.SchedulerSetupError != nil {
 		return domain.SchedulerSetup{}, a.SchedulerSetupError
 	}
+	if len(a.SchedulerSetup.Columns) == 0 {
+		return domain.SchedulerSetup{}, advancedmd.NewError(safeerrors.CategoryInvalidResponse)
+	}
 	return a.SchedulerSetup, nil
+}
+
+func (a *Adapter) columnFailure(date, columnID string) error {
+	if err := a.ScheduleReadErrors[date]; err != nil {
+		return err
+	}
+	return a.ColumnReadErrors[ColumnDay{Date: date, ColumnID: columnID}]
+}
+
+func (a *Adapter) columnSchedule(date, columnID string) domain.ColumnSchedule {
+	rows := a.Schedule[date][columnID]
+	return domain.ColumnSchedule{
+		Appointments:         distinctRows(rows.Appointments, func(row domain.Appointment) rowKey { return rowKey{row.ID, row.StartDateTime} }),
+		BlockHolds:           distinctRows(rows.BlockHolds, func(row domain.BlockHold) rowKey { return rowKey{row.ID, row.StartDateTime} }),
+		AppointmentsComplete: true,
+		BlockHoldsComplete:   true,
+	}
 }
 
 func (a *Adapter) ReadSchedule(_ context.Context, query domain.ScheduleReadQuery) (domain.ScheduleReadResult, error) {
@@ -209,17 +284,22 @@ func (a *Adapter) ReadSchedule(_ context.Context, query domain.ScheduleReadQuery
 	defer a.scheduleMu.Unlock()
 	query.ColumnIDs = append([]string(nil), query.ColumnIDs...)
 	a.ScheduleReadQueries = append(a.ScheduleReadQueries, query)
-	if err := a.ScheduleReadErrors[query.Date]; err != nil {
-		return domain.ScheduleReadResult{}, err
-	}
-	read := a.ScheduleReads[query.Date]
-	result := domain.ScheduleReadResult{
-		Columns: make(map[string]domain.ColumnSchedule, len(query.ColumnIDs)),
-	}
+	result := domain.ScheduleReadResult{Columns: make(map[string]domain.ColumnSchedule, len(query.ColumnIDs))}
+	var firstErr error
+	completeColumns := 0
 	for _, columnID := range query.ColumnIDs {
-		if column, ok := read.Columns[columnID]; ok {
-			result.Columns[columnID] = column
+		if err := a.columnFailure(query.Date, columnID); err != nil {
+			result.Columns[columnID] = domain.ColumnSchedule{}
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
 		}
+		result.Columns[columnID] = a.columnSchedule(query.Date, columnID)
+		completeColumns++
+	}
+	if completeColumns == 0 && firstErr != nil {
+		return result, firstErr
 	}
 	return result, nil
 }
@@ -232,22 +312,46 @@ func (a *Adapter) ReadScheduleRange(_ context.Context, query domain.ScheduleRang
 	results := make(map[string]domain.ScheduleReadResult)
 	for day := query.Start; !day.After(query.End); day = day.AddDate(0, 0, 1) {
 		date := day.Format("2006-01-02")
-		if err := a.ScheduleReadErrors[date]; err != nil {
-			return nil, err
-		}
-		read := a.ScheduleReads[date]
 		result := domain.ScheduleReadResult{Columns: make(map[string]domain.ColumnSchedule, len(query.ColumnIDs))}
 		for _, columnID := range query.ColumnIDs {
-			if column, ok := read.Columns[columnID]; ok {
-				result.Columns[columnID] = column
+			if err := a.columnFailure(date, columnID); err != nil {
+				return nil, err
 			}
+			column := a.columnSchedule(date, columnID)
+			if a.IncompleteDays[date] {
+				column.AppointmentsComplete = false
+				column.BlockHoldsComplete = false
+			}
+			result.Columns[columnID] = column
 		}
 		results[date] = result
 	}
 	return results, nil
 }
 
+type rowKey struct {
+	id    int
+	start time.Time
+}
+
+func distinctRows[T any](rows []T, key func(T) rowKey) []T {
+	seen := make(map[rowKey]bool, len(rows))
+	var distinct []T
+	for _, row := range rows {
+		key := key(row)
+		if key.id <= 0 || !seen[key] {
+			seen[key] = true
+			distinct = append(distinct, row)
+		}
+	}
+	return distinct
+}
+
 func (a *Adapter) BookAppointment(_ context.Context, booking advancedmd.Booking) (int, error) {
+	office, ok := domain.LookupOfficeByID(booking.OfficeID)
+	if !ok || !numeric(office.FacilityID) || booking.ProviderAppointmentTypeID <= 0 || booking.AppointmentColor == "" {
+		return 0, internalError()
+	}
 	a.Bookings = append(a.Bookings, booking)
 	if a.BookAppointmentErr != nil {
 		return 0, a.BookAppointmentErr
@@ -260,9 +364,15 @@ func (a *Adapter) CancelAppointment(_ context.Context, cancellation advancedmd.C
 	return a.CancelAppointmentErr
 }
 
-func (a *Adapter) CreatePatient(_ context.Context, _ domain.PatientCreate) (domain.CreatedPatient, error) {
+func (a *Adapter) CreatePatient(_ context.Context, command domain.PatientCreate) (domain.CreatedPatient, error) {
+	if _, ok := domain.LookupOfficeByID(command.OfficeID); !ok {
+		return domain.CreatedPatient{}, internalError()
+	}
 	a.CreatePatientCalls++
-	return a.CreatedPatient, a.CreatePatientError
+	if a.CreatePatientError != nil {
+		return domain.CreatedPatient{}, a.CreatePatientError
+	}
+	return a.CreatedPatient, nil
 }
 
 func (a *Adapter) AddPatientInsurance(_ context.Context, command domain.PatientInsurance) error {

@@ -16,10 +16,6 @@ func TestExistingPatientListsAndBooksWithoutInsuranceClarification(t *testing.T)
 			records := recordsWithSetup(testColumn("1593", "2064", "1576", "09:00", "09:15", 15))
 			records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: plan, CarrierID: "car40887"}
 			now := mutationTestNow()
-			for i := 0; i < 14; i++ {
-				day := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC).AddDate(0, 0, i).Format("2006-01-02")
-				records.ScheduleReads[day] = completeRead("1593", nil, nil)
-			}
 			svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
 			result, err := svc.List(context.Background(), scheduling.ListCommand{PatientID: "12345", Office: "Crystal River", StartDate: "2026-06-03", DOB: "01/15/1980", VisitType: "medical"})
 			if err != nil || result.Outcome != scheduling.AvailabilityOutcomeFound || len(result.Slots) == 0 {
@@ -42,10 +38,6 @@ func TestVisionCarrierIdentitySurvivesAvailabilityAndBooking(t *testing.T) {
 	records := recordsWithSetup(testColumn("1601", "621", "1582", "09:00", "09:15", 15))
 	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierID: accepted.CarrierID, CarrierName: "PREMIER EYE CARE"}
 	now := mutationTestNow()
-	for i := 0; i < 14; i++ {
-		day := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC).AddDate(0, 0, i).Format("2006-01-02")
-		records.ScheduleReads[day] = completeRead("1601", nil, nil)
-	}
 	svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
 	available, err := svc.List(context.Background(), scheduling.ListCommand{PatientID: "12345", Office: office.DisplayName, DOB: "01/15/1980", VisitType: "routine_vision", StartDate: "2026-06-03"})
 	if err != nil || len(available.Slots) == 0 {

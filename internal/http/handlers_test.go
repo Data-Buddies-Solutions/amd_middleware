@@ -1187,7 +1187,7 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 			t.Fatal("accepted incomplete/invalid identity")
 		}
 	}
-	if amd.SearchPatientCalls != 1 || amd.DemographicCalls != 1 || amd.AppointmentReadCalls != 1 {
+	if len(amd.CandidateQueries) != 1 || amd.SearchPatientCalls != 0 || amd.DemographicCalls != 1 || amd.AppointmentReadCalls != 1 {
 		t.Fatal("HTTP search must hydrate exactly one resolved chart")
 	}
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true}
