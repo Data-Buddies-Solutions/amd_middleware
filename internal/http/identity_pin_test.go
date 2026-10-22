@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"advancedmd-token-management/internal/advancedmd"
-	"advancedmd-token-management/internal/advancedmd/advancedmdtest"
 	"advancedmd-token-management/internal/clients"
 	"advancedmd-token-management/internal/domain"
 	patientmodule "advancedmd-token-management/internal/patient"
@@ -203,7 +202,6 @@ func (pinSession) Status() session.SessionStatus {
 }
 
 type pinRecords struct {
-	*advancedmdtest.Adapter
 	amd   *advancedmd.Adapter
 	calls *pinAMD
 }
@@ -232,24 +230,66 @@ func (r pinRecords) EndDatePatientInsurance(ctx context.Context, command domain.
 	return r.amd.EndDatePatientInsurance(ctx, command)
 }
 
-func (r pinRecords) ReadPatientAppointments(ctx context.Context, query domain.PatientAppointmentsQuery) (advancedmd.AppointmentRead, error) {
+func (r pinRecords) ReadPatientAppointments(_ context.Context, query domain.PatientAppointmentsQuery) (advancedmd.AppointmentRead, error) {
 	r.calls.record("appointments patient=%q", query.PatientID)
-	return r.Adapter.ReadPatientAppointments(ctx, query)
+	return pinAppointmentRead(query.PatientID), nil
 }
 
-func (r pinRecords) ReadPatientAppointmentsForMonth(ctx context.Context, query advancedmd.AppointmentMonthQuery) (advancedmd.AppointmentRead, error) {
+func (r pinRecords) ReadPatientAppointmentsForMonth(_ context.Context, query advancedmd.AppointmentMonthQuery) (advancedmd.AppointmentRead, error) {
 	r.calls.record("appointment-month patient=%q", query.PatientID)
-	return r.Adapter.ReadPatientAppointmentsForMonth(ctx, query)
+	return pinAppointmentRead(query.PatientID), nil
 }
 
-func (r pinRecords) BookAppointment(ctx context.Context, booking advancedmd.Booking) (int, error) {
+func (pinRecords) ReadAppointmentState(context.Context, advancedmd.AppointmentStateQuery) (advancedmd.AppointmentState, error) {
+	return advancedmd.AppointmentState{Complete: true}, nil
+}
+
+func (pinRecords) GetSchedulerSetup(context.Context) (domain.SchedulerSetup, error) {
+	return domain.SchedulerSetup{Columns: []domain.SchedulerColumn{{
+		ID: "1513", Name: "BACH, AUSTIN", ProfileID: "620", FacilityID: "1568",
+		StartTime: "09:00", EndTime: "09:15", Interval: 15, Workweek: 127,
+	}}}, nil
+}
+
+func (pinRecords) ReadSchedule(_ context.Context, query domain.ScheduleReadQuery) (domain.ScheduleReadResult, error) {
+	return openSchedule(query.ColumnIDs), nil
+}
+
+func (pinRecords) ReadScheduleRange(_ context.Context, query domain.ScheduleRangeQuery) (map[string]domain.ScheduleReadResult, error) {
+	results := map[string]domain.ScheduleReadResult{}
+	for day := query.Start; !day.After(query.End); day = day.AddDate(0, 0, 1) {
+		results[day.Format("2006-01-02")] = openSchedule(query.ColumnIDs)
+	}
+	return results, nil
+}
+
+func (r pinRecords) BookAppointment(_ context.Context, booking advancedmd.Booking) (int, error) {
 	r.calls.record("book patient=%d", booking.PatientID)
-	return r.Adapter.BookAppointment(ctx, booking)
+	return 98765, nil
 }
 
-func (r pinRecords) CancelAppointment(ctx context.Context, cancellation advancedmd.Cancellation) error {
+func (r pinRecords) CancelAppointment(_ context.Context, cancellation advancedmd.Cancellation) error {
 	r.calls.record("cancel appointment=%d", cancellation.AppointmentID)
-	return r.Adapter.CancelAppointment(ctx, cancellation)
+	return nil
+}
+
+func openSchedule(columnIDs []string) domain.ScheduleReadResult {
+	columns := map[string]domain.ColumnSchedule{}
+	for _, id := range columnIDs {
+		columns[id] = domain.ColumnSchedule{AppointmentsComplete: true, BlockHoldsComplete: true}
+	}
+	return domain.ScheduleReadResult{Columns: columns}
+}
+
+func pinAppointmentRead(patientID string) advancedmd.AppointmentRead {
+	appointments := map[string][]domain.PatientAppointment{
+		"101": {{
+			ID: 33101, Start: pinStart, Provider: "Dr. Austin Bach", Type: "Established Adult Medical (Follow Up)",
+			AppointmentTypeID: 1007, Facility: "Abita Eye Group Spring Hill", OfficeID: "spring_hill", Office: "Spring Hill",
+		}},
+		"12345": {pinOriginal},
+	}
+	return advancedmd.AppointmentRead{Appointments: appointments[patientID], Complete: true, ProviderReads: 1}
 }
 
 type pinHarness struct {
@@ -270,26 +310,9 @@ func newPinHarness(t *testing.T) pinHarness {
 	server := httptest.NewTLSServer(calls)
 	t.Cleanup(server.Close)
 	amdSession := pinSession{token: &session.TokenData{CookieToken: "token=pin", XmlrpcURL: strings.TrimPrefix(server.URL, "https://")}}
-	fake := advancedmdtest.NewAdapter()
-	fake.SchedulerSetup = domain.SchedulerSetup{Columns: []domain.SchedulerColumn{{
-		ID: "1513", Name: "BACH, AUSTIN", ProfileID: "620", FacilityID: "1568",
-		StartTime: "09:00", EndTime: "09:15", Interval: 15, Workweek: 127,
-	}}}
-	for day := pinStart; day.Before(pinStart.AddDate(0, 0, 14)); day = day.AddDate(0, 0, 1) {
-		fake.ScheduleReads[day.Format("2006-01-02")] = domain.ScheduleReadResult{Columns: map[string]domain.ColumnSchedule{
-			"1513": {AppointmentsComplete: true, BlockHoldsComplete: true},
-		}}
-	}
-	fake.AppointmentResults["101"] = advancedmdtest.AppointmentResult{Read: advancedmd.AppointmentRead{Complete: true, Appointments: []domain.PatientAppointment{{
-		ID: 33101, Start: pinStart, Provider: "Dr. Austin Bach", Type: "Established Adult Medical (Follow Up)",
-		AppointmentTypeID: 1007, Facility: "Abita Eye Group Spring Hill", OfficeID: "spring_hill", Office: "Spring Hill",
-	}}}}
-	fake.AppointmentResults["12345"] = advancedmdtest.AppointmentResult{Read: advancedmd.AppointmentRead{Complete: true, Appointments: []domain.PatientAppointment{pinOriginal}}}
-	fake.BookAppointmentID = 98765
 	records := pinRecords{
-		Adapter: fake,
-		amd:     advancedmd.NewAdapter(amdSession, clients.NewAdvancedMDClient(server.Client(), testNow), nil, testNow),
-		calls:   calls,
+		amd:   advancedmd.NewAdapter(amdSession, clients.NewAdvancedMDClient(server.Client(), testNow), nil, testNow),
+		calls: calls,
 	}
 	tokens := schedulingmodule.NewAppointmentTokens(pinBookingSecret, testNow)
 	handlers := NewHandlers(amdSession, patientmodule.New(records, tokens, testNow), schedulingmodule.New(records, pinBookingSecret, testNow), testNow)
