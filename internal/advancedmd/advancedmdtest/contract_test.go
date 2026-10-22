@@ -197,8 +197,8 @@ const (
 )
 
 var (
-	jane = domain.Patient{ID: "123", FirstName: "JANE", FullName: "DOE,JANE", DOB: "01/15/1980", Phone: "(954)287-2010"}
-	john = domain.Patient{ID: "456", FirstName: "JOHN", FullName: "DOE,JOHN", DOB: "03/20/1982", Phone: "(954)287-2011"}
+	jane = domain.Patient{ID: "123", FullName: "DOE,JANE", DOB: "01/15/1980", Phone: "(954)287-2010"}
+	john = domain.Patient{ID: "456", FullName: "DOE,JOHN", DOB: "03/20/1982", Phone: "(954)287-2011"}
 )
 
 func searchPatients(search domain.PatientSearch) func(context.Context, records) (any, error) {
@@ -299,7 +299,7 @@ func readCandidates(ctx context.Context, r records) (any, error) {
 }
 
 func candidateScenarios() []scenario {
-	candidate := domain.Patient{ID: "123", FirstName: "JANE", LastName: "DOE", FullName: "DOE,JANE", DOB: "01/15/1980", Phone: "(954)287-2010"}
+	candidate := domain.Patient{ID: "123", FullName: "DOE,JANE", DOB: "01/15/1980", Phone: "(954)287-2010"}
 	return []scenario{
 		{
 			name: "candidates by first name and DOB on one page are complete",
