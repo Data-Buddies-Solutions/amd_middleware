@@ -64,6 +64,7 @@ before opening a pull request.
 | `Dockerfile` and `cloudbuild.yaml` build with the `go.mod` toolchain | `TestBuildImagesUseTheGoModToolchain` in `toolchain_test.go` |
 | Every tracked Go file is `gofmt` formatted | `scripts/check` step `gofmt` |
 | Every function is reachable from `main` or a test | `scripts/check` step `dead code` |
+| Outside `internal/domain`, production code builds `PatientID`, `Phone`, `DOB` and `PersonName` only through their parsers, never by conversion | `TestIdentityValuesAreBuiltOnlyByTheirParsers` in `identity_construction_test.go` |
 | README.md's HTTP interface tables list every route the router serves and no others | `TestReadmeRouteTableMatchesRouter` in `readme_routes_test.go` |
 | The office table binds every office, provider column, and appointment type in `prod` and `sandbox` or marks it unavailable there, references only entries it defines, and never binds a column ID, phone, or AdvancedMD appointment type twice in one environment | `validateOfficeTable` in `internal/domain/office_table_validate.go`, which runs when the package loads |
 | Tests pass under the race detector | `scripts/check` step `race tests` |
