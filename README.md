@@ -366,6 +366,15 @@ When a handler panics, the route returns HTTP 500 and the request log adds a
 frames, each `function file:line`. It never records the panic value, its
 message, or frame arguments, because each can carry request data or IDs.
 
+When a request calls AdvancedMD, the request log adds `provider_calls`: one
+object per operation, sorted by operation name, with `operation`, `calls`,
+`totalMs`, and `maxMs`. It counts every call that finished before the log line,
+successful or failed, so its size is bounded by the number of distinct
+operations rather than by call count. Operation names are fixed strings such as
+`getdemographic` and `get_appointments_by_month`, never request data. Failed
+calls also appear in `provider_errors` and `provider_error_count` as before.
+Session login calls are not counted.
+
 Operational routes have separate contracts:
 
 | Route | Contract |

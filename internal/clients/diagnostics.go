@@ -64,7 +64,11 @@ type providerObservation struct{ httpStatus int }
 func beginProviderOperation(ctx context.Context, operation string) (context.Context, func(error)) {
 	started := time.Now()
 	ctx = context.WithValue(ctx, providerObservationKey{}, &providerObservation{})
-	return ctx, func(err error) { observeProviderFailure(ctx, operation, time.Since(started), err) }
+	return ctx, func(err error) {
+		elapsed := time.Since(started)
+		safeerrors.ObserveCall(ctx, operation, elapsed)
+		observeProviderFailure(ctx, operation, elapsed, err)
+	}
 }
 func observeProviderStatus(ctx context.Context, status int) {
 	if observation, _ := ctx.Value(providerObservationKey{}).(*providerObservation); observation != nil {
