@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 type Config struct {
@@ -20,7 +22,7 @@ type Config struct {
 
 	Port string
 
-	AMDEnv string
+	AMDEnv domain.Environment
 }
 
 func Load() (*Config, error) {
@@ -34,7 +36,6 @@ func Load() (*Config, error) {
 		MaintenanceOIDCAudience:       os.Getenv("MAINTENANCE_OIDC_AUDIENCE"),
 		MaintenanceOIDCServiceAccount: os.Getenv("MAINTENANCE_OIDC_SERVICE_ACCOUNT"),
 		Port:                          os.Getenv("PORT"),
-		AMDEnv:                        os.Getenv("AMD_ENV"),
 	}
 
 	if cfg.Port == "" {
@@ -56,6 +57,11 @@ func Load() (*Config, error) {
 	if cfg.APISecret == "" {
 		return nil, fmt.Errorf("API_SECRET is required")
 	}
+	env, err := domain.ParseEnvironment(os.Getenv("AMD_ENV"))
+	if err != nil {
+		return nil, fmt.Errorf("AMD_ENV: %w", err)
+	}
+	cfg.AMDEnv = env
 	if err := validateMaintenanceAudience(cfg.MaintenanceOIDCAudience); err != nil {
 		return nil, err
 	}

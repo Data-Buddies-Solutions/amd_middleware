@@ -196,10 +196,10 @@ func readTable(b []byte) ([]string, [][]string, error) {
 func checkDoctorColumns(columns, offices []string) error {
 	want := []string{}
 	for _, id := range offices {
-		office, _ := domain.LookupOfficeByID(id)
-		for _, column := range office.Columns {
-			if !slices.Contains(want, column.DisplayName) {
-				want = append(want, column.DisplayName)
+		names, _ := domain.OfficeProviderNames(id)
+		for _, name := range names {
+			if !slices.Contains(want, name) {
+				want = append(want, name)
 			}
 		}
 	}

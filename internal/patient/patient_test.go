@@ -21,7 +21,6 @@ const writableMedicalPlan = "Meritain Health"
 const writableMedicalCarrier = "car301578"
 
 func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
-	domain.InitRegistry("")
 	office, ok := domain.LookupOffice("Spring Hill")
 	if !ok {
 		t.Fatal("Spring Hill office is not configured")
@@ -102,7 +101,6 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 }
 
 func TestCreateOwnsValidationAndOfficeResolution(t *testing.T) {
-	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 
 	command := validCreateCommand()
@@ -122,7 +120,6 @@ func TestCreateOwnsValidationAndOfficeResolution(t *testing.T) {
 }
 
 func TestCreateRejectsInvalidDOBBeforeAnyAdvancedMDCall(t *testing.T) {
-	domain.InitRegistry("")
 	for _, dob := range []string{"13/45/2020", ""} {
 		t.Run(dob, func(t *testing.T) {
 			amd := advancedmdtest.NewAdapter()
@@ -142,7 +139,6 @@ func TestCreateRejectsInvalidDOBBeforeAnyAdvancedMDCall(t *testing.T) {
 }
 
 func TestCreateAcceptsTheDOBFormatsAbitaSends(t *testing.T) {
-	domain.InitRegistry("")
 	for _, dob := range []string{"1/5/1980", "01/05/1980", "1/15/1980", "01/5/1980"} {
 		t.Run(dob, func(t *testing.T) {
 			amd := advancedmdtest.NewAdapter()
@@ -159,7 +155,6 @@ func TestCreateAcceptsTheDOBFormatsAbitaSends(t *testing.T) {
 }
 
 func TestCreateReturnsStableRejectionWithoutRetry(t *testing.T) {
-	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.CreatePatientError = advancedmd.NewError(safeerrors.CategoryRejected)
 
@@ -177,7 +172,6 @@ func TestCreateReturnsStableRejectionWithoutRetry(t *testing.T) {
 }
 
 func TestCreateReconcilesAmbiguousWriteAfterTransientReadFailure(t *testing.T) {
-	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
 	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
@@ -211,7 +205,6 @@ func TestCreateReconcilesAmbiguousWriteAfterTransientReadFailure(t *testing.T) {
 }
 
 func TestCreateKeepsEmptyReconciliationLookupIndeterminate(t *testing.T) {
-	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
 
@@ -232,7 +225,6 @@ func TestCreateKeepsEmptyReconciliationLookupIndeterminate(t *testing.T) {
 }
 
 func TestCreatePollsUntilNewPatientBecomesVisible(t *testing.T) {
-	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
 	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
@@ -263,7 +255,6 @@ func TestCreatePollsUntilNewPatientBecomesVisible(t *testing.T) {
 }
 
 func TestCreateKeepsUnidentifiablePostWriteMatchIndeterminate(t *testing.T) {
-	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
 	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
@@ -301,7 +292,6 @@ func TestCreateKeepsUnidentifiablePostWriteMatchIndeterminate(t *testing.T) {
 }
 
 func TestCreateRefusesExistingPatientOnCallerPhone(t *testing.T) {
-	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
 	amd.PatientSearches[search] = []domain.Patient{{
@@ -326,7 +316,6 @@ func TestCreateRefusesExistingPatientOnCallerPhone(t *testing.T) {
 }
 
 func TestCreateAllowsHouseholdMemberOnCallerPhone(t *testing.T) {
-	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
 	amd.PatientSearches[search] = []domain.Patient{{
@@ -345,7 +334,6 @@ func TestCreateAllowsHouseholdMemberOnCallerPhone(t *testing.T) {
 }
 
 func TestCreateObservesBaselineSearchCompletenessWithoutChangingTheDecision(t *testing.T) {
-	domain.InitRegistry("")
 	for _, incomplete := range []bool{false, true} {
 		amd := advancedmdtest.NewAdapter()
 		amd.IncompletePatientSearch = map[domain.PatientSearch]bool{{Phone: "9542872010"}: incomplete}
@@ -362,7 +350,6 @@ func TestCreateObservesBaselineSearchCompletenessWithoutChangingTheDecision(t *t
 }
 
 func TestCreateDoesNotAdoptPreexistingPatientWhoseLookupDetailsChanged(t *testing.T) {
-	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
 	existing := domain.Patient{
 		ID:        "123",
@@ -396,7 +383,6 @@ func TestCreateDoesNotAdoptPreexistingPatientWhoseLookupDetailsChanged(t *testin
 }
 
 func TestCreateDoesNotWriteWithAnUnidentifiableBaselinePatient(t *testing.T) {
-	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
 	amd.CreatedPatient = domain.CreatedPatient{
@@ -425,7 +411,6 @@ func TestCreateDoesNotWriteWithAnUnidentifiableBaselinePatient(t *testing.T) {
 }
 
 func TestCreateDoesNotWriteWithoutAReconciliationBaseline(t *testing.T) {
-	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
 	amd.PatientErrors[search] = advancedmd.NewError(safeerrors.CategoryNetwork)
@@ -444,7 +429,6 @@ func TestCreateDoesNotWriteWithoutAReconciliationBaseline(t *testing.T) {
 }
 
 func TestCreateReturnsIndeterminateWhenReconciliationCannotProveOutcome(t *testing.T) {
-	domain.InitRegistry("")
 	search := domain.PatientSearch{Phone: "9542872010"}
 	amd := advancedmdtest.NewAdapter()
 	amd.CreatePatientError = advancedmd.NewAmbiguousWriteError(safeerrors.CategoryUnavailable)
@@ -469,7 +453,6 @@ func TestCreateReturnsIndeterminateWhenReconciliationCannotProveOutcome(t *testi
 }
 
 func TestCreateReconcilesAmbiguousInsuranceAttachment(t *testing.T) {
-	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.CreatedPatient = domain.CreatedPatient{
 		ID:          "123",
@@ -497,7 +480,6 @@ func TestCreateReconcilesAmbiguousInsuranceAttachment(t *testing.T) {
 }
 
 func TestResolveReturnsLightweightCandidatesWithoutHydrationForMultipleMatches(t *testing.T) {
-	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Spring Hill")
 
 	search := domain.PatientSearch{Phone: "5552223333"}
@@ -550,7 +532,6 @@ func TestResolveReturnsLightweightCandidatesWithoutHydrationForMultipleMatches(t
 }
 
 func TestResolveDoesNotHydrateAmbiguousFirstNameCandidates(t *testing.T) {
-	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Spring Hill")
 	search := domain.PatientSearch{Phone: "5552223333"}
 	amd := advancedmdtest.NewAdapter()
@@ -580,7 +561,6 @@ func TestResolveDoesNotHydrateAmbiguousFirstNameCandidates(t *testing.T) {
 }
 
 func TestResolvePreservesMalformedAndTimeoutSearchErrors(t *testing.T) {
-	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Spring Hill")
 	search := domain.PatientSearch{Phone: "9542872010"}
 	tests := []struct {
@@ -647,7 +627,6 @@ func validUpdateInsuranceCommand() patient.UpdateInsuranceCommand {
 }
 
 func TestResolveSelectsPatientByVerifiedDemographics(t *testing.T) {
-	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Hollywood")
 	candidates := []domain.Patient{
 		{ID: "123", FirstName: "JANE", LastName: "DOE", FullName: "DOE,JANE", DOB: "01/15/1980"},
@@ -711,7 +690,6 @@ func TestResolveSelectsPatientByVerifiedDemographics(t *testing.T) {
 }
 
 func TestResolveReturnsNoMatchWithoutHydratingPatientData(t *testing.T) {
-	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Spring Hill")
 	amd := advancedmdtest.NewAdapter()
 
@@ -734,7 +712,6 @@ func TestResolveReturnsNoMatchWithoutHydratingPatientData(t *testing.T) {
 }
 
 func TestResolveRefreshesKnownPatientByID(t *testing.T) {
-	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Spring Hill")
 	amd := advancedmdtest.NewAdapter()
 	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true,
@@ -785,7 +762,6 @@ func TestResolveRefreshesKnownPatientByID(t *testing.T) {
 }
 
 func TestResolveStartsDemographicsAndAppointmentsConcurrently(t *testing.T) {
-	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Spring Hill")
 	demographicsStarted := make(chan struct{}, 1)
 	appointmentsStarted := make(chan struct{}, 1)
@@ -842,7 +818,6 @@ func TestResolveStartsDemographicsAndAppointmentsConcurrently(t *testing.T) {
 }
 
 func TestResolveKeepsVerifiedPatientWhenAppointmentsFail(t *testing.T) {
-	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Spring Hill")
 	amd := advancedmdtest.NewAdapter()
 	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true}
@@ -916,7 +891,6 @@ func (r stalledAppointmentRecords) GetPatientDemographics(ctx context.Context, p
 }
 
 func TestResolveReturnsVerifiedPatientBeforeDeadlineWhenAppointmentsStall(t *testing.T) {
-	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Spring Hill")
 	amd := advancedmdtest.NewAdapter()
 	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true}
@@ -946,7 +920,6 @@ func TestResolveReturnsVerifiedPatientBeforeDeadlineWhenAppointmentsStall(t *tes
 }
 
 func TestResolveKnownPatientReturnsUnavailableWhenAdvancedMDCannotAuthenticate(t *testing.T) {
-	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Spring Hill")
 	amd := advancedmdtest.NewAdapter()
 	amd.DemographicErrors["123"] = advancedmd.NewError(safeerrors.CategoryUnavailable)
@@ -967,7 +940,6 @@ func TestResolveKnownPatientReturnsUnavailableWhenAdvancedMDCannotAuthenticate(t
 }
 
 func TestResolveDoesNotVerifyPatientWithoutIdentity(t *testing.T) {
-	domain.InitRegistry("")
 	office, _ := domain.LookupOffice("Spring Hill")
 	tests := []struct {
 		name         string
@@ -1008,7 +980,6 @@ func TestResolveDoesNotVerifyPatientWithoutIdentity(t *testing.T) {
 }
 
 func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) {
-	domain.InitRegistry("")
 
 	tests := []struct {
 		name          string
@@ -1132,7 +1103,6 @@ func testNow() time.Time {
 }
 
 func TestResolveReportsAppointmentsErrorWhenTokensCannotBeIssued(t *testing.T) {
-	domain.InitRegistry("")
 	amd := advancedmdtest.NewAdapter()
 	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true, FullName: "DOE,JANE", DOB: "01/15/1980"}
 	amd.AppointmentResults["123"] = advancedmdtest.AppointmentResult{

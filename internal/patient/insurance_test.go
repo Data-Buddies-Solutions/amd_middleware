@@ -29,7 +29,6 @@ func (r *insuranceRecords) GetPatientDemographics(_ context.Context, _ string) (
 	return read.chart, read.err
 }
 func TestInsuranceReplacementOwnsReferencesAndWriteEffects(t *testing.T) {
-	domain.InitRegistry("")
 	old := domain.PatientDemographics{DOB: "01/15/1980", CarrierName: "Old", CarrierID: "car-old", InsPlanID: "fresh-plan", RespPartyID: "fresh-party", SubscriberNum: "OLD", InsuranceStateKnown: true}
 	none := old
 	none.CarrierName = ""

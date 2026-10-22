@@ -169,7 +169,6 @@ func TestAdapterReturnsStableRedactedErrors(t *testing.T) {
 }
 
 func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
-	domain.InitRegistry("")
 	command := domain.PatientCreate{
 		FirstName: "JANE",
 		LastName:  "DOE",
@@ -263,7 +262,6 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 }
 
 func TestAdapterInsuranceMutationUsesControlledXMLRPCServer(t *testing.T) {
-	domain.InitRegistry("")
 	requests := 0
 	var requestBody map[string]any
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -307,7 +305,6 @@ func TestAdapterInsuranceMutationUsesControlledXMLRPCServer(t *testing.T) {
 }
 
 func TestAdapterUpcomingAppointmentsUsesControlledRESTServer(t *testing.T) {
-	domain.InitRegistry("")
 	fixedNow := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
 	var requestedColumns map[string]int = make(map[string]int)
 	var requestedMonths map[string]int = make(map[string]int)
@@ -458,9 +455,9 @@ func TestAdapterUpcomingAppointmentsUsesControlledRESTServer(t *testing.T) {
 	}
 }
 
-func TestAdapterCanonicalizesDevelopmentAppointmentTypeIDs(t *testing.T) {
-	domain.InitRegistry("dev")
-	t.Cleanup(func() { domain.InitRegistry("") })
+func TestAdapterCanonicalizesSandboxAppointmentTypeIDs(t *testing.T) {
+	domain.InitRegistry(domain.Sandbox)
+	t.Cleanup(func() { domain.InitRegistry(domain.Prod) })
 	office := domain.DefaultOffice()
 	fixedNow := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
 
@@ -508,7 +505,6 @@ func TestAdapterCanonicalizesDevelopmentAppointmentTypeIDs(t *testing.T) {
 }
 
 func TestPatientAppointmentReadPreservesUnrecognizedTypeForRescheduling(t *testing.T) {
-	domain.InitRegistry("")
 	office := domain.DefaultOffice()
 	read := patientAppointmentRead(
 		[]clients.AMDAppointmentResponse{{
@@ -533,7 +529,6 @@ func TestPatientAppointmentReadPreservesUnrecognizedTypeForRescheduling(t *testi
 }
 
 func TestAdapterPreservesUnrecognizedProductionAppointmentType(t *testing.T) {
-	domain.InitRegistry("")
 	var bookingPayload map[string]any
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&bookingPayload); err != nil {
@@ -579,7 +574,6 @@ func TestAdapterPreservesUnrecognizedProductionAppointmentType(t *testing.T) {
 }
 
 func TestAdapterSingleOfficeUsesSixReadsAndMarksUnreconciledRowsIncomplete(t *testing.T) {
-	domain.InitRegistry("")
 	fixedNow := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -630,7 +624,6 @@ func TestAdapterSingleOfficeUsesSixReadsAndMarksUnreconciledRowsIncomplete(t *te
 }
 
 func TestAdapterCancelsRemainingMonthReadsWhenOneMonthFails(t *testing.T) {
-	domain.InitRegistry("")
 	fixedNow := time.Date(2026, time.July, 25, 10, 30, 0, 0, time.FixedZone("EDT", -4*60*60))
 	blockedStarted := make(chan struct{}, 5)
 	blockedCancelled := make(chan struct{}, 5)
@@ -694,7 +687,6 @@ func TestAdapterCancelsRemainingMonthReadsWhenOneMonthFails(t *testing.T) {
 }
 
 func TestAdapterReadsIntendedAppointmentMonth(t *testing.T) {
-	domain.InitRegistry("")
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("startDate") != "2027-01-01" {
 			t.Fatalf("startDate = %q, want intended appointment month", r.URL.Query().Get("startDate"))
@@ -740,7 +732,6 @@ func TestAdapterReadsIntendedAppointmentMonth(t *testing.T) {
 }
 
 func TestAdapterIntendedMonthReadPreservesPerOfficeReconciliation(t *testing.T) {
-	domain.InitRegistry("")
 	var mu sync.Mutex
 	requestedColumns := make(map[string]int)
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -786,7 +777,6 @@ func TestAdapterIntendedMonthReadPreservesPerOfficeReconciliation(t *testing.T) 
 }
 
 func TestAdapterMarksMissingPatientIDIncomplete(t *testing.T) {
-	domain.InitRegistry("")
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`[{
@@ -822,7 +812,6 @@ func TestAdapterMarksMissingPatientIDIncomplete(t *testing.T) {
 }
 
 func TestAdapterReadsCurrentAppointmentStateAfterStartTime(t *testing.T) {
-	domain.InitRegistry("")
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("startDate") != "2026-08-01" {
 			t.Fatalf("startDate = %q, want appointment month", r.URL.Query().Get("startDate"))
@@ -981,7 +970,6 @@ func TestAdapterPreservesPartialScheduleReads(t *testing.T) {
 }
 
 func TestAdapterBooksAndCancelsThroughControlledRESTServer(t *testing.T) {
-	domain.InitRegistry("")
 	var bookingPayload map[string]any
 	var cancellationPayload map[string]any
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1045,7 +1033,6 @@ func TestAdapterBooksAndCancelsThroughControlledRESTServer(t *testing.T) {
 }
 
 func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
-	domain.InitRegistry("")
 	tests := []struct {
 		name      string
 		status    int
@@ -1202,7 +1189,6 @@ func TestAdapterPatientCandidatesForwardsDOB(t *testing.T) {
 }
 
 func TestAdapterPatientAppointmentWindowFollowsTheInjectedEasternClock(t *testing.T) {
-	domain.InitRegistry("")
 	clock := func() time.Time { return time.Date(2026, time.August, 1, 2, 30, 0, 0, time.UTC) }
 	var mu sync.Mutex
 	var requestedMonths []string

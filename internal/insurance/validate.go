@@ -20,7 +20,7 @@ func validateOfficeTables(officeTables map[string][]string) error {
 			return fmt.Errorf("%s: no offices", table)
 		}
 		for _, office := range officeTables[table] {
-			if _, ok := domain.LookupOfficeByID(office); !ok {
+			if _, ok := domain.OfficeProviderNames(office); !ok {
 				return fmt.Errorf("%s: unknown office %q", table, office)
 			}
 			if other, ok := officeTable[office]; ok {

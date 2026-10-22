@@ -125,7 +125,6 @@ func declaredCategories(t *testing.T) []safeerrors.Category {
 }
 
 func TestAdapterReportsWritesThatNeverLeftAsDefiniteFailures(t *testing.T) {
-	domain.InitRegistry("")
 	unbuildable := &session.TokenData{
 		Token:       "Bearer test-token",
 		CookieToken: "token=test-cookie",
@@ -200,7 +199,6 @@ func TestAdapterReportsWritesThatNeverLeftAsDefiniteFailures(t *testing.T) {
 }
 
 func TestAdapterReportsInconsistentProviderReadsAsInvalidResponses(t *testing.T) {
-	domain.InitRegistry("")
 	lookup := func(pages ...string) func(*testing.T) error {
 		return func(t *testing.T) error {
 			served := 0
@@ -252,7 +250,6 @@ func TestAdapterReportsInconsistentProviderReadsAsInvalidResponses(t *testing.T)
 }
 
 func TestAdapterReportsProviderRejectedReadsAsRejected(t *testing.T) {
-	domain.InitRegistry("")
 	adapter := xmlrpcAdapter(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte(`{"PPMDResults":{"Error":{"Fault":{"faultcode":"42","description":"patient-secret"}}}}`))
 	})
@@ -267,7 +264,6 @@ func TestAdapterReportsProviderRejectedReadsAsRejected(t *testing.T) {
 }
 
 func TestAdapterTreatsUnusableBookingAnswerAsAmbiguousInvalidResponse(t *testing.T) {
-	domain.InitRegistry("")
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte(`{"id":0}`))
 	}))
@@ -289,7 +285,6 @@ func TestAdapterTreatsUnusableBookingAnswerAsAmbiguousInvalidResponse(t *testing
 }
 
 func TestAdapterClassifiesReadStatusesWithoutWriteSemantics(t *testing.T) {
-	domain.InitRegistry("")
 	for status, want := range map[int]safeerrors.Category{
 		http.StatusUnauthorized:        safeerrors.CategoryAuthentication,
 		http.StatusForbidden:           safeerrors.CategoryAuthentication,

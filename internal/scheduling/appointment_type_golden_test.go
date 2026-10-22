@@ -26,11 +26,11 @@ func goldenAgeDOB(age int) string {
 }
 
 func TestAppointmentTypeDecisionsMatchGolden(t *testing.T) {
-	for _, env := range []string{"prod", "dev"} {
-		t.Run(env, func(t *testing.T) {
-			t.Cleanup(func() { domain.InitRegistry("prod") })
+	for _, env := range []domain.Environment{domain.Prod, domain.Sandbox} {
+		t.Run(string(env), func(t *testing.T) {
+			t.Cleanup(func() { domain.InitRegistry(domain.Prod) })
 			domain.InitRegistry(env)
-			checkAppointmentTypeGolden(t, filepath.Join("testdata", "appointment_types."+env+".golden"), appointmentTypeRows())
+			checkAppointmentTypeGolden(t, filepath.Join("testdata", "appointment_types."+string(env)+".golden"), appointmentTypeRows())
 		})
 	}
 }

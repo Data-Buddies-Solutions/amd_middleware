@@ -50,11 +50,11 @@ func goldenDOBs() []goldenDOB {
 }
 
 func TestRegistryMatchesGolden(t *testing.T) {
-	for _, env := range []string{"prod", "dev"} {
-		t.Run(env, func(t *testing.T) {
-			t.Cleanup(func() { InitRegistry("prod") })
+	for _, env := range []Environment{Prod, Sandbox} {
+		t.Run(string(env), func(t *testing.T) {
+			t.Cleanup(func() { InitRegistry(Prod) })
 			InitRegistry(env)
-			checkRegistryGolden(t, filepath.Join("testdata", "registry."+env+".golden"), registryRows())
+			checkRegistryGolden(t, filepath.Join("testdata", "registry."+string(env)+".golden"), registryRows())
 		})
 	}
 }

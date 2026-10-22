@@ -405,6 +405,11 @@ go run ./cmd/api
 
 The process listens on `0.0.0.0:$PORT` (`8080` by default).
 
+`AMD_ENV` names the AdvancedMD account the credentials belong to, `prod` or
+`sandbox`, and selects that account's offices, scheduler columns, and
+appointment type IDs from the [office table](internal/domain/office_table.go).
+Any other value, including an empty one, stops startup.
+
 ```bash
 curl http://localhost:8080/live
 curl http://localhost:8080/ready
@@ -440,7 +445,7 @@ Deployment configuration and verification live in the
 
 ### Staging follows each release
 
-The staging Cloud Run service `abita-middleware-sandbox` (`AMD_ENV=dev`,
+The staging Cloud Run service `abita-middleware-sandbox` (`AMD_ENV=sandbox`,
 AdvancedMD sandbox credentials) is the only target of abita_s2s simulations.
 The [staging workflow](.github/workflows/staging.yml) redeploys it on every
 stable `vMAJOR.MINOR.PATCH` tag with the image production runs:
@@ -451,9 +456,10 @@ stable `vMAJOR.MINOR.PATCH` tag with the image production runs:
 2. It copies `services/abita-middleware:<commit>` by digest into the
    `middleware-sandbox` repository with a pinned `crane copy`, which keeps the
    digest.
-3. It updates the sandbox to that digest. `scripts/staging_deployment.py`
-   refuses to deploy unless the sandbox digest equals the production digest,
-   and records both in the receipt.
+3. It updates the sandbox to that digest and `AMD_ENV=sandbox` in one
+   revision. `scripts/staging_deployment.py` refuses to deploy unless the
+   sandbox digest equals the production digest, and records both in the
+   receipt.
 
 A failed staging deploy does not affect production: the job touches Google
 Cloud only after production's build succeeded, and only the sandbox.

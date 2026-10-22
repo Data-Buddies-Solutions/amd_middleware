@@ -3,6 +3,7 @@ package domain
 import (
 	"fmt"
 	"log"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -205,16 +206,33 @@ func (o *OfficeConfig) AppointmentTypeName(typeID int) (string, bool) {
 }
 
 func OfficeIDs() []string {
-	ids := make([]string, 0, len(current.offices))
-	for _, office := range current.offices {
-		ids = append(ids, office.ID)
+	ids := make([]string, 0, len(table.Offices))
+	for _, definition := range table.Offices {
+		ids = append(ids, definition.ID)
 	}
 	sort.Strings(ids)
 	return ids
 }
 
+func OfficeProviderNames(officeID string) ([]string, bool) {
+	for _, definition := range table.Offices {
+		if definition.ID != officeID {
+			continue
+		}
+		names := []string{}
+		for _, column := range definition.Columns {
+			if !slices.Contains(names, column.Provider.DisplayName) {
+				names = append(names, column.Provider.DisplayName)
+			}
+		}
+		sort.Strings(names)
+		return names, true
+	}
+	return nil, false
+}
+
 func LookupOfficeByID(officeID string) (*OfficeConfig, bool) {
-	for _, office := range current.offices {
+	for _, office := range selected().offices {
 		if office.ID == officeID {
 			return office, true
 		}
@@ -225,12 +243,12 @@ func LookupOfficeByID(officeID string) (*OfficeConfig, bool) {
 const PreservedAppointmentTypeFallbackColor = "TEAL"
 
 func ResolveAppointmentTypeID(typeID int) (int, bool) {
-	providerTypeID, ok := current.providerTypeIDs[typeID]
+	providerTypeID, ok := selected().providerTypeIDs[typeID]
 	return providerTypeID, ok
 }
 
 func CanonicalAppointmentTypeID(typeID int) (int, bool) {
-	canonicalID, ok := current.canonicalTypeIDs[typeID]
+	canonicalID, ok := selected().canonicalTypeIDs[typeID]
 	return canonicalID, ok
 }
 
@@ -255,9 +273,18 @@ type registry struct {
 	canonicalTypeIDs map[int]int
 }
 
-var registries = buildRegistries(newOfficeTable())
+var table = newOfficeTable()
 
-var current = registries[Prod]
+var registries = buildRegistries(table)
+
+var current *registry
+
+func selected() *registry {
+	if current == nil {
+		panic("domain: InitRegistry must select an environment before office lookups")
+	}
+	return current
+}
 
 func buildRegistries(table officeTable) map[Environment]*registry {
 	built := make(map[Environment]*registry, len(table.Environments))
@@ -344,15 +371,29 @@ func bindOffice(definition officeDefinition, binding officeBinding) *OfficeConfi
 	return office
 }
 
-func InitRegistry(env string) {
-	switch env {
-	case "dev":
-		current = registries[Sandbox]
-		log.Printf("Office registry: dev")
+type Environment string
+
+const (
+	Prod    Environment = "prod"
+	Sandbox Environment = "sandbox"
+)
+
+func ParseEnvironment(value string) (Environment, error) {
+	switch env := Environment(value); env {
+	case Prod, Sandbox:
+		return env, nil
 	default:
-		current = registries[Prod]
-		log.Printf("Office registry: prod")
+		return "", fmt.Errorf("environment must be %s or %s", Prod, Sandbox)
 	}
+}
+
+func InitRegistry(env Environment) {
+	r, ok := registries[env]
+	if !ok {
+		panic(fmt.Sprintf("domain: no office registry for environment %q", env))
+	}
+	current = r
+	log.Printf("Office registry: %s", env)
 }
 
 func stripToDigits(s string) string {
@@ -376,14 +417,14 @@ func NormalizePhoneDigits(s string) string {
 func LookupOffice(phone string) (*OfficeConfig, bool) {
 	phone = strings.TrimSpace(phone)
 	for _, key := range officePhoneLookupKeys(phone) {
-		if office, ok := current.byPhone[key]; ok {
+		if office, ok := selected().byPhone[key]; ok {
 			return office, true
 		}
 	}
 
 	lookup := normalizeOfficeLookup(phone)
 	compactLookup := strings.ReplaceAll(lookup, " ", "")
-	for _, office := range current.offices {
+	for _, office := range selected().offices {
 		for _, candidate := range []string{office.ID, office.DisplayName} {
 			normalized := normalizeOfficeLookup(candidate)
 			if lookup == normalized || compactLookup == strings.ReplaceAll(normalized, " ", "") {
@@ -416,12 +457,12 @@ func officePhoneLookupKeys(phone string) []string {
 }
 
 func DefaultOffice() *OfficeConfig {
-	return current.defaultOffice
+	return selected().defaultOffice
 }
 
 func validOfficeNames() []string {
-	names := make([]string, 0, len(current.offices))
-	for _, office := range current.offices {
+	names := make([]string, 0, len(selected().offices))
+	for _, office := range selected().offices {
 		names = append(names, office.DisplayName)
 	}
 	sort.Strings(names)

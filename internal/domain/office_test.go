@@ -48,21 +48,21 @@ func TestLookupOffice(t *testing.T) {
 func TestAppointmentLookupOfficeIDs(t *testing.T) {
 	tests := []struct {
 		name   string
-		env    string
+		env    Environment
 		office string
 		want   []string
 	}{
-		{"spring hill includes crystal river", "prod", "spring_hill", []string{"spring_hill", "crystal_river"}},
-		{"crystal river includes spring hill", "prod", "crystal_river", []string{"spring_hill", "crystal_river"}},
-		{"hollywood includes sweetwater and north miami beach optical", "prod", "hollywood", []string{"hollywood", "sweetwater", "north_miami_beach_optical"}},
-		{"sweetwater includes hollywood", "prod", "sweetwater", []string{"hollywood", "sweetwater"}},
-		{"north miami beach optical stays scoped", "prod", "north_miami_beach_optical", []string{"north_miami_beach_optical"}},
-		{"sandbox spring hill skips unavailable crystal river", "dev", "spring_hill", []string{"spring_hill"}},
+		{"spring hill includes crystal river", Prod, "spring_hill", []string{"spring_hill", "crystal_river"}},
+		{"crystal river includes spring hill", Prod, "crystal_river", []string{"spring_hill", "crystal_river"}},
+		{"hollywood includes sweetwater and north miami beach optical", Prod, "hollywood", []string{"hollywood", "sweetwater", "north_miami_beach_optical"}},
+		{"sweetwater includes hollywood", Prod, "sweetwater", []string{"hollywood", "sweetwater"}},
+		{"north miami beach optical stays scoped", Prod, "north_miami_beach_optical", []string{"north_miami_beach_optical"}},
+		{"sandbox spring hill skips unavailable crystal river", Sandbox, "spring_hill", []string{"spring_hill"}},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Cleanup(func() { InitRegistry("prod") })
+			t.Cleanup(func() { InitRegistry(Prod) })
 			InitRegistry(tt.env)
 			if got := mustOffice(t, tt.office).AppointmentLookupOfficeIDs; !slices.Equal(got, tt.want) {
 				t.Fatalf("AppointmentLookupOfficeIDs = %v, want %v", got, tt.want)
@@ -81,9 +81,9 @@ func mustOffice(t *testing.T, id string) *OfficeConfig {
 }
 
 func TestCanonicalAppointmentTypeID(t *testing.T) {
-	defer InitRegistry("prod")
+	defer InitRegistry(Prod)
 
-	InitRegistry("prod")
+	InitRegistry(Prod)
 	if got, ok := CanonicalAppointmentTypeID(1007); !ok || got != 1007 {
 		t.Fatalf("prod CanonicalAppointmentTypeID(1007) = (%d, %v), want (1007, true)", got, ok)
 	}
@@ -91,21 +91,21 @@ func TestCanonicalAppointmentTypeID(t *testing.T) {
 		t.Fatalf("prod CanonicalAppointmentTypeID(18) = (%d, %v), want (0, false)", got, ok)
 	}
 
-	InitRegistry("dev")
+	InitRegistry(Sandbox)
 	if got, ok := CanonicalAppointmentTypeID(18); !ok || got != 1007 {
-		t.Fatalf("dev CanonicalAppointmentTypeID(18) = (%d, %v), want (1007, true)", got, ok)
+		t.Fatalf("sandbox CanonicalAppointmentTypeID(18) = (%d, %v), want (1007, true)", got, ok)
 	}
 	if got, ok := CanonicalAppointmentTypeID(1010); ok || got != 0 {
-		t.Fatalf("dev CanonicalAppointmentTypeID(1010) = (%d, %v), want (0, false)", got, ok)
+		t.Fatalf("sandbox CanonicalAppointmentTypeID(1010) = (%d, %v), want (0, false)", got, ok)
 	}
 	if got, ok := CanonicalAppointmentTypeID(9999); ok || got != 0 {
-		t.Fatalf("dev CanonicalAppointmentTypeID(9999) = (%d, %v), want (0, false)", got, ok)
+		t.Fatalf("sandbox CanonicalAppointmentTypeID(9999) = (%d, %v), want (0, false)", got, ok)
 	}
 }
 
 func TestSandboxRejectsUnmappedProductionIDs(t *testing.T) {
-	defer InitRegistry("prod")
-	InitRegistry("dev")
+	defer InitRegistry(Prod)
+	InitRegistry(Sandbox)
 	if office, ok := LookupOffice("spring_hill"); !ok || office.FacilityID != "1032" {
 		t.Fatal("sandbox office ID must resolve to the sandbox Spring Hill config")
 	}
@@ -128,7 +128,7 @@ func TestSandboxRejectsUnmappedProductionIDs(t *testing.T) {
 			t.Errorf("sandbox medical mapping %d = (%d, %v), want %d", canonical, got, ok, sandbox)
 		}
 	}
-	InitRegistry("prod")
+	InitRegistry(Prod)
 	for _, id := range unmapped {
 		if got, ok := ResolveAppointmentTypeID(id); !ok || got != id {
 			t.Errorf("production mapping changed for type %d", id)
@@ -259,39 +259,39 @@ func TestOfficeConfig_NorthMiamiBeachOpticalColumn(t *testing.T) {
 func TestOfficeConfig_SameStartCapacityScope(t *testing.T) {
 	tests := []struct {
 		name       string
-		env        string
+		env        Environment
 		office     string
 		doubleBook []string
 		singleBook []string
 	}{
 		{
 			name:       "spring hill medical columns double-bookable",
-			env:        "prod",
+			env:        Prod,
 			office:     "spring_hill",
 			doubleBook: []string{"1513", "1598", "1551", "1550"},
 			singleBook: []string{"1600"},
 		},
 		{
 			name:       "crystal river remains single-booked",
-			env:        "prod",
+			env:        Prod,
 			office:     "crystal_river",
 			singleBook: []string{"1593"},
 		},
 		{
 			name:       "sweetwater all columns have same-start capacity",
-			env:        "prod",
+			env:        Prod,
 			office:     "sweetwater",
 			doubleBook: []string{"682", "1307", "1296", "1554", "1210"},
 		},
 		{
 			name:       "hollywood all columns have same-start capacity",
-			env:        "prod",
+			env:        Prod,
 			office:     "hollywood",
 			doubleBook: []string{"1268", "1478", "1555", "1510", "1305"},
 		},
 		{
-			name:       "dev spring hill all columns double-bookable",
-			env:        "dev",
+			name:       "sandbox spring hill all columns double-bookable",
+			env:        Sandbox,
 			office:     "spring_hill",
 			doubleBook: []string{"1716", "1723", "1726"},
 		},
@@ -299,7 +299,7 @@ func TestOfficeConfig_SameStartCapacityScope(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Cleanup(func() { InitRegistry("prod") })
+			t.Cleanup(func() { InitRegistry(Prod) })
 			InitRegistry(tt.env)
 			office := mustOffice(t, tt.office)
 			for _, columnID := range tt.doubleBook {
@@ -428,37 +428,37 @@ func TestOfficeConfig_RoutineAgeRules(t *testing.T) {
 }
 
 func TestInitRegistry(t *testing.T) {
-	defer InitRegistry("prod")
+	defer InitRegistry(Prod)
 
-	InitRegistry("dev")
+	InitRegistry(Sandbox)
 	office, ok := LookupOffice("+14843989071")
 	if !ok {
-		t.Fatal("dev registry should have +14843989071")
+		t.Fatal("sandbox registry should have +14843989071")
 	}
 	if office.FacilityID != "1032" {
-		t.Errorf("dev FacilityID = %q, want %q", office.FacilityID, "1032")
+		t.Errorf("sandbox FacilityID = %q, want %q", office.FacilityID, "1032")
 	}
 	if _, ok := office.Columns["1716"]; !ok {
-		t.Error("dev registry should have column 1716 (Bach)")
+		t.Error("sandbox registry should have column 1716 (Bach)")
 	}
 	if _, ok := office.Columns["1513"]; ok {
-		t.Error("dev registry should NOT have prod column 1513")
+		t.Error("sandbox registry should NOT have prod column 1513")
 	}
 
 	_, ok = LookupOffice("+17275919997")
 	if ok {
-		t.Error("dev registry should NOT have prod phone +17275919997")
+		t.Error("sandbox registry should NOT have prod phone +17275919997")
 	}
 
-	devDefault := DefaultOffice()
-	if devDefault == nil {
-		t.Fatal("DefaultOffice() returned nil in dev mode")
+	sandboxDefault := DefaultOffice()
+	if sandboxDefault == nil {
+		t.Fatal("DefaultOffice() returned nil in sandbox")
 	}
-	if devDefault.FacilityID != "1032" {
-		t.Errorf("dev DefaultOffice().FacilityID = %q, want %q", devDefault.FacilityID, "1032")
+	if sandboxDefault.FacilityID != "1032" {
+		t.Errorf("sandbox DefaultOffice().FacilityID = %q, want %q", sandboxDefault.FacilityID, "1032")
 	}
 
-	InitRegistry("prod")
+	InitRegistry(Prod)
 	office = DefaultOffice()
 	if office.FacilityID != "1568" {
 		t.Errorf("prod FacilityID = %q, want %q", office.FacilityID, "1568")
@@ -470,22 +470,48 @@ func TestInitRegistry(t *testing.T) {
 		t.Error("prod registry should have column 1600 (Dr. Melissa Otero)")
 	}
 	if _, ok := office.Columns["1716"]; ok {
-		t.Error("prod registry should NOT have dev column 1716")
+		t.Error("prod registry should NOT have sandbox column 1716")
 	}
 
-	InitRegistry("")
-	office = DefaultOffice()
-	if office.FacilityID != "1568" {
-		t.Errorf("default FacilityID = %q, want %q", office.FacilityID, "1568")
+}
+
+func TestParseEnvironmentAcceptsOnlyProdAndSandbox(t *testing.T) {
+	for _, value := range []string{"prod", "sandbox"} {
+		if env, err := ParseEnvironment(value); err != nil || string(env) != value {
+			t.Errorf("ParseEnvironment(%q) = (%q, %v), want (%q, nil)", value, env, err, value)
+		}
+	}
+	for _, value := range []string{"", "dev", "production", "Prod", "SANDBOX", " prod", "prod "} {
+		if env, err := ParseEnvironment(value); err == nil {
+			t.Errorf("ParseEnvironment(%q) = %q, want an error", value, env)
+		}
+	}
+}
+
+func TestInitRegistryRejectsAnUnknownEnvironment(t *testing.T) {
+	t.Cleanup(func() { InitRegistry(Prod) })
+	for _, env := range []Environment{"", "dev"} {
+		func() {
+			defer func() {
+				if recover() == nil {
+					t.Errorf("InitRegistry(%q) selected a registry, want a panic", env)
+				}
+			}()
+			InitRegistry(env)
+		}()
 	}
 }
 
 func TestEveryOfficeColumnHasDisplayName(t *testing.T) {
-	t.Cleanup(func() { InitRegistry("prod") })
-	for _, env := range []string{"prod", "dev"} {
+	t.Cleanup(func() { InitRegistry(Prod) })
+	for _, env := range []Environment{Prod, Sandbox} {
 		InitRegistry(env)
 		for _, id := range OfficeIDs() {
-			for columnID, column := range mustOffice(t, id).Columns {
+			office, ok := LookupOfficeByID(id)
+			if !ok {
+				continue
+			}
+			for columnID, column := range office.Columns {
 				if column.DisplayName == "" {
 					t.Errorf("%s office %s column %s has no display name", env, id, columnID)
 				}

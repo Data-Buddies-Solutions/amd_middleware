@@ -44,7 +44,9 @@ Creating a matching tag manually also triggers production deployment.
 The same tag redeploys the staging (simulation) service with production's
 image once that build succeeds, so simulations never test an older middleware.
 That deploy logs the sandbox in to AdvancedMD again and can interrupt a
-simulation running at release time. The manual staging workflow and `staging-*`
+simulation running at release time. Every staging deploy sets the image and
+`AMD_ENV=sandbox` in the same Cloud Run revision, because the middleware accepts
+only `prod` or `sandbox`. The manual staging workflow and `staging-*`
 tags still deploy from source for ad hoc testing. Release deploys need three
 one-time grants; README.md's "Staging follows each release" section lists the
 commands.

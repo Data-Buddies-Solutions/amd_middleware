@@ -2,13 +2,6 @@ package domain
 
 import "time"
 
-type Environment string
-
-const (
-	Prod    Environment = "prod"
-	Sandbox Environment = "sandbox"
-)
-
 const defaultOfficeID = "spring_hill"
 
 type officeTable struct {
