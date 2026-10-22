@@ -56,7 +56,7 @@ func (p *patient) resolveFirstNameDOB(ctx context.Context, query ResolveQuery, o
 		candidates := make([]Candidate, 0, len(matches))
 		for _, row := range matches {
 			name := row.Name()
-			candidates = append(candidates, Candidate{Status: statusCandidate, PatientID: row.ID, FirstName: name.First(), LastName: name.Last, DOB: string(query.DOB)})
+			candidates = append(candidates, Candidate{Status: statusCandidate, PatientID: row.ID, FirstName: name.Given, LastName: name.Last, DOB: string(query.DOB)})
 		}
 		return ResolveResult{Status: StatusMultipleMatches, Matches: candidates, Appointments: []Appointment{}, Message: "More than one patient matches this first name and date of birth. Ask office staff to resolve the identity.", Observation: observation}, nil
 	}

@@ -107,3 +107,22 @@ func TestPhoneAndLastNameLookupsCompareFirstNamesByTheirLetters(t *testing.T) {
 		t.Errorf("phone + letterless firstName = %v", resolved)
 	}
 }
+
+func TestCandidatesNameAChartTheSameWayOnEveryLookup(t *testing.T) {
+	candidate := func(body map[string]any) map[string]any {
+		resolved, _ := postIdentity(t, "/api/patient/resolve", body)
+		matches, _ := resolved["matches"].([]any)
+		for _, match := range matches {
+			if match.(map[string]any)["patientId"] == "101" {
+				return match.(map[string]any)
+			}
+		}
+		t.Fatalf("chart 101 missing from %v", resolved)
+		return nil
+	}
+	byPhone := candidate(map[string]any{"office": "Spring Hill", "phone": "9545550100"})
+	byFirstName := candidate(map[string]any{"office": "Spring Hill", "firstName": "Mary", "dob": "01/15/1980"})
+	if byPhone["firstName"] != "MARY ANN" || byFirstName["firstName"] != "MARY ANN" || byPhone["lastName"] != byFirstName["lastName"] {
+		t.Errorf("phone candidate %v, first-name candidate %v", byPhone, byFirstName)
+	}
+}
