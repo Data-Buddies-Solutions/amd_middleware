@@ -76,3 +76,21 @@ func TestEveryDOBRouteRejectsAnInvalidDOB(t *testing.T) {
 		t.Errorf("insurance decision for a six-year-old = %v", decided)
 	}
 }
+
+func TestASpokenFullGivenNameMatchesAChartWithAMiddleName(t *testing.T) {
+	for _, spoken := range []string{"Mary Ann", "Maryann", "MARY-ANN"} {
+		resolved, _ := postIdentity(t, "/api/patient/resolve", map[string]any{"office": "Spring Hill", "firstName": spoken, "dob": "01/15/1980"})
+		matches, _ := resolved["matches"].([]any)
+		if resolved["status"] != "multiple_matches" || len(matches) != 2 || matches[0].(map[string]any)["patientId"] != "101" {
+			t.Errorf("resolve %q must not pick LEE,MARYANN over SMITH,MARY ANN: %v", spoken, resolved)
+		}
+		created, calls := postIdentity(t, "/api/add-patient", map[string]any{
+			"firstName": spoken, "lastName": "Smith", "dob": "01/15/1980", "phone": "9545550100",
+			"street": "1 Main St", "city": "Spring Hill", "state": "FL", "zip": "34606", "sex": "female",
+			"insurance": "Meritain Health", "subscriberName": "Mary Smith", "subscriberNum": "M123", "office": "Spring Hill",
+		})
+		if created["outcome"] != "validation_failed" || strings.Contains(calls, "addpatient") {
+			t.Errorf("add-patient %q must find SMITH,MARY ANN: %v, calls %s", spoken, created, calls)
+		}
+	}
+}

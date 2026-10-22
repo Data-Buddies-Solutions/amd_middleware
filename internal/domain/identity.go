@@ -171,7 +171,8 @@ func (n RecordName) First() string {
 }
 
 func (n RecordName) MatchesFirstName(spoken PersonName) bool {
-	return nameKey(n.First()) == spoken.Key()
+	key := spoken.Key()
+	return key == nameKey(n.First()) || key == nameKey(n.Given)
 }
 
 func (n RecordName) GivenStartsWith(spoken PersonName) bool {

@@ -126,3 +126,24 @@ func TestParseDOB(t *testing.T) {
 		}
 	}
 }
+
+func TestRecordNameMatchesFirstName(t *testing.T) {
+	tests := []struct {
+		record, spoken string
+		match          bool
+	}{
+		{"SMITH,MARY ANN", "Mary", true},
+		{"SMITH,MARY ANN", "Mary Ann", true},
+		{"SMITH,MARY ANN", "maryann", true},
+		{"SMITH,MARY ANN", "Mary-Ann", true},
+		{"SMITH,MARY ANN", "Ann", false},
+		{"SMITH,MARY ANN", "Mar", false},
+		{"GARCÍA,JOSÉ", "Jose", true},
+		{"LEE,MARYANN", "Mary", false},
+	}
+	for _, tt := range tests {
+		if got := ParseRecordName(tt.record).MatchesFirstName(NewPersonName(tt.spoken)); got != tt.match {
+			t.Errorf("%q matches %q = %v, want %v", tt.record, tt.spoken, got, tt.match)
+		}
+	}
+}
