@@ -644,8 +644,9 @@ func distinctRows[T any](rows []T, key func(T) rowKey) []T {
 	seen := make(map[rowKey]bool, len(rows))
 	var distinct []T
 	for _, row := range rows {
-		if !seen[key(row)] {
-			seen[key(row)] = true
+		key := key(row)
+		if key.id <= 0 || !seen[key] {
+			seen[key] = true
 			distinct = append(distinct, row)
 		}
 	}
