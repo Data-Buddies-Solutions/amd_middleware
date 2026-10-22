@@ -38,9 +38,6 @@ class StagingDeploymentTest(unittest.TestCase):
         for value in ["prod", "dev", ""]:
             with self.subTest(amd_env=value), self.assertRaises(RuntimeError):
                 staging.validate(service(value))
-        for value in ["prod", ""]:
-            with self.subTest(before_deploy=value), self.assertRaises(RuntimeError):
-                staging.validate(service(value), (staging.LEGACY_AMD_ENV, staging.AMD_ENV))
         for key, value in [("name", "advancedmd-password"), ("key", "latest")]:
             candidate = service()
             candidate["spec"]["template"]["spec"]["containers"][0]["env"][1]["valueFrom"]["secretKeyRef"][key] = value
@@ -56,13 +53,8 @@ class StagingDeploymentTest(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 staging.validate(candidate)
 
-    def test_validation_before_deploy_accepts_the_legacy_sandbox_name(self):
-        for value in ["dev", "sandbox"]:
-            with self.subTest(amd_env=value):
-                staging.validate(service(value), (staging.LEGACY_AMD_ENV, staging.AMD_ENV))
-
     def test_image_update_must_preserve_runtime_configuration(self):
-        before = service("dev")
+        before = service("sandbox")
         after = service("sandbox")
         after["spec"]["template"]["spec"]["containers"][0]["image"] = "new-image"
         self.assertEqual(staging.runtime_spec(before), staging.runtime_spec(after))
@@ -72,6 +64,7 @@ class StagingDeploymentTest(unittest.TestCase):
         changed = copy.deepcopy(after)
         changed["spec"]["template"]["spec"]["containers"][0]["env"][1]["valueFrom"]["secretKeyRef"]["key"] = "2"
         self.assertNotEqual(staging.runtime_spec(before), staging.runtime_spec(changed))
+        self.assertNotEqual(staging.runtime_spec(before), staging.runtime_spec(service("dev")))
 
     @patch.object(staging, "cloud", return_value="test-token")
     @patch.object(staging, "request")
@@ -106,7 +99,7 @@ class ReleaseDeploymentTest(unittest.TestCase):
         os.chdir(directory.name)
         self.addCleanup(os.chdir, previous)
 
-    def deploy(self, production_image, ref="refs/heads/main", before_env="dev", after_env="sandbox"):
+    def deploy(self, production_image, ref="refs/heads/main", before_env="sandbox", after_env="sandbox"):
         before = service(before_env)
         after = service(after_env)
         revision = staging.SERVICE + "-00002-test"
@@ -141,22 +134,20 @@ class ReleaseDeploymentTest(unittest.TestCase):
     def update_calls(self):
         return [call.args for call in self.cloud.call_args_list if call.args[:3] == ("run", "services", "update")]
 
-    def test_deploy_sets_the_image_and_sandbox_environment_in_one_revision(self):
-        for before_env in ["dev", "sandbox"]:
-            with self.subTest(before_env=before_env):
-                error, receipt, _ = self.deploy(PRODUCTION_IMAGE, before_env=before_env)
-                self.assertIsNone(error)
-                self.assertEqual(receipt["verification"], "deployment_ready_and_api_auth_verified")
-                updates = self.update_calls()
-                self.assertEqual(len(updates), 1)
-                update = updates[0]
-                self.assertEqual(update[update.index("--image") + 1], SANDBOX_IMAGE)
-                self.assertEqual(update[update.index("--update-env-vars") + 1], "AMD_ENV=sandbox")
+    def test_deploy_updates_only_the_image(self):
+        error, receipt, _ = self.deploy(PRODUCTION_IMAGE)
+        self.assertIsNone(error)
+        self.assertEqual(receipt["verification"], "deployment_ready_and_api_auth_verified")
+        updates = self.update_calls()
+        self.assertEqual(len(updates), 1)
+        self.assertEqual(updates[0][updates[0].index("--image") + 1], SANDBOX_IMAGE)
+        self.assertNotIn("--update-env-vars", updates[0])
 
-    def test_deploy_fails_when_the_new_revision_keeps_the_legacy_environment(self):
-        error, receipt, _ = self.deploy(PRODUCTION_IMAGE, after_env="dev")
+    def test_deploy_refuses_a_sandbox_still_on_the_legacy_environment(self):
+        error, receipt, _ = self.deploy(PRODUCTION_IMAGE, before_env="dev")
         self.assertIsInstance(error, RuntimeError)
         self.assertEqual(receipt["verification"], "failed")
+        self.assertEqual(self.update_calls(), [])
 
     def test_release_deploy_records_matching_production_and_sandbox_digests(self):
         error, receipt, _ = self.deploy(PRODUCTION_IMAGE)

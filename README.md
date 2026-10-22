@@ -456,10 +456,10 @@ stable `vMAJOR.MINOR.PATCH` tag with the image production runs:
 2. It copies `services/abita-middleware:<commit>` by digest into the
    `middleware-sandbox` repository with a pinned `crane copy`, which keeps the
    digest.
-3. It updates the sandbox to that digest and `AMD_ENV=sandbox` in one
-   revision. `scripts/staging_deployment.py` refuses to deploy unless the
-   sandbox digest equals the production digest, and records both in the
-   receipt.
+3. It updates the sandbox to that digest and nothing else.
+   `scripts/staging_deployment.py` refuses to deploy unless the sandbox runs
+   `AMD_ENV=sandbox` and the sandbox digest equals the production digest, and
+   records both images in the receipt.
 
 A failed staging deploy does not affect production: the job touches Google
 Cloud only after production's build succeeded, and only the sandbox.
@@ -469,10 +469,10 @@ to AdvancedMD again. A simulation running when a release lands can be
 interrupted; rerun it against the new revision.
 
 Roll the sandbox back only by sending traffic to an older revision, which keeps
-that revision's own image and `AMD_ENV`. Never deploy an image older than the
-`AMD_ENV=sandbox` migration onto it with `--image` or the bootstrap script: older
-code treats `sandbox` as unknown and loads the production office registry
-against the sandbox AdvancedMD account.
+that revision's own image and `AMD_ENV`. Never deploy an image older than
+8.3.2 onto it with `--image` or the bootstrap script: older code treats
+`sandbox` as unknown and loads the production office registry against the
+sandbox AdvancedMD account.
 
 For an ad hoc deploy from source, run the workflow manually and confirm
 `sandbox_idle`, or push a `staging-*` tag. Both share the `middleware-staging`
