@@ -4,6 +4,19 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.2.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.1.0...v8.2.0) (2026-10-22)
+
+
+### Features
+
+* **observability:** log whether patient searches were complete ([#271](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/271)) ([2906a9a](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/2906a9a8a3f856e285d020e5f26bf0e352362cd8))
+
+
+### Bug Fixes
+
+* **http:** decode every request strictly ([#270](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/270)) ([f44db40](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/f44db406e6a15f0655d9b7e0a7f74f3ca10a7736))
+* **patient:** answer resolve within the voice agent deadline ([#268](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/268)) ([469bc1f](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/469bc1f81ccea8122ca74ea11d45b3a7a24ccadc))
+
 ## [8.1.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.0.0...v8.1.0) (2026-10-21)
 
 
