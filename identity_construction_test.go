@@ -37,7 +37,7 @@ func TestIdentityValuesAreBuiltOnlyByTheirParsers(t *testing.T) {
 			return err
 		}
 		for _, conversion := range identityConversions(file) {
-			t.Errorf("%s: converts to domain.%s directly; build it with domain.%s so the value is validated",
+			t.Errorf("%s: converts to or aliases domain.%s directly; build it with domain.%s so the value is validated",
 				fset.Position(conversion.pos), conversion.typeName, identityParsers[conversion.typeName])
 		}
 		return nil
@@ -58,6 +58,10 @@ func TestIdentityConversionsFlagsEveryDirectConversion(t *testing.T) {
 		{name: "renamed import", src: `import d "` + domainImportPath + `"; func f(s string) { _ = d.PatientID(s) }`, conversions: 1},
 		{name: "parenthesized type", src: `import "` + domainImportPath + `"; func f(s string) { _ = (domain.Phone)(s) }`, conversions: 1},
 		{name: "dot import", src: `import . "` + domainImportPath + `"; func f(s string) { _ = DOB(s) }`, conversions: 1},
+		{name: "inside a composite literal", src: `import "` + domainImportPath + `"; func f(s string) { _ = []domain.PatientID{domain.PatientID(s)} }`, conversions: 1},
+		{name: "var declaration", src: `import "` + domainImportPath + `"; func f(s string) { var id domain.PatientID = domain.PatientID(s); _ = id }`, conversions: 1},
+		{name: "alias", src: `import "` + domainImportPath + `"; type ID = domain.PatientID`, conversions: 1},
+		{name: "defined type", src: `import "` + domainImportPath + `"; type ID domain.PatientID`, conversions: 0},
 		{name: "parser", src: `import "` + domainImportPath + `"; func f(s string) { _, _ = domain.ParsePatientID(s) }`, conversions: 0},
 		{name: "constructor", src: `import "` + domainImportPath + `"; func f(s string) { _ = domain.NewPersonName(s) }`, conversions: 0},
 		{name: "back to string", src: `import "` + domainImportPath + `"; func f(id domain.PatientID) { _ = string(id) }`, conversions: 0},
@@ -100,6 +104,14 @@ func identityConversions(file *ast.File) []identityConversion {
 	}
 	var found []identityConversion
 	ast.Inspect(file, func(node ast.Node) bool {
+		if spec, ok := node.(*ast.TypeSpec); ok && spec.Assign.IsValid() {
+			if selector, ok := ast.Unparen(spec.Type).(*ast.SelectorExpr); ok {
+				if pkg, ok := selector.X.(*ast.Ident); ok && names[pkg.Name] && identityParsers[selector.Sel.Name] != "" {
+					found = append(found, identityConversion{pos: spec.Pos(), typeName: selector.Sel.Name})
+				}
+			}
+			return true
+		}
 		call, ok := node.(*ast.CallExpr)
 		if !ok || len(call.Args) != 1 {
 			return true
