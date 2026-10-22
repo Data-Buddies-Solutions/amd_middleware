@@ -371,7 +371,7 @@ Operational routes have separate contracts:
 | Route | Contract |
 | --- | --- |
 | `GET /health`, `GET /live` | Process liveness; no provider call |
-| `GET /ready` | Local initialization readiness; no provider call |
+| `GET /ready` | Local initialization readiness; no provider call; a 200 writes no request log line |
 | `GET /metrics` | PHI-free patient mutation counters |
 | `POST /ops/session/maintenance` | Google-signed OIDC identity; never `API_SECRET` |
 
