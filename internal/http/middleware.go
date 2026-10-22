@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"runtime/debug"
 	"sync"
 	"time"
 	"uuid"
@@ -46,6 +47,12 @@ type requestLogState struct {
 	cancellation    *cancellationLogEntry
 	patientResolve  *patientResolutionLogEntry
 	patientCreate   *patientCreateLogEntry
+	panic           *panicLogEntry
+}
+
+type panicLogEntry struct {
+	Type  string `json:"type"`
+	Stack string `json:"stack"`
 }
 
 type cancellationLogEntry struct {
@@ -83,6 +90,7 @@ type requestLogEntry struct {
 	Cancellation       *cancellationLogEntry           `json:"cancellation,omitempty"`
 	PatientResolution  *patientResolutionLogEntry      `json:"patient_resolution,omitempty"`
 	PatientCreate      *patientCreateLogEntry          `json:"patient_create,omitempty"`
+	Panic              *panicLogEntry                  `json:"panic,omitempty"`
 	ProviderErrors     []safeerrors.ProviderDiagnostic `json:"provider_errors,omitempty"`
 	ProviderErrorCount int                             `json:"provider_error_count,omitempty"`
 	HTTPStatus         int                             `json:"http_status"`
@@ -158,6 +166,7 @@ func loggingMiddleware(amdSession session.Session) func(http.Handler) http.Handl
 				Cancellation:       state.cancellation,
 				PatientResolution:  state.patientResolve,
 				PatientCreate:      state.patientCreate,
+				Panic:              state.panic,
 				ProviderErrors:     providerErrors,
 				ProviderErrorCount: providerErrorCount,
 				HTTPStatus:         wrapped.statusCode,
@@ -169,10 +178,12 @@ func loggingMiddleware(amdSession session.Session) func(http.Handler) http.Handl
 func recoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
-			if recover() == nil {
+			recovered := recover()
+			if recovered == nil {
 				return
 			}
 			recordRequestOutcome(r.Context(), outcomeInternalFailure, safeerrors.CategoryNone)
+			recordPanic(r.Context(), &panicLogEntry{Type: fmt.Sprintf("%T", recovered), Stack: string(debug.Stack())})
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 		}()
@@ -194,6 +205,14 @@ func recordRequestOutcome(ctx context.Context, outcome outcomeCategory, provider
 	}
 	state.outcome = outcome
 	state.providerFailure = providerFailure
+}
+
+func recordPanic(ctx context.Context, entry *panicLogEntry) {
+	state, ok := ctx.Value(requestLogKey).(*requestLogState)
+	if !ok {
+		return
+	}
+	state.panic = entry
 }
 
 func recordCancellationObservation(
