@@ -254,7 +254,7 @@ func TestListSlotsRejectsRemovedFieldsBeforeScheduling(t *testing.T) {
 			if err := json.Unmarshal(response.Body.Bytes(), &got); err != nil {
 				t.Fatal(err)
 			}
-			if scheduler.listCalls != 0 || got.Outcome != "invalid_input" || got.Slots == nil {
+			if scheduler.listCalls != 0 || got.Outcome != "invalid_input" || got.Slots == nil || got.NextAction != "" || got.ShouldRetrySameSearch {
 				t.Fatalf("obsolete field reached scheduling: calls=%d body=%s", scheduler.listCalls, response.Body.String())
 			}
 		})
