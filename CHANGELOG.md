@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.4.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.3.3...v8.4.0) (2026-10-22)
+
+
+### Features
+
+* **patient:** find appointments from the patient's own visits ([#273](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/273)) ([56fbd11](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/56fbd11cb11bc00658763c1992ff31684dfe7195))
+
 ## [8.3.3](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.3.2...v8.3.3) (2026-10-22)
 
 
