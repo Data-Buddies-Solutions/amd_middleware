@@ -367,7 +367,7 @@ func (c ResolveCommand) Parse(officeID string, asOf time.Time) (ResolveQuery, st
 	hasLookupFields := c.Phone != "" || c.FirstName != "" || c.LastName != "" || c.DOB != ""
 	if c.PatientID != "" {
 		id, err := domain.ParsePatientID(c.PatientID)
-		if err != nil || string(id) != c.PatientID {
+		if err != nil || id == "" {
 			return ResolveQuery{}, "patientId must be numeric"
 		}
 		if hasLookupFields {
