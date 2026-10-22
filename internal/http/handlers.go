@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
@@ -13,6 +14,8 @@ import (
 	schedulingmodule "advancedmd-token-management/internal/scheduling"
 	"advancedmd-token-management/internal/session"
 )
+
+const patientResolveBudget = 9 * time.Second
 
 type errorResponse struct {
 	Status  string `json:"status"`
@@ -107,7 +110,9 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 	}
 	command.OfficeID = office.ID
 
-	result, err := h.patient.Resolve(r.Context(), command)
+	ctx, cancel := context.WithTimeout(r.Context(), patientResolveBudget)
+	defer cancel()
+	result, err := h.patient.Resolve(ctx, command)
 	recordPatientResolutionObservation(r.Context(), result.Observation)
 	if err != nil {
 		category := advancedmd.CategoryOf(err)

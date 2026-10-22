@@ -753,7 +753,7 @@ func TestResolveStartsDemographicsAndAppointmentsConcurrently(t *testing.T) {
 	amd.AppointmentsStarted = appointmentsStarted
 	amd.AppointmentsRelease = appointmentsRelease
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	type resolveResponse struct {
 		result patient.ResolveResult

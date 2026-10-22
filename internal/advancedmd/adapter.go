@@ -200,6 +200,8 @@ func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.Pati
 		appointments []clients.AMDAppointmentResponse
 		err          error
 	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	results := make(chan monthResult, 6)
 	for month := 0; month < 6; month++ {
 		startDate := thisMonth.AddDate(0, month, 0).Format("2006-01-02")

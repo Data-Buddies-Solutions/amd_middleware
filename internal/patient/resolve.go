@@ -14,6 +14,8 @@ import (
 	"advancedmd-token-management/internal/safeerrors"
 )
 
+const appointmentReserve = time.Second
+
 func (p *patient) Resolve(ctx context.Context, command ResolveCommand) (ResolveResult, error) {
 	office, ok := domain.LookupOfficeByID(command.OfficeID)
 	if !ok {
@@ -152,6 +154,8 @@ func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate 
 	}
 	demographicsResults := make(chan demographicsResult, 1)
 	appointmentsResults := make(chan appointmentsResult, 1)
+	appointmentsCtx, cancelAppointments := withAppointmentBudget(ctx)
+	defer cancelAppointments()
 	go func() {
 		started := time.Now()
 		var demographics domain.PatientDemographics
@@ -169,7 +173,7 @@ func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate 
 	}()
 	go func() {
 		started := time.Now()
-		read, err := p.advancedMD.ReadPatientAppointments(ctx, domain.PatientAppointmentsQuery{
+		read, err := p.advancedMD.ReadPatientAppointments(appointmentsCtx, domain.PatientAppointmentsQuery{
 			PatientID: candidate.ID,
 			OfficeIDs: officeIDs,
 		})
@@ -271,6 +275,14 @@ func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate 
 	result.AppointmentsStatus = AppointmentsFound
 	result.Message = fmt.Sprintf("Patient verified with %d appointment(s)", len(result.Appointments))
 	return result, nil
+}
+
+func withAppointmentBudget(ctx context.Context) (context.Context, context.CancelFunc) {
+	deadline, bounded := ctx.Deadline()
+	if !bounded {
+		return context.WithCancel(ctx)
+	}
+	return context.WithDeadline(ctx, deadline.Add(-appointmentReserve))
 }
 
 func unverifiedPatient(observation ResolutionObservation, reason string, failure safeerrors.Category) ResolveResult {
