@@ -139,24 +139,8 @@ func (h *Handlers) HandlePatientResolve(w http.ResponseWriter, r *http.Request) 
 	respond(w, result)
 }
 
-type cancelAppointmentRequest struct {
-	AppointmentID     int    `json:"appointmentId,omitempty"`
-	PatientID         string `json:"patientId,omitempty"`
-	Office            string `json:"office,omitempty"`
-	CancellationToken string `json:"cancellationToken,omitempty"`
-}
-
-func (r cancelAppointmentRequest) command() schedulingmodule.CancelCommand {
-	return schedulingmodule.CancelCommand{
-		AppointmentID:     r.AppointmentID,
-		PatientID:         r.PatientID,
-		Office:            r.Office,
-		CancellationToken: r.CancellationToken,
-	}
-}
-
 func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Request) {
-	var req cancelAppointmentRequest
+	var req schedulingmodule.CancelCommand
 	if err := decodeStrict(r, &req); err != nil {
 		rejectInvalidRequest(w, r, schedulingmodule.CancelReceipt{
 			Status:  "error",
@@ -170,7 +154,7 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 			recordCancellationObservation(r.Context(), observation)
 		},
 	)
-	response, err := h.scheduling.Cancel(ctx, req.command())
+	response, err := h.scheduling.Cancel(ctx, req)
 	if err != nil {
 		recordSchedulingError(r.Context(), err)
 		respond(w, schedulingmodule.CancelReceipt{

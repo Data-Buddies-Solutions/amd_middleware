@@ -108,6 +108,18 @@ func TestSchedulingHandlersMapStableErrorCategories(t *testing.T) {
 	}
 }
 
+func TestCancelRouteDecodesEveryFieldIntoTheCommand(t *testing.T) {
+	scheduler := &recordingScheduling{cancelReceipt: schedulingmodule.CancelReceipt{Status: "cancelled"}}
+	router := NewRouter(&Handlers{scheduling: scheduler}, "agent-secret", nil)
+	recorder := postAuthenticatedJSON(t, router, "/api/appointment/cancel", map[string]any{
+		"appointmentId": 33333, "patientId": "12345", "office": "Spring Hill", "cancellationToken": "cancellation-token",
+	})
+	want := schedulingmodule.CancelCommand{AppointmentID: 33333, PatientID: "12345", Office: "Spring Hill", CancellationToken: "cancellation-token"}
+	if recorder.Code != http.StatusOK || scheduler.cancelCommand != want {
+		t.Fatalf("status=%d command=%#v, want %#v", recorder.Code, scheduler.cancelCommand, want)
+	}
+}
+
 type recordingScheduling struct {
 	listCommand   schedulingmodule.ListCommand
 	listCalls     int

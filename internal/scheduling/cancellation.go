@@ -10,10 +10,10 @@ import (
 )
 
 type CancelCommand struct {
-	AppointmentID     int
-	PatientID         string
-	Office            string
-	CancellationToken string
+	AppointmentID     int    `json:"appointmentId,omitempty"`
+	PatientID         string `json:"patientId,omitempty"`
+	Office            string `json:"office,omitempty"`
+	CancellationToken string `json:"cancellationToken,omitempty"`
 }
 
 type CancelReceipt struct {
