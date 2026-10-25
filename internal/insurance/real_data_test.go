@@ -5,6 +5,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"advancedmd-token-management/internal/domain"
 )
 
 func TestRealDataEmbossSpecialtyKeepsPremierCarrier(t *testing.T) {
@@ -109,3 +111,19 @@ func TestRealDataSimplyMedicaidAsksForTheSubscriberNumber(t *testing.T) {
 }
 
 const simplySubscriberNotice = "For Simply Medicaid, we need the subscriber number on your card that starts with 7, not the Medicaid number that starts with 8."
+
+func TestRealDataLeonRoutesToTheLeonCoordinator(t *testing.T) {
+	const notice = "Leon Medical Center patients schedule through their Leon coordinator."
+	for _, officeID := range []string{"hollywood", "sweetwater"} {
+		t.Run(officeID, func(t *testing.T) {
+			o := office(t, officeID)
+			chart := DecideChartInsurance(domain.PatientDemographics{CarrierID: "car40908", CarrierName: "LEON MEDICAL CENTER HEALTH PLAN"}, "medical", o, adultDOB, testNow)
+			said := DecideInsurance("Leon Medical Center", "medical", o, adultDOB, testNow)
+			for _, d := range []InsuranceDecision{chart, said} {
+				if d.PlanID != "leon-medical-center-health-plan" || d.Participation != "accepted" || d.CanSchedule || d.Reason != "requirement" || d.CallerNotice != notice {
+					t.Fatalf("decision = %+v", d)
+				}
+			}
+		})
+	}
+}
