@@ -112,8 +112,8 @@ func TestAdvancedMDClient_AddPatient(t *testing.T) {
 			t.Fatalf("decode request: %v", err)
 		}
 		patient := payload["ppmdmsg"].(map[string]interface{})["patientlist"].(map[string]interface{})["patient"].(map[string]interface{})
-		if patient["@ssn"] != "1234" {
-			t.Fatalf("patient @ssn = %q, want 1234", patient["@ssn"])
+		if ssn, ok := patient["@ssn"]; !ok || ssn != "" {
+			t.Fatalf("patient @ssn = %q (present %v), want empty attribute", ssn, ok)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -146,7 +146,6 @@ func TestAdvancedMDClient_AddPatient(t *testing.T) {
 		State:     "FL",
 		Zip:       "33333",
 		Sex:       "F",
-		SSN:       " 1234 ",
 	}, "620")
 	if err != nil {
 		t.Fatalf("AddPatient failed: %v", err)

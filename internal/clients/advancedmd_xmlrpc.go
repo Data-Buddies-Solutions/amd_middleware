@@ -280,7 +280,7 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *session.To
 					"@relationship":      "1",
 					"@hipaarelationship": "18",
 					"@dob":               patient.DOB,
-					"@ssn":               strings.TrimSpace(patient.SSN),
+					"@ssn":               "",
 					"@chart":             "AUTO",
 					"@profile":           profileID,
 					"address": map[string]interface{}{

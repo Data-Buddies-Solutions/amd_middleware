@@ -150,7 +150,6 @@ type CreateCommand struct {
 	State           string `json:"state"`
 	Zip             string `json:"zip"`
 	Sex             string `json:"sex"`
-	SSN             string `json:"ssn"`
 	Insurance       string `json:"insurance"`
 	InsurancePlanID string `json:"insurancePlanId"`
 	CoverageType    string `json:"coverageType"`
