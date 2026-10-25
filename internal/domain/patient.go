@@ -63,7 +63,6 @@ type PatientCreate struct {
 	State     string
 	Zip       string
 	Sex       string
-	SSN       string
 	OfficeID  string
 }
 

@@ -98,6 +98,8 @@ func TestJSONRoutesRejectUnknownFieldsBeforeTheFeature(t *testing.T) {
 	rejections := []rejection{
 		{"add patient", "/api/add-patient", map[string]any{"firstName": "Jane", "office": "spring-hill", "unexpected": true},
 			`{"status":"error","message":"Invalid JSON body"}`},
+		{"add patient ssn", "/api/add-patient", map[string]any{"firstName": "Jane", "office": "spring-hill", "ssn": "123456789"},
+			`{"status":"error","message":"Invalid JSON body"}`},
 		{"resolve", "/api/patient/resolve", map[string]any{"phone": "3525550100", "office": "spring-hill", "unexpected": true},
 			`{"status":"error","appointments":null,"message":"Invalid JSON body","matches":null}`},
 		{"book", "/api/appointment/book", abitaBookingBody(map[string]any{"unexpected": true}), invalidBooking},
