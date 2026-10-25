@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.4.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.4.0...v8.4.1) (2026-10-25)
+
+
+### Bug Fixes
+
+* **patient:** drop the unused ssn input from add-patient ([#299](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/299)) ([8c5b31e](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/8c5b31e7a7d77a879a68be5ed9c3d2fc4cd5628f))
+
 ## [8.4.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.3.3...v8.4.0) (2026-10-22)
 
 
