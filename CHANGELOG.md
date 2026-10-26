@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.4.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.4.1...v8.4.2) (2026-10-26)
+
+
+### Bug Fixes
+
+* **insurance:** route Leon Medical Center patients to their Leon coordinator ([#302](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/302)) ([abcd044](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/abcd044e32f7d861cfca0aec963c1ed5a1849147))
+
 ## [8.4.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.4.0...v8.4.1) (2026-10-25)
 
 
