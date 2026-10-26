@@ -46,6 +46,7 @@ humana-medicare-hmo,yes,yes,yes,yes,yes,yes,,,,effective 1/1/2026 will be admini
 humana-premier-hmo,yes,yes,yes,yes,yes,yes,,,,Does not require Prior Auth/Referral
 humana-ppo-pos,yes,yes,yes,yes,yes,yes,,,,Does not require Prior Auth/Referral
 imagine-health,yes,yes,yes,pending,pending,pending,staff_verify,,,Network (Participates with Multiple Insurances) call Individual Number listed on the back of the insurance card
+leon-medical-center-health-plan,yes,yes,yes,yes,yes,yes,staff_verify,,Leon Medical Center patients schedule through their Leon coordinator.,Leon patients book only through the Leon coordinator with the Abita insurance verifier (ACU-157)
 medical-center-international,pending,pending,pending,pending,pending,pending,,,,Dr. Austin Bach ONLY - Selfpays $75.00 All Visits
 florida-medicaid,yes,yes,yes,yes,yes,yes,,,,
 medicare-part-b,yes,yes,yes,yes,pending,pending,,,,

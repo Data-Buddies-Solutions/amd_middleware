@@ -159,6 +159,7 @@ hollywood	medical	humana-medicare-hmo	accepted	car40907		Dr. Bach	Dr. Bach	accep
 hollywood	medical	humana-premier-hmo	accepted	car303061		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Humana Premier HMO.
 hollywood	medical	humana-ppo-pos	accepted	car303062		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Humana PPO/POS.
 hollywood	medical	imagine-health	needs_staff_task	car308142	staff_verify	Dr. Bach	Dr. Bach	requirement		blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	leon-medical-center-health-plan	needs_staff_task	car40908	staff_verify	Dr. Bach	Dr. Bach	requirement	Leon Medical Center patients schedule through their Leon coordinator.	blocked: The office needs to verify this plan's coverage before scheduling. Leon Medical Center patients schedule through their Leon coordinator.
 hollywood	medical	medical-center-international	needs_staff_task					pending_confirmation		blocked: The office needs to confirm this coverage.
 hollywood	medical	florida-medicaid	accepted	car40899		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Florida Medicaid.
 hollywood	medical	medicare-part-b	accepted	car40900		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Medicare Part B.
@@ -537,6 +538,7 @@ sweetwater	medical	humana-medicare-hmo	accepted	car40907		Dr. Bach	Dr. Bach	acce
 sweetwater	medical	humana-premier-hmo	accepted	car303061		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Humana Premier HMO.
 sweetwater	medical	humana-ppo-pos	accepted	car303062		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Humana PPO/POS.
 sweetwater	medical	imagine-health	needs_staff_task	car308142	staff_verify	Dr. Bach	Dr. Bach	requirement		blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	leon-medical-center-health-plan	needs_staff_task	car40908	staff_verify	Dr. Bach	Dr. Bach	requirement	Leon Medical Center patients schedule through their Leon coordinator.	blocked: The office needs to verify this plan's coverage before scheduling. Leon Medical Center patients schedule through their Leon coordinator.
 sweetwater	medical	medical-center-international	needs_staff_task					pending_confirmation		blocked: The office needs to confirm this coverage.
 sweetwater	medical	florida-medicaid	accepted	car40899		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Florida Medicaid.
 sweetwater	medical	medicare-part-b	accepted	car40900		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Medicare Part B.
