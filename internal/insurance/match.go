@@ -31,14 +31,31 @@ var planTypes = map[string]bool{"hmo": true, "ppo": true, "epo": true, "pos": tr
 
 var programs = []string{"medicare", "medicaid"}
 
-func tokens(s string) []string {
+var selfPayPhrases = []string{
+	"no insurance", "dont have insurance", "dont have any insurance", "doesnt have insurance",
+	"do not have insurance", "does not have insurance", "uninsured", "out of pocket", "self pay",
+	"pay myself", "paying myself", "private pay",
+}
+
+func saysSelfPay(heard string) bool {
+	said := " " + strings.Join(spokenWords(heard), " ") + " "
+	return slices.ContainsFunc(selfPayPhrases, func(phrase string) bool {
+		return strings.Contains(said, " "+phrase+" ")
+	})
+}
+
+func spokenWords(s string) []string {
 	s = strings.ToLower(s)
 	s = strings.ReplaceAll(s, "&", " and ")
 	s = strings.ReplaceAll(s, "'", "")
 	s = strings.ReplaceAll(s, "’", "")
-	words := strings.FieldsFunc(s, func(r rune) bool {
+	return strings.FieldsFunc(s, func(r rune) bool {
 		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
 	})
+}
+
+func tokens(s string) []string {
+	words := spokenWords(s)
 	kept := []string{}
 	for i := 0; i < len(words); i++ {
 		word := words[i]

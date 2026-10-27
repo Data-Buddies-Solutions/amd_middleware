@@ -127,3 +127,44 @@ func TestRealDataLeonRoutesToTheLeonCoordinator(t *testing.T) {
 		})
 	}
 }
+
+func TestRealDataSelfPayPhrasingsResolveToSelfPay(t *testing.T) {
+	selfPayPlan := map[string]string{"medical": "self-pay-medical", "routine_vision": "self-pay-routine-vision"}
+	for _, c := range []struct{ office, coverage string }{
+		{"hollywood", "medical"}, {"hollywood", "routine_vision"},
+		{"sweetwater", "medical"}, {"sweetwater", "routine_vision"},
+		{"north_miami_beach_optical", "routine_vision"},
+		{"spring_hill", "medical"}, {"spring_hill", "routine_vision"},
+		{"crystal_river", "medical"},
+	} {
+		o := office(t, c.office)
+		want := DecidePlan(selfPayPlan[c.coverage], c.coverage, o, adultDOB, testNow)
+		if want.Outcome != "accepted" || !want.SelfPay {
+			t.Fatalf("%s %s: self-pay plan = %+v", c.office, c.coverage, want)
+		}
+		for _, heard := range []string{
+			"I don't have insurance", "I'm paying out of pocket", "no insurance", "uninsured", "self pay", "I'll pay myself",
+			"I have no insurance", "I do not have insurance", "I don't have any insurance", "She doesn't have insurance", "private pay",
+		} {
+			if got := DecideInsurance(heard, c.coverage, o, adultDOB, testNow); !reflect.DeepEqual(got, want) {
+				t.Errorf("%s %s %q: got plan %q reason %q", c.office, c.coverage, heard, got.PlanID, got.Reason)
+			}
+		}
+	}
+}
+
+func TestRealDataSelfPayPhrasingsDoNotOverrideANamedPlan(t *testing.T) {
+	hollywood := office(t, "hollywood")
+	for heard, planID := range map[string]string{
+		"Seminole Tribe of Florida Self-Funded Health Plan":      "seminole-tribe-medical",
+		"UnitedHealthcare Community Plan":                        "united-healthcare-medicaid-non-par",
+		"I have no insurance card, but it's Aetna Better Health": "aetna-better-health-medicaid-medical",
+	} {
+		if d := DecideInsurance(heard, "medical", hollywood, adultDOB, testNow); d.PlanID != planID || d.SelfPay {
+			t.Errorf("%q: decision = %+v", heard, d)
+		}
+	}
+	if d := DecideInsurance("no insurance, just Medicaid", "medical", hollywood, adultDOB, testNow); d.SelfPay || d.Reason != "ask_full_name" {
+		t.Errorf("Medicaid: decision = %+v", d)
+	}
+}

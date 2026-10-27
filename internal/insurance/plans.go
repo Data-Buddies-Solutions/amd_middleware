@@ -47,6 +47,15 @@ func listForOffice(officeID string) planList {
 	return planList{}
 }
 
+func selfPayPlan(list planList, coverage string) (plan, bool) {
+	for _, p := range list.Plans {
+		if p.SelfPay && p.Coverage == coverage {
+			return p, true
+		}
+	}
+	return plan{}, false
+}
+
 func (p plan) hasName(heard []string) bool {
 	if len(heard) == 0 {
 		return false
