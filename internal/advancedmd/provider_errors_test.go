@@ -59,6 +59,7 @@ func TestAdapterMapsEveryProviderCategory(t *testing.T) {
 	mutationOf := func(err error) mutation {
 		return mutation{category: CategoryOf(err), ambiguous: IsAmbiguousWrite(err), failure: MutationFailureOf(err)}
 	}
+	adapter := &Adapter{session: staticSession{}}
 	for category, row := range rows {
 		t.Run(string(category), func(t *testing.T) {
 			if !slices.Contains(declared, category) {
@@ -68,14 +69,14 @@ func TestAdapterMapsEveryProviderCategory(t *testing.T) {
 			if category == "canceled" {
 				providerErr = fmt.Errorf("request failed: %w", context.Canceled)
 			}
-			if got := CategoryOf(classify(providerErr)); got != row.read {
+			if got := CategoryOf(adapter.classify(nil, providerErr)); got != row.read {
 				t.Errorf("read category = %q, want %q", got, row.read)
 			}
-			if got := mutationOf(classifyMutation(providerErr)); got != row.sent {
+			if got := mutationOf(adapter.classifyMutation(nil, providerErr)); got != row.sent {
 				t.Errorf("sent write = %+v, want %+v", got, row.sent)
 			}
 			unsent := safeerrors.NotSent("failed to create request: %w", providerErr)
-			if got := mutationOf(classifyMutation(unsent)); got != (mutation{category: safeerrors.CategoryInternal}) {
+			if got := mutationOf(adapter.classifyMutation(nil, unsent)); got != (mutation{category: safeerrors.CategoryInternal}) {
 				t.Errorf("unsent write = %+v, want a definite internal failure", got)
 			}
 		})

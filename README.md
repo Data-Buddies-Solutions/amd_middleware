@@ -303,8 +303,9 @@ decision from silently becoming a booking.
 ## Session lifecycle
 
 The process keeps one session in memory. `Get` performs request-time recovery;
-`Maintain` supports authenticated proactive maintenance; `Status` reports
-lifecycle state without exposing credentials, tokens, or provider URLs.
+`Maintain` supports authenticated proactive maintenance; `Reject` discards a
+token AdvancedMD refused; `Status` reports lifecycle state without exposing
+credentials, tokens, or provider URLs.
 
 ```mermaid
 stateDiagram-v2
@@ -318,12 +319,17 @@ stateDiagram-v2
     Refreshing --> Degraded: login fails, prior session still usable
     Refreshing --> Unavailable: login fails, no usable session
     Degraded --> Unavailable: prior session expires
+    Fresh --> Unavailable: provider rejects the token (401/403)
+    Stale --> Unavailable: provider rejects the token
+    Degraded --> Unavailable: provider rejects the token
     Unavailable --> Refreshing: next Get or Maintain
 ```
 
 Concurrent callers share one in-flight login. A refresh failure may degrade the
 session while a last-known-good token remains usable; an expired or missing
-token makes the session unavailable.
+token makes the session unavailable. When AdvancedMD answers 401 or 403, the
+adapter rejects that token, so the next `Get` logs in again, even inside a retry
+delay; rejecting a token that a newer login already replaced does nothing.
 
 ## HTTP interface
 

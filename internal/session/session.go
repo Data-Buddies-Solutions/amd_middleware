@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -12,6 +13,7 @@ import (
 type Session interface {
 	Get(context.Context) (*TokenData, error)
 	Maintain(context.Context) error
+	Reject(*TokenData)
 	Status() SessionStatus
 }
 
@@ -109,6 +111,19 @@ func (s *sessionImpl) Get(ctx context.Context) (*TokenData, error) {
 
 func (s *sessionImpl) Maintain(ctx context.Context) error {
 	return s.refresh(ctx, true)
+}
+
+func (s *sessionImpl) Reject(rejected *TokenData) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if rejected == nil || s.tokenData == nil || *rejected != *s.tokenData {
+		return
+	}
+	s.tokenData = nil
+	s.createdAt = time.Time{}
+	s.retryAt = time.Time{}
+	s.state = SessionUnavailable
+	log.Printf("WARNING: provider=advancedmd session token rejected; next request logs in again")
 }
 
 func (s *sessionImpl) refresh(ctx context.Context, force bool) error {
