@@ -298,8 +298,9 @@ decision from silently becoming a booking.
 ## Session lifecycle
 
 The process keeps one session in memory. `Get` performs request-time recovery;
-`Maintain` supports authenticated proactive maintenance; `Status` reports
-lifecycle state without exposing credentials, tokens, or provider URLs.
+`Maintain` supports authenticated proactive maintenance; `Reject` discards a
+token AdvancedMD refused; `Status` reports lifecycle state without exposing
+credentials, tokens, or provider URLs.
 
 ```mermaid
 stateDiagram-v2
@@ -313,12 +314,22 @@ stateDiagram-v2
     Refreshing --> Degraded: login fails, prior session still usable
     Refreshing --> Unavailable: login fails, no usable session
     Degraded --> Unavailable: prior session expires
+    Fresh --> Unavailable: provider rejects the token (401/403)
+    Stale --> Unavailable: provider rejects the token
+    Degraded --> Unavailable: provider rejects the token
     Unavailable --> Refreshing: next Get or Maintain
 ```
 
-Concurrent callers share one in-flight login. A refresh failure may degrade the
-session while a last-known-good token remains usable; an expired or missing
-token makes the session unavailable.
+Concurrent callers share one in-flight login, which runs detached from any
+caller's context and bounded by the login timeout, so a caller's deadline never
+cancels it. While a stale or degraded token is still usable, `Get` returns it
+at once and starts the shared login in the background; `Get` waits for login
+only when no token is usable. A refresh failure may degrade the session while a
+last-known-good token remains usable and delays the next login by the retry
+delay; an expired, missing, or rejected token makes the session unavailable
+until the next login succeeds. When AdvancedMD answers 401 or 403, the adapter
+rejects that token, so the next `Get` logs in again, even inside a retry delay;
+rejecting a token that a newer login already replaced does nothing.
 
 ## HTTP interface
 
@@ -443,8 +454,10 @@ credentials or bake them into an image.
 
 Production runs one Cloud Run instance because Session and the scheduler setup
 cache are process-local. Authentication correctness does not depend on
-background CPU: Cloud Scheduler requests maintenance, while `Get` retains
-bounded request-time recovery.
+background CPU: Cloud Scheduler requests maintenance, and a usable token keeps
+serving while a background refresh runs. With CPU throttled between requests, a
+refresh can stall; if it stalls past the login timeout, that login fails and
+the retry delay applies before the next one.
 
 Deployment configuration and verification live in the
 [deployment script](scripts/deploy-cloud-run.sh) and

@@ -211,122 +211,11 @@ func TestSessionConcurrentRequestsShareOneLogin(t *testing.T) {
 	}
 }
 
-func TestSessionUsesLastKnownGoodTokenWhenStaleRefreshFails(t *testing.T) {
-	now := time.Date(2026, time.July, 24, 12, 0, 0, 0, time.UTC)
-	clock := &testClock{now: now}
-	loginCalls := 0
-	var session Session = newSession(loginAdapterFunc(func(context.Context) (string, string, error) {
-		loginCalls++
-		if loginCalls == 1 {
-			return "known-good", "https://provider.test/processrequest/api-801/app", nil
-		}
-		return "", "", errors.New("temporary login failure")
-	}), clock.Now, sessionPolicy{
-		staleAfter:   time.Hour,
-		expiresAfter: 2 * time.Hour,
-		loginTimeout: time.Minute,
-	})
-
-	if _, err := session.Get(context.Background()); err != nil {
-		t.Fatalf("initial Get() error = %v", err)
-	}
-	clock.Advance(90 * time.Minute)
-	if got := session.Status().State; got != sessionStale {
-		t.Fatalf("state before failed refresh = %q, want %q", got, sessionStale)
-	}
-
-	token, err := session.Get(context.Background())
-	if err != nil {
-		t.Fatalf("Get() with usable last-known-good token error = %v", err)
-	}
-	if token.Token != "Bearer known-good" {
-		t.Fatalf("Get() token = %q, want last-known-good token", token.Token)
-	}
-	if got := session.Status().State; got != sessionDegraded {
-		t.Fatalf("state after failed refresh = %q, want %q", got, sessionDegraded)
-	}
-}
-
-func TestSessionReusesLastKnownGoodTokenBeforeDegradedRetry(t *testing.T) {
-	now := time.Date(2026, time.July, 24, 12, 0, 0, 0, time.UTC)
-	clock := &testClock{now: now}
-	loginCalls := 0
-	var session Session = newSession(loginAdapterFunc(func(context.Context) (string, string, error) {
-		loginCalls++
-		switch loginCalls {
-		case 1:
-			return "known-good", "https://provider.test/processrequest/api-801/app", nil
-		case 2:
-			return "", "", errors.New("temporary login failure")
-		default:
-			return "recovered-too-soon", "https://provider.test/processrequest/api-801/app", nil
-		}
-	}), clock.Now, sessionPolicy{
-		staleAfter:   time.Hour,
-		expiresAfter: 2 * time.Hour,
-		loginTimeout: time.Minute,
-	})
-
-	if _, err := session.Get(context.Background()); err != nil {
-		t.Fatalf("initial Get() error = %v", err)
-	}
-	clock.Advance(90 * time.Minute)
-	if _, err := session.Get(context.Background()); err != nil {
-		t.Fatalf("Get() with failed refresh error = %v", err)
-	}
-
-	token, err := session.Get(context.Background())
-	if err != nil {
-		t.Fatalf("Get() during degraded retry delay error = %v", err)
-	}
-	if token.Token != "Bearer known-good" {
-		t.Fatalf("Get() during degraded retry delay token = %q, want last-known-good token", token.Token)
-	}
-}
-
-func TestSessionRetriesDegradedAuthenticationAfterDelay(t *testing.T) {
-	now := time.Date(2026, time.July, 24, 12, 0, 0, 0, time.UTC)
-	clock := &testClock{now: now}
-	loginCalls := 0
-	var session Session = newSession(loginAdapterFunc(func(context.Context) (string, string, error) {
-		loginCalls++
-		switch loginCalls {
-		case 1:
-			return "known-good", "https://provider.test/processrequest/api-801/app", nil
-		case 2:
-			return "", "", errors.New("temporary login failure")
-		default:
-			return "recovered", "https://provider.test/processrequest/api-801/app", nil
-		}
-	}), clock.Now, sessionPolicy{
-		staleAfter:   time.Hour,
-		expiresAfter: 2 * time.Hour,
-		loginTimeout: time.Minute,
-	})
-
-	if _, err := session.Get(context.Background()); err != nil {
-		t.Fatalf("initial Get() error = %v", err)
-	}
-	clock.Advance(90 * time.Minute)
-	if _, err := session.Get(context.Background()); err != nil {
-		t.Fatalf("Get() with failed refresh error = %v", err)
-	}
-	clock.Advance(time.Minute)
-
-	token, err := session.Get(context.Background())
-	if err != nil {
-		t.Fatalf("Get() after degraded retry delay error = %v", err)
-	}
-	if token.Token != "Bearer recovered" {
-		t.Fatalf("Get() after degraded retry delay token = %q, want recovered token", token.Token)
-	}
-}
-
 func TestSessionRequestFallbackRecoversAfterFailedMaintenance(t *testing.T) {
 	now := time.Date(2026, time.July, 24, 12, 0, 0, 0, time.UTC)
 	clock := &testClock{now: now}
 	loginCalls := 0
-	var session Session = newSession(loginAdapterFunc(func(context.Context) (string, string, error) {
+	session := newSession(loginAdapterFunc(func(context.Context) (string, string, error) {
 		loginCalls++
 		switch loginCalls {
 		case 1:
@@ -352,6 +241,11 @@ func TestSessionRequestFallbackRecoversAfterFailedMaintenance(t *testing.T) {
 
 	clock.Advance(time.Minute)
 	token, err := session.Get(context.Background())
+	if err != nil || token.Token != "Bearer known-good" {
+		t.Fatalf("Get() during request refresh = %v, %v; want last-known-good token", token, err)
+	}
+	waitForRefresh(session)
+	token, err = session.Get(context.Background())
 	if err != nil {
 		t.Fatalf("request fallback Get() error = %v", err)
 	}
@@ -652,72 +546,33 @@ func TestUnavailableSessionHonorsRetryCooldown(t *testing.T) {
 	}
 }
 
-func TestCancelledColdSessionLoginDoesNotBlockNextCaller(t *testing.T) {
+func TestCanceledCallerDoesNotCancelSharedLogin(t *testing.T) {
 	clock := &testClock{now: time.Date(2026, 9, 14, 0, 0, 0, 0, time.UTC)}
 	started := make(chan struct{})
-	calls := 0
-	s := newSession(loginAdapterFunc(func(ctx context.Context) (string, string, error) {
-		calls++
-		if calls == 1 {
-			close(started)
-			<-ctx.Done()
-			return "", "", ctx.Err()
-		}
-		return "recovered-token", "https://provider.test/processrequest/api-801/app", nil
-	}), clock.Now, sessionPolicy{
-		staleAfter: defaultSessionStaleAfter, expiresAfter: defaultSessionExpiresAfter,
-		loginTimeout: time.Second, retryDelay: time.Minute,
-	})
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	finished := make(chan error, 1)
-	go func() { _, err := s.Get(ctx); finished <- err }()
-	<-started
-	cancel()
-	if err := <-finished; !errors.Is(err, ErrSessionUnavailable) {
-		t.Fatalf("cancelled caller error = %v, want session unavailable", err)
-	}
-
-	token, err := s.Get(context.Background())
-	if err != nil {
-		t.Fatalf("healthy caller blocked after caller cancellation: %v (login attempts=%d)", err, calls)
-	}
-	if calls != 2 || token == nil || token.Token != "Bearer recovered-token" {
-		t.Fatalf("healthy caller did not recover: login attempts=%d token present=%t", calls, token != nil)
-	}
-}
-
-func TestSessionWaiterRecoversWhenLeadingCallerCancels(t *testing.T) {
-	base := time.Date(2026, 9, 26, 0, 0, 0, 0, time.UTC)
-	started := make(chan struct{})
-	waiterJoined := make(chan struct{})
-	var loginStarted, waiterSeen atomic.Bool
-	now := func() time.Time {
-		if loginStarted.Load() && waiterSeen.CompareAndSwap(false, true) {
-			close(waiterJoined)
-		}
-		return base
-	}
+	release := make(chan struct{})
+	loginCanceled := make(chan bool, 1)
 	var calls atomic.Int32
 	s := newSession(loginAdapterFunc(func(ctx context.Context) (string, string, error) {
-		if calls.Add(1) == 1 {
-			loginStarted.Store(true)
-			close(started)
-			<-ctx.Done()
+		calls.Add(1)
+		close(started)
+		select {
+		case <-release:
+			loginCanceled <- false
+			return "recovered-token", "https://provider.test/processrequest/api-801/app", nil
+		case <-ctx.Done():
+			loginCanceled <- true
 			return "", "", ctx.Err()
 		}
-		return "recovered-token", "https://provider.test/processrequest/api-801/app", nil
-	}), now, sessionPolicy{
+	}), clock.Now, sessionPolicy{
 		staleAfter: defaultSessionStaleAfter, expiresAfter: defaultSessionExpiresAfter,
 		loginTimeout: time.Minute, retryDelay: time.Minute,
 	})
 
 	leaderCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	leader := make(chan struct{})
-	go func() { s.Get(leaderCtx); close(leader) }()
+	leader := make(chan error, 1)
+	go func() { _, err := s.Get(leaderCtx); leader <- err }()
 	<-started
-
 	waiter := make(chan error, 1)
 	go func() {
 		token, err := s.Get(context.Background())
@@ -726,14 +581,287 @@ func TestSessionWaiterRecoversWhenLeadingCallerCancels(t *testing.T) {
 		}
 		waiter <- err
 	}()
-	<-waiterJoined
 	cancel()
-	<-leader
+	if err := <-leader; !errors.Is(err, ErrSessionUnavailable) {
+		t.Fatalf("canceled caller error = %v, want session unavailable", err)
+	}
 
+	close(release)
+	if <-loginCanceled {
+		t.Fatal("shared login was canceled with the leading caller")
+	}
 	if err := <-waiter; err != nil {
 		t.Fatalf("waiting caller failed after leader cancellation: %v", err)
 	}
+	token, err := s.Get(context.Background())
+	if err != nil || token.Token != "Bearer recovered-token" {
+		t.Fatalf("Get() after shared login = %v, %v; want recovered token", token, err)
+	}
+	if got := calls.Load(); got != 1 {
+		t.Fatalf("login attempts = %d, want 1", got)
+	}
+}
+
+func TestSessionRejectedCurrentTokenLogsInAgain(t *testing.T) {
+	clock := &testClock{now: time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)}
+	login := &countingLogin{tokens: []string{"revoked", "replacement"}}
+	s := newSession(login, clock.Now, sessionPolicy{
+		staleAfter: defaultSessionStaleAfter, expiresAfter: defaultSessionExpiresAfter,
+		loginTimeout: time.Minute, retryDelay: time.Minute,
+	})
+
+	first, err := s.Get(context.Background())
+	if err != nil {
+		t.Fatalf("initial Get() error = %v", err)
+	}
+	s.Reject(first)
+
+	token, err := s.Get(context.Background())
+	if err != nil {
+		t.Fatalf("Get() after rejection error = %v", err)
+	}
+	if token.Token != "Bearer replacement" {
+		t.Fatalf("Get() after rejection token = %q, want replacement", token.Token)
+	}
+	if got := login.calls.Load(); got != 2 {
+		t.Fatalf("login calls = %d, want 2", got)
+	}
+}
+
+func TestSessionRejectionDuringRetryDelayLogsInAgain(t *testing.T) {
+	clock := &testClock{now: time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)}
+	var calls atomic.Int32
+	s := newSession(loginAdapterFunc(func(context.Context) (string, string, error) {
+		switch calls.Add(1) {
+		case 1:
+			return "revoked", "https://provider.test/processrequest/api-801/app", nil
+		case 2:
+			return "", "", errors.New("scheduled maintenance failed")
+		default:
+			return "replacement", "https://provider.test/processrequest/api-801/app", nil
+		}
+	}), clock.Now, sessionPolicy{
+		staleAfter: defaultSessionStaleAfter, expiresAfter: defaultSessionExpiresAfter,
+		loginTimeout: time.Minute, retryDelay: time.Minute,
+	})
+	revoked, err := s.Get(context.Background())
+	if err != nil {
+		t.Fatalf("initial Get() error = %v", err)
+	}
+	if err := s.Maintain(context.Background()); err == nil {
+		t.Fatal("Maintain() error = nil, want scheduled failure")
+	}
+	s.Reject(revoked)
+
+	token, err := s.Get(context.Background())
+	if err != nil || token.Token != "Bearer replacement" {
+		t.Fatalf("Get() after rejection during retry delay = %v, %v; want replacement token", token, err)
+	}
+}
+
+func TestSessionIgnoresRejectionOfReplacedToken(t *testing.T) {
+	clock := &testClock{now: time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)}
+	login := &countingLogin{tokens: []string{"old", "current", "unexpected"}}
+	s := newSession(login, clock.Now, sessionPolicy{
+		staleAfter: defaultSessionStaleAfter, expiresAfter: defaultSessionExpiresAfter,
+		loginTimeout: time.Minute, retryDelay: time.Minute,
+	})
+
+	old, err := s.Get(context.Background())
+	if err != nil {
+		t.Fatalf("initial Get() error = %v", err)
+	}
+	if err := s.Maintain(context.Background()); err != nil {
+		t.Fatalf("Maintain() error = %v", err)
+	}
+	s.Reject(old)
+
+	token, err := s.Get(context.Background())
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	if token.Token != "Bearer current" {
+		t.Fatalf("Get() token = %q, want current", token.Token)
+	}
+	if got := login.calls.Load(); got != 2 {
+		t.Fatalf("login calls = %d, want 2", got)
+	}
+}
+
+func TestSessionConcurrentRejectionsShareOneLogin(t *testing.T) {
+	clock := &testClock{now: time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)}
+	login := &countingLogin{tokens: []string{"revoked", "replacement", "unexpected"}}
+	s := newSession(login, clock.Now, sessionPolicy{
+		staleAfter: defaultSessionStaleAfter, expiresAfter: defaultSessionExpiresAfter,
+		loginTimeout: time.Minute, retryDelay: time.Minute,
+	})
+	revoked, err := s.Get(context.Background())
+	if err != nil {
+		t.Fatalf("initial Get() error = %v", err)
+	}
+
+	const callers = 32
+	results := make(chan error, callers)
+	for range callers {
+		go func() {
+			s.Reject(revoked)
+			token, err := s.Get(context.Background())
+			if err == nil && token.Token != "Bearer replacement" {
+				err = &unexpectedTokenError{got: token.Token}
+			}
+			results <- err
+		}()
+	}
+	for range callers {
+		if err := <-results; err != nil {
+			t.Fatalf("Get() after concurrent rejection error = %v", err)
+		}
+	}
+	if got := login.calls.Load(); got != 2 {
+		t.Fatalf("login calls = %d, want 2", got)
+	}
+}
+
+func TestSessionServesStaleTokenWithoutWaitingForRefresh(t *testing.T) {
+	clock := &testClock{now: time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)}
+	refreshStarted := make(chan struct{})
+	releaseRefresh := make(chan struct{})
+	refreshCanceled := make(chan bool, 1)
+	var calls atomic.Int32
+	s := newSession(loginAdapterFunc(func(ctx context.Context) (string, string, error) {
+		if calls.Add(1) == 1 {
+			return "known-good", "https://provider.test/processrequest/api-801/app", nil
+		}
+		close(refreshStarted)
+		select {
+		case <-releaseRefresh:
+			refreshCanceled <- false
+			return "refreshed", "https://provider.test/processrequest/api-801/app", nil
+		case <-ctx.Done():
+			refreshCanceled <- true
+			return "", "", ctx.Err()
+		}
+	}), clock.Now, sessionPolicy{
+		staleAfter: defaultSessionStaleAfter, expiresAfter: defaultSessionExpiresAfter,
+		loginTimeout: time.Minute, retryDelay: time.Minute,
+	})
+	if _, err := s.Get(context.Background()); err != nil {
+		t.Fatalf("initial Get() error = %v", err)
+	}
+	clock.Advance(defaultSessionStaleAfter)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	token, err := s.Get(ctx)
+	if ctx.Err() != nil {
+		t.Fatalf("Get() with a usable stale token waited until the caller deadline")
+	}
+	cancel()
+	if err != nil || token.Token != "Bearer known-good" {
+		t.Fatalf("Get() = %v, %v; want last-known-good token", token, err)
+	}
+	<-refreshStarted
+
+	const callers = 16
+	results := make(chan error, callers)
+	for range callers {
+		go func() {
+			token, err := s.Get(context.Background())
+			if err == nil && token.Token != "Bearer known-good" {
+				err = &unexpectedTokenError{got: token.Token}
+			}
+			results <- err
+		}()
+	}
+	for range callers {
+		if err := <-results; err != nil {
+			t.Fatalf("Get() during refresh error = %v", err)
+		}
+	}
+	if _, err := s.Get(context.Background()); err != nil {
+		t.Fatalf("back-to-back Get() during refresh error = %v", err)
+	}
 	if got := calls.Load(); got != 2 {
-		t.Fatalf("login attempts = %d, want 2", got)
+		t.Fatalf("login calls during refresh = %d, want 2", got)
+	}
+
+	close(releaseRefresh)
+	if <-refreshCanceled {
+		t.Fatal("background refresh was canceled with the caller")
+	}
+	waitForRefresh(s)
+	token, err = s.Get(context.Background())
+	if err != nil || token.Token != "Bearer refreshed" {
+		t.Fatalf("Get() after refresh = %v, %v; want refreshed token", token, err)
+	}
+}
+
+func TestSessionFailedBackgroundRefreshWaitsForRetryDelay(t *testing.T) {
+	clock := &testClock{now: time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)}
+	var calls atomic.Int32
+	s := newSession(loginAdapterFunc(func(context.Context) (string, string, error) {
+		switch calls.Add(1) {
+		case 1:
+			return "known-good", "https://provider.test/processrequest/api-801/app", nil
+		case 2:
+			return "", "", errors.New("temporary login failure")
+		default:
+			return "recovered", "https://provider.test/processrequest/api-801/app", nil
+		}
+	}), clock.Now, sessionPolicy{
+		staleAfter: defaultSessionStaleAfter, expiresAfter: defaultSessionExpiresAfter,
+		loginTimeout: time.Minute, retryDelay: time.Minute,
+	})
+	if _, err := s.Get(context.Background()); err != nil {
+		t.Fatalf("initial Get() error = %v", err)
+	}
+	clock.Advance(defaultSessionStaleAfter)
+	if _, err := s.Get(context.Background()); err != nil {
+		t.Fatalf("stale Get() error = %v", err)
+	}
+	waitForRefresh(s)
+	if got := s.Status().State; got != sessionDegraded {
+		t.Fatalf("state after failed refresh = %q, want %q", got, sessionDegraded)
+	}
+
+	clock.Advance(time.Minute - time.Second)
+	token, err := s.Get(context.Background())
+	if err != nil || token.Token != "Bearer known-good" {
+		t.Fatalf("Get() before retry delay = %v, %v; want last-known-good token", token, err)
+	}
+	waitForRefresh(s)
+	if got := calls.Load(); got != 2 {
+		t.Fatalf("login calls before retry delay = %d, want 2", got)
+	}
+
+	clock.Advance(time.Second)
+	if _, err := s.Get(context.Background()); err != nil {
+		t.Fatalf("Get() at retry delay error = %v", err)
+	}
+	waitForRefresh(s)
+	if got := calls.Load(); got != 3 {
+		t.Fatalf("login calls at retry delay = %d, want 3", got)
+	}
+	token, err = s.Get(context.Background())
+	if err != nil || token.Token != "Bearer recovered" {
+		t.Fatalf("Get() after retry = %v, %v; want recovered token", token, err)
+	}
+}
+
+type countingLogin struct {
+	tokens []string
+	calls  atomic.Int32
+}
+
+func (l *countingLogin) Authenticate(context.Context) (string, string, error) {
+	call := int(l.calls.Add(1))
+	return l.tokens[min(call, len(l.tokens))-1], "https://provider.test/processrequest/api-801/app", nil
+}
+
+func waitForRefresh(s *sessionImpl) {
+	s.mu.Lock()
+	flight := s.flight
+	s.mu.Unlock()
+	if flight != nil {
+		<-flight.done
 	}
 }

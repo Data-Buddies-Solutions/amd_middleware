@@ -127,6 +127,8 @@ func (unavailableSession) Maintain(context.Context) error {
 	return session.ErrSessionUnavailable
 }
 
+func (unavailableSession) Reject(*session.TokenData) {}
+
 func (unavailableSession) Status() session.SessionStatus {
 	return session.SessionStatus{State: session.SessionUnavailable}
 }

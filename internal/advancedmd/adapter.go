@@ -56,7 +56,7 @@ func (a *Adapter) SearchPatients(ctx context.Context, search domain.PatientSearc
 		read, err = a.xmlClient.LookupPatient(ctx, token, search.LastName, search.FirstName)
 	}
 	if err != nil {
-		return domain.PatientCandidateRead{}, classify(err)
+		return domain.PatientCandidateRead{}, a.classify(token, err)
 	}
 	return read, nil
 }
@@ -68,7 +68,7 @@ func (a *Adapter) ReadPatientCandidates(ctx context.Context, firstName, dob stri
 	}
 	read, err := a.xmlClient.LookupPatientCandidates(ctx, token, firstName, dob)
 	if err != nil {
-		return domain.PatientCandidateRead{}, classify(err)
+		return domain.PatientCandidateRead{}, a.classify(token, err)
 	}
 	return read, nil
 }
@@ -80,7 +80,7 @@ func (a *Adapter) GetPatientDemographics(ctx context.Context, patientID string) 
 	}
 	demographics, err := a.xmlClient.GetDemographic(ctx, token, patientID)
 	if err != nil {
-		return domain.PatientDemographics{}, classify(err)
+		return domain.PatientDemographics{}, a.classify(token, err)
 	}
 	return demographics, nil
 }
@@ -97,7 +97,7 @@ func (a *Adapter) CreatePatient(ctx context.Context, command domain.PatientCreat
 
 	created, err := a.xmlClient.AddPatient(ctx, token, command, office.DefaultProfileID)
 	if err != nil {
-		return domain.CreatedPatient{}, classifyMutation(err)
+		return domain.CreatedPatient{}, a.classifyMutation(token, err)
 	}
 	return created, nil
 }
@@ -115,7 +115,7 @@ func (a *Adapter) AddPatientInsurance(ctx context.Context, command domain.Patien
 		command.CarrierID,
 		command.SubscriberNum,
 	); err != nil {
-		return classifyMutation(err)
+		return a.classifyMutation(token, err)
 	}
 	return nil
 }
@@ -126,7 +126,7 @@ func (a *Adapter) EndDatePatientInsurance(ctx context.Context, command domain.Pa
 		return err
 	}
 	if err := a.xmlClient.EndDateInsurance(ctx, token, command.PatientID, command.InsPlanID); err != nil {
-		return classifyMutation(err)
+		return a.classifyMutation(token, err)
 	}
 	return nil
 }
@@ -192,7 +192,7 @@ func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.Pati
 
 	visits, err := a.xmlClient.GetPatientVisits(ctx, token, query.PatientID)
 	if err != nil {
-		return AppointmentRead{ProviderReads: 1}, classify(err)
+		return AppointmentRead{ProviderReads: 1}, a.classify(token, err)
 	}
 	var scheduled []clients.PatientVisit
 	var days []string
@@ -236,7 +236,7 @@ func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.Pati
 		rawAppointments = append(rawAppointments, result.appointments...)
 	}
 	if firstErr != nil {
-		return AppointmentRead{ProviderReads: providerReads}, classify(firstErr)
+		return AppointmentRead{ProviderReads: providerReads}, a.classify(token, firstErr)
 	}
 
 	read := patientAppointmentRead(rawAppointments, patientIDNumber, lookup.officeByColumn, nil, &cutoff)
@@ -282,7 +282,7 @@ func (a *Adapter) patientAppointmentsForOfficeDay(
 		appointmentDay(day),
 	)
 	if err != nil {
-		return AppointmentRead{ProviderReads: 1}, classify(err)
+		return AppointmentRead{ProviderReads: 1}, a.classify(token, err)
 	}
 	read := patientAppointmentRead(rawAppointments, patientID, nil, office, nil)
 	read.ProviderReads = 1
@@ -463,7 +463,7 @@ func (a *Adapter) ReadAppointmentState(
 		appointmentDay(query.Start),
 	)
 	if err != nil {
-		return AppointmentState{}, classify(err)
+		return AppointmentState{}, a.classify(token, err)
 	}
 
 	state := AppointmentState{Complete: true}
@@ -490,7 +490,7 @@ func (a *Adapter) GetSchedulerSetup(ctx context.Context) (domain.SchedulerSetup,
 	}
 	setup, err := a.xmlClient.GetSchedulerSetup(ctx, token)
 	if err != nil {
-		return domain.SchedulerSetup{}, classify(err)
+		return domain.SchedulerSetup{}, a.classify(token, err)
 	}
 	if setup == nil {
 		return domain.SchedulerSetup{}, NewError(safeerrors.CategoryInvalidResponse)
@@ -517,7 +517,7 @@ func (a *Adapter) ReadColumnDay(ctx context.Context, columnID, date string) (dom
 	var firstErr error
 	for _, err := range []error{appointmentsErr, holdsErr} {
 		if err != nil {
-			failure := classify(err)
+			failure := a.classify(token, err)
 			if firstErr == nil {
 				firstErr = failure
 			}
@@ -563,7 +563,7 @@ func (a *Adapter) ReadScheduleRange(ctx context.Context, query domain.ScheduleRa
 	reads.Wait()
 	for _, err := range failures {
 		if err != nil {
-			failure := classify(err)
+			failure := a.classify(token, err)
 			log.Printf("schedule read incomplete category=%s", CategoryOf(failure))
 			return nil, failure
 		}
@@ -572,7 +572,7 @@ func (a *Adapter) ReadScheduleRange(ctx context.Context, query domain.ScheduleRa
 	for i, month := range months {
 		rows, err := clients.ScheduledAppointments(appointments[i])
 		if err != nil {
-			failure := classify(err)
+			failure := a.classify(token, err)
 			log.Printf("schedule read incomplete category=%s", CategoryOf(failure))
 			return nil, failure
 		}
@@ -711,7 +711,7 @@ func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, er
 		Comments:   booking.Comments,
 	})
 	if err != nil {
-		return 0, classifyMutation(err)
+		return 0, a.classifyMutation(token, err)
 	}
 	return appointmentID, nil
 }
@@ -722,7 +722,7 @@ func (a *Adapter) CancelAppointment(ctx context.Context, cancellation Cancellati
 		return err
 	}
 	if err := a.restClient.CancelAppointment(ctx, token, cancellation.AppointmentID); err != nil {
-		return classifyMutation(err)
+		return a.classifyMutation(token, err)
 	}
 	return nil
 }
@@ -741,19 +741,24 @@ func (a *Adapter) token(ctx context.Context) (*session.TokenData, error) {
 	return token, nil
 }
 
-func classify(err error) error {
-	if err == nil {
-		return nil
-	}
-	return NewError(safeerrors.Classify(err))
+func (a *Adapter) classify(token *session.TokenData, err error) error {
+	return NewError(a.providerCategory(token, err))
 }
 
-func classifyMutation(err error) error {
-	category := safeerrors.Classify(err)
+func (a *Adapter) classifyMutation(token *session.TokenData, err error) error {
+	category := a.providerCategory(token, err)
 	if safeerrors.IsNotSent(err) || refusedWrite(category) {
 		return NewError(category)
 	}
 	return NewAmbiguousWriteError(category)
+}
+
+func (a *Adapter) providerCategory(token *session.TokenData, err error) safeerrors.Category {
+	category := safeerrors.Classify(err)
+	if category == safeerrors.CategoryAuthentication {
+		a.session.Reject(token)
+	}
+	return category
 }
 
 func visitProviderName(name string) string {
