@@ -68,8 +68,9 @@ type sessionImpl struct {
 }
 
 type refreshFlight struct {
-	done chan struct{}
-	err  error
+	done           chan struct{}
+	err            error
+	callerCanceled bool
 }
 
 func newSession(login loginAdapter, now func() time.Time, policy sessionPolicy) *sessionImpl {
@@ -94,39 +95,22 @@ func NewSession(creds Credentials, client *http.Client, now func() time.Time) Se
 }
 
 func (s *sessionImpl) Get(ctx context.Context) (*TokenData, error) {
-	s.mu.Lock()
-	now := s.now()
-	if s.usableLocked(now) {
-		if !s.freshLocked(now) && !now.Before(s.retryAt) {
-			s.startLoginLocked(ctx)
+	if err := s.refresh(ctx, false); err != nil {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		if s.usableLocked(s.now()) {
+			return cloneTokenData(s.tokenData), nil
 		}
-		token := cloneTokenData(s.tokenData)
-		s.mu.Unlock()
-		return token, nil
-	}
-	if now.Before(s.retryAt) {
-		s.mu.Unlock()
 		return nil, ErrSessionUnavailable
 	}
-	flight := s.startLoginLocked(ctx)
-	s.mu.Unlock()
 
-	if err := waitForLogin(ctx, flight); err != nil {
-		return nil, ErrSessionUnavailable
-	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if !s.usableLocked(s.now()) {
-		return nil, ErrSessionUnavailable
-	}
 	return cloneTokenData(s.tokenData), nil
 }
 
 func (s *sessionImpl) Maintain(ctx context.Context) error {
-	s.mu.Lock()
-	flight := s.startLoginLocked(ctx)
-	s.mu.Unlock()
-	return waitForLogin(ctx, flight)
+	return s.refresh(ctx, true)
 }
 
 func (s *sessionImpl) Reject(rejected *TokenData) {
@@ -142,31 +126,66 @@ func (s *sessionImpl) Reject(rejected *TokenData) {
 	log.Printf("WARNING: provider=advancedmd session token rejected; next request logs in again")
 }
 
-func (s *sessionImpl) startLoginLocked(ctx context.Context) *refreshFlight {
-	if s.flight != nil {
-		return s.flight
+func (s *sessionImpl) refresh(ctx context.Context, force bool) error {
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		s.mu.Lock()
+		if !force {
+			now := s.now()
+			if s.freshLocked(now) {
+				s.mu.Unlock()
+				return nil
+			}
+			if now.Before(s.retryAt) {
+				usable := s.usableLocked(now)
+				s.mu.Unlock()
+				if usable {
+					return nil
+				}
+				return ErrSessionUnavailable
+			}
+		}
+		active := s.flight
+		if active == nil {
+			return s.authenticateLocked(ctx)
+		}
+		s.mu.Unlock()
+		select {
+		case <-active.done:
+			if active.callerCanceled {
+				continue
+			}
+			return active.err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
-	flight := &refreshFlight{done: make(chan struct{})}
-	s.flight = flight
-	loginStartedAt := s.now()
-	loginCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), s.policy.loginTimeout)
-	go func() {
-		defer cancel()
-		token, webserverURL, err := s.login.Authenticate(loginCtx)
-		s.finishLogin(flight, loginStartedAt, token, webserverURL, err)
-	}()
-	return flight
 }
 
-func (s *sessionImpl) finishLogin(flight *refreshFlight, loginStartedAt time.Time, token, webserverURL string, err error) {
+func (s *sessionImpl) authenticateLocked(ctx context.Context) error {
+	active := &refreshFlight{done: make(chan struct{})}
+	s.flight = active
+	loginStartedAt := s.now()
+	s.mu.Unlock()
+
+	loginCtx, cancel := context.WithTimeout(ctx, s.policy.loginTimeout)
+	defer cancel()
+	token, webserverURL, err := s.login.Authenticate(loginCtx)
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	defer close(flight.done)
-	flight.err = err
+	active.err = err
+	active.callerCanceled = err != nil && ctx.Err() != nil
 	s.flight = nil
+	close(active.done)
 	if err != nil {
 		now := s.now()
-		s.retryAt = now.Add(s.policy.retryDelay)
+		s.retryAt = time.Time{}
+		if ctx.Err() == nil {
+			s.retryAt = now.Add(s.policy.retryDelay)
+		}
 		if s.usableLocked(now) {
 			s.state = sessionDegraded
 		} else {
@@ -174,21 +193,13 @@ func (s *sessionImpl) finishLogin(flight *refreshFlight, loginStartedAt time.Tim
 			s.createdAt = time.Time{}
 			s.state = SessionUnavailable
 		}
-		return
+		return err
 	}
 	s.createdAt = loginStartedAt
 	s.tokenData = buildTokenData(token, webserverURL)
 	s.retryAt = time.Time{}
 	s.state = sessionFresh
-}
-
-func waitForLogin(ctx context.Context, flight *refreshFlight) error {
-	select {
-	case <-flight.done:
-		return flight.err
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 func (s *sessionImpl) usableLocked(now time.Time) bool {
