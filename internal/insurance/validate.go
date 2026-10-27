@@ -43,9 +43,16 @@ func validateCatalog(lists []planList, carriers map[string]string) error {
 	for _, list := range lists {
 		file := list.Table
 		owners := map[string]string{}
+		selfPay := map[string]string{}
 		for _, p := range list.Plans {
 			if err := validatePlan(p, list, carriers); err != nil {
 				return fmt.Errorf("%s: plan %q: %w", file, p.ID, err)
+			}
+			if p.SelfPay {
+				if other, ok := selfPay[p.Coverage]; ok {
+					return fmt.Errorf("%s: %s and %s are both self-pay plans for %s", file, other, p.ID, p.Coverage)
+				}
+				selfPay[p.Coverage] = p.ID
 			}
 			if other, ok := planByID[p.ID]; ok && (other.CarrierID != p.CarrierID || other.Coverage != p.Coverage) {
 				return fmt.Errorf("%s: plan id %q reused for a different plan", file, p.ID)

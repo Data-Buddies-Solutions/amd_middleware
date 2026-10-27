@@ -28,6 +28,7 @@ func TestParseCatalogRejectsInvalidData(t *testing.T) {
 		{"unknown carrier", "carriers.json", func(sf, _, _ *[]plan) { (*sf)[0].CarrierID = "car404" }},
 		{"carrier code with two carriers", "carrier code", func(sf, _, _ *[]plan) { (*sf)[1].CarrierID = "car1" }},
 		{"only office outside list", "onlyOffices", func(sf, _, _ *[]plan) { (*sf)[0].OnlyOffices = []string{"spring_hill"} }},
+		{"two self-pay plans for one coverage", "self-pay", func(sf, _, _ *[]plan) { (*sf)[0].SelfPay = true }},
 		{"unknown requirement", "requirement", func(sf, _, _ *[]plan) {
 			(*sf)[0].Requirements = []planRequirement{{Kind: "vob_authorization"}}
 		}},

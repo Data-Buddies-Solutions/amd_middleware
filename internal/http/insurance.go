@@ -14,8 +14,9 @@ func (h *Handlers) HandleInsuranceDecision(w http.ResponseWriter, r *http.Reques
 		Office       string   `json:"office"`
 		DOB          string   `json:"dob"`
 		Offered      []string `json:"offeredPlanIds"`
+		SelfPay      bool     `json:"selfPay"`
 	}
-	if decodeStrict(r, &req) != nil {
+	if decodeStrict(r, &req) != nil || (req.SelfPay && (req.Plan != "" || len(req.Offered) > 0)) {
 		rejectInvalidRequest(w, r, errorResponse{Status: "error", Message: "Invalid insurance request"})
 		return
 	}
@@ -28,6 +29,10 @@ func (h *Handlers) HandleInsuranceDecision(w http.ResponseWriter, r *http.Reques
 	dob, err := domain.ParseDOB(req.DOB, now)
 	if err != nil {
 		rejectInvalidRequest(w, r, errorResponse{Status: "error", Message: err.Error()})
+		return
+	}
+	if req.SelfPay {
+		respond(w, insurance.DecideSelfPay(req.CoverageType, office, string(dob), now))
 		return
 	}
 	respond(w, insurance.DecideOfferedAnswer(req.Plan, req.Offered, req.CoverageType, office, string(dob), now))

@@ -2,6 +2,7 @@ package insurance
 
 import (
 	"encoding/json"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -129,6 +130,17 @@ func TestDecidePlanRequiresThePlanInTheOfficeListAndCoverage(t *testing.T) {
 		if d.Outcome != "needs_clarification" || d.PlanID != "" || d.Answer != answerAskCard {
 			t.Fatalf("%+v: decision = %+v", tc, d)
 		}
+	}
+}
+
+func TestDecideSelfPayWithoutASelfPayPlanIsNotAccepted(t *testing.T) {
+	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
+	hollywood := office(t, "hollywood")
+	if d := DecideSelfPay("medical", hollywood, adultDOB, testNow); !reflect.DeepEqual(d, DecidePlan("self-pay", "medical", hollywood, adultDOB, testNow)) || !d.SelfPay {
+		t.Fatalf("hollywood medical = %+v", d)
+	}
+	if d := DecideSelfPay("routine_vision", hollywood, adultDOB, testNow); d.Outcome != "not_accepted" || d.CanSchedule || d.PlanID != "" || d.Answer != answerNoSelfPay {
+		t.Fatalf("hollywood routine vision = %+v", d)
 	}
 }
 

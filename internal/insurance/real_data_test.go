@@ -127,3 +127,19 @@ func TestRealDataLeonRoutesToTheLeonCoordinator(t *testing.T) {
 		})
 	}
 }
+
+func TestRealDataEverySupportedCoverageHasAnAcceptedSelfPayPlan(t *testing.T) {
+	for _, list := range catalog {
+		for _, officeID := range list.Offices {
+			o := office(t, officeID)
+			for _, coverage := range []string{"medical", "routine_vision"} {
+				if !officeSupports(o, coverage) {
+					continue
+				}
+				if d := DecideSelfPay(coverage, o, adultDOB, testNow); d.Outcome != "accepted" || !d.CanSchedule || !d.SelfPay {
+					t.Errorf("%s %s: %+v", officeID, coverage, d)
+				}
+			}
+		}
+	}
+}
