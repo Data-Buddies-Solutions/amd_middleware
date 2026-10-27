@@ -31,58 +31,14 @@ var planTypes = map[string]bool{"hmo": true, "ppo": true, "epo": true, "pos": tr
 
 var programs = []string{"medicare", "medicaid"}
 
-var selfPayPhrases = []string{
-	"no insurance", "dont have insurance", "dont have any insurance", "doesnt have insurance",
-	"do not have insurance", "does not have insurance", "uninsured", "out of pocket", "self pay",
-	"pay myself", "paying myself", "private pay",
-}
-
-var negations = map[string]bool{
-	"not": true, "never": true, "cannot": true, "dont": true, "doesnt": true, "didnt": true, "cant": true,
-	"wont": true, "wouldnt": true, "couldnt": true, "isnt": true, "arent": true, "wasnt": true,
-}
-
-var wordsAfterSelfPay = map[string]bool{"now": true, "right": true, "anymore": true, "currently": true, "yet": true, "for": true, "at": true, "all": true}
-
-func saysSelfPay(heard string) bool {
-	clauses := strings.FieldsFunc(heard, func(r rune) bool { return strings.ContainsRune(",.;:!?", r) })
-	return slices.ContainsFunc(clauses, func(clause string) bool { return clauseSaysSelfPay(spokenWords(clause)) })
-}
-
-func clauseSaysSelfPay(words []string) bool {
-	for i, word := range words {
-		for _, phrase := range selfPayPhrases {
-			p := strings.Fields(phrase)
-			end := i + len(p)
-			if end <= len(words) && slices.Equal(words[i:end], p) && !slices.ContainsFunc(words[end:], func(w string) bool { return !wordsAfterSelfPay[w] }) {
-				return true
-			}
-		}
-		if negations[word] {
-			return false
-		}
-	}
-	return false
-}
-
-func mentionsProgram(heard []string) bool {
-	return slices.ContainsFunc(heard, func(h string) bool {
-		return ambiguousSpellings[h] || slices.ContainsFunc(programs, func(p string) bool { return h == p || closeSpelling(h, p) })
-	})
-}
-
-func spokenWords(s string) []string {
+func tokens(s string) []string {
 	s = strings.ToLower(s)
 	s = strings.ReplaceAll(s, "&", " and ")
 	s = strings.ReplaceAll(s, "'", "")
 	s = strings.ReplaceAll(s, "’", "")
-	return strings.FieldsFunc(s, func(r rune) bool {
+	words := strings.FieldsFunc(s, func(r rune) bool {
 		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
 	})
-}
-
-func tokens(s string) []string {
-	words := spokenWords(s)
 	kept := []string{}
 	for i := 0; i < len(words); i++ {
 		word := words[i]

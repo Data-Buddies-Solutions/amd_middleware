@@ -258,6 +258,11 @@ after the Aetna options is Aetna Medicare), asks again with the offered plans th
 fit when the words are vague, and decides the words as a new plan when they name none of
 them. The voice agent never matches the answer itself.
 
+When the caller has no insurance and will pay themselves, the voice agent sends
+`selfPay: true` with no `plan` or `offeredPlanIds` (sending either with it is an invalid
+request). The middleware decides the office's self-pay plan for that coverage; it does not
+read "no insurance" out of the caller's words.
+
 `POST /api/add-patient` and `POST /api/patient/update-insurance` accept an optional
 `insurancePlanId`. When it is sent, the decision is made for that plan in the office's
 list and coverage and its carrier is written; the name is not matched again. Without
@@ -329,7 +334,7 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/patient/resolve` | Resolve identity, demographics, chart insurance, and upcoming appointments | `patient.Resolve` |
 | `POST /api/add-patient` | Create a patient and attach primary insurance | `patient.Create` |
 | `POST /api/patient/update-insurance` | Replace primary insurance | `patient.UpdateInsurance` |
-| `POST /api/insurance/decision` | Decide plan participation for an office from the caller's answer, matching offered plans first | `insurance.DecideOfferedAnswer` |
+| `POST /api/insurance/decision` | Decide plan participation for an office from the caller's answer, matching offered plans first, or the office's self-pay plan when `selfPay` is set | `insurance.DecideOfferedAnswer`, `insurance.DecideSelfPay` |
 | `GET /api/insurance/plans?office=&coverage=` | List an office's plans for one coverage with each plan's decision, carrier, sheet note, and other offices on the same insurance list that accept it (read-only) | `insurance.ListPlans` |
 | `POST /api/scheduler/slots` | List openings as an inventory envelope | `scheduling.List` |
 | `POST /api/appointment/book` | Revalidate and book a signed slot | `scheduling.Book` |

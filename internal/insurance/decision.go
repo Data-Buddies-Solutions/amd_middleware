@@ -17,6 +17,7 @@ const (
 	answerStaffVerify      = "blocked: The office needs to verify this plan's coverage before scheduling."
 	answerChartStaff       = "blocked: Staff must verify the insurance on the chart before scheduling."
 	answerNoDoctorForAge   = "blocked: We accept this plan, but none of its doctors at this office can see a patient of this age. The office needs to arrange this visit."
+	answerNoSelfPay        = "blocked: This office does not offer self-pay for this visit type."
 	maxOptions             = 4
 )
 
@@ -69,10 +70,6 @@ func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob st
 	if len(found) == 0 {
 		if namesProgram(words) {
 			d.Reason, d.Answer = "ask_full_name", answerAskFullName
-			return d
-		}
-		if p, ok := selfPayPlan(list, coverage); ok && !mentionsProgram(heardWords) && saysSelfPay(heard) {
-			return decidePlanAtOffice(p, office, dob, asOf)
 		}
 		return d
 	}
@@ -89,6 +86,22 @@ func DecidePlan(planID, coverage string, office *domain.OfficeConfig, dob string
 			return decidePlanAtOffice(p, office, dob, asOf)
 		}
 	}
+	return d
+}
+
+func DecideSelfPay(coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+	d, list, ok := startDecision(coverage, office)
+	if !ok {
+		return d
+	}
+	for _, p := range list.Plans {
+		if p.SelfPay && p.Coverage == coverage {
+			return decidePlanAtOffice(p, office, dob, asOf)
+		}
+	}
+	d.Outcome = "not_accepted"
+	d.Participation = "not_accepted"
+	d.Reason, d.Answer = "no_self_pay", answerNoSelfPay
 	return d
 }
 

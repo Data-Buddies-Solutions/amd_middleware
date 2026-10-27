@@ -128,50 +128,18 @@ func TestRealDataLeonRoutesToTheLeonCoordinator(t *testing.T) {
 	}
 }
 
-func TestRealDataSelfPayPhrasingsResolveToSelfPay(t *testing.T) {
-	selfPayID := map[string]string{"medical": "self-pay-medical", "routine_vision": "self-pay-routine-vision"}
-	for _, c := range []struct{ office, coverage string }{
-		{"hollywood", "medical"}, {"hollywood", "routine_vision"},
-		{"sweetwater", "medical"}, {"sweetwater", "routine_vision"},
-		{"north_miami_beach_optical", "routine_vision"},
-		{"spring_hill", "medical"}, {"spring_hill", "routine_vision"},
-		{"crystal_river", "medical"},
-	} {
-		o := office(t, c.office)
-		want := DecidePlan(selfPayID[c.coverage], c.coverage, o, adultDOB, testNow)
-		if want.Outcome != "accepted" || !want.SelfPay {
-			t.Fatalf("%s %s: self-pay plan = %+v", c.office, c.coverage, want)
-		}
-		for _, heard := range []string{
-			"I don't have insurance", "I'm paying out of pocket", "no insurance", "uninsured", "self pay", "I'll pay myself",
-			"I have no insurance", "I do not have insurance", "I don't have any insurance", "She doesn't have insurance", "private pay",
-			"No insurance right now", "Out of pocket, for now.", "I don't have insurance, I'll pay out of pocket",
-		} {
-			if got := DecideInsurance(heard, c.coverage, o, adultDOB, testNow); !reflect.DeepEqual(got, want) {
-				t.Errorf("%s %s %q: got plan %q reason %q", c.office, c.coverage, heard, got.PlanID, got.Reason)
+func TestRealDataEverySupportedCoverageHasAnAcceptedSelfPayPlan(t *testing.T) {
+	for _, list := range catalog {
+		for _, officeID := range list.Offices {
+			o := office(t, officeID)
+			for _, coverage := range []string{"medical", "routine_vision"} {
+				if !officeSupports(o, coverage) {
+					continue
+				}
+				if d := DecideSelfPay(coverage, o, adultDOB, testNow); d.Outcome != "accepted" || !d.CanSchedule || !d.SelfPay {
+					t.Errorf("%s %s: %+v", officeID, coverage, d)
+				}
 			}
-		}
-	}
-}
-
-func TestRealDataSelfPayPhrasingsDoNotOverrideANamedPlan(t *testing.T) {
-	hollywood := office(t, "hollywood")
-	for heard, planID := range map[string]string{
-		"Seminole Tribe of Florida Self-Funded Health Plan":      "seminole-tribe-medical",
-		"UnitedHealthcare Community Plan":                        "united-healthcare-medicaid-non-par",
-		"I have no insurance card, but it's Aetna Better Health": "aetna-better-health-medicaid-medical",
-	} {
-		if d := DecideInsurance(heard, "medical", hollywood, adultDOB, testNow); d.PlanID != planID || d.SelfPay {
-			t.Errorf("%q: decision = %+v", heard, d)
-		}
-	}
-	for _, heard := range []string{
-		"no insurance, just Medicaid", "I don't have insurance, only Medicare", "Medicaid pending, out of pocket for now", "Medicade pending, paying out of pocket",
-		"I don't want to pay out of pocket", "I can't do private pay", "I cannot pay out of pocket", "I didn't want to pay out of pocket",
-		"I have no insurance card right now", "No insurance changes", "I don't have insurance with me today", "no insurance information on me",
-	} {
-		if d := DecideInsurance(heard, "medical", hollywood, adultDOB, testNow); d.SelfPay || d.PlanID != "" {
-			t.Errorf("%q: decision = %+v", heard, d)
 		}
 	}
 }

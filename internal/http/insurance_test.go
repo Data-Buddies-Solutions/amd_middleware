@@ -41,9 +41,35 @@ func TestInsuranceDecisionHTTPContract(t *testing.T) {
 	}
 }
 
+func TestInsuranceDecisionSelfPayReturnsTheOfficeSelfPayPlan(t *testing.T) {
+	handlers := NewHandlers(nil, nil, nil, testNow)
+	for _, tc := range []struct{ office, officeID, coverage, planID string }{
+		{"Hollywood", "hollywood", "medical", "self-pay-medical"},
+		{"Hollywood", "hollywood", "routine_vision", "self-pay-routine-vision"},
+		{"Spring Hill", "spring_hill", "medical", "self-pay-medical"},
+		{"Spring Hill", "spring_hill", "routine_vision", "self-pay-routine-vision"},
+		{"Crystal River", "crystal_river", "medical", "self-pay-medical"},
+	} {
+		w := httptest.NewRecorder()
+		body := `{"selfPay":true,"coverageType":"` + tc.coverage + `","office":"` + tc.office + `","dob":"01/15/1980"}`
+		handlers.HandleInsuranceDecision(w, httptest.NewRequest(http.MethodPost, "/api/insurance/decision", strings.NewReader(body)))
+		var got insurance.InsuranceDecision
+		if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+			t.Fatal(err)
+		}
+		office, _ := domain.LookupOfficeByID(tc.officeID)
+		want := insurance.DecidePlan(tc.planID, tc.coverage, office, "01/15/1980", testNow())
+		if !want.SelfPay || !want.CanSchedule || !reflect.DeepEqual(got, want) {
+			t.Errorf("%s %s: response=%s want=%+v", tc.office, tc.coverage, w.Body.String(), want)
+		}
+	}
+}
+
 func TestInsuranceRoutesRejectInvalidInputWithTheSharedErrorContract(t *testing.T) {
 	for _, tc := range []struct{ name, method, target, body string }{
 		{"decision caller verification flag", http.MethodPost, "/api/insurance/decision", `{"plan":"Self Pay","coverageType":"medical","office":"Hollywood","referralVerified":true}`},
+		{"decision self-pay with a plan", http.MethodPost, "/api/insurance/decision", `{"selfPay":true,"plan":"Aetna","coverageType":"medical","office":"Hollywood","dob":"01/15/1980"}`},
+		{"decision self-pay with offered plans", http.MethodPost, "/api/insurance/decision", `{"selfPay":true,"offeredPlanIds":["aetna-hmo"],"coverageType":"medical","office":"Hollywood","dob":"01/15/1980"}`},
 		{"decision invalid JSON", http.MethodPost, "/api/insurance/decision", `{"plan":`},
 		{"decision unknown office", http.MethodPost, "/api/insurance/decision", `{"plan":"Aetna","coverageType":"medical","office":"atlantis"}`},
 		{"plans unknown office", http.MethodGet, "/api/insurance/plans?office=atlantis&coverage=medical", ""},
