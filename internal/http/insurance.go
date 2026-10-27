@@ -16,7 +16,7 @@ func (h *Handlers) HandleInsuranceDecision(w http.ResponseWriter, r *http.Reques
 		Offered      []string `json:"offeredPlanIds"`
 		SelfPay      bool     `json:"selfPay"`
 	}
-	if decodeStrict(r, &req) != nil || req.SelfPay && (req.Plan != "" || len(req.Offered) > 0) {
+	if decodeStrict(r, &req) != nil || (req.SelfPay && (req.Plan != "" || len(req.Offered) > 0)) {
 		rejectInvalidRequest(w, r, errorResponse{Status: "error", Message: "Invalid insurance request"})
 		return
 	}
