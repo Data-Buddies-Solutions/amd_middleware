@@ -129,7 +129,7 @@ func TestRealDataLeonRoutesToTheLeonCoordinator(t *testing.T) {
 }
 
 func TestRealDataSelfPayPhrasingsResolveToSelfPay(t *testing.T) {
-	selfPayPlan := map[string]string{"medical": "self-pay-medical", "routine_vision": "self-pay-routine-vision"}
+	selfPayID := map[string]string{"medical": "self-pay-medical", "routine_vision": "self-pay-routine-vision"}
 	for _, c := range []struct{ office, coverage string }{
 		{"hollywood", "medical"}, {"hollywood", "routine_vision"},
 		{"sweetwater", "medical"}, {"sweetwater", "routine_vision"},
@@ -138,7 +138,7 @@ func TestRealDataSelfPayPhrasingsResolveToSelfPay(t *testing.T) {
 		{"crystal_river", "medical"},
 	} {
 		o := office(t, c.office)
-		want := DecidePlan(selfPayPlan[c.coverage], c.coverage, o, adultDOB, testNow)
+		want := DecidePlan(selfPayID[c.coverage], c.coverage, o, adultDOB, testNow)
 		if want.Outcome != "accepted" || !want.SelfPay {
 			t.Fatalf("%s %s: self-pay plan = %+v", c.office, c.coverage, want)
 		}
@@ -164,7 +164,12 @@ func TestRealDataSelfPayPhrasingsDoNotOverrideANamedPlan(t *testing.T) {
 			t.Errorf("%q: decision = %+v", heard, d)
 		}
 	}
-	if d := DecideInsurance("no insurance, just Medicaid", "medical", hollywood, adultDOB, testNow); d.SelfPay || d.Reason != "ask_full_name" {
-		t.Errorf("Medicaid: decision = %+v", d)
+	for _, heard := range []string{
+		"no insurance, just Medicaid", "I don't have insurance, only Medicare", "Medicaid pending, out of pocket for now", "Medicade pending, paying out of pocket",
+		"I don't want to pay out of pocket", "I can't do private pay",
+	} {
+		if d := DecideInsurance(heard, "medical", hollywood, adultDOB, testNow); d.SelfPay || d.PlanID != "" {
+			t.Errorf("%q: decision = %+v", heard, d)
+		}
 	}
 }

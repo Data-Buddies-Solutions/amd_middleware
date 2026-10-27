@@ -37,10 +37,27 @@ var selfPayPhrases = []string{
 	"pay myself", "paying myself", "private pay",
 }
 
+var negations = map[string]bool{"not": true, "dont": true, "doesnt": true, "wont": true, "cant": true, "never": true}
+
 func saysSelfPay(heard string) bool {
-	said := " " + strings.Join(spokenWords(heard), " ") + " "
-	return slices.ContainsFunc(selfPayPhrases, func(phrase string) bool {
-		return strings.Contains(said, " "+phrase+" ")
+	words := spokenWords(heard)
+	for i, word := range words {
+		for _, phrase := range selfPayPhrases {
+			p := strings.Fields(phrase)
+			if len(words)-i >= len(p) && slices.Equal(words[i:i+len(p)], p) {
+				return true
+			}
+		}
+		if negations[word] {
+			return false
+		}
+	}
+	return false
+}
+
+func mentionsProgram(heard []string) bool {
+	return slices.ContainsFunc(heard, func(h string) bool {
+		return ambiguousSpellings[h] || slices.ContainsFunc(programs, func(p string) bool { return h == p || closeSpelling(h, p) })
 	})
 }
 

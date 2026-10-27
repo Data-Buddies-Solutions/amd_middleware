@@ -71,7 +71,7 @@ func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob st
 			d.Reason, d.Answer = "ask_full_name", answerAskFullName
 			return d
 		}
-		if p, ok := selfPayPlan(list, coverage); ok && saysSelfPay(heard) {
+		if p, ok := selfPayPlan(list, coverage); ok && !mentionsProgram(heardWords) && saysSelfPay(heard) {
 			return decidePlanAtOffice(p, office, dob, asOf)
 		}
 		return d
