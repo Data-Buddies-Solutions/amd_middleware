@@ -737,3 +737,133 @@ func TestSessionWaiterRecoversWhenLeadingCallerCancels(t *testing.T) {
 		t.Fatalf("login attempts = %d, want 2", got)
 	}
 }
+
+func TestSessionRejectedCurrentTokenLogsInAgain(t *testing.T) {
+	clock := &testClock{now: time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)}
+	login := &countingLogin{tokens: []string{"revoked", "replacement"}}
+	s := newSession(login, clock.Now, sessionPolicy{
+		staleAfter: defaultSessionStaleAfter, expiresAfter: defaultSessionExpiresAfter,
+		loginTimeout: time.Minute, retryDelay: time.Minute,
+	})
+
+	first, err := s.Get(context.Background())
+	if err != nil {
+		t.Fatalf("initial Get() error = %v", err)
+	}
+	s.Reject(first)
+
+	token, err := s.Get(context.Background())
+	if err != nil {
+		t.Fatalf("Get() after rejection error = %v", err)
+	}
+	if token.Token != "Bearer replacement" {
+		t.Fatalf("Get() after rejection token = %q, want replacement", token.Token)
+	}
+	if got := login.calls.Load(); got != 2 {
+		t.Fatalf("login calls = %d, want 2", got)
+	}
+}
+
+func TestSessionRejectionDuringRetryDelayLogsInAgain(t *testing.T) {
+	clock := &testClock{now: time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)}
+	var calls atomic.Int32
+	s := newSession(loginAdapterFunc(func(context.Context) (string, string, error) {
+		switch calls.Add(1) {
+		case 1:
+			return "revoked", "https://provider.test/processrequest/api-801/app", nil
+		case 2:
+			return "", "", errors.New("scheduled maintenance failed")
+		default:
+			return "replacement", "https://provider.test/processrequest/api-801/app", nil
+		}
+	}), clock.Now, sessionPolicy{
+		staleAfter: defaultSessionStaleAfter, expiresAfter: defaultSessionExpiresAfter,
+		loginTimeout: time.Minute, retryDelay: time.Minute,
+	})
+	revoked, err := s.Get(context.Background())
+	if err != nil {
+		t.Fatalf("initial Get() error = %v", err)
+	}
+	if err := s.Maintain(context.Background()); err == nil {
+		t.Fatal("Maintain() error = nil, want scheduled failure")
+	}
+	s.Reject(revoked)
+
+	token, err := s.Get(context.Background())
+	if err != nil || token.Token != "Bearer replacement" {
+		t.Fatalf("Get() after rejection during retry delay = %v, %v; want replacement token", token, err)
+	}
+}
+
+func TestSessionIgnoresRejectionOfReplacedToken(t *testing.T) {
+	clock := &testClock{now: time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)}
+	login := &countingLogin{tokens: []string{"old", "current", "unexpected"}}
+	s := newSession(login, clock.Now, sessionPolicy{
+		staleAfter: defaultSessionStaleAfter, expiresAfter: defaultSessionExpiresAfter,
+		loginTimeout: time.Minute, retryDelay: time.Minute,
+	})
+
+	old, err := s.Get(context.Background())
+	if err != nil {
+		t.Fatalf("initial Get() error = %v", err)
+	}
+	if err := s.Maintain(context.Background()); err != nil {
+		t.Fatalf("Maintain() error = %v", err)
+	}
+	s.Reject(old)
+
+	token, err := s.Get(context.Background())
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	if token.Token != "Bearer current" {
+		t.Fatalf("Get() token = %q, want current", token.Token)
+	}
+	if got := login.calls.Load(); got != 2 {
+		t.Fatalf("login calls = %d, want 2", got)
+	}
+}
+
+func TestSessionConcurrentRejectionsShareOneLogin(t *testing.T) {
+	clock := &testClock{now: time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)}
+	login := &countingLogin{tokens: []string{"revoked", "replacement", "unexpected"}}
+	s := newSession(login, clock.Now, sessionPolicy{
+		staleAfter: defaultSessionStaleAfter, expiresAfter: defaultSessionExpiresAfter,
+		loginTimeout: time.Minute, retryDelay: time.Minute,
+	})
+	revoked, err := s.Get(context.Background())
+	if err != nil {
+		t.Fatalf("initial Get() error = %v", err)
+	}
+
+	const callers = 32
+	results := make(chan error, callers)
+	for range callers {
+		go func() {
+			s.Reject(revoked)
+			token, err := s.Get(context.Background())
+			if err == nil && token.Token != "Bearer replacement" {
+				err = &unexpectedTokenError{got: token.Token}
+			}
+			results <- err
+		}()
+	}
+	for range callers {
+		if err := <-results; err != nil {
+			t.Fatalf("Get() after concurrent rejection error = %v", err)
+		}
+	}
+	if got := login.calls.Load(); got != 2 {
+		t.Fatalf("login calls = %d, want 2", got)
+	}
+}
+
+type countingLogin struct {
+	tokens []string
+	calls  atomic.Int32
+}
+
+func (l *countingLogin) Authenticate(context.Context) (string, string, error) {
+	call := int(l.calls.Add(1))
+	return l.tokens[min(call, len(l.tokens))-1], "https://provider.test/processrequest/api-801/app", nil
+}

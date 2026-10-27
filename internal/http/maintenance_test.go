@@ -168,6 +168,8 @@ func (s *recordingMaintenanceSession) Maintain(context.Context) error {
 	return s.maintainErr
 }
 
+func (*recordingMaintenanceSession) Reject(*session.TokenData) {}
+
 func (s *recordingMaintenanceSession) Status() session.SessionStatus {
 	return session.SessionStatus{State: session.SessionUninitialized}
 }

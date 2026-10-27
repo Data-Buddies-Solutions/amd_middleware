@@ -1118,6 +1118,8 @@ func (staticSession) Maintain(context.Context) error {
 	return nil
 }
 
+func (staticSession) Reject(*session.TokenData) {}
+
 func (staticSession) Status() session.SessionStatus {
 	return session.SessionStatus{}
 }

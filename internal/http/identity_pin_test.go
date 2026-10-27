@@ -197,6 +197,8 @@ func (pinSession) Maintain(context.Context) error {
 	return nil
 }
 
+func (pinSession) Reject(*session.TokenData) {}
+
 func (pinSession) Status() session.SessionStatus {
 	return session.SessionStatus{}
 }
