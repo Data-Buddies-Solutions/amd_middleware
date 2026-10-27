@@ -145,6 +145,7 @@ func TestRealDataSelfPayPhrasingsResolveToSelfPay(t *testing.T) {
 		for _, heard := range []string{
 			"I don't have insurance", "I'm paying out of pocket", "no insurance", "uninsured", "self pay", "I'll pay myself",
 			"I have no insurance", "I do not have insurance", "I don't have any insurance", "She doesn't have insurance", "private pay",
+			"No insurance right now", "Out of pocket, for now.", "I don't have insurance, I'll pay out of pocket",
 		} {
 			if got := DecideInsurance(heard, c.coverage, o, adultDOB, testNow); !reflect.DeepEqual(got, want) {
 				t.Errorf("%s %s %q: got plan %q reason %q", c.office, c.coverage, heard, got.PlanID, got.Reason)
@@ -166,7 +167,8 @@ func TestRealDataSelfPayPhrasingsDoNotOverrideANamedPlan(t *testing.T) {
 	}
 	for _, heard := range []string{
 		"no insurance, just Medicaid", "I don't have insurance, only Medicare", "Medicaid pending, out of pocket for now", "Medicade pending, paying out of pocket",
-		"I don't want to pay out of pocket", "I can't do private pay",
+		"I don't want to pay out of pocket", "I can't do private pay", "I cannot pay out of pocket", "I didn't want to pay out of pocket",
+		"I have no insurance card right now", "No insurance changes", "I don't have insurance with me today", "no insurance information on me",
 	} {
 		if d := DecideInsurance(heard, "medical", hollywood, adultDOB, testNow); d.SelfPay || d.PlanID != "" {
 			t.Errorf("%q: decision = %+v", heard, d)

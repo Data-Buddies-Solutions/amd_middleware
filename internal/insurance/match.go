@@ -37,14 +37,24 @@ var selfPayPhrases = []string{
 	"pay myself", "paying myself", "private pay",
 }
 
-var negations = map[string]bool{"not": true, "dont": true, "doesnt": true, "wont": true, "cant": true, "never": true}
+var negations = map[string]bool{
+	"not": true, "never": true, "cannot": true, "dont": true, "doesnt": true, "didnt": true, "cant": true,
+	"wont": true, "wouldnt": true, "couldnt": true, "isnt": true, "arent": true, "wasnt": true,
+}
+
+var wordsAfterSelfPay = map[string]bool{"now": true, "right": true, "anymore": true, "currently": true, "yet": true, "for": true, "at": true, "all": true}
 
 func saysSelfPay(heard string) bool {
-	words := spokenWords(heard)
+	clauses := strings.FieldsFunc(heard, func(r rune) bool { return strings.ContainsRune(",.;:!?", r) })
+	return slices.ContainsFunc(clauses, func(clause string) bool { return clauseSaysSelfPay(spokenWords(clause)) })
+}
+
+func clauseSaysSelfPay(words []string) bool {
 	for i, word := range words {
 		for _, phrase := range selfPayPhrases {
 			p := strings.Fields(phrase)
-			if len(words)-i >= len(p) && slices.Equal(words[i:i+len(p)], p) {
+			end := i + len(p)
+			if end <= len(words) && slices.Equal(words[i:end], p) && !slices.ContainsFunc(words[end:], func(w string) bool { return !wordsAfterSelfPay[w] }) {
 				return true
 			}
 		}
