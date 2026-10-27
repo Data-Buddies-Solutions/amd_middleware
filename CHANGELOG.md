@@ -4,6 +4,14 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.4.3](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.4.2...v8.4.3) (2026-10-27)
+
+
+### Bug Fixes
+
+* **insurance:** decide self-pay from an explicit selfPay request flag ([#304](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/304)) ([3bec3ee](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/3bec3eeb7d9438b71518fee8a059e97902e015f9))
+* **session:** log in again when AdvancedMD rejects the session token ([#305](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/305)) ([ea9bf91](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/ea9bf9101c39fe2fca123953d919338ded028a0c))
+
 ## [8.4.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.4.1...v8.4.2) (2026-10-26)
 
 
