@@ -35,11 +35,12 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 		Phone:    "850-373-3869",
 	}}
 	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true,
-		CarrierName: "HUMANA MEDICARE",
-		CarrierID:   "car40906",
-		InsPlanID:   "ins789",
-		RespPartyID: "resp456",
-		DOB:         "01/15/1980",
+		CarrierName:   "HUMANA MEDICARE",
+		CarrierID:     "car40906",
+		InsPlanID:     "ins789",
+		RespPartyID:   "resp456",
+		InsuranceNote: "Humana  Gold Plus HMO\n member H12345678, DOB 01/15/1980",
+		DOB:           "01/15/1980",
 	}
 	amd.AppointmentResults["123"] = advancedmdtest.AppointmentResult{
 		Read: advancedmd.AppointmentRead{
@@ -74,6 +75,7 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 		Phone:              "850-373-3869",
 		InsuranceCarrier:   "HUMANA MEDICARE",
 		InsuranceCarrierID: "car40906",
+		InsuranceNote:      "Humana Gold Plus HMO member H####, DOB 01/15/####",
 		InsPlanID:          "ins789",
 		RespPartyID:        "resp456",
 		AllowedProviders:   []string{"Dr. Bach"},
@@ -1043,6 +1045,7 @@ func assertResolveResult(t *testing.T, got, want patient.ResolveResult) {
 		got.Phone != want.Phone ||
 		got.InsuranceCarrier != want.InsuranceCarrier ||
 		got.InsuranceCarrierID != want.InsuranceCarrierID ||
+		got.InsuranceNote != want.InsuranceNote ||
 		got.InsPlanID != want.InsPlanID ||
 		got.RespPartyID != want.RespPartyID ||
 		got.RoutingAmbiguous != want.RoutingAmbiguous ||

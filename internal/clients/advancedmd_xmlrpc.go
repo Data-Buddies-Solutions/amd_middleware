@@ -499,12 +499,13 @@ type amdDemographicResults struct {
 }
 
 type amdInsPlan struct {
-	ID            string `json:"@id"`
-	Carrier       string `json:"@carrier"`
-	Subscriber    string `json:"@subscriber"`
-	SubscriberNum string `json:"@subscribernum"`
-	EndDate       string `json:"@enddate"`
-	Coverage      string `json:"@coverage"`
+	ID            string          `json:"@id"`
+	Carrier       string          `json:"@carrier"`
+	Subscriber    string          `json:"@subscriber"`
+	SubscriberNum string          `json:"@subscribernum"`
+	EndDate       string          `json:"@enddate"`
+	Coverage      string          `json:"@coverage"`
+	Note          json.RawMessage `json:"insnote"`
 }
 
 type amdCarrier struct {
@@ -563,6 +564,7 @@ func (c *AdvancedMDClient) GetDemographic(ctx context.Context, tokenData *sessio
 	demographics.CarrierName = carrierName(parsed.CarrierList, activePlan.Carrier)
 	demographics.InsPlanID = activePlan.ID
 	demographics.SubscriberNum = activePlan.SubscriberNum
+	demographics.InsuranceNote = insNoteTextOrEmpty(activePlan.Note)
 	if activePlan.Subscriber != "" {
 		demographics.RespPartyID = activePlan.Subscriber
 	}
@@ -686,6 +688,16 @@ func activePrimaryPlan(insPlanList json.RawMessage) (*amdInsPlan, bool) {
 		active = &plans[i]
 	}
 	return active, true
+}
+
+func insNoteTextOrEmpty(raw json.RawMessage) string {
+	var note struct {
+		Text string `json:"#text"`
+	}
+	if raw == nil || json.Unmarshal(raw, &note) != nil {
+		return ""
+	}
+	return note.Text
 }
 
 func carrierName(carrierList json.RawMessage, carrierID string) string {

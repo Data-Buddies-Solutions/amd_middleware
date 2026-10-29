@@ -107,6 +107,7 @@ type ResolveResult struct {
 	Phone               string                       `json:"phone,omitempty"`
 	InsuranceCarrier    string                       `json:"insuranceCarrier,omitempty"`
 	InsuranceCarrierID  string                       `json:"insuranceCarrierId,omitempty"`
+	InsuranceNote       string                       `json:"insuranceNote,omitempty"`
 	InsPlanID           string                       `json:"insPlanId,omitempty"`
 	RespPartyID         string                       `json:"respPartyId,omitempty"`
 	AllowedProviders    []string                     `json:"allowedProviders,omitempty"`

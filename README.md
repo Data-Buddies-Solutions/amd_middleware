@@ -217,7 +217,8 @@ source insurance list:
   (2026-07-07, AMD directory verified 2026-09-17) and the Spring Hill routine vision list.
 
 Each folder has a `plans.csv` that defines every plan once: a stable `id`, a
-caller-facing `label`, a `coverage` (`medical` or `routine_vision`), its AdvancedMD
+caller-facing `label`, the `family` a caller would name the insurer by (`Aetna`,
+`Florida Blue`, `Self Pay`), a `coverage` (`medical` or `routine_vision`), its AdvancedMD
 carrier, `self_pay`, and the `aliases` a caller might say, separated by `|`. Each
 office table (`doctors.csv`, `spring_hill.csv`, `crystal_river.csv`) mirrors the
 sheet: one row per plan the office's list includes and one `yes|no|pending` column per
@@ -341,7 +342,7 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/add-patient` | Create a patient and attach primary insurance | `patient.Create` |
 | `POST /api/patient/update-insurance` | Replace primary insurance | `patient.UpdateInsurance` |
 | `POST /api/insurance/decision` | Decide plan participation for an office from the caller's answer, matching offered plans first, or the office's self-pay plan when `selfPay` is set | `insurance.DecideOfferedAnswer`, `insurance.DecideSelfPay` |
-| `GET /api/insurance/plans?office=&coverage=` | List an office's plans for one coverage with each plan's decision, carrier, sheet note, and other offices on the same insurance list that accept it (read-only) | `insurance.ListPlans` |
+| `GET /api/insurance/plans?office=&coverage=` | List an office's plans for one coverage with each plan's family, decision, carrier, sheet note, and other offices on the same insurance list that accept it (read-only) | `insurance.ListPlans` |
 | `POST /api/scheduler/slots` | List openings as an inventory envelope | `scheduling.List` |
 | `POST /api/appointment/book` | Revalidate and book a signed slot | `scheduling.Book` |
 | `POST /api/appointment/cancel` | Cancel the appointment a signed cancellation token names | `scheduling.Cancel` |
@@ -555,6 +556,11 @@ candidate set. A unique match is checked against demographics and hydrated with
 insurance and appointments. No match returns `not_found`; multiple exact matches
 return `multiple_matches` for staff resolution. Incomplete retrieval or conflicting
 identity returns `unresolved` rather than activating a patient.
+
+A verified result includes `insuranceNote`, the staff note on the active primary
+plan (AdvancedMD `insnote`). Staff often name the specific plan there when the
+carrier is shared, such as a TPA. The voice agent reasons over it; digit runs of
+four or more are masked and the note is capped at 300 characters.
 
 The AdvancedMD seam retrieves `lookuppatient` with `@name: ",FirstName"` and
 traverses provider pagination, validating page/count evidence. The Patient module

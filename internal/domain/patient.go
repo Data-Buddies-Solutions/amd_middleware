@@ -31,6 +31,7 @@ type PatientDemographics struct {
 	InsPlanID           string
 	RespPartyID         string
 	SubscriberNum       string
+	InsuranceNote       string
 	DOB                 string
 	InsuranceStateKnown bool
 }
