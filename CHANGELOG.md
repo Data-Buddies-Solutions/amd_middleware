@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.5.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.4.3...v8.5.0) (2026-10-29)
+
+
+### Features
+
+* **insurance:** decide plans in the openings search, with plan families and chart notes ([#307](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/307)) ([94e41c1](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/94e41c1f7df3ba596a59bc8f5f13a32573f2b7a1))
+
 ## [8.4.3](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.4.2...v8.4.3) (2026-10-27)
 
 
