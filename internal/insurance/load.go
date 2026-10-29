@@ -24,7 +24,7 @@ const (
 	plansFile        = "plans.csv"
 )
 
-var planColumns = []string{"id", "label", "coverage", "carrier_code", "carrier_id", "self_pay", "aliases"}
+var planColumns = []string{"id", "label", "family", "coverage", "carrier_code", "carrier_id", "self_pay", "aliases"}
 
 var tableColumns = []string{"requires", "only_offices", "notice", "note"}
 
@@ -121,15 +121,15 @@ func parsePlans(b []byte, carriers map[string]string) (map[string]plan, error) {
 	}
 	plans := map[string]plan{}
 	for _, row := range rows {
-		p := plan{ID: row[0], Label: row[1], Coverage: row[2], CarrierCode: row[3], CarrierID: row[4], CarrierName: carriers[row[4]]}
-		switch row[5] {
+		p := plan{ID: row[0], Label: row[1], Family: row[2], Coverage: row[3], CarrierCode: row[4], CarrierID: row[5], CarrierName: carriers[row[5]]}
+		switch row[6] {
 		case "yes":
 			p.SelfPay = true
 		case "":
 		default:
 			return nil, fmt.Errorf("plan %q: self_pay must be yes or empty", p.ID)
 		}
-		p.Names = splitList(row[6], "|")
+		p.Names = splitList(row[7], "|")
 		if _, ok := plans[p.ID]; ok {
 			return nil, fmt.Errorf("duplicate plan id %q", p.ID)
 		}

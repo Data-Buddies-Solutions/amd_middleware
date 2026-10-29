@@ -5,17 +5,17 @@ import "testing"
 func contradictionPlans() []plan {
 	farnan := map[string]string{"Dr. Kyler Farnan": "yes"}
 	return []plan{
-		{ID: "staywell-medicare", Label: "Staywell Medicare", Coverage: "medical", Names: []string{"Staywell"}, CarrierID: "car1", Doctors: bach("yes")},
-		{ID: "sunshine-medicaid", Label: "Sunshine Medicaid", Coverage: "medical", Names: []string{"Sunshine", "Sunshine Health"}, CarrierID: "car2", Doctors: bach("yes")},
-		{ID: "oscar-health", Label: "Oscar Health", Coverage: "medical", Names: []string{"Oscar"}, CarrierID: "car3", Doctors: bach("yes")},
-		{ID: "humana-medicare", Label: "Humana Medicare", Coverage: "medical", CarrierID: "car4", Doctors: bach("yes")},
-		{ID: "tricare-select", Label: "Tricare Select", Coverage: "medical", CarrierID: "car5", Doctors: bach("yes")},
-		{ID: "tricare-humana-military", Label: "Tricare Humana Military", Coverage: "medical", CarrierID: "car1", Doctors: bach("no")},
-		{ID: "cigna-vision", Label: "Cigna Vision", Coverage: "routine_vision", Names: []string{"Cigna"}, CarrierID: "car1", Doctors: farnan},
-		{ID: "united-vision", Label: "UnitedHealthcare Vision", Coverage: "routine_vision", Names: []string{"United Healthcare"}, CarrierID: "car2", Doctors: farnan},
-		{ID: "humana-medicare-vision", Label: "Humana Medicare Vision", Coverage: "routine_vision", CarrierID: "car3", Doctors: farnan},
-		{ID: "ambetter-vision", Label: "Ambetter Vision", Coverage: "routine_vision", Names: []string{"Ambetter"}, CarrierID: "car4", Doctors: farnan},
-		{ID: "premier-eye-care", Label: "Premier Eye Care", Coverage: "routine_vision", Names: []string{"Premier"}, CarrierID: "car5", Doctors: farnan},
+		{ID: "staywell-medicare", Label: "Staywell Medicare", Family: "Staywell", Coverage: "medical", Names: []string{"Staywell"}, CarrierID: "car1", Doctors: bach("yes")},
+		{ID: "sunshine-medicaid", Label: "Sunshine Medicaid", Family: "Sunshine", Coverage: "medical", Names: []string{"Sunshine", "Sunshine Health"}, CarrierID: "car2", Doctors: bach("yes")},
+		{ID: "oscar-health", Label: "Oscar Health", Family: "Oscar", Coverage: "medical", Names: []string{"Oscar"}, CarrierID: "car3", Doctors: bach("yes")},
+		{ID: "humana-medicare", Label: "Humana Medicare", Family: "Humana", Coverage: "medical", CarrierID: "car4", Doctors: bach("yes")},
+		{ID: "tricare-select", Label: "Tricare Select", Family: "Tricare", Coverage: "medical", CarrierID: "car5", Doctors: bach("yes")},
+		{ID: "tricare-humana-military", Label: "Tricare Humana Military", Family: "Tricare", Coverage: "medical", CarrierID: "car1", Doctors: bach("no")},
+		{ID: "cigna-vision", Label: "Cigna Vision", Family: "Cigna", Coverage: "routine_vision", Names: []string{"Cigna"}, CarrierID: "car1", Doctors: farnan},
+		{ID: "united-vision", Label: "UnitedHealthcare Vision", Family: "UnitedHealthcare", Coverage: "routine_vision", Names: []string{"United Healthcare"}, CarrierID: "car2", Doctors: farnan},
+		{ID: "humana-medicare-vision", Label: "Humana Medicare Vision", Family: "Humana", Coverage: "routine_vision", CarrierID: "car3", Doctors: farnan},
+		{ID: "ambetter-vision", Label: "Ambetter Vision", Family: "Ambetter", Coverage: "routine_vision", Names: []string{"Ambetter"}, CarrierID: "car4", Doctors: farnan},
+		{ID: "premier-eye-care", Label: "Premier Eye Care", Family: "Premier Eye Care", Coverage: "routine_vision", Names: []string{"Premier"}, CarrierID: "car5", Doctors: farnan},
 	}
 }
 

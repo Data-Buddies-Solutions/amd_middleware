@@ -21,12 +21,12 @@ func bach(value string) map[string]string {
 
 func syntheticSouthFlorida() []plan {
 	return []plan{
-		{ID: "aetna-better-health", Label: "Aetna Better Health", Coverage: "medical", Names: []string{"Aetna Better Health Medicaid", "Aetna Better Health MMA"}, CarrierCode: "ICA01", CarrierID: "car40907", Doctors: bach("yes")},
-		{ID: "aetna-better-health-kids", Label: "Aetna Better Health Kids", Coverage: "medical", Names: []string{"Aetna Healthy Kids"}, CarrierCode: "ICA01", CarrierID: "car40907", Doctors: bach("yes")},
-		{ID: "aetna-medicare", Label: "Aetna Medicare", Coverage: "medical", Names: []string{"Aetna Medicare HMO", "Aetna Medicare PPO"}, CarrierCode: "AET07", CarrierID: "car40887", Doctors: bach("yes")},
-		{ID: "aetna-commercial", Label: "Aetna Commercial", Coverage: "medical", Names: []string{"Aetna PPO", "Aetna Open Access"}, CarrierCode: "AET07", CarrierID: "car40887", Doctors: bach("no")},
-		{ID: "self-pay", Label: "Self Pay", Coverage: "medical", Names: []string{"Cash", "Cash pay"}, CarrierID: "car301672", Doctors: bach("yes"), SelfPay: true},
-		{ID: "vsp", Label: "VSP", Coverage: "routine_vision", Names: []string{"Vision Service Plan"}, CarrierID: "car280695", Doctors: map[string]string{"Dr. Kyler Farnan": "yes", "Dr. Lisbet Vidal": "yes", "Dr. Gisselle Calero": "pending", "Dr. Maria Casas": "yes"}},
+		{ID: "aetna-better-health", Label: "Aetna Better Health", Family: "Aetna", Coverage: "medical", Names: []string{"Aetna Better Health Medicaid", "Aetna Better Health MMA"}, CarrierCode: "ICA01", CarrierID: "car40907", Doctors: bach("yes")},
+		{ID: "aetna-better-health-kids", Label: "Aetna Better Health Kids", Family: "Aetna", Coverage: "medical", Names: []string{"Aetna Healthy Kids"}, CarrierCode: "ICA01", CarrierID: "car40907", Doctors: bach("yes")},
+		{ID: "aetna-medicare", Label: "Aetna Medicare", Family: "Aetna", Coverage: "medical", Names: []string{"Aetna Medicare HMO", "Aetna Medicare PPO"}, CarrierCode: "AET07", CarrierID: "car40887", Doctors: bach("yes")},
+		{ID: "aetna-commercial", Label: "Aetna Commercial", Family: "Aetna", Coverage: "medical", Names: []string{"Aetna PPO", "Aetna Open Access"}, CarrierCode: "AET07", CarrierID: "car40887", Doctors: bach("no")},
+		{ID: "self-pay", Label: "Self Pay", Family: "Self Pay", Coverage: "medical", Names: []string{"Cash", "Cash pay"}, CarrierID: "car301672", Doctors: bach("yes"), SelfPay: true},
+		{ID: "vsp", Label: "VSP", Family: "VSP", Coverage: "routine_vision", Names: []string{"Vision Service Plan"}, CarrierID: "car280695", Doctors: map[string]string{"Dr. Kyler Farnan": "yes", "Dr. Lisbet Vidal": "yes", "Dr. Gisselle Calero": "pending", "Dr. Maria Casas": "yes"}},
 	}
 }
 
@@ -78,7 +78,7 @@ func syntheticCSV(t *testing.T, plans []plan, offices []string) ([]byte, []byte)
 		if p.SelfPay {
 			selfPay = "yes"
 		}
-		planRows = append(planRows, []string{p.ID, p.Label, p.Coverage, p.CarrierCode, p.CarrierID, selfPay, strings.Join(p.Names, " | ")})
+		planRows = append(planRows, []string{p.ID, p.Label, p.Family, p.Coverage, p.CarrierCode, p.CarrierID, selfPay, strings.Join(p.Names, " | ")})
 		row := []string{p.ID}
 		for _, doctor := range doctors {
 			row = append(row, p.Doctors[doctor])
