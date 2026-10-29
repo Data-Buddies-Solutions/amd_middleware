@@ -173,14 +173,18 @@ change from this request; `completed` proves the requested insurance is active;
 `uncertain` means a possible effect could not be reconciled. Partial and uncertain
 results require staff recovery, never an automatic repeat of end/add.
 
-`POST /api/scheduler/slots` lists openings without requiring chart insurance
-clearance. Office, visit type, age, and requested routing select providers;
-routine vision defaults to optical routing. Booking verifies patient identity,
-the signed slot, appointment policy, and live occupancy without re-triaging chart
-insurance. Insurance acceptance remains part of registration and insurance updates.
+`POST /api/scheduler/slots` decides the caller's plan when `insurancePlanId` is
+sent (`visitType` is then required). A plan that does not clear scheduling (not
+accepted, unknown, pending, no doctor for the patient's age, or needing a referral,
+prior authorization, or staff verification) returns `outcome: insurance_not_cleared`
+with `insuranceDecision` and no provider reads. A cleared plan limits openings to the
+doctors who take it. Without `insurancePlanId`, openings are listed without an
+insurance decision. Office, visit type, age, and requested routing select providers;
+routine vision defaults to optical routing. Booking verifies patient identity, the
+signed slot, appointment policy, and live occupancy without re-triaging insurance.
 
-Slots accept `patientId`, `visitType`, `startDate`, `office`, `dob`, `routing`, and
-`preauthRequired`. Each search covers 14 days; use `startDate` to move the window.
+Slots accept `patientId`, `visitType`, `startDate`, `office`, `dob`, `routing`,
+`preauthRequired`, and `insurancePlanId`. Each search covers 14 days; use `startDate` to move the window.
 `routing` is `not_accepted`, `bach_only`, `bach_licht`, `all_three`, or
 `optical_only`. Omitted, it is `all_three`, or `optical_only` for routine vision.
 Any other value is `invalid_input`.
@@ -342,7 +346,7 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/add-patient` | Create a patient and attach primary insurance | `patient.Create` |
 | `POST /api/patient/update-insurance` | Replace primary insurance | `patient.UpdateInsurance` |
 | `POST /api/insurance/decision` | Decide plan participation for an office from the caller's answer, matching offered plans first, or the office's self-pay plan when `selfPay` is set | `insurance.DecideOfferedAnswer`, `insurance.DecideSelfPay` |
-| `GET /api/insurance/plans?office=&coverage=` | List an office's plans for one coverage with each plan's family, decision, carrier, sheet note, and other offices on the same insurance list that accept it (read-only) | `insurance.ListPlans` |
+| `GET /api/insurance/plans?office=&coverage=` | List an office's plans for one coverage with each plan's family, self-pay flag, decision, carrier, sheet note, and other offices on the same insurance list that accept it (read-only) | `insurance.ListPlans` |
 | `POST /api/scheduler/slots` | List openings as an inventory envelope | `scheduling.List` |
 | `POST /api/appointment/book` | Revalidate and book a signed slot | `scheduling.Book` |
 | `POST /api/appointment/cancel` | Cancel the appointment a signed cancellation token names | `scheduling.Cancel` |

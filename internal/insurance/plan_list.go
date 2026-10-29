@@ -14,6 +14,7 @@ type PlanSummary struct {
 	PlanID           string   `json:"planId"`
 	Label            string   `json:"label"`
 	Family           string   `json:"family"`
+	SelfPay          bool     `json:"selfPay"`
 	Names            []string `json:"names"`
 	CarrierCode      string   `json:"carrierCode"`
 	CarrierID        string   `json:"carrierId"`
@@ -44,6 +45,7 @@ func ListPlans(coverage string, office *domain.OfficeConfig) ([]PlanSummary, boo
 			PlanID:           p.ID,
 			Label:            p.Label,
 			Family:           p.Family,
+			SelfPay:          p.SelfPay,
 			Names:            append([]string{}, p.Names...),
 			CarrierCode:      p.CarrierCode,
 			CarrierID:        p.CarrierID,

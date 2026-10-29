@@ -139,12 +139,12 @@ func TestListPlansEncodesEveryFieldEvenWhenEmpty(t *testing.T) {
 	if err := json.Unmarshal(b, &fields); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"planId", "label", "family", "names", "carrierCode", "carrierId", "carrierName", "outcome", "allowedProviders", "requirements", "callerNotice", "note", "acceptedAt"} {
+	for _, key := range []string{"planId", "label", "family", "selfPay", "names", "carrierCode", "carrierId", "carrierName", "outcome", "allowedProviders", "requirements", "callerNotice", "note", "acceptedAt"} {
 		if _, ok := fields[key]; !ok {
 			t.Fatalf("missing %s in %s", key, b)
 		}
 	}
-	if len(fields) != 13 {
+	if len(fields) != 14 {
 		t.Fatalf("unexpected fields in %s", b)
 	}
 	for _, s := range summaries {

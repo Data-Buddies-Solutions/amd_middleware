@@ -1,6 +1,10 @@
 package scheduling
 
-import "time"
+import (
+	"time"
+
+	"advancedmd-token-management/internal/insurance"
+)
 
 const (
 	AvailabilityStatusSuccess = "success"
@@ -11,10 +15,12 @@ const (
 	AvailabilityOutcomeNoEligibleProviders = "no_eligible_providers"
 	AvailabilityOutcomeInvalidInput        = "invalid_input"
 	AvailabilityOutcomeSearchIncomplete    = "availability_search_incomplete"
+	AvailabilityOutcomeInsuranceNotCleared = "insurance_not_cleared"
 
 	availabilityNextActionOfferSlots                  = "offer_slots"
 	AvailabilityNextActionAskDifferentPreferences     = "ask_for_different_preferences"
 	AvailabilityNextActionRetryOnceThenAskPreferences = "retry_once_then_ask_preferences"
+	AvailabilityNextActionStaffHelp                   = "offer_staff_help"
 )
 
 type AvailabilitySlotOption struct {
@@ -31,19 +37,20 @@ type AvailabilitySlotOption struct {
 }
 
 type AvailabilityResponse struct {
-	Status                string                   `json:"status"`
-	Outcome               string                   `json:"outcome"`
-	AvailabilityFound     bool                     `json:"availabilityFound"`
-	RequestedDate         string                   `json:"requestedDate,omitempty"`
-	ActualDate            string                   `json:"actualDate,omitempty"`
-	DateShifted           bool                     `json:"dateShifted,omitempty"`
-	SearchedFrom          string                   `json:"searchedFrom,omitempty"`
-	SearchedThrough       string                   `json:"searchedThrough,omitempty"`
-	BookingTokenExpiresAt string                   `json:"bookingTokenExpiresAt,omitempty"`
-	ShouldRetrySameSearch bool                     `json:"shouldRetrySameSearch"`
-	NextAction            string                   `json:"nextAction"`
-	Message               string                   `json:"message,omitempty"`
-	Slots                 []AvailabilitySlotOption `json:"slots"`
+	Status                string                       `json:"status"`
+	Outcome               string                       `json:"outcome"`
+	AvailabilityFound     bool                         `json:"availabilityFound"`
+	RequestedDate         string                       `json:"requestedDate,omitempty"`
+	ActualDate            string                       `json:"actualDate,omitempty"`
+	DateShifted           bool                         `json:"dateShifted,omitempty"`
+	SearchedFrom          string                       `json:"searchedFrom,omitempty"`
+	SearchedThrough       string                       `json:"searchedThrough,omitempty"`
+	BookingTokenExpiresAt string                       `json:"bookingTokenExpiresAt,omitempty"`
+	ShouldRetrySameSearch bool                         `json:"shouldRetrySameSearch"`
+	NextAction            string                       `json:"nextAction"`
+	Message               string                       `json:"message,omitempty"`
+	Slots                 []AvailabilitySlotOption     `json:"slots"`
+	InsuranceDecision     *insurance.InsuranceDecision `json:"insuranceDecision,omitempty"`
 }
 
 func formatSlotTime(t time.Time) string {

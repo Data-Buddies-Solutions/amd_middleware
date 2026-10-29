@@ -128,7 +128,7 @@ func createMissingFields(command CreateCommand) []string {
 		{"state", command.State},
 		{"zip", command.Zip},
 		{"sex", command.Sex},
-		{"insurance", command.Insurance},
+		{"insurance", firstNonEmpty(command.Insurance, command.InsurancePlanID)},
 		{"subscriberName", command.SubscriberName},
 		{"subscriberNum", command.SubscriberNum},
 	}
