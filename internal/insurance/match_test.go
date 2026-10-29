@@ -57,7 +57,7 @@ func TestDecideInsuranceAsksWithOptionsWhenPlansEndDifferently(t *testing.T) {
 func TestDecideInsuranceLimitsOptions(t *testing.T) {
 	plans := []plan{}
 	for i, id := range []string{"alpha", "bravo", "charlie", "delta", "echo"} {
-		plans = append(plans, plan{ID: "acme-" + id, Label: "Acme " + id, Coverage: "medical", CarrierID: fmt.Sprintf("car%d", i+1), Doctors: bach("yes")})
+		plans = append(plans, plan{ID: "acme-" + id, Label: "Acme " + id, Family: "Acme", Coverage: "medical", CarrierID: fmt.Sprintf("car%d", i+1), Doctors: bach("yes")})
 	}
 	useSyntheticCatalog(t, plans, nil, nil)
 	d := DecideInsurance("Acme", "medical", office(t, "hollywood"), adultDOB, testNow)

@@ -7,7 +7,7 @@ import (
 )
 
 func TestListPlansSortsByLabelIgnoringCase(t *testing.T) {
-	plans := append(syntheticSouthFlorida(), plan{ID: "lowercase-plan", Label: "aetna basic", Coverage: "medical", CarrierID: "car1", Doctors: bach("yes")})
+	plans := append(syntheticSouthFlorida(), plan{ID: "lowercase-plan", Label: "aetna basic", Family: "Aetna", Coverage: "medical", CarrierID: "car1", Doctors: bach("yes")})
 	useSyntheticCatalog(t, plans, springHillPlans(), nil)
 	got, ok := ListPlans("medical", office(t, "hollywood"))
 	if !ok {
@@ -23,6 +23,9 @@ func TestListPlansSortsByLabelIgnoringCase(t *testing.T) {
 	}
 	if got[0].CarrierName != "ONE" || got[5].CarrierName != "SELF PAY" {
 		t.Fatalf("carrier names = %q, %q", got[0].CarrierName, got[5].CarrierName)
+	}
+	if got[0].Family != "Aetna" || got[5].Family != "Self Pay" {
+		t.Fatalf("families = %q, %q", got[0].Family, got[5].Family)
 	}
 }
 
@@ -91,7 +94,7 @@ func TestListPlansNamesOfficesThatAcceptAMiamiDadeOnlyPlan(t *testing.T) {
 	if hollywood.Outcome != "not_accepted" || !slices.Equal(hollywood.AcceptedAt, []string{"Sweetwater"}) {
 		t.Fatalf("hollywood = %+v", hollywood)
 	}
-	if hollywood.CarrierName != "ICARE HEALTH OPTIONS TPA" || hollywood.Note == "" || slices.Contains(hollywood.Names, hollywood.Label) {
+	if hollywood.CarrierName != "ICARE HEALTH OPTIONS TPA" || hollywood.Family != "Aetna" || hollywood.Note == "" || slices.Contains(hollywood.Names, hollywood.Label) {
 		t.Fatalf("hollywood = %+v", hollywood)
 	}
 	sweetwater := findPlan(t, "sweetwater", "aetna-better-health-medicaid-medical")
@@ -136,12 +139,12 @@ func TestListPlansEncodesEveryFieldEvenWhenEmpty(t *testing.T) {
 	if err := json.Unmarshal(b, &fields); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"planId", "label", "names", "carrierCode", "carrierId", "carrierName", "outcome", "allowedProviders", "requirements", "callerNotice", "note", "acceptedAt"} {
+	for _, key := range []string{"planId", "label", "family", "selfPay", "names", "carrierCode", "carrierId", "carrierName", "outcome", "allowedProviders", "requirements", "callerNotice", "note", "acceptedAt"} {
 		if _, ok := fields[key]; !ok {
 			t.Fatalf("missing %s in %s", key, b)
 		}
 	}
-	if len(fields) != 12 {
+	if len(fields) != 14 {
 		t.Fatalf("unexpected fields in %s", b)
 	}
 	for _, s := range summaries {

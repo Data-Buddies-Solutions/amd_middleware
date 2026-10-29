@@ -38,24 +38,26 @@ func TestInsurancePlanIDDecidesWritesWithoutMatchingTheName(t *testing.T) {
 		t.Fatalf("fixture plan not accepted: %+v", accepted)
 	}
 
-	records := advancedmdtest.NewAdapter()
-	create := validCreateCommand()
-	create.Insurance = "words that match no plan"
-	create.InsurancePlanID = accepted.PlanID
-	created := patient.New(records, testAppointmentTokens, testNow).Create(context.Background(), create)
-	if created.Status != patient.CreateStatusCreated || created.InsuranceDecision.PlanID != accepted.PlanID ||
-		len(records.Insurances) != 1 || records.Insurances[0].CarrierID != accepted.CarrierID {
-		t.Fatalf("create = %+v insurances = %+v", created, records.Insurances)
-	}
+	for _, name := range []string{"words that match no plan", ""} {
+		records := advancedmdtest.NewAdapter()
+		create := validCreateCommand()
+		create.Insurance = name
+		create.InsurancePlanID = accepted.PlanID
+		created := patient.New(records, testAppointmentTokens, testNow).Create(context.Background(), create)
+		if created.Status != patient.CreateStatusCreated || created.InsuranceDecision.PlanID != accepted.PlanID ||
+			len(records.Insurances) != 1 || records.Insurances[0].CarrierID != accepted.CarrierID {
+			t.Fatalf("name %q: create = %+v insurances = %+v", name, created, records.Insurances)
+		}
 
-	records = advancedmdtest.NewAdapter()
-	records.Demographics["123"] = domain.PatientDemographics{DOB: "01/15/1980", RespPartyID: "resp123", InsuranceStateKnown: true}
-	update := validUpdateInsuranceCommand()
-	update.Insurance = "words that match no plan"
-	update.InsurancePlanID = accepted.PlanID
-	updated := patient.New(records, testAppointmentTokens, testNow).UpdateInsurance(context.Background(), update)
-	if updated.Status != patient.UpdateInsuranceStatusUpdated || len(records.Insurances) != 1 || records.Insurances[0].CarrierID != accepted.CarrierID {
-		t.Fatalf("update = %+v insurances = %+v", updated, records.Insurances)
+		records = advancedmdtest.NewAdapter()
+		records.Demographics["123"] = domain.PatientDemographics{DOB: "01/15/1980", RespPartyID: "resp123", InsuranceStateKnown: true}
+		update := validUpdateInsuranceCommand()
+		update.Insurance = name
+		update.InsurancePlanID = accepted.PlanID
+		updated := patient.New(records, testAppointmentTokens, testNow).UpdateInsurance(context.Background(), update)
+		if updated.Status != patient.UpdateInsuranceStatusUpdated || len(records.Insurances) != 1 || records.Insurances[0].CarrierID != accepted.CarrierID {
+			t.Fatalf("name %q: update = %+v insurances = %+v", name, updated, records.Insurances)
+		}
 	}
 }
 

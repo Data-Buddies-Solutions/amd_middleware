@@ -80,6 +80,9 @@ func validatePlan(p plan, list planList, carriers map[string]string) error {
 	if !planIDPattern.MatchString(p.ID) {
 		return fmt.Errorf("id must be lowercase kebab case")
 	}
+	if p.Family == "" || p.Family != strings.TrimSpace(p.Family) {
+		return fmt.Errorf("family %q is empty or has surrounding spaces", p.Family)
+	}
 	if p.Coverage != "medical" && p.Coverage != "routine_vision" {
 		return fmt.Errorf("unknown coverage %q", p.Coverage)
 	}

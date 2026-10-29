@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"slices"
 	"strconv"
 	"time"
 
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 )
 
 const availabilityWindowDays = 14
@@ -20,6 +22,7 @@ type ListCommand struct {
 	DOB             string `json:"dob,omitempty"`
 	Routing         string `json:"routing"`
 	PreauthRequired bool   `json:"preauthRequired"`
+	InsurancePlanID string `json:"insurancePlanId,omitempty"`
 }
 
 func (s *service) List(ctx context.Context, command ListCommand) (AvailabilityResponse, error) {
@@ -73,6 +76,17 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 	if command.VisitType != "" && command.VisitType != domain.AppointmentVisitMedical && command.VisitType != domain.AppointmentVisitRoutineVision {
 		return empty, schedulingError("visitType must be medical or routine_vision")
 	}
+	var plan *insurance.InsuranceDecision
+	if command.InsurancePlanID != "" {
+		if command.VisitType == "" {
+			return empty, schedulingError("visitType is required with insurancePlanId")
+		}
+		decision := insurance.DecidePlan(command.InsurancePlanID, command.VisitType, office, string(dob), now)
+		if !decision.CanSchedule {
+			return insuranceNotClearedResponse(originalRequestedDate, decision), nil
+		}
+		plan = &decision
+	}
 	unsupportedVisit := func() AvailabilityResponse {
 		return AvailabilityResponse{
 			Status: AvailabilityStatusSuccess, Outcome: AvailabilityOutcomeNoEligibleProviders,
@@ -104,6 +118,9 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 	}
 
 	allowedColumns := policy.EligibleColumns(setup.Columns, routing, string(dob))
+	if plan != nil {
+		allowedColumns = columnsForProviders(office, allowedColumns, plan.AllowedProviders)
+	}
 	if len(allowedColumns) == 0 {
 		return AvailabilityResponse{
 			Status:                AvailabilityStatusSuccess,
@@ -220,6 +237,28 @@ func enforcePreauthMinDate(requestedDate, now time.Time) time.Time {
 		return minDate
 	}
 	return requestedDate
+}
+
+func insuranceNotClearedResponse(requestedDate string, decision insurance.InsuranceDecision) AvailabilityResponse {
+	return AvailabilityResponse{
+		Status:            AvailabilityStatusSuccess,
+		Outcome:           AvailabilityOutcomeInsuranceNotCleared,
+		RequestedDate:     requestedDate,
+		NextAction:        AvailabilityNextActionStaffHelp,
+		Message:           decision.Answer,
+		Slots:             []AvailabilitySlotOption{},
+		InsuranceDecision: &decision,
+	}
+}
+
+func columnsForProviders(office *domain.OfficeConfig, columns []domain.SchedulerColumn, providers []string) []domain.SchedulerColumn {
+	kept := make([]domain.SchedulerColumn, 0, len(columns))
+	for _, column := range columns {
+		if slices.Contains(providers, office.Columns[column.ID].ShortName) {
+			kept = append(kept, column)
+		}
+	}
+	return kept
 }
 
 func noneResponse(requestedDate, searchStartDate, searchEndDate string) AvailabilityResponse {

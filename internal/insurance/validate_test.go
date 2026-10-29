@@ -15,13 +15,15 @@ func TestParseCatalogRejectsInvalidData(t *testing.T) {
 		{"id not kebab", "kebab", func(sf, _, _ *[]plan) { (*sf)[0].ID = "Aetna_Better" }},
 		{"duplicate id", "duplicate plan id", func(sf, _, _ *[]plan) { (*sf)[1].ID = (*sf)[0].ID }},
 		{"id reused for another carrier", "reused", func(sf, sh, _ *[]plan) {
-			*sh = append(*sh, plan{ID: "aetna-medicare", Label: "Other", Coverage: "medical", CarrierID: "car1"})
+			*sh = append(*sh, plan{ID: "aetna-medicare", Label: "Other", Family: "Other", Coverage: "medical", CarrierID: "car1"})
 		}},
 		{"duplicate label", "belongs to", func(sf, _, _ *[]plan) { (*sf)[1].Label = "Aetna  better health" }},
 		{"duplicate name", "belongs to", func(sf, _, _ *[]plan) { (*sf)[1].Names = []string{"Aetna Better Health MMA"} }},
 		{"empty name", "only filler", func(sf, _, _ *[]plan) { (*sf)[0].Names = []string{"insurance plan"} }},
 		{"repeated name", "repeated", func(sf, _, _ *[]plan) { (*sf)[0].Names = []string{"Aetna MMA", "aetna mma"} }},
 		{"alias repeats the label", "repeated", func(sf, _, _ *[]plan) { (*sf)[0].Names = []string{"Aetna Better Health"} }},
+		{"empty family", "family", func(sf, _, _ *[]plan) { (*sf)[0].Family = "" }},
+		{"family with surrounding spaces", "family", func(sf, _, _ *[]plan) { (*sf)[0].Family = "Aetna " }},
 		{"unknown coverage", "coverage", func(sf, _, _ *[]plan) { (*sf)[0].Coverage = "dental" }},
 		{"unknown doctor value", "has value", func(sf, _, _ *[]plan) { (*sf)[0].Doctors = bach("maybe") }},
 		{"yes without carrier", "no carrierId", func(sf, _, _ *[]plan) { (*sf)[0].CarrierID = "" }},
@@ -109,7 +111,7 @@ func TestParseCatalogRejectsMalformedFiles(t *testing.T) {
 			files["south_florida/doctors.csv"] = []byte(table + "ghost-plan" + strings.Repeat(",", strings.Count(header, ",")) + "\n")
 		}},
 		{"plan without a row", "is in no office table", func(files map[string][]byte) {
-			files["south_florida/plans.csv"] = append(files["south_florida/plans.csv"], []byte("ghost-plan,Ghost,medical,,car1,,\n")...)
+			files["south_florida/plans.csv"] = append(files["south_florida/plans.csv"], []byte("ghost-plan,Ghost,Ghost,medical,,car1,,\n")...)
 		}},
 		{"bad self pay", "self_pay", func(files map[string][]byte) {
 			files["south_florida/plans.csv"] = []byte(strings.Replace(string(files["south_florida/plans.csv"]), ",car301672,yes,", ",car301672,maybe,", 1))

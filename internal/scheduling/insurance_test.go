@@ -2,6 +2,7 @@ package scheduling_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -50,5 +51,58 @@ func TestVisionCarrierIdentitySurvivesAvailabilityAndBooking(t *testing.T) {
 	result, err := svc.Book(context.Background(), command)
 	if err != nil || result.Status != "booked" || len(records.Bookings) != 1 {
 		t.Fatalf("booking: %v %+v writes=%d", err, result, len(records.Bookings))
+	}
+}
+
+func TestListWithPlanDecidesThePlanBeforeReadingInventory(t *testing.T) {
+	office, _ := domain.ResolveOffice("Spring Hill")
+	now := mutationTestNow()
+	column := testColumn("1550", "620", "1568", "09:00", "09:15", 15)
+	provider := office.Columns["1550"].ShortName
+	var cleared, elsewhere, blocked string
+	plans, _ := insurance.ListPlans("medical", office)
+	for _, p := range plans {
+		d := insurance.DecidePlan(p.PlanID, "medical", office, "01/15/1980", now)
+		switch {
+		case !d.CanSchedule && blocked == "":
+			blocked = p.PlanID
+		case d.CanSchedule && cleared == "" && slices.Contains(d.AllowedProviders, provider):
+			cleared = p.PlanID
+		case d.CanSchedule && elsewhere == "" && !slices.Contains(d.AllowedProviders, provider):
+			elsewhere = p.PlanID
+		}
+	}
+	if cleared == "" || blocked == "" || elsewhere == "" {
+		t.Fatalf("plan data lacks a cleared (%q), elsewhere (%q) or blocked (%q) plan", cleared, elsewhere, blocked)
+	}
+	list := func(planID string) (scheduling.AvailabilityResponse, int) {
+		records := recordsWithSetup(column)
+		svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
+		result, err := svc.List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", StartDate: "2026-06-03", DOB: "01/15/1980", VisitType: "medical", InsurancePlanID: planID})
+		if err != nil {
+			t.Fatalf("List(%s) error = %v", planID, err)
+		}
+		return result, records.SchedulerSetupCalls
+	}
+
+	if result, _ := list(cleared); result.Outcome != scheduling.AvailabilityOutcomeFound || len(result.Slots) == 0 {
+		t.Fatalf("cleared plan = %+v, want slots", result)
+	}
+	if result, _ := list(elsewhere); result.Outcome != scheduling.AvailabilityOutcomeNoEligibleProviders {
+		t.Fatalf("plan for other doctors = %+v, want no eligible providers", result)
+	}
+	for _, planID := range []string{blocked, "not-a-plan"} {
+		result, setupCalls := list(planID)
+		if result.Outcome != scheduling.AvailabilityOutcomeInsuranceNotCleared || result.InsuranceDecision == nil || result.InsuranceDecision.CanSchedule || len(result.Slots) != 0 || setupCalls != 0 {
+			t.Fatalf("plan %s = %+v setup=%d, want insurance_not_cleared before any provider read", planID, result, setupCalls)
+		}
+	}
+}
+
+func TestListWithPlanRequiresAVisitType(t *testing.T) {
+	now := mutationTestNow()
+	svc := scheduling.New(recordsWithSetup(), "test-booking-secret", func() time.Time { return now })
+	if _, err := svc.List(context.Background(), scheduling.ListCommand{Office: "Crystal River", StartDate: "2026-06-03", DOB: "01/15/1980", InsurancePlanID: "self-pay-medical"}); err == nil {
+		t.Fatal("List without visitType accepted an insurance plan")
 	}
 }

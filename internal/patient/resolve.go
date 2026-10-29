@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 
@@ -326,6 +327,7 @@ func applyDemographics(result *ResolveResult, demographics domain.PatientDemogra
 	result.InsPlanID = demographics.InsPlanID
 	result.RespPartyID = demographics.RespPartyID
 	result.InsuranceCarrierID = demographics.CarrierID
+	result.InsuranceNote = maskedInsuranceNote(demographics.InsuranceNote)
 	if demographics.CarrierID == "" {
 		return
 	}
@@ -334,6 +336,18 @@ func applyDemographics(result *ResolveResult, demographics domain.PatientDemogra
 	result.AllowedProviders = decision.AllowedProviders
 	result.RoutingAmbiguous = decision.Participation == "unknown"
 	result.PreauthRequired = len(decision.Requirements) > 0
+}
+
+const maxInsuranceNoteRunes = 300
+
+var longDigitRun = regexp.MustCompile(`[0-9]{4,}`)
+
+func maskedInsuranceNote(note string) string {
+	note = longDigitRun.ReplaceAllString(strings.Join(strings.Fields(note), " "), "####")
+	if runes := []rune(note); len(runes) > maxInsuranceNoteRunes {
+		note = string(runes[:maxInsuranceNoteRunes])
+	}
+	return note
 }
 
 func firstNonEmpty(values ...string) string {

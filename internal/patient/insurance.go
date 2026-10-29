@@ -34,7 +34,7 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 	dob, dobErr := domain.ParseDOB(command.DOB, now)
 	decision := decideInsurance(command.Insurance, command.InsurancePlanID, command.CoverageType, office, dob, now)
 	command.SubscriberNum = subscriberNumber(decision.SelfPay, command.SubscriberNum)
-	if (patientID == "" && patientIDErr == nil) || command.DOB == "" || command.Insurance == "" || command.SubscriberNum == "" {
+	if (patientID == "" && patientIDErr == nil) || command.DOB == "" || firstNonEmpty(command.Insurance, command.InsurancePlanID) == "" || command.SubscriberNum == "" {
 		return UpdateInsuranceResult{
 			Status:  UpdateInsuranceStatusError,
 			Outcome: MutationValidationFailed,
@@ -94,7 +94,7 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 		Status:            UpdateInsuranceStatusUpdated,
 		PatientID:         string(patientID),
 		OldInsurance:      chart.CarrierName,
-		NewInsurance:      command.Insurance,
+		NewInsurance:      firstNonEmpty(command.Insurance, decision.CanonicalPlan),
 		AllowedProviders:  decision.AllowedProviders,
 		PreauthRequired:   len(decision.Requirements) > 0,
 		InsuranceDecision: &decision,

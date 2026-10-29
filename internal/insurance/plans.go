@@ -12,6 +12,7 @@ type planList struct {
 type plan struct {
 	ID           string
 	Label        string
+	Family       string
 	Coverage     string
 	Names        []string
 	CarrierCode  string

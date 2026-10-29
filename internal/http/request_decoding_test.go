@@ -42,6 +42,19 @@ var abitaS2SRequestBodies = []struct {
 		"patientId": "12345", "dob": "01/15/1980", "insurance": "Aetna Commercial", "coverageType": "medical",
 		"subscriberNum": "M123", "office": "spring-hill", "insurancePlanId": "plan-1",
 	}, []string{"UpdateInsurance"}},
+	{"add patient by plan id", "/api/add-patient", map[string]any{
+		"firstName": "Jane", "lastName": "Doe", "dob": "01/15/1980", "street": "12 Main St", "city": "Spring Hill",
+		"state": "FL", "zip": "34609", "sex": "female", "phone": "3525550100", "aptSuite": "",
+		"subscriberName": "Jane Doe", "subscriberNum": "M123", "insurancePlanId": "plan-1", "coverageType": "medical", "office": "spring-hill",
+	}, []string{"Create"}},
+	{"update insurance by plan id", "/api/patient/update-insurance", map[string]any{
+		"patientId": "12345", "dob": "01/15/1980", "coverageType": "medical", "subscriberNum": "M123",
+		"insurancePlanId": "plan-1", "office": "spring-hill",
+	}, []string{"UpdateInsurance"}},
+	{"slots with plan id", "/api/scheduler/slots", map[string]any{
+		"office": "spring-hill", "startDate": "2026-06-01", "patientId": "12345", "visitType": "medical",
+		"insurancePlanId": "plan-1", "dob": "01/15/1980",
+	}, []string{"List"}},
 	{"slots", "/api/scheduler/slots", map[string]any{
 		"office": "spring-hill", "startDate": "2026-06-01", "patientId": "12345", "visitType": "medical", "dob": "01/15/1980",
 	}, []string{"List"}},

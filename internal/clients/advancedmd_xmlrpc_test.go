@@ -230,7 +230,8 @@ func TestAdvancedMDClient_GetDemographic(t *testing.T) {
 								"@subscriber": "resp456",
 								"@subscribernum": "H123",
 								"@enddate": "",
-									"@coverage": "1"
+									"@coverage": "1",
+									"insnote": {"#text": "Humana Gold Plus HMO", "@insnotefid": "12252662"}
 								}
 							}
 						}
@@ -252,6 +253,9 @@ func TestAdvancedMDClient_GetDemographic(t *testing.T) {
 	result, err := client.GetDemographic(context.Background(), tokenData, "pat123")
 	if err != nil {
 		t.Fatalf("GetDemographic failed: %v", err)
+	}
+	if result.InsuranceNote != "Humana Gold Plus HMO" {
+		t.Errorf("Expected insurance note 'Humana Gold Plus HMO', got %q", result.InsuranceNote)
 	}
 
 	if result.CarrierName != "HUMANA MEDICARE" {
@@ -784,5 +788,25 @@ func TestAdvancedMDClient_WriteIsNotResentWhenReusedConnectionIsDead(t *testing.
 	}
 	if got := requests.Load(); got != 2 {
 		t.Fatalf("server requests = %d, want 2 with no resend of the write", got)
+	}
+}
+
+func TestInsNoteTextReadsOnlyTheObservedShape(t *testing.T) {
+	for _, test := range []struct {
+		raw  string
+		want string
+	}{
+		{`{"#text": "Simply Medicaid", "@insnotefid": "1"}`, "Simply Medicaid"},
+		{`{"@insnotefid": "1"}`, ""},
+		{`"Simply Medicaid"`, ""},
+		{``, ""},
+	} {
+		var raw json.RawMessage
+		if test.raw != "" {
+			raw = json.RawMessage(test.raw)
+		}
+		if got := insNoteTextOrEmpty(raw); got != test.want {
+			t.Errorf("insNoteTextOrEmpty(%s) = %q, want %q", test.raw, got, test.want)
+		}
 	}
 }
