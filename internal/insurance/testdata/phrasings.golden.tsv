@@ -42,9 +42,9 @@ crystal_river	medical	Original Medicare	accepted	florida-medicare	car40900		acce
 crystal_river	medical	Traditional Medicare	accepted	florida-medicare	car40900		accepted		success: Yes, we accept Florida Medicare.
 crystal_river	medical	Regular Medicare	accepted	florida-medicare	car40900		accepted		success: Yes, we accept Florida Medicare.
 crystal_river	medical	Medicare Supplement	accepted	florida-medicare	car40900		accepted		success: Yes, we accept Florida Medicare.
-crystal_river	medical	iCare	needs_staff_task	icare	car40907		pending_confirmation		blocked: The office needs to confirm this coverage.
-crystal_river	medical	I care	needs_staff_task	icare	car40907		pending_confirmation		blocked: The office needs to confirm this coverage.
-crystal_river	medical	I-Care	needs_staff_task	icare	car40907		pending_confirmation		blocked: The office needs to confirm this coverage.
+crystal_river	medical	iCare	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
+crystal_river	medical	I care	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
+crystal_river	medical	I-Care	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 crystal_river	medical	PPO	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 crystal_river	medical	HMO	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 crystal_river	medical	that one	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
@@ -250,9 +250,9 @@ spring_hill	medical	Original Medicare	accepted	florida-medicare	car40900		accept
 spring_hill	medical	Traditional Medicare	accepted	florida-medicare	car40900		accepted		success: Yes, we accept Florida Medicare.
 spring_hill	medical	Regular Medicare	accepted	florida-medicare	car40900		accepted		success: Yes, we accept Florida Medicare.
 spring_hill	medical	Medicare Supplement	accepted	florida-medicare	car40900		accepted		success: Yes, we accept Florida Medicare.
-spring_hill	medical	iCare	accepted	icare	car40907		accepted		success: Yes, we accept iCare.
-spring_hill	medical	I care	accepted	icare	car40907		accepted		success: Yes, we accept iCare.
-spring_hill	medical	I-Care	accepted	icare	car40907		accepted		success: Yes, we accept iCare.
+spring_hill	medical	iCare	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
+spring_hill	medical	I care	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
+spring_hill	medical	I-Care	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 spring_hill	medical	PPO	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 spring_hill	medical	HMO	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 spring_hill	medical	that one	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?

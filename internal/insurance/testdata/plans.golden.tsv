@@ -65,7 +65,6 @@ crystal_river	medical	humana-medicare-ppo	not_accepted	car303062				not_accepted
 crystal_river	medical	humana-ppo	not_accepted	car303062				not_accepted		blocked: This plan is not accepted for this visit type at this office.
 crystal_river	medical	humana-ppo-pos	not_accepted	car303062				not_accepted		blocked: This plan is not accepted for this visit type at this office.
 crystal_river	medical	humana-premier-hmo	not_accepted	car303061				not_accepted		blocked: This plan is not accepted for this visit type at this office.
-crystal_river	medical	icare	needs_staff_task	car40907				pending_confirmation		blocked: The office needs to confirm this coverage.
 crystal_river	medical	imagine-health	accepted	car308142		Dr. Licht		accepted		success: Yes, we accept Imagine Health.
 crystal_river	medical	leon-health-plan	needs_staff_task					pending_confirmation		blocked: The office needs to confirm this coverage.
 crystal_river	medical	medicaid-all-plans	not_accepted	car40899				not_accepted		blocked: This plan is not accepted for this visit type at this office.
@@ -388,7 +387,6 @@ spring_hill	medical	humana-medicare-ppo	accepted	car303062		Dr. Bach	Dr. Bach	ac
 spring_hill	medical	humana-ppo	accepted	car303062		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Humana PPO.
 spring_hill	medical	humana-ppo-pos	accepted	car303062		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Humana PPO Pos.
 spring_hill	medical	humana-premier-hmo	not_accepted	car303061				not_accepted		blocked: This plan is not accepted for this visit type at this office.
-spring_hill	medical	icare	accepted	car40907		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	accepted		success: Yes, we accept iCare.
 spring_hill	medical	imagine-health	accepted	car308142		Dr. Bach,Dr. Licht,Dr. Noel	Dr. Bach	accepted		success: Yes, we accept Imagine Health.
 spring_hill	medical	leon-health-plan	needs_staff_task					pending_confirmation		blocked: The office needs to confirm this coverage.
 spring_hill	medical	meritain-health	accepted	car301578		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Meritain Health.
