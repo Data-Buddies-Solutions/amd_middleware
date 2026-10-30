@@ -23,7 +23,7 @@ Each noun has one place in the tree and one job at runtime.
 | **Feature** | `internal/patient/`, `internal/scheduling/`, `internal/insurance/` | The one owner of a workflow's rules, receipts, and reconciliation. Commands and results carry their own JSON tags. |
 | **Value** | `internal/domain/`, `internal/safeerrors/`, `internal/safelog/` | Shared offices, routing, patient and scheduler types, and PHI-safe errors and logs. No I/O. |
 | **Records** | `internal/advancedmd/` | The `PatientRecords` and `SchedulingRecords` seam, the production adapter, the deterministic test adapter, and the one classifier of failed writes. |
-| **Transport** | `internal/clients/`, `internal/session/` | AdvancedMD XMLRPC and REST calls, the one response decoder, and the one owner of the login token. |
+| **Transport** | `internal/clients/`, `internal/session/` | AdvancedMD XMLRPC and REST calls, the one response decoder, the one owner of the login token, and the Product insurance read. |
 | **Composition** | `cmd/api/`, `internal/config/` | Reads the environment once and wires one of everything. |
 
 ## Layers are visible in the tree
@@ -54,6 +54,7 @@ flowchart LR
   records --> clients
   clients --> session
   clients --> amd[("AdvancedMD")]
+  clients --> product[("Acuity Product")]
 ```
 
 Every layer may use the values (`domain`, `safeerrors`, `safelog`), which import nothing
@@ -64,8 +65,9 @@ internal.
 | Value | `domain`, `safeerrors`, `safelog` | nothing internal |
 | Session | `session` | values |
 | Transport | `clients` | values, session |
-| Records | `advancedmd`, `advancedmdtest` | values, session, transport |
+| Records | `advancedmd` | values, session, transport |
 | Policy | `insurance` | values |
+| Test support | `advancedmdtest`, `insurancetest` | values, session, transport, records, policy |
 | Feature | `patient`, `scheduling` | values, records, policy. Never another feature. |
 | Handler | `http` | values, session, records, policy, features. Never transport. |
 | Composition | `cmd/api`, `config` | anything |
@@ -212,8 +214,41 @@ A `cancelled` receipt identifies the exact appointment that was cancelled.
 
 ## Insurance plans
 
-Plan data lives in [internal/insurance/insurancetest/data](internal/insurance/insurancetest/data), one folder per
-source insurance list:
+The insurance list is an `InsuranceCatalog`
+([internal/insurance/catalog.go](internal/insurance/catalog.go)) that staff publish
+as revisions in Acuity Product. The middleware owns the catalog's rules. It parses
+and validates every revision and makes every decision from one installed revision.
+
+At startup, `main` reads the active revision with `POST /v1/agent/insurance/read`
+on `ACUITY_PRODUCT_URL`, sending the middleware's own Product service token
+(`ACUITY_PRODUCT_INSURANCE_TOKEN`, which holds only `READ_INSURANCE`). The one
+catalog parser validates the revision, and the process opens its port only after
+the revision is installed. If Product is unreachable or the revision is invalid,
+the process logs `insurance_catalog_refresh_failed` and exits non-zero. It never
+falls back to plan files.
+
+Cloud Scheduler posts `POST /ops/insurance/refresh` every minute. A refresh reads
+Product again. When the revision ID is unchanged, it does nothing. When the ID
+changed and the revision validates, it swaps the installed revision in one atomic
+step and logs `insurance_catalog_installed` with the new and previous revision
+IDs. On any failure (Product error, timeout, or an invalid revision), it keeps the
+current revision, logs `insurance_catalog_refresh_failed` with the current
+revision ID and the cause, and returns a redacted `503`.
+
+Each request reads the installed revision once and decides from that revision
+alone, so a request that overlaps a swap sees all of the old revision or all of
+the new one. `GET /api/insurance/plans` returns that revision as
+`catalogRevisionId`.
+
+The installed revision is the last good copy, and it lives only in memory. A
+restart while Product is down leaves the new instance unable to start, so the
+service is not ready until Product answers. That is an accepted risk.
+
+The catalog's JSON shape follows the plan files it was first exported from.
+Those files now live in
+[internal/insurance/insurancetest/data](internal/insurance/insurancetest/data),
+a fixture that only tests read. The production binary does not contain them.
+There is one folder per source insurance list:
 
 - `south_florida/` follows the Abita Eye Group Insurance List (2026-07-07) for
   Hollywood, Sweetwater and North Miami Beach Optical.
@@ -230,20 +265,18 @@ doctor, then `requires` (`kind` or `kind:channel`, separated by `;`), `only_offi
 the caller `notice`, and the sheet's `note`. `office_tables.json` says which offices
 use which table, and `carriers.json` names the AdvancedMD carriers.
 
-At startup the files are read into one `InsuranceCatalog`
-([internal/insurance/catalog.go](internal/insurance/catalog.go)), the portable JSON
-document Product will publish as revisions, and the one catalog parser turns it into
-plan lists. Invalid data stops the process. `carriers` is sorted by `id`; each
-region is a data folder with its `plans` in file order (`aliases` split on `|`,
-`self_pay` as the boolean `selfPay`) and one table per office table CSV (`id` is the
-file stem, `offices` from `office_tables.json`, `doctors` the doctor columns in order).
-Each row omits doctors whose cell is empty and splits `requires` and `onlyOffices` on
-`;`. Every empty list is `[]`. Exporting, parsing, and exporting again is
-byte-identical. Decoding is strict: an unknown field is rejected.
+The fixture maps the files to one `InsuranceCatalog`. `carriers` is sorted by
+`id`; each region is a data folder with its `plans` in file order (`aliases` split
+on `|`, `self_pay` as the boolean `selfPay`) and one table per office table CSV
+(`id` is the file stem, `offices` from `office_tables.json`, `doctors` the doctor
+columns in order). Each row omits doctors whose cell is empty and splits `requires`
+and `onlyOffices` on `;`. Every empty list is `[]`. Exporting, parsing, and
+exporting again is byte-identical. Decoding is strict: an unknown field is
+rejected.
 
-`GET /api/insurance/catalog` exports the running catalog. `POST
+`GET /api/insurance/catalog` exports the installed catalog. `POST
 /api/insurance/catalog/validate` is the only judge of a candidate: it parses it the
-way startup does and returns every error as `{region, table, planId, rule, message}`,
+way a refresh does and returns every error as `{region, table, planId, rule, message}`,
 with empty strings where a field does not apply. A body that is not an
 `InsuranceCatalog`, including one with an unknown field, returns the single rule
 `invalid_json`. The other rules, defined in
@@ -269,11 +302,12 @@ with empty strings where a field does not apply. A body that is not an
   The three decision rules run only when every other rule passes and judge
   production's offices, so the verdict is the same in `prod` and `sandbox`.
 
-Two generated files in `internal/insurance/testdata` pin behavior: `plans.golden.tsv`
-has each plan's outcome, carrier, requirements and allowed doctors (adult and child)
-at every office, and `phrasings.golden.tsv` has the decision for common caller
-phrasings. Both also reproduce from the exported catalog. After a data change, run
-`go test ./internal/insurance -run Golden -update` and review the diff.
+Two generated files in `internal/insurance/testdata` pin behavior on the fixture:
+`plans.golden.tsv` has each plan's outcome, carrier, requirements and allowed doctors
+(adult and child) at every office, and `phrasings.golden.tsv` has the decision for
+common caller phrasings. Both also reproduce from the exported catalog. After a
+fixture or rule change, run `go test ./internal/insurance -run Golden -update` and
+review the diff.
 
 The office registry decides which doctors can take a visit: medical uses the office's
 `all_three` tier, routine vision its optical tier, and the pediatric rule applies. The
@@ -381,7 +415,7 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/patient/update-insurance` | Replace primary insurance | `patient.UpdateInsurance` |
 | `POST /api/insurance/decision` | Decide plan participation for an office from the caller's answer, matching offered plans first, or the office's self-pay plan when `selfPay` is set | `insurance.DecideOfferedAnswer`, `insurance.DecideSelfPay` |
 | `GET /api/insurance/plans?office=&coverage=` | List an office's plans for one coverage with each plan's family, self-pay flag, decision, carrier, sheet note, and other offices on the same insurance list that accept it, plus the `catalogRevisionId` every plan was decided from (read-only) | `insurance.ListPlans` |
-| `GET /api/insurance/catalog` | Return the running insurance catalog as an `InsuranceCatalog` | `insurance.RunningCatalog` |
+| `GET /api/insurance/catalog` | Return the installed insurance catalog as an `InsuranceCatalog` | `insurance.RunningCatalog` |
 | `POST /api/insurance/catalog/validate` | Judge a candidate `InsuranceCatalog`: `200 {"valid": true}`, or `400 {"valid": false, "errors": [...]}` with every rule it breaks | `insurance.ValidateCatalog` |
 | `POST /api/scheduler/slots` | List openings as an inventory envelope | `scheduling.List` |
 | `POST /api/appointment/book` | Revalidate and book a signed slot | `scheduling.Book` |
@@ -439,7 +473,7 @@ Operational routes have separate contracts:
 | Route | Contract |
 | --- | --- |
 | `GET /health`, `GET /live` | Process liveness; no provider call |
-| `GET /ready` | Local initialization readiness; no provider call; a 200 writes no request log line |
+| `GET /ready` | Local initialization readiness; no provider call; a 200 writes no request log line. The port opens only after a Product insurance catalog is installed |
 | `GET /metrics` | PHI-free patient mutation counters |
 | `POST /ops/session/maintenance` | Google-signed OIDC identity; never `API_SECRET` |
 | `POST /ops/insurance/refresh` | The same OIDC identity; re-reads Product's insurance revision and installs it only when its ID changed and it validates; `204`, or a redacted `503` that keeps the current catalog |
@@ -463,7 +497,10 @@ set +a
 go run ./cmd/api
 ```
 
-The process listens on `0.0.0.0:$PORT` (`8080` by default).
+The process listens on `0.0.0.0:$PORT` (`8080` by default) after it installs the
+insurance catalog from `ACUITY_PRODUCT_URL`. A local run needs a reachable Product
+and a Product service token with `READ_INSURANCE`. `ACUITY_PRODUCT_URL` must be
+an HTTPS base URL, or an HTTP base URL on this host.
 
 `AMD_ENV` names the AdvancedMD account the credentials belong to, `prod` or
 `sandbox`, and selects that account's offices, scheduler columns, and
@@ -494,10 +531,18 @@ credentials or bake them into an image.
 
 ## Runtime model
 
-Production runs one Cloud Run instance because Session and the scheduler setup
-cache are process-local. Authentication correctness does not depend on
-background CPU: Cloud Scheduler requests maintenance, while `Get` retains
-bounded request-time recovery.
+Production runs one Cloud Run instance because Session, the scheduler setup
+cache, and the installed insurance catalog are process-local. Neither depends on
+background CPU. Cloud Scheduler requests session maintenance every 12 hours,
+while `Get` retains bounded request-time recovery. Cloud Scheduler also requests
+an insurance refresh every minute, so a published revision reaches calls within
+about a minute. There is no in-process timer.
+
+The instance keeps the last good insurance catalog in memory only. A deploy whose
+first Product read fails never opens its port, so Cloud Run reports the revision
+as failed and the previous revision keeps serving. A restart of the serving
+instance while Product is down leaves the service not ready until Product
+answers. That risk is accepted.
 
 Deployment configuration and verification live in the
 [deployment script](scripts/deploy-cloud-run.sh) and
@@ -518,8 +563,14 @@ stable `vMAJOR.MINOR.PATCH` tag with the image production runs:
    digest.
 3. It updates the sandbox to that digest and nothing else.
    `scripts/staging_deployment.py` refuses to deploy unless the sandbox runs
-   `AMD_ENV=sandbox` and the sandbox digest equals the production digest, and
-   records both images in the receipt.
+   `AMD_ENV=sandbox`, reads its insurance catalog from an HTTPS
+   `ACUITY_PRODUCT_URL` with the `acuity-product-sandbox-insurance-token`
+   secret, and the sandbox digest equals the production digest. It records both
+   images in the receipt.
+
+The sandbox has no Cloud Scheduler job, so it reads the insurance catalog when an
+instance starts. It scales to zero, so a new revision usually arrives on the next
+cold start.
 
 A failed staging deploy does not affect production: the job touches Google
 Cloud only after production's build succeeded, and only the sandbox.
