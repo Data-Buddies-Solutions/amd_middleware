@@ -3,6 +3,7 @@ package insurance
 import "slices"
 
 type planList struct {
+	Region     string
 	Table      string
 	Offices    []string
 	Plans      []plan
@@ -33,7 +34,7 @@ type planRequirement struct {
 	Channel string
 }
 
-var catalog = mustLoadCatalog()
+var runningCatalog, catalog = mustLoadCatalog()
 
 func planNames(p plan) []string {
 	return append([]string{p.Label}, p.Names...)

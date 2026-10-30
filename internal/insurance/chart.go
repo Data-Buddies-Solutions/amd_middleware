@@ -6,10 +6,11 @@ import (
 )
 
 func DecideChartInsurance(chart domain.PatientDemographics, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
-	d, list, ok := startDecision(coverage, office)
+	d, ok := startDecision(coverage, office)
 	if !ok {
 		return d
 	}
+	list := listForOffice(office.ID)
 	var plans []plan
 	for _, p := range list.Plans {
 		if p.Coverage == coverage && chart.CarrierID != "" && p.CarrierID == chart.CarrierID {

@@ -53,7 +53,11 @@ type InsuranceDecision struct {
 }
 
 func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
-	d, list, ok := startDecision(coverage, office)
+	return decideInsurance(listForOffice(office.ID), heard, coverage, office, dob, asOf)
+}
+
+func decideInsurance(list planList, heard, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+	d, ok := startDecision(coverage, office)
 	if !ok {
 		return d
 	}
@@ -77,7 +81,11 @@ func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob st
 }
 
 func DecidePlan(planID, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
-	d, list, ok := startDecision(coverage, office)
+	return decidePlan(listForOffice(office.ID), planID, coverage, office, dob, asOf)
+}
+
+func decidePlan(list planList, planID, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+	d, ok := startDecision(coverage, office)
 	if !ok {
 		return d
 	}
@@ -90,7 +98,11 @@ func DecidePlan(planID, coverage string, office *domain.OfficeConfig, dob string
 }
 
 func DecideSelfPay(coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
-	d, list, ok := startDecision(coverage, office)
+	return decideSelfPay(listForOffice(office.ID), coverage, office, dob, asOf)
+}
+
+func decideSelfPay(list planList, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+	d, ok := startDecision(coverage, office)
 	if !ok {
 		return d
 	}
@@ -105,19 +117,19 @@ func DecideSelfPay(coverage string, office *domain.OfficeConfig, dob string, asO
 	return d
 }
 
-func startDecision(coverage string, office *domain.OfficeConfig) (InsuranceDecision, planList, bool) {
+func startDecision(coverage string, office *domain.OfficeConfig) (InsuranceDecision, bool) {
 	d := newDecision(coverage, office)
 	if coverage != "medical" && coverage != "routine_vision" {
 		d.Reason, d.Answer = "ask_coverage", answerAskCoverage
-		return d, planList{}, false
+		return d, false
 	}
 	if !officeSupports(office, coverage) {
 		d.Outcome = "not_accepted"
 		d.Participation = "not_accepted"
 		d.Reason, d.Answer = "office_no_coverage", answerOfficeNoCoverage
-		return d, planList{}, false
+		return d, false
 	}
-	return d, listForOffice(office.ID), true
+	return d, true
 }
 
 func newDecision(coverage string, office *domain.OfficeConfig) InsuranceDecision {

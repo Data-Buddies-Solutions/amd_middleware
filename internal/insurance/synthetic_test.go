@@ -32,9 +32,13 @@ func syntheticSouthFlorida() []plan {
 
 func useSyntheticCatalog(t *testing.T, southFlorida, springHill, crystalRiver []plan) {
 	t.Helper()
-	lists, err := parseCatalog(syntheticFiles(t, southFlorida, springHill, crystalRiver))
+	source, err := readCatalogFiles(syntheticFiles(t, southFlorida, springHill, crystalRiver))
 	if err != nil {
 		t.Fatal(err)
+	}
+	lists, errs := readPlanLists(source)
+	if len(errs) > 0 {
+		t.Fatalf("%+v", errs)
 	}
 	previous := catalog
 	catalog = lists

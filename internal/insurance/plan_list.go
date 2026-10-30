@@ -2,7 +2,6 @@ package insurance
 
 import (
 	"cmp"
-	"path"
 	"slices"
 	"strings"
 	"time"
@@ -78,7 +77,7 @@ func compareLabels(a, b string) int {
 func acceptedElsewhere(p plan, list planList, office *domain.OfficeConfig) []string {
 	offices := []string{}
 	for _, other := range catalog {
-		if path.Dir(other.Table) != path.Dir(list.Table) {
+		if other.Region != list.Region {
 			continue
 		}
 		for _, id := range other.Offices {

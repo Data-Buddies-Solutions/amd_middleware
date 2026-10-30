@@ -8,10 +8,11 @@ import (
 )
 
 func DecideOfferedAnswer(heard string, offeredPlanIDs []string, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
-	d, list, ok := startDecision(coverage, office)
+	d, ok := startDecision(coverage, office)
 	if !ok {
 		return d
 	}
+	list := listForOffice(office.ID)
 	offered := []plan{}
 	for _, p := range list.Plans {
 		if p.Coverage == coverage && slices.Contains(offeredPlanIDs, p.ID) {

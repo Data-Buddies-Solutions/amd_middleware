@@ -32,25 +32,6 @@ func TestRealDataEmbossSpecialtyKeepsPremierCarrier(t *testing.T) {
 	}
 }
 
-func TestEveryPlanNameResolvesToItsPlan(t *testing.T) {
-	for _, list := range catalog {
-		for _, officeID := range list.Offices {
-			o := office(t, officeID)
-			for _, p := range list.Plans {
-				if !officeSupports(o, p.Coverage) {
-					continue
-				}
-				byID := DecidePlan(p.ID, p.Coverage, o, adultDOB, testNow)
-				for _, name := range planNames(p) {
-					if byName := DecideInsurance(name, p.Coverage, o, adultDOB, testNow); byName.PlanID != p.ID || byName.Outcome != byID.Outcome {
-						t.Errorf("%s %q: by name %+v, by id %+v", officeID, name, byName, byID)
-					}
-				}
-			}
-		}
-	}
-}
-
 func TestRealDataAetnaBetterAtSouthFloridaOffices(t *testing.T) {
 	hollywood := DecideInsurance("Aetna Better", "medical", office(t, "hollywood"), adultDOB, testNow)
 	sweetwater := DecideInsurance("Aetna Better", "medical", office(t, "sweetwater"), adultDOB, testNow)
@@ -125,21 +106,5 @@ func TestRealDataLeonRoutesToTheLeonCoordinator(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestRealDataEverySupportedCoverageHasAnAcceptedSelfPayPlan(t *testing.T) {
-	for _, list := range catalog {
-		for _, officeID := range list.Offices {
-			o := office(t, officeID)
-			for _, coverage := range []string{"medical", "routine_vision"} {
-				if !officeSupports(o, coverage) {
-					continue
-				}
-				if d := DecideSelfPay(coverage, o, adultDOB, testNow); d.Outcome != "accepted" || !d.CanSchedule || !d.SelfPay {
-					t.Errorf("%s %s: %+v", officeID, coverage, d)
-				}
-			}
-		}
 	}
 }

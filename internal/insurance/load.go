@@ -11,8 +11,6 @@ import (
 	"path"
 	"slices"
 	"strings"
-
-	"advancedmd-token-management/internal/domain"
 )
 
 //go:embed data
@@ -28,7 +26,7 @@ var planColumns = []string{"id", "label", "family", "coverage", "carrier_code", 
 
 var tableColumns = []string{"requires", "only_offices", "notice", "note"}
 
-func mustLoadCatalog() []planList {
+func mustLoadCatalog() (InsuranceCatalog, []planList) {
 	files := map[string][]byte{}
 	err := fs.WalkDir(dataFiles, "data", func(name string, entry fs.DirEntry, err error) error {
 		if err != nil || entry.IsDir() || path.Ext(name) == ".md" {
@@ -41,62 +39,52 @@ func mustLoadCatalog() []planList {
 	if err != nil {
 		panic(err)
 	}
-	lists, err := parseCatalog(files)
+	source, err := readCatalogFiles(files)
 	if err != nil {
 		panic("invalid insurance plan data: " + err.Error())
 	}
-	return lists
+	lists, errs := parseCatalog(source)
+	if len(errs) > 0 {
+		panic(fmt.Sprintf("invalid insurance plan data: %+v", errs))
+	}
+	return source, lists
 }
 
-func parseCatalog(files map[string][]byte) ([]planList, error) {
+func readCatalogFiles(files map[string][]byte) (InsuranceCatalog, error) {
 	carriers := map[string]string{}
 	if err := decodeStrictJSON(files[carriersFile], &carriers); err != nil {
-		return nil, fmt.Errorf("%s: %w", carriersFile, err)
+		return InsuranceCatalog{}, fmt.Errorf("%s: %w", carriersFile, err)
 	}
 	officeTables := map[string][]string{}
 	if err := decodeStrictJSON(files[officeTablesFile], &officeTables); err != nil {
-		return nil, fmt.Errorf("%s: %w", officeTablesFile, err)
-	}
-	if err := validateOfficeTables(officeTables); err != nil {
-		return nil, err
+		return InsuranceCatalog{}, fmt.Errorf("%s: %w", officeTablesFile, err)
 	}
 	if err := checkEveryFileIsListed(files, officeTables); err != nil {
-		return nil, err
+		return InsuranceCatalog{}, err
 	}
-	tables := slices.Sorted(maps.Keys(officeTables))
-	plansByDir := map[string]map[string]plan{}
-	usedByDir := map[string]map[string]bool{}
-	lists := make([]planList, 0, len(tables))
-	for _, table := range tables {
-		dir := path.Dir(table)
-		if plansByDir[dir] == nil {
-			plans, err := parsePlans(files[path.Join(dir, plansFile)], carriers)
+	c := InsuranceCatalog{Carriers: []CatalogCarrier{}, Regions: []CatalogRegion{}}
+	for _, id := range slices.Sorted(maps.Keys(carriers)) {
+		c.Carriers = append(c.Carriers, CatalogCarrier{ID: id, Name: carriers[id]})
+	}
+	for _, name := range slices.Sorted(maps.Keys(officeTables)) {
+		dir := path.Dir(name)
+		if len(c.Regions) == 0 || c.Regions[len(c.Regions)-1].ID != dir {
+			plans, err := readPlans(files[path.Join(dir, plansFile)])
 			if err != nil {
-				return nil, fmt.Errorf("%s: %w", path.Join(dir, plansFile), err)
+				return InsuranceCatalog{}, fmt.Errorf("%s: %w", path.Join(dir, plansFile), err)
 			}
-			plansByDir[dir] = plans
-			usedByDir[dir] = map[string]bool{}
+			c.Regions = append(c.Regions, CatalogRegion{ID: dir, Plans: plans, Tables: []CatalogTable{}})
 		}
-		list, err := parseTable(files[table], officeTables[table], plansByDir[dir], usedByDir[dir])
+		table, err := readOfficeTable(files[name])
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", table, err)
+			return InsuranceCatalog{}, fmt.Errorf("%s: %w", name, err)
 		}
-		list.Table = table
-		list.Offices = officeTables[table]
-		indexNames(&list)
-		lists = append(lists, list)
+		table.ID = strings.TrimSuffix(path.Base(name), path.Ext(name))
+		table.Offices = officeTables[name]
+		region := &c.Regions[len(c.Regions)-1]
+		region.Tables = append(region.Tables, table)
 	}
-	for dir, plans := range plansByDir {
-		for id := range plans {
-			if !usedByDir[dir][id] {
-				return nil, fmt.Errorf("%s: plan %q is in no office table", path.Join(dir, plansFile), id)
-			}
-		}
-	}
-	if err := validateCatalog(lists, carriers); err != nil {
-		return nil, err
-	}
-	return lists, nil
+	return c, nil
 }
 
 func checkEveryFileIsListed(files map[string][]byte, officeTables map[string][]string) error {
@@ -114,14 +102,14 @@ func checkEveryFileIsListed(files map[string][]byte, officeTables map[string][]s
 	return nil
 }
 
-func parsePlans(b []byte, carriers map[string]string) (map[string]plan, error) {
+func readPlans(b []byte) ([]CatalogPlan, error) {
 	rows, err := readCSV(b, planColumns)
 	if err != nil {
 		return nil, err
 	}
-	plans := map[string]plan{}
+	plans := []CatalogPlan{}
 	for _, row := range rows {
-		p := plan{ID: row[0], Label: row[1], Family: row[2], Coverage: row[3], CarrierCode: row[4], CarrierID: row[5], CarrierName: carriers[row[5]]}
+		p := CatalogPlan{ID: row[0], Label: row[1], Family: row[2], Coverage: row[3], CarrierCode: row[4], CarrierID: row[5], Aliases: splitList(row[7], "|")}
 		switch row[6] {
 		case "yes":
 			p.SelfPay = true
@@ -129,53 +117,35 @@ func parsePlans(b []byte, carriers map[string]string) (map[string]plan, error) {
 		default:
 			return nil, fmt.Errorf("plan %q: self_pay must be yes or empty", p.ID)
 		}
-		p.Names = splitList(row[7], "|")
-		if _, ok := plans[p.ID]; ok {
-			return nil, fmt.Errorf("duplicate plan id %q", p.ID)
-		}
-		plans[p.ID] = p
+		plans = append(plans, p)
 	}
 	return plans, nil
 }
 
-func parseTable(b []byte, offices []string, plans map[string]plan, used map[string]bool) (planList, error) {
+func readOfficeTable(b []byte) (CatalogTable, error) {
 	header, rows, err := readTable(b)
 	if err != nil {
-		return planList{}, err
+		return CatalogTable{}, err
 	}
-	doctors := header[1 : len(header)-len(tableColumns)]
-	if err := checkDoctorColumns(doctors, offices); err != nil {
-		return planList{}, err
-	}
-	list := planList{}
-	seen := map[string]bool{}
+	table := CatalogTable{Doctors: append([]string{}, header[1:len(header)-len(tableColumns)]...), Rows: []CatalogRow{}}
 	for _, row := range rows {
-		p, ok := plans[row[0]]
-		if !ok {
-			return planList{}, fmt.Errorf("plan %q is not in %s", row[0], plansFile)
-		}
-		if seen[p.ID] {
-			return planList{}, fmt.Errorf("plan %q has two rows", p.ID)
-		}
-		seen[p.ID] = true
-		used[p.ID] = true
-		p.Doctors = map[string]string{}
-		for i, doctor := range doctors {
+		r := CatalogRow{PlanID: row[0], Doctors: map[string]string{}, Requires: []CatalogRequirement{}}
+		for i, doctor := range table.Doctors {
 			if value := row[i+1]; value != "" {
-				p.Doctors[doctor] = value
+				r.Doctors[doctor] = value
 			}
 		}
 		rest := row[len(row)-len(tableColumns):]
-		for _, r := range splitList(rest[0], ";") {
-			kind, channel, _ := strings.Cut(r, ":")
-			p.Requirements = append(p.Requirements, planRequirement{Kind: kind, Channel: channel})
+		for _, requirement := range splitList(rest[0], ";") {
+			kind, channel, _ := strings.Cut(requirement, ":")
+			r.Requires = append(r.Requires, CatalogRequirement{Kind: kind, Channel: channel})
 		}
-		p.OnlyOffices = splitList(rest[1], ";")
-		p.CallerNotice = rest[2]
-		p.Note = rest[3]
-		list.Plans = append(list.Plans, p)
+		r.OnlyOffices = splitList(rest[1], ";")
+		r.Notice = rest[2]
+		r.Note = rest[3]
+		table.Rows = append(table.Rows, r)
 	}
-	return list, nil
+	return table, nil
 }
 
 func readTable(b []byte) ([]string, [][]string, error) {
@@ -191,25 +161,6 @@ func readTable(b []byte) ([]string, [][]string, error) {
 		return nil, nil, fmt.Errorf("header must be plan, doctor columns, then %s", strings.Join(tableColumns, ", "))
 	}
 	return header, records[1:], nil
-}
-
-func checkDoctorColumns(columns, offices []string) error {
-	want := []string{}
-	for _, id := range offices {
-		names, _ := domain.TableOfficeProviderNames(id)
-		for _, name := range names {
-			if !slices.Contains(want, name) {
-				want = append(want, name)
-			}
-		}
-	}
-	got := slices.Clone(columns)
-	slices.Sort(want)
-	slices.Sort(got)
-	if !slices.Equal(got, want) {
-		return fmt.Errorf("doctor columns must be exactly %s", strings.Join(want, ", "))
-	}
-	return nil
 }
 
 func readCSV(b []byte, columns []string) ([][]string, error) {

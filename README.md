@@ -228,18 +228,52 @@ office table (`doctors.csv`, `spring_hill.csv`, `crystal_river.csv`) mirrors the
 sheet: one row per plan the office's list includes and one `yes|no|pending` column per
 doctor, then `requires` (`kind` or `kind:channel`, separated by `;`), `only_offices`,
 the caller `notice`, and the sheet's `note`. `office_tables.json` says which offices
-use which table, and `carriers.json` names the AdvancedMD carriers. The data is
-validated when the service starts; invalid data stops the process.
-A table's doctor columns must be exactly the doctors of its offices.
+use which table, and `carriers.json` names the AdvancedMD carriers.
+
+At startup the files are read into one `InsuranceCatalog`
+([internal/insurance/catalog.go](internal/insurance/catalog.go)), the portable JSON
+document Product will publish as revisions, and the one catalog parser turns it into
+plan lists. Invalid data stops the process. `carriers` is sorted by `id`; each
+region is a data folder with its `plans` in file order (`aliases` split on `|`,
+`self_pay` as the boolean `selfPay`) and one table per office table CSV (`id` is the
+file stem, `offices` from `office_tables.json`, `doctors` the doctor columns in order).
+Each row omits doctors whose cell is empty and splits `requires` and `onlyOffices` on
+`;`. Every empty list is `[]`. Exporting, parsing, and exporting again is
+byte-identical. Decoding is strict: an unknown field is rejected.
+
+`GET /api/insurance/catalog` exports the running catalog. `POST
+/api/insurance/catalog/validate` is the only judge of a candidate: it parses it the
+way startup does and returns every error as `{region, table, planId, rule, message}`,
+with empty strings where a field does not apply. A body that is not an
+`InsuranceCatalog`, including one with an unknown field, returns the single rule
+`invalid_json`. The other rules, defined in
+[internal/insurance/validate.go](internal/insurance/validate.go), are:
+
+- Structure: `duplicate_carrier`, `duplicate_region`, `duplicate_table`,
+  `table_without_offices`, `unknown_office`, `office_in_two_tables`,
+  `office_without_table`, `unknown_doctor_column`, `missing_doctor_column`,
+  `duplicate_doctor_column` (a table's doctor columns must be exactly the doctors of
+  its offices), `unknown_plan`, `duplicate_row`, `plan_in_no_table`.
+- Plans: `invalid_plan_id`, `duplicate_plan`, `plan_id_reused`, `invalid_family`,
+  `unknown_coverage`, `filler_only_name`, `repeated_name`, `name_conflict`,
+  `unknown_carrier`, `carrier_code_conflict`, `invalid_doctor_value`,
+  `accepted_plan_without_carrier`, `only_office_outside_table`,
+  `unknown_requirement`, `two_self_pay_plans`.
+- Data quality: `note_rule_not_encoded` (a note uses one of the sheet's known rule
+  phrasings, such as staff check, Dr. Bach only, referral, prior authorization, or
+  office limit, that the row doesn't encode; it can't read every possible wording, so
+  review new notes too), `name_does_not_resolve` (each plan name must decide its own
+  plan at each of its offices), `no_accepted_self_pay` (each office's supported
+  coverage has an accepted self-pay plan), and `contradicted_phrasing` (known caller
+  phrasings, such as "Staywell Medicaid", never decide the plan they contradict).
+  The three decision rules run only when every other rule passes and judge
+  production's offices, so the verdict is the same in `prod` and `sandbox`.
 
 Two generated files in `internal/insurance/testdata` pin behavior: `plans.golden.tsv`
 has each plan's outcome, carrier, requirements and allowed doctors (adult and child)
 at every office, and `phrasings.golden.tsv` has the decision for common caller
-phrasings. Every plan name is also tested to resolve to its own plan. After a data
-change, run `go test ./internal/insurance -run Golden -update` and review the diff.
-A test also fails when a note uses one of the sheet's known rule phrasings (staff
-check, Dr. Bach only, referral, prior authorization, office limit) that the row
-doesn't encode; it can't read every possible wording, so review new notes too.
+phrasings. Both also reproduce from the exported catalog. After a data change, run
+`go test ./internal/insurance -run Golden -update` and review the diff.
 
 The office registry decides which doctors can take a visit: medical uses the office's
 `all_three` tier, routine vision its optical tier, and the pediatric rule applies. The
@@ -347,6 +381,8 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/patient/update-insurance` | Replace primary insurance | `patient.UpdateInsurance` |
 | `POST /api/insurance/decision` | Decide plan participation for an office from the caller's answer, matching offered plans first, or the office's self-pay plan when `selfPay` is set | `insurance.DecideOfferedAnswer`, `insurance.DecideSelfPay` |
 | `GET /api/insurance/plans?office=&coverage=` | List an office's plans for one coverage with each plan's family, self-pay flag, decision, carrier, sheet note, and other offices on the same insurance list that accept it (read-only) | `insurance.ListPlans` |
+| `GET /api/insurance/catalog` | Return the running insurance catalog as an `InsuranceCatalog` | `insurance.RunningCatalog` |
+| `POST /api/insurance/catalog/validate` | Judge a candidate `InsuranceCatalog`: `200 {"valid": true}`, or `400 {"valid": false, "errors": [...]}` with every rule it breaks | `insurance.ValidateCatalog` |
 | `POST /api/scheduler/slots` | List openings as an inventory envelope | `scheduling.List` |
 | `POST /api/appointment/book` | Revalidate and book a signed slot | `scheduling.Book` |
 | `POST /api/appointment/cancel` | Cancel the appointment a signed cancellation token names | `scheduling.Cancel` |
