@@ -26,14 +26,21 @@ type PlanSummary struct {
 	AcceptedAt       []string `json:"acceptedAt"`
 }
 
-func ListPlans(coverage string, office *domain.OfficeConfig) ([]PlanSummary, bool) {
+type PlanList struct {
+	OfficeID          string        `json:"officeId"`
+	Coverage          string        `json:"coverage"`
+	CatalogRevisionID string        `json:"catalogRevisionId"`
+	Plans             []PlanSummary `json:"plans"`
+}
+
+func ListPlans(coverage string, office *domain.OfficeConfig) (PlanList, bool) {
 	if coverage != "medical" && coverage != "routine_vision" {
-		return nil, false
+		return PlanList{}, false
 	}
 	r := active.Load()
 	summaries := []PlanSummary{}
 	if !officeSupports(office, coverage) {
-		return summaries, true
+		return PlanList{OfficeID: office.ID, Coverage: coverage, CatalogRevisionID: r.id, Plans: summaries}, true
 	}
 	list := r.listForOffice(office.ID)
 	for _, p := range list.Plans {
@@ -68,7 +75,7 @@ func ListPlans(coverage string, office *domain.OfficeConfig) ([]PlanSummary, boo
 	slices.SortFunc(summaries, func(a, b PlanSummary) int {
 		return cmp.Or(compareLabels(a.Label, b.Label), strings.Compare(a.PlanID, b.PlanID))
 	})
-	return summaries, true
+	return PlanList{OfficeID: office.ID, Coverage: coverage, CatalogRevisionID: r.id, Plans: summaries}, true
 }
 
 func compareLabels(a, b string) int {

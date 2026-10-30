@@ -22,8 +22,8 @@ func TestRealDataEmbossSpecialtyKeepsPremierCarrier(t *testing.T) {
 					t.Errorf("%q: got %+v, want %+v", name, got, want)
 				}
 			}
-			summaries, _ := ListPlans("routine_vision", o)
-			for _, s := range summaries {
+			listed, _ := ListPlans("routine_vision", o)
+			for _, s := range listed.Plans {
 				if s.CarrierID == "car281317" && s.CarrierName != "EMBOSS SPECIALTY" {
 					t.Errorf("%s: carrier name = %q", s.PlanID, s.CarrierName)
 				}

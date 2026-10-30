@@ -380,7 +380,7 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/add-patient` | Create a patient and attach primary insurance | `patient.Create` |
 | `POST /api/patient/update-insurance` | Replace primary insurance | `patient.UpdateInsurance` |
 | `POST /api/insurance/decision` | Decide plan participation for an office from the caller's answer, matching offered plans first, or the office's self-pay plan when `selfPay` is set | `insurance.DecideOfferedAnswer`, `insurance.DecideSelfPay` |
-| `GET /api/insurance/plans?office=&coverage=` | List an office's plans for one coverage with each plan's family, self-pay flag, decision, carrier, sheet note, and other offices on the same insurance list that accept it (read-only) | `insurance.ListPlans` |
+| `GET /api/insurance/plans?office=&coverage=` | List an office's plans for one coverage with each plan's family, self-pay flag, decision, carrier, sheet note, and other offices on the same insurance list that accept it, plus the `catalogRevisionId` every plan was decided from (read-only) | `insurance.ListPlans` |
 | `GET /api/insurance/catalog` | Return the running insurance catalog as an `InsuranceCatalog` | `insurance.RunningCatalog` |
 | `POST /api/insurance/catalog/validate` | Judge a candidate `InsuranceCatalog`: `200 {"valid": true}`, or `400 {"valid": false, "errors": [...]}` with every rule it breaks | `insurance.ValidateCatalog` |
 | `POST /api/scheduler/slots` | List openings as an inventory envelope | `scheduling.List` |

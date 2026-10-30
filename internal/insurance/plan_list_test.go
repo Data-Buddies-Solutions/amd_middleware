@@ -9,7 +9,8 @@ import (
 func TestListPlansSortsByLabelIgnoringCase(t *testing.T) {
 	plans := append(syntheticSouthFlorida(), plan{ID: "lowercase-plan", Label: "aetna basic", Family: "Aetna", Coverage: "medical", CarrierID: "car1", Doctors: bach("yes")})
 	useSyntheticCatalog(t, plans, springHillPlans(), nil)
-	got, ok := ListPlans("medical", office(t, "hollywood"))
+	listed, ok := ListPlans("medical", office(t, "hollywood"))
+	got := listed.Plans
 	if !ok {
 		t.Fatal("medical rejected")
 	}
@@ -34,7 +35,8 @@ func TestListPlansMatchesPlanDecisionsAtEveryOffice(t *testing.T) {
 		for _, officeID := range list.Offices {
 			o := office(t, officeID)
 			for _, coverage := range []string{"medical", "routine_vision"} {
-				summaries, ok := ListPlans(coverage, o)
+				listed, ok := ListPlans(coverage, o)
+				summaries := listed.Plans
 				if !ok {
 					t.Fatalf("%s %s rejected", officeID, coverage)
 				}
@@ -79,7 +81,8 @@ func TestListPlansMatchesPlanDecisionsAtEveryOffice(t *testing.T) {
 
 func findPlan(t *testing.T, officeID, planID string) PlanSummary {
 	t.Helper()
-	summaries, _ := ListPlans("medical", office(t, officeID))
+	listed, _ := ListPlans("medical", office(t, officeID))
+	summaries := listed.Plans
 	for _, s := range summaries {
 		if s.PlanID == planID {
 			return s
@@ -111,7 +114,8 @@ func TestListPlansNamesOfficesOnTheSameListInAnotherTable(t *testing.T) {
 }
 
 func TestListPlansIsEmptyWhenTheOfficeDoesNotOfferTheCoverage(t *testing.T) {
-	summaries, ok := ListPlans("medical", office(t, "north_miami_beach_optical"))
+	listed, ok := ListPlans("medical", office(t, "north_miami_beach_optical"))
+	summaries := listed.Plans
 	if !ok {
 		t.Fatal("medical rejected")
 	}
@@ -133,7 +137,8 @@ func TestListPlansRejectsUnknownCoverage(t *testing.T) {
 }
 
 func TestListPlansEncodesEveryFieldEvenWhenEmpty(t *testing.T) {
-	summaries, _ := ListPlans("medical", office(t, "hollywood"))
+	listed, _ := ListPlans("medical", office(t, "hollywood"))
+	summaries := listed.Plans
 	var fields map[string]any
 	b, _ := json.Marshal(summaries[0])
 	if err := json.Unmarshal(b, &fields); err != nil {

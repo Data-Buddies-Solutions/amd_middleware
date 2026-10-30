@@ -54,11 +54,7 @@ func (h *Handlers) HandleInsurancePlans(w http.ResponseWriter, r *http.Request) 
 		rejectInvalidRequest(w, r, errorResponse{Status: "error", Message: "Unknown coverage"})
 		return
 	}
-	respond(w, struct {
-		OfficeID string                  `json:"officeId"`
-		Coverage string                  `json:"coverage"`
-		Plans    []insurance.PlanSummary `json:"plans"`
-	}{office.ID, coverage, plans})
+	respond(w, plans)
 }
 
 type catalogVerdict struct {

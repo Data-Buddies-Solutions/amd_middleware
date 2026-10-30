@@ -12,6 +12,7 @@ import (
 
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/insurance"
+	"advancedmd-token-management/internal/insurance/insurancetest"
 )
 
 func TestInsuranceDecisionHTTPContract(t *testing.T) {
@@ -127,17 +128,15 @@ func TestInsurancePlansHTTPContract(t *testing.T) {
 		if w.Code != http.StatusOK || w.Header().Get("Content-Type") != "application/json" {
 			t.Fatalf("%s: status=%d body=%s", tc.key, w.Code, w.Body.String())
 		}
-		var got struct {
-			OfficeID string                  `json:"officeId"`
-			Coverage string                  `json:"coverage"`
-			Plans    []insurance.PlanSummary `json:"plans"`
-		}
-		if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+		var got insurance.PlanList
+		decoder := json.NewDecoder(w.Body)
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&got); err != nil {
 			t.Fatal(err)
 		}
 		office, _ := domain.LookupOfficeByID(tc.officeID)
 		want, _ := insurance.ListPlans(tc.coverage, office)
-		if got.OfficeID != tc.officeID || got.Coverage != tc.coverage || len(want) == 0 || !reflect.DeepEqual(got.Plans, want) {
+		if got.OfficeID != tc.officeID || got.Coverage != tc.coverage || got.CatalogRevisionID != insurancetest.RevisionID || len(want.Plans) == 0 || !reflect.DeepEqual(got, want) {
 			t.Fatalf("%s: response=%s", tc.key, w.Body.String())
 		}
 	}
@@ -145,7 +144,7 @@ func TestInsurancePlansHTTPContract(t *testing.T) {
 
 func TestInsurancePlansOfficeWithoutTheCoverageReturnsNoPlans(t *testing.T) {
 	w := getInsurancePlans(t, "office=north-miami-beach-optical&coverage=medical", "Bearer test-secret")
-	if w.Code != http.StatusOK || strings.TrimSpace(w.Body.String()) != `{"officeId":"north_miami_beach_optical","coverage":"medical","plans":[]}` {
+	if w.Code != http.StatusOK || strings.TrimSpace(w.Body.String()) != `{"officeId":"north_miami_beach_optical","coverage":"medical","catalogRevisionId":"fixture","plans":[]}` {
 		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
 	}
 }

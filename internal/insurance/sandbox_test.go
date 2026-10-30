@@ -9,8 +9,9 @@ import (
 )
 
 func TestSandboxSpringHillListsItsPlansWithoutOfficesMissingFromTheSandbox(t *testing.T) {
-	prodMedical, _ := ListPlans("medical", office(t, "spring_hill"))
-	prodVision, _ := ListPlans("routine_vision", office(t, "spring_hill"))
+	prodList, _ := ListPlans("medical", office(t, "spring_hill"))
+	prodVisionList, _ := ListPlans("routine_vision", office(t, "spring_hill"))
+	prodMedical, prodVision := prodList.Plans, prodVisionList.Plans
 	if len(prodMedical) == 0 || len(prodVision) == 0 {
 		t.Fatalf("production Spring Hill lists %d medical and %d routine vision plans, want both", len(prodMedical), len(prodVision))
 	}
@@ -29,7 +30,8 @@ func TestSandboxSpringHillListsItsPlansWithoutOfficesMissingFromTheSandbox(t *te
 	domain.InitRegistry(domain.Sandbox)
 	springHill := office(t, "spring_hill")
 
-	medical, ok := ListPlans("medical", springHill)
+	medicalList, ok := ListPlans("medical", springHill)
+	medical := medicalList.Plans
 	if !ok {
 		t.Fatal("sandbox Spring Hill rejected medical coverage")
 	}
@@ -37,7 +39,8 @@ func TestSandboxSpringHillListsItsPlansWithoutOfficesMissingFromTheSandbox(t *te
 		t.Fatalf("sandbox Spring Hill medical plans differ from production beyond Crystal River:\n got %+v\nwant %+v", medical, prodMedical)
 	}
 
-	vision, ok := ListPlans("routine_vision", springHill)
+	visionList, ok := ListPlans("routine_vision", springHill)
+	vision := visionList.Plans
 	if !ok || len(vision) != 0 {
 		t.Fatalf("sandbox Spring Hill routine vision = (%d plans, %v), want none because the sandbox has no optical provider", len(vision), ok)
 	}
@@ -69,11 +72,11 @@ func TestEveryCatalogOfficeIsServedOrDeclinedInEachEnvironment(t *testing.T) {
 					doctors[column.ShortName] = true
 				}
 				for _, coverage := range []string{"medical", "routine_vision"} {
-					summaries, ok := ListPlans(coverage, o)
+					listed, ok := ListPlans(coverage, o)
 					if !ok {
 						t.Fatalf("%s: %s rejected %s", env, officeID, coverage)
 					}
-					for _, s := range summaries {
+					for _, s := range listed.Plans {
 						for _, provider := range s.AllowedProviders {
 							if !doctors[provider] {
 								t.Errorf("%s: %s %s allows %s, who has no column there", env, officeID, s.PlanID, provider)
