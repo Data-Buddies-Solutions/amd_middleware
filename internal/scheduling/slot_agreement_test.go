@@ -38,13 +38,12 @@ type agreementColumn struct {
 	profileID  string
 	facilityID string
 	visit      string
-	patient    string
 }
 
 var agreementColumns = []agreementColumn{
-	{"Spring Hill", domain.RoutingBachOnly, "1513", "620", "1568", domain.AppointmentVisitMedical, domain.AppointmentPatientEstablished},
-	{"Crystal River", domain.RoutingAll, "1593", "2064", "1576", domain.AppointmentVisitMedical, domain.AppointmentPatientEstablished},
-	{"Sweetwater", domain.RoutingOpticalOnly, "1296", "1996", "670", domain.AppointmentVisitRoutineVision, domain.AppointmentPatientNew},
+	{"Spring Hill", domain.RoutingBachOnly, "1513", "620", "1568", domain.AppointmentVisitMedical},
+	{"Crystal River", domain.RoutingAll, "1593", "2064", "1576", domain.AppointmentVisitMedical},
+	{"Sweetwater", domain.RoutingOpticalOnly, "1296", "1996", "670", domain.AppointmentVisitRoutineVision},
 }
 
 type amdRows struct {
@@ -247,7 +246,7 @@ func (c agreementCase) check() ([]scheduling.AvailabilitySlotOption, error) {
 func (c agreementCase) book(scheduler scheduling.Scheduling, token string) (scheduling.BookReceipt, error) {
 	return scheduler.Book(context.Background(), scheduling.BookCommand{
 		PatientID: "12345", DOB: "01/15/1980", Office: c.target.office, BookingToken: token,
-		VisitCategory: c.target.visit, PatientStatus: c.target.patient,
+		VisitCategory:     c.target.visit,
 		AppointmentReason: "Eye follow-up", ReferringDoctor: "none",
 	})
 }

@@ -219,7 +219,7 @@ func slotContractAt(hour, minute int) time.Time {
 func slotContractBooking(office, token string) scheduling.BookCommand {
 	return scheduling.BookCommand{
 		PatientID: "12345", DOB: "01/15/1980", Office: office, BookingToken: token,
-		VisitCategory: domain.AppointmentVisitMedical, PatientStatus: domain.AppointmentPatientEstablished,
+		VisitCategory:     domain.AppointmentVisitMedical,
 		AppointmentReason: "Eye follow-up", ReferringDoctor: "none",
 	}
 }
