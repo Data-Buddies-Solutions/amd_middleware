@@ -53,7 +53,7 @@ type InsuranceDecision struct {
 }
 
 func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
-	return decideInsurance(listForOffice(office.ID), heard, coverage, office, dob, asOf)
+	return decideInsurance(active.Load().listForOffice(office.ID), heard, coverage, office, dob, asOf)
 }
 
 func decideInsurance(list planList, heard, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
@@ -81,7 +81,7 @@ func decideInsurance(list planList, heard, coverage string, office *domain.Offic
 }
 
 func DecidePlan(planID, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
-	return decidePlan(listForOffice(office.ID), planID, coverage, office, dob, asOf)
+	return decidePlan(active.Load().listForOffice(office.ID), planID, coverage, office, dob, asOf)
 }
 
 func decidePlan(list planList, planID, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
@@ -98,7 +98,7 @@ func decidePlan(list planList, planID, coverage string, office *domain.OfficeCon
 }
 
 func DecideSelfPay(coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
-	return decideSelfPay(listForOffice(office.ID), coverage, office, dob, asOf)
+	return decideSelfPay(active.Load().listForOffice(office.ID), coverage, office, dob, asOf)
 }
 
 func decideSelfPay(list planList, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {

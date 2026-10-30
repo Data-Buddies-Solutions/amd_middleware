@@ -30,7 +30,7 @@ func TestListPlansSortsByLabelIgnoringCase(t *testing.T) {
 }
 
 func TestListPlansMatchesPlanDecisionsAtEveryOffice(t *testing.T) {
-	for _, list := range catalog {
+	for _, list := range active.Load().lists {
 		for _, officeID := range list.Offices {
 			o := office(t, officeID)
 			for _, coverage := range []string{"medical", "routine_vision"} {

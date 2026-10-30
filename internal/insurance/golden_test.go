@@ -93,7 +93,7 @@ func planRows(t *testing.T) string {
 	var b strings.Builder
 	b.WriteString("office\tcoverage\tplanId\toutcome\tcarrierId\trequirements\tadultDoctors\tchildDoctors\treason\tcallerNotice\tanswer\n")
 	forEachOfficeCoverage(t, func(o *domain.OfficeConfig, coverage string) {
-		for _, p := range listForOffice(o.ID).Plans {
+		for _, p := range active.Load().listForOffice(o.ID).Plans {
 			if p.Coverage != coverage {
 				continue
 			}
@@ -145,9 +145,7 @@ func TestExportedCatalogRoundTripsAndDecidesLikeTheEmbeddedFiles(t *testing.T) {
 	if !bytes.Equal(again, exported) {
 		t.Fatal("export, parse, export is not byte-identical")
 	}
-	previous := catalog
-	catalog = lists
-	t.Cleanup(func() { catalog = previous })
+	installForTest(t, lists)
 	checkGolden(t, "testdata/phrasings.golden.tsv", phrasingRows(t))
 	checkGolden(t, "testdata/plans.golden.tsv", planRows(t))
 }

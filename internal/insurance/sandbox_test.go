@@ -48,14 +48,14 @@ func TestEveryCatalogOfficeIsServedOrDeclinedInEachEnvironment(t *testing.T) {
 	for _, env := range []domain.Environment{domain.Prod, domain.Sandbox} {
 		domain.InitRegistry(env)
 		served := map[string]bool{}
-		for _, list := range catalog {
+		for _, list := range active.Load().lists {
 			for _, officeID := range list.Offices {
 				if o, ok := domain.LookupOfficeByID(officeID); ok {
 					served[o.DisplayName] = true
 				}
 			}
 		}
-		for _, list := range catalog {
+		for _, list := range active.Load().lists {
 			for _, officeID := range list.Offices {
 				o, ok := domain.LookupOfficeByID(officeID)
 				if !ok {

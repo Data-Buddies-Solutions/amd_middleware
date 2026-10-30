@@ -26,6 +26,11 @@ var planColumns = []string{"id", "label", "family", "coverage", "carrier_code", 
 
 var tableColumns = []string{"requires", "only_offices", "notice", "note"}
 
+func init() {
+	source, lists := mustLoadCatalog()
+	active.Store(&revision{id: "embedded", catalog: source, lists: lists})
+}
+
 func mustLoadCatalog() (InsuranceCatalog, []planList) {
 	files := map[string][]byte{}
 	err := fs.WalkDir(dataFiles, "data", func(name string, entry fs.DirEntry, err error) error {

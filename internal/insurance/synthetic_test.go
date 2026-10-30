@@ -40,9 +40,14 @@ func useSyntheticCatalog(t *testing.T, southFlorida, springHill, crystalRiver []
 	if len(errs) > 0 {
 		t.Fatalf("%+v", errs)
 	}
-	previous := catalog
-	catalog = lists
-	t.Cleanup(func() { catalog = previous })
+	installForTest(t, lists)
+}
+
+func installForTest(t *testing.T, lists []planList) {
+	t.Helper()
+	previous := active.Load()
+	active.Store(&revision{id: "test", lists: lists})
+	t.Cleanup(func() { active.Store(previous) })
 }
 
 func syntheticFiles(t *testing.T, southFlorida, springHill, crystalRiver []plan) map[string][]byte {

@@ -59,7 +59,7 @@ type CatalogError struct {
 type CatalogRule string
 
 func RunningCatalog() InsuranceCatalog {
-	return runningCatalog
+	return active.Load().catalog
 }
 
 func ValidateCatalog(candidate InsuranceCatalog) []CatalogError {

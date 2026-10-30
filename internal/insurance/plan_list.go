@@ -30,11 +30,12 @@ func ListPlans(coverage string, office *domain.OfficeConfig) ([]PlanSummary, boo
 	if coverage != "medical" && coverage != "routine_vision" {
 		return nil, false
 	}
+	r := active.Load()
 	summaries := []PlanSummary{}
 	if !officeSupports(office, coverage) {
 		return summaries, true
 	}
-	list := listForOffice(office.ID)
+	list := r.listForOffice(office.ID)
 	for _, p := range list.Plans {
 		if p.Coverage != coverage {
 			continue
@@ -60,7 +61,7 @@ func ListPlans(coverage string, office *domain.OfficeConfig) ([]PlanSummary, boo
 			s.Requirements = append(s.Requirements, r.Kind)
 		}
 		if d.Participation != "accepted" {
-			s.AcceptedAt = acceptedElsewhere(p, list, office)
+			s.AcceptedAt = acceptedElsewhere(r, p, list, office)
 		}
 		summaries = append(summaries, s)
 	}
@@ -74,15 +75,15 @@ func compareLabels(a, b string) int {
 	return strings.Compare(strings.ToLower(a), strings.ToLower(b))
 }
 
-func acceptedElsewhere(p plan, list planList, office *domain.OfficeConfig) []string {
+func acceptedElsewhere(r *revision, p plan, list planList, office *domain.OfficeConfig) []string {
 	offices := []string{}
-	for _, other := range catalog {
+	for _, other := range r.lists {
 		if other.Region != list.Region {
 			continue
 		}
 		for _, id := range other.Offices {
 			o, available := domain.LookupOfficeByID(id)
-			if available && id != office.ID && DecidePlan(p.ID, p.Coverage, o, "", time.Time{}).Participation == "accepted" {
+			if available && id != office.ID && decidePlan(other, p.ID, p.Coverage, o, "", time.Time{}).Participation == "accepted" {
 				offices = append(offices, o.DisplayName)
 			}
 		}
