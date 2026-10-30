@@ -28,7 +28,6 @@ func NewRouter(handlers *Handlers, apiSecret string, maintenanceAuthorizer Maint
 
 		r.Post("/insurance/decision", handlers.HandleInsuranceDecision)
 		r.Get("/insurance/plans", handlers.HandleInsurancePlans)
-		r.Get("/insurance/catalog", handlers.HandleInsuranceCatalog)
 		r.Post("/insurance/catalog/validate", handlers.HandleValidateInsuranceCatalog)
 		r.Post("/patient/resolve", handlers.HandlePatientResolve)
 		r.Post("/add-patient", handlers.HandleAddPatient)

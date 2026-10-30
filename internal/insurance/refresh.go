@@ -41,7 +41,7 @@ func readRevision(ctx context.Context, read CatalogReader, current *revision) (*
 		first := errs[0]
 		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "revision %s breaks %d catalog rules, first %s at region=%q table=%q plan=%q: %s", id, len(errs), first.Rule, first.Region, first.Table, first.PlanID, first.Message)
 	}
-	return &revision{id: id, catalog: source, lists: lists}, nil
+	return &revision{id: id, lists: lists}, nil
 }
 
 func revisionID(r *revision) string {

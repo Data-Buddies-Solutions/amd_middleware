@@ -38,9 +38,8 @@ type planRequirement struct {
 }
 
 type revision struct {
-	id      string
-	catalog InsuranceCatalog
-	lists   []planList
+	id    string
+	lists []planList
 }
 
 var active atomic.Pointer[revision]

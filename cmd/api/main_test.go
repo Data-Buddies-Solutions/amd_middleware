@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -129,16 +128,19 @@ func TestStartupInstallsTheProductCatalogBeforeItIsReady(t *testing.T) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	request, _ := http.NewRequest(http.MethodGet, base+"/api/insurance/catalog", nil)
+	request, _ := http.NewRequest(http.MethodGet, base+"/api/insurance/plans?office=sweetwater&coverage=medical", nil)
 	request.Header.Set("Authorization", "Bearer test-secret")
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer response.Body.Close()
-	exported, _ := io.ReadAll(response.Body)
-	if response.StatusCode != http.StatusOK || strings.TrimSpace(string(exported)) != string(catalog) {
-		t.Fatalf("served catalog is not Product's revision: status=%d", response.StatusCode)
+	var plans struct {
+		CatalogRevisionID string `json:"catalogRevisionId"`
+		Plans             []any  `json:"plans"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&plans); err != nil || response.StatusCode != http.StatusOK || plans.CatalogRevisionID != "rev-a" || len(plans.Plans) == 0 {
+		t.Fatalf("plans are not decided from Product's revision: status=%d revision=%q plans=%d err=%v", response.StatusCode, plans.CatalogRevisionID, len(plans.Plans), err)
 	}
 	logs := output()
 	installed := strings.Index(logs, "insurance_catalog_installed revision=rev-a previous_revision=none")
