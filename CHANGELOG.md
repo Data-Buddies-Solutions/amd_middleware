@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.5.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.5.0...v8.5.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* **insurance:** remove the iCare medical plans; iCare administers plans and is not one ([#309](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/309)) ([f3bf319](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/f3bf3191c70c65f158f05f85b3a931f77b96882b))
+
 ## [8.5.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.4.3...v8.5.0) (2026-10-29)
 
 
