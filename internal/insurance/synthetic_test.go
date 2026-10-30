@@ -30,8 +30,8 @@ func syntheticSouthFlorida() []plan {
 
 func useSyntheticCatalog(t *testing.T, southFlorida, springHill, crystalRiver []plan) {
 	t.Helper()
-	lists, errs := readPlanLists(syntheticCatalog(t, southFlorida, springHill, crystalRiver))
-	if len(errs) > 0 {
+	lists, errs, drift := readPlanLists(syntheticCatalog(t, southFlorida, springHill, crystalRiver))
+	if errs = append(errs, drift...); len(errs) > 0 {
 		t.Fatalf("%+v", errs)
 	}
 	installForTest(t, lists)

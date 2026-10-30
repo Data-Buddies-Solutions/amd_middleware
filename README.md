@@ -287,6 +287,16 @@ with empty strings where a field does not apply. A body that is not an
   `office_without_table`, `unknown_doctor_column`, `missing_doctor_column`,
   `duplicate_doctor_column` (a table's doctor columns must be exactly the doctors of
   its offices), `unknown_plan`, `duplicate_row`, `plan_in_no_table`.
+
+  The validate route rejects a table whose doctor columns differ from the office
+  table in Go (`unknown_doctor_column` or `missing_doctor_column` on the table). A
+  refresh installs it anyway and logs `insurance_catalog_doctor_columns_differ`,
+  because a doctor change in Go and the matching column in Product ship in
+  different deploys. Until they match, a doctor with no column accepts no plan, and
+  a column for a doctor the office table doesn't have is never read. Because drift
+  alone does not stop the check, the validate route also reports any decision rule
+  the drifted catalog breaks, such as `no_accepted_self_pay` when the dropped doctor
+  was the only one taking self-pay. A refresh refuses those like any other error.
 - Plans: `invalid_plan_id`, `duplicate_plan`, `plan_id_reused`, `invalid_family`,
   `unknown_coverage`, `filler_only_name`, `repeated_name`, `name_conflict`,
   `unknown_carrier`, `carrier_code_conflict`, `invalid_doctor_value`,

@@ -134,8 +134,8 @@ func TestExportedCatalogRoundTripsAndDecidesLikeTheEmbeddedFiles(t *testing.T) {
 	if err := decodeStrictJSON(exported, &decoded); err != nil {
 		t.Fatal(err)
 	}
-	lists, errs := parseCatalog(decoded)
-	if len(errs) > 0 {
+	lists, errs, drift := parseCatalog(decoded)
+	if errs = append(errs, drift...); len(errs) > 0 {
 		t.Fatalf("exported catalog is invalid: %+v", errs)
 	}
 	again, err := json.Marshal(decoded)

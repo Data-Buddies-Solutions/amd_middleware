@@ -63,6 +63,6 @@ func RunningCatalog() InsuranceCatalog {
 }
 
 func ValidateCatalog(candidate InsuranceCatalog) []CatalogError {
-	_, errs := parseCatalog(candidate)
-	return errs
+	_, errs, drift := parseCatalog(candidate)
+	return append(errs, drift...)
 }
