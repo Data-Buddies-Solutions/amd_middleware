@@ -1,7 +1,9 @@
 package insurance
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"log"
 
 	"advancedmd-token-management/internal/safeerrors"
@@ -47,4 +49,10 @@ func revisionID(r *revision) string {
 		return "none"
 	}
 	return r.id
+}
+
+func decodeStrictJSON(b []byte, v any) error {
+	decoder := json.NewDecoder(bytes.NewReader(b))
+	decoder.DisallowUnknownFields()
+	return decoder.Decode(v)
 }

@@ -328,3 +328,26 @@ func (c *catalogCheck) tableNames(list planList) {
 		}
 	}
 }
+
+func indexNames(list *planList) {
+	list.vocabulary = map[string]map[string]bool{}
+	for i := range list.Plans {
+		p := &list.Plans[i]
+		if list.vocabulary[p.Coverage] == nil {
+			list.vocabulary[p.Coverage] = map[string]bool{}
+		}
+		for _, name := range planNames(*p) {
+			words := tokens(name)
+			p.nameTokens = append(p.nameTokens, words)
+			for _, word := range words {
+				list.vocabulary[p.Coverage][word] = true
+				if planTypes[word] {
+					if p.planTypes == nil {
+						p.planTypes = map[string]bool{}
+					}
+					p.planTypes[word] = true
+				}
+			}
+		}
+	}
+}

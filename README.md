@@ -212,7 +212,7 @@ A `cancelled` receipt identifies the exact appointment that was cancelled.
 
 ## Insurance plans
 
-Plan data lives in [internal/insurance/data](internal/insurance/data), one folder per
+Plan data lives in [internal/insurance/insurancetest/data](internal/insurance/insurancetest/data), one folder per
 source insurance list:
 
 - `south_florida/` follows the Abita Eye Group Insurance List (2026-07-07) for
@@ -580,7 +580,7 @@ their owners:
 - [Records seam](internal/advancedmd/advancedmd.go) and [adapter](internal/advancedmd/adapter.go): provider records, completeness, and write classification
 - [AdvancedMD transport](internal/clients/advancedmd_xmlrpc.go): the response decoder and `oneOrMany`
 - [Office table](internal/domain/office_table.go): offices, scheduler columns, routing lanes, appointment types, and each environment's AdvancedMD IDs
-- [Insurance decisions](internal/insurance/decision.go) and [plan lists](internal/insurance/data): participation, matching, and scheduling requirements
+- [Insurance decisions](internal/insurance/decision.go) and [plan lists](internal/insurance/insurancetest/data): participation, matching, and scheduling requirements
 - [Scheduling policy](internal/scheduling/policy.go) and [tokens](internal/scheduling/tokens.go): booking rules and signed promises
 - [Patient resolution](internal/patient/resolve.go): identity and appointment loading
 - [Deployment](scripts/deploy-cloud-run.sh): production configuration and maintenance identity

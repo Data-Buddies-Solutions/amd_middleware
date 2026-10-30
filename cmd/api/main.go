@@ -14,6 +14,7 @@ import (
 	"advancedmd-token-management/internal/config"
 	"advancedmd-token-management/internal/domain"
 	apphttp "advancedmd-token-management/internal/http"
+	"advancedmd-token-management/internal/insurance"
 	"advancedmd-token-management/internal/patient"
 	"advancedmd-token-management/internal/safeerrors"
 	"advancedmd-token-management/internal/safelog"
@@ -40,6 +41,11 @@ func main() {
 			MaxConnsPerHost:     75,
 			IdleConnTimeout:     90 * time.Second,
 		},
+	}
+
+	product := clients.NewProductClient(httpClient, cfg.AcuityProductURL, cfg.AcuityProductInsuranceToken)
+	if err := insurance.Refresh(context.Background(), product.ReadInsuranceCatalog); err != nil {
+		log.Fatalf("Failed to install the insurance catalog from Product category=%s", safeerrors.Classify(err))
 	}
 
 	amdSession := session.NewSession(session.Credentials{
