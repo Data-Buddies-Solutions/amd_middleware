@@ -18,6 +18,8 @@ func setEnvVars(t *testing.T) func() {
 		"MAINTENANCE_OIDC_AUDIENCE":        "https://middleware.example.test",
 		"MAINTENANCE_OIDC_SERVICE_ACCOUNT": "middleware-maintenance@example.iam.gserviceaccount.com",
 		"AMD_ENV":                          "prod",
+		"ACUITY_PRODUCT_URL":               "https://product.example.test",
+		"ACUITY_PRODUCT_INSURANCE_TOKEN":   "product-insurance-token",
 	}
 
 	for k, v := range vars {
@@ -118,6 +120,8 @@ func TestLoad_MissingRequiredFields(t *testing.T) {
 		{"missing maintenance OIDC audience", "MAINTENANCE_OIDC_AUDIENCE"},
 		{"missing maintenance OIDC service account", "MAINTENANCE_OIDC_SERVICE_ACCOUNT"},
 		{"missing AdvancedMD environment", "AMD_ENV"},
+		{"missing Product URL", "ACUITY_PRODUCT_URL"},
+		{"missing Product insurance token", "ACUITY_PRODUCT_INSURANCE_TOKEN"},
 	}
 
 	for _, tt := range requiredVars {
@@ -171,6 +175,45 @@ func TestLoad_RejectsInvalidMaintenanceOIDCConfig(t *testing.T) {
 
 			if _, err := Load(); err == nil {
 				t.Fatal("Load() error = nil, want invalid configuration error")
+			}
+		})
+	}
+}
+
+func TestLoad_ReadsTheProductInsuranceSource(t *testing.T) {
+	for _, value := range []string{"https://product.example.test", "http://127.0.0.1:8090", "http://localhost:8090", "http://[::1]:8090"} {
+		t.Run(value, func(t *testing.T) {
+			cleanup := setEnvVars(t)
+			defer cleanup()
+			os.Setenv("ACUITY_PRODUCT_URL", value)
+
+			cfg, err := Load()
+			if err != nil {
+				t.Fatalf("Load() error = %v", err)
+			}
+			if cfg.AcuityProductURL != value || cfg.AcuityProductInsuranceToken != "product-insurance-token" {
+				t.Fatalf("Product source = %q %q", cfg.AcuityProductURL, cfg.AcuityProductInsuranceToken)
+			}
+		})
+	}
+}
+
+func TestLoad_RejectsAProductURLThatIsNotABaseURL(t *testing.T) {
+	for _, value := range []string{
+		"http://product.example.test",
+		"https://product.example.test/",
+		"https://product.example.test/v1/agent/insurance/read",
+		"https://product.example.test?x=1",
+		"https://user@product.example.test",
+		"product.example.test",
+	} {
+		t.Run(value, func(t *testing.T) {
+			cleanup := setEnvVars(t)
+			defer cleanup()
+			os.Setenv("ACUITY_PRODUCT_URL", value)
+
+			if _, err := Load(); err == nil {
+				t.Fatal("Load() error = nil, want invalid ACUITY_PRODUCT_URL")
 			}
 		})
 	}

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"strings"
@@ -20,6 +21,9 @@ type Config struct {
 	MaintenanceOIDCAudience       string
 	MaintenanceOIDCServiceAccount string
 
+	AcuityProductURL            string
+	AcuityProductInsuranceToken string
+
 	Port string
 
 	AMDEnv domain.Environment
@@ -35,6 +39,8 @@ func Load() (*Config, error) {
 		BookingTokenSecret:            os.Getenv("BOOKING_TOKEN_SECRET"),
 		MaintenanceOIDCAudience:       os.Getenv("MAINTENANCE_OIDC_AUDIENCE"),
 		MaintenanceOIDCServiceAccount: os.Getenv("MAINTENANCE_OIDC_SERVICE_ACCOUNT"),
+		AcuityProductURL:              os.Getenv("ACUITY_PRODUCT_URL"),
+		AcuityProductInsuranceToken:   os.Getenv("ACUITY_PRODUCT_INSURANCE_TOKEN"),
 		Port:                          os.Getenv("PORT"),
 	}
 
@@ -68,6 +74,12 @@ func Load() (*Config, error) {
 	if !isServiceAccountEmail(cfg.MaintenanceOIDCServiceAccount) {
 		return nil, fmt.Errorf("MAINTENANCE_OIDC_SERVICE_ACCOUNT must be a service account email")
 	}
+	if err := validateProductURL(cfg.AcuityProductURL); err != nil {
+		return nil, err
+	}
+	if cfg.AcuityProductInsuranceToken == "" {
+		return nil, fmt.Errorf("ACUITY_PRODUCT_INSURANCE_TOKEN is required")
+	}
 	if cfg.BookingTokenSecret == "" {
 		cfg.BookingTokenSecret = cfg.APISecret
 	}
@@ -87,6 +99,25 @@ func validateMaintenanceAudience(value string) error {
 		return fmt.Errorf("MAINTENANCE_OIDC_AUDIENCE must be an HTTPS service base URL")
 	}
 	return nil
+}
+
+func validateProductURL(value string) error {
+	parsed, err := url.Parse(value)
+	if err != nil ||
+		!(parsed.Scheme == "https" || (parsed.Scheme == "http" && isLoopback(parsed.Hostname()))) ||
+		parsed.Host == "" ||
+		parsed.User != nil ||
+		parsed.Path != "" ||
+		parsed.RawQuery != "" ||
+		parsed.Fragment != "" {
+		return fmt.Errorf("ACUITY_PRODUCT_URL must be an HTTPS base URL, or an HTTP base URL on this host")
+	}
+	return nil
+}
+
+func isLoopback(host string) bool {
+	ip := net.ParseIP(host)
+	return host == "localhost" || (ip != nil && ip.IsLoopback())
 }
 
 func isServiceAccountEmail(value string) bool {
