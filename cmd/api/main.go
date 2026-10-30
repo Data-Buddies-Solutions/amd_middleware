@@ -22,6 +22,11 @@ import (
 	"advancedmd-token-management/internal/session"
 )
 
+const (
+	insuranceStartupWindow = 18 * time.Second
+	insuranceStartupPause  = 2 * time.Second
+)
+
 func main() {
 	log.SetFlags(0)
 	log.SetOutput(safelog.NewWriter(os.Stdout))
@@ -44,7 +49,10 @@ func main() {
 	}
 
 	product := clients.NewProductClient(httpClient, cfg.AcuityProductURL, cfg.AcuityProductInsuranceToken)
-	if err := insurance.Refresh(context.Background(), product.ReadInsuranceCatalog); err != nil {
+	startupCtx, cancelStartup := context.WithTimeout(context.Background(), insuranceStartupWindow)
+	err = installInsuranceCatalog(startupCtx, product.ReadInsuranceCatalog, insuranceStartupPause)
+	cancelStartup()
+	if err != nil {
 		log.Fatalf("Failed to install the insurance catalog from Product category=%s", safeerrors.Classify(err))
 	}
 
@@ -104,4 +112,18 @@ func main() {
 	}
 
 	log.Println("Server exited")
+}
+
+func installInsuranceCatalog(ctx context.Context, read insurance.CatalogReader, pause time.Duration) error {
+	for {
+		err := insurance.Refresh(ctx, read)
+		if err == nil {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(pause):
+		}
+	}
 }

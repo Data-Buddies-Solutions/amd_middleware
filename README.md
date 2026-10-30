@@ -224,8 +224,11 @@ on `ACUITY_PRODUCT_URL`, sending the middleware's own Product service token
 (`ACUITY_PRODUCT_INSURANCE_TOKEN`, which holds only `READ_INSURANCE`). The one
 catalog parser validates the revision, and the process opens its port only after
 the revision is installed. If Product is unreachable or the revision is invalid,
-the process logs `insurance_catalog_refresh_failed` and exits non-zero. It never
-falls back to plan files.
+the process logs `insurance_catalog_refresh_failed` and tries again every 2
+seconds for 18 seconds. That stays inside Cloud Run's default startup probe
+(`/live` every 10 seconds, 3 failures), which stops the instance about 20 seconds
+in. If no revision installs in that time, the process exits non-zero, so a deploy
+fails before traffic moves. It never falls back to plan files.
 
 Cloud Scheduler posts `POST /ops/insurance/refresh` every minute. A refresh reads
 Product again. When the revision ID is unchanged, it does nothing. When the ID
@@ -241,8 +244,9 @@ the new one. `GET /api/insurance/plans` returns that revision as
 `catalogRevisionId`.
 
 The installed revision is the last good copy, and it lives only in memory. A
-restart while Product is down leaves the new instance unable to start, so the
-service is not ready until Product answers. That is an accepted risk.
+restart while Product is down for longer than the 18 second startup retry leaves
+the new instance unable to start, so the service is not ready until Product
+answers. That is an accepted risk.
 
 The catalog's JSON shape follows the plan files it was first exported from.
 Those files now live in
