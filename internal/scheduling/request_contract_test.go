@@ -90,7 +90,6 @@ func TestBookAllowsOmittedIntentWithExplicitOrPreservedType(t *testing.T) {
 		t.Run(mode, func(t *testing.T) {
 			records, command, _ := rescheduleFixture(t)
 			command.VisitCategory = ""
-			command.PatientStatus = ""
 			if mode == "explicit" {
 				command.RescheduleToken = ""
 			} else {
