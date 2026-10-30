@@ -514,6 +514,55 @@ func patientVisitAdapter(server *httptest.Server, now time.Time) *Adapter {
 	)
 }
 
+func TestAdapterHasCompletedVisitOnlyForCompletedStatus(t *testing.T) {
+	for _, c := range []struct {
+		name   string
+		visits string
+		want   bool
+	}{
+		{"no visits", "null", false},
+		{"no-show and cancelled", `[
+			{"@id": "1", "@visitstartdatetime": "2026-08-11T10:15:00", "@apptstatus": "12"},
+			{"@id": "2", "@visitstartdatetime": "2026-11-06T09:45:00", "@apptstatus": "10"}
+		]`, false},
+		{"legacy beacon status", `[{"@id": "1", "@visitstartdatetime": "2023-03-06T17:00:00", "@apptstatus": "1"}]`, false},
+		{"scheduled only", `[{"@id": "1", "@visitstartdatetime": "2026-11-19T11:30:00", "@apptstatus": "0"}]`, false},
+		{"completed after a no-show", `[
+			{"@id": "1", "@visitstartdatetime": "2026-07-20T14:30:00", "@apptstatus": "12"},
+			{"@id": "2", "@visitstartdatetime": "2026-08-19T10:45:00", "@apptstatus": "3"}
+		]`, true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var request map[string]any
+			server := patientVisitServer(t, c.visits, &request, func(http.ResponseWriter, *http.Request) {
+				t.Fatal("completed-visit check read a schedule day")
+			})
+			defer server.Close()
+			got, err := patientVisitAdapter(server, time.Date(2026, time.October, 30, 12, 0, 0, 0, time.UTC)).
+				HasCompletedVisit(context.Background(), "123")
+			if err != nil || got != c.want {
+				t.Fatalf("HasCompletedVisit = %t, %v; want %t", got, err, c.want)
+			}
+			message := request["ppmdmsg"].(map[string]any)
+			if message["@action"] != "getpatientvisits" || message["@patientid"] != "123" {
+				t.Fatalf("ppmdmsg = %#v", message)
+			}
+		})
+	}
+}
+
+func TestAdapterHasCompletedVisitFailsOnUnreadableHistory(t *testing.T) {
+	server := patientVisitServer(t,
+		`[{"@id": "1", "@visitstartdatetime": "2026-08-11T10:15:00", "@apptstatus": ""}]`, nil,
+		func(http.ResponseWriter, *http.Request) { t.Fatal("completed-visit check read a schedule day") })
+	defer server.Close()
+	got, err := patientVisitAdapter(server, time.Date(2026, time.October, 30, 12, 0, 0, 0, time.UTC)).
+		HasCompletedVisit(context.Background(), "123")
+	if err == nil || got {
+		t.Fatalf("HasCompletedVisit = %t, %v; want an error", got, err)
+	}
+}
+
 func TestAdapterCanonicalizesSandboxAppointmentTypeIDs(t *testing.T) {
 	domain.InitRegistry(domain.Sandbox)
 	t.Cleanup(func() { domain.InitRegistry(domain.Prod) })
