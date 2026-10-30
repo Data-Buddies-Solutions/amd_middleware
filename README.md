@@ -219,13 +219,18 @@ The insurance list is an `InsuranceCatalog`
 as revisions in Acuity Product. The middleware owns the catalog's rules. It parses
 and validates every revision and makes every decision from one installed revision.
 
+Staff edit plans in the Portal. A publish becomes a Product revision only after
+`POST /api/insurance/catalog/validate` accepts it, and the middleware loads the
+active revision at startup and on `POST /ops/insurance/refresh`. This repository
+holds no plan files to edit, and the production binary contains no plans.
+
 At startup, `main` reads the active revision with `POST /v1/agent/insurance/read`
 on `ACUITY_PRODUCT_URL`, sending the middleware's own Product service token
 (`ACUITY_PRODUCT_INSURANCE_TOKEN`, which holds only `READ_INSURANCE`). The one
 catalog parser validates the revision, and the process opens its port only after
 the revision is installed. If Product is unreachable or the revision is invalid,
-the process logs `insurance_catalog_refresh_failed` and exits non-zero. It never
-falls back to plan files.
+the process logs `insurance_catalog_refresh_failed` and exits non-zero. It has no
+fallback catalog.
 
 Cloud Scheduler posts `POST /ops/insurance/refresh` every minute. A refresh reads
 Product again. When the revision ID is unchanged, it does nothing. When the ID
@@ -244,35 +249,26 @@ The installed revision is the last good copy, and it lives only in memory. A
 restart while Product is down leaves the new instance unable to start, so the
 service is not ready until Product answers. That is an accepted risk.
 
-The catalog's JSON shape follows the plan files it was first exported from.
-Those files now live in
-[internal/insurance/insurancetest/data](internal/insurance/insurancetest/data),
-a fixture that only tests read. The production binary does not contain them.
-There is one folder per source insurance list:
+An `InsuranceCatalog` lists the AdvancedMD `carriers` and one entry per region. A
+region's `plans` define each plan once: a stable `id`, a caller-facing `label`, the
+`family` a caller would name the insurer by (`Aetna`, `Florida Blue`, `Self Pay`), a
+`coverage` (`medical` or `routine_vision`), its AdvancedMD `carrierCode` and
+`carrierId`, `selfPay`, and the `aliases` a caller might say. A region's `tables`
+mirror the office sheets. Each table names its `offices` and its `doctors`, and has
+one row per plan the sheet includes, with a `yes`, `no` or `pending` value per doctor,
+then `requires` (a `kind` with an optional `channel`), `onlyOffices`, the caller
+`notice`, and the sheet's `note`. Every empty list is `[]`. Decoding is strict, so an
+unknown field is rejected.
 
-- `south_florida/` follows the Abita Eye Group Insurance List (2026-07-07) for
-  Hollywood, Sweetwater and North Miami Beach Optical.
-- `spring_hill_crystal_river/` follows the Abita Eye Group medical reference
-  (2026-07-07, AMD directory verified 2026-09-17) and the Spring Hill routine vision list.
-
-Each folder has a `plans.csv` that defines every plan once: a stable `id`, a
-caller-facing `label`, the `family` a caller would name the insurer by (`Aetna`,
-`Florida Blue`, `Self Pay`), a `coverage` (`medical` or `routine_vision`), its AdvancedMD
-carrier, `self_pay`, and the `aliases` a caller might say, separated by `|`. Each
-office table (`doctors.csv`, `spring_hill.csv`, `crystal_river.csv`) mirrors the
-sheet: one row per plan the office's list includes and one `yes|no|pending` column per
-doctor, then `requires` (`kind` or `kind:channel`, separated by `;`), `only_offices`,
-the caller `notice`, and the sheet's `note`. `office_tables.json` says which offices
-use which table, and `carriers.json` names the AdvancedMD carriers.
-
-The fixture maps the files to one `InsuranceCatalog`. `carriers` is sorted by
-`id`; each region is a data folder with its `plans` in file order (`aliases` split
-on `|`, `self_pay` as the boolean `selfPay`) and one table per office table CSV
-(`id` is the file stem, `offices` from `office_tables.json`, `doctors` the doctor
-columns in order). Each row omits doctors whose cell is empty and splits `requires`
-and `onlyOffices` on `;`. Every empty list is `[]`. Exporting, parsing, and
-exporting again is byte-identical. Decoding is strict: an unknown field is
-rejected.
+Tests decide from one frozen fixture,
+[internal/insurance/testdata/catalog.json](internal/insurance/testdata/catalog.json),
+the catalog Product seeded as revision 1. Its `south_florida` region follows the
+Abita Eye Group Insurance List (2026-07-07) for Hollywood, Sweetwater and North Miami
+Beach Optical. Its `spring_hill_crystal_river` region follows the Abita Eye Group
+medical reference (2026-07-07, AMD directory verified 2026-09-17) and the Spring Hill
+routine vision list. `insurancetest.Install` installs the fixture as revision
+`fixture` through the same parser a refresh uses. Change the fixture only to test a
+rule. A plan change callers should hear is a Portal publish.
 
 `POST /api/insurance/catalog/validate` is the only judge of a candidate: it parses
 it the way a refresh does and returns every error as `{region, table, planId, rule, message}`,
@@ -301,12 +297,11 @@ with empty strings where a field does not apply. A body that is not an
   The three decision rules run only when every other rule passes and judge
   production's offices, so the verdict is the same in `prod` and `sandbox`.
 
-Two generated files in `internal/insurance/testdata` pin behavior on the fixture:
-`plans.golden.tsv` has each plan's outcome, carrier, requirements and allowed doctors
-(adult and child) at every office, and `phrasings.golden.tsv` has the decision for
-common caller phrasings. Both also reproduce from the exported catalog. After a
-fixture or rule change, run `go test ./internal/insurance -run Golden -update` and
-review the diff.
+Two generated files in `internal/insurance/testdata` pin decisions over the frozen
+fixture: `plans.golden.tsv` has each plan's outcome, carrier, requirements and allowed
+doctors (adult and child) at every office, and `phrasings.golden.tsv` has the decision
+for common caller phrasings. After a fixture or rule change, run
+`go test ./internal/insurance -run Golden -update` and review the diff.
 
 The office registry decides which doctors can take a visit: medical uses the office's
 `all_three` tier, routine vision its optical tier, and the pediatric rule applies. The
@@ -630,7 +625,7 @@ their owners:
 - [Records seam](internal/advancedmd/advancedmd.go) and [adapter](internal/advancedmd/adapter.go): provider records, completeness, and write classification
 - [AdvancedMD transport](internal/clients/advancedmd_xmlrpc.go): the response decoder and `oneOrMany`
 - [Office table](internal/domain/office_table.go): offices, scheduler columns, routing lanes, appointment types, and each environment's AdvancedMD IDs
-- [Insurance decisions](internal/insurance/decision.go) and [plan lists](internal/insurance/insurancetest/data): participation, matching, and scheduling requirements
+- [Insurance decisions](internal/insurance/decision.go) and the [catalog shape](internal/insurance/catalog.go): participation, matching, and scheduling requirements
 - [Scheduling policy](internal/scheduling/policy.go) and [tokens](internal/scheduling/tokens.go): booking rules and signed promises
 - [Patient resolution](internal/patient/resolve.go): identity and appointment loading
 - [Deployment](scripts/deploy-cloud-run.sh): production configuration and maintenance identity
