@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.6.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.5.1...v8.6.0) (2026-10-30)
+
+
+### Features
+
+* **insurance:** export the insurance catalog and validate a candidate over HTTP ([#311](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/311)) ([ef474f7](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/ef474f70c6b2b50e6e26befd45a3211d9e7cd280))
+
 ## [8.5.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.5.0...v8.5.1) (2026-10-30)
 
 
