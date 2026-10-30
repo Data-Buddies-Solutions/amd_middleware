@@ -1,6 +1,8 @@
 package insurancetest
 
 import (
+	"bytes"
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -82,5 +84,19 @@ func TestReadCatalogFilesMapsEachFileToTheCatalog(t *testing.T) {
 func TestFixtureFilesAreAValidCatalog(t *testing.T) {
 	if errs := insurance.ValidateCatalog(Catalog()); len(errs) > 0 {
 		t.Fatalf("fixture files break %d catalog rules: %+v", len(errs), errs)
+	}
+}
+
+func TestFrozenFixtureIsTheCatalogTheFilesDescribe(t *testing.T) {
+	frozen, err := os.ReadFile("../testdata/catalog.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fromFiles, err := json.Marshal(Catalog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(frozen, append(fromFiles, '\n')) {
+		t.Fatal("testdata/catalog.json differs from the catalog the data files describe")
 	}
 }
