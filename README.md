@@ -563,12 +563,8 @@ identity returns `unresolved` rather than activating a patient.
 
 A verified result includes `insuranceNote`, the staff note on the active primary
 plan (AdvancedMD `insnote`). Staff often name the specific plan there when the
-carrier is shared, such as a TPA. Digit runs of four or more are masked and the
-note is capped at 300 characters. `insuranceNotePlanIds` holds, per coverage, the
-one plan on the chart's carrier that the masked note names: a label or alias of
-two or more words appearing in order within one sentence or clause. A name made
-only of the carrier's own words never counts. When the note names two plans for a
-coverage, it names none, unless the shorter name sits inside the longer one.
+carrier is shared, such as a TPA. The voice agent reasons over it; digit runs of
+four or more are masked and the note is capped at 300 characters.
 
 The AdvancedMD seam retrieves `lookuppatient` with `@name: ",FirstName"` and
 traverses provider pagination, validating page/count evidence. The Patient module
