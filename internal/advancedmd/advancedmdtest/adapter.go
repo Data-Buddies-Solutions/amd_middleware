@@ -55,6 +55,9 @@ type Adapter struct {
 	DemographicErrorSequence map[string][]error
 	DemographicsStarted      chan<- struct{}
 	DemographicsRelease      <-chan struct{}
+	CompletedVisits          map[string]bool
+	CompletedVisitErrors     map[string]error
+	CompletedVisitCalls      int
 	AppointmentResults       map[string]AppointmentResult
 	AppointmentsStarted      chan<- struct{}
 	AppointmentsRelease      <-chan struct{}
@@ -99,6 +102,8 @@ func NewAdapter() *Adapter {
 		Demographics:             make(map[string]domain.PatientDemographics),
 		DemographicErrors:        make(map[string]error),
 		DemographicErrorSequence: make(map[string][]error),
+		CompletedVisits:          make(map[string]bool),
+		CompletedVisitErrors:     make(map[string]error),
 		AppointmentResults:       make(map[string]AppointmentResult),
 		AppointmentStateResults:  make(map[int]AppointmentStateResult),
 		Schedule:                 make(map[string]map[string]ColumnRows),
@@ -156,6 +161,14 @@ func (a *Adapter) GetPatientDemographics(ctx context.Context, patientID string) 
 		return domain.PatientDemographics{}, err
 	}
 	return a.Demographics[patientID], nil
+}
+
+func (a *Adapter) HasCompletedVisit(_ context.Context, patientID string) (bool, error) {
+	a.CompletedVisitCalls++
+	if err := a.CompletedVisitErrors[patientID]; err != nil {
+		return false, err
+	}
+	return a.CompletedVisits[patientID], nil
 }
 
 func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.PatientAppointmentsQuery) (advancedmd.AppointmentRead, error) {
