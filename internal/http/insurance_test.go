@@ -16,7 +16,7 @@ import (
 )
 
 func TestInsuranceDecisionHTTPContract(t *testing.T) {
-	handlers := NewHandlers(nil, nil, nil, testNow)
+	handlers := NewHandlers(nil, nil, nil, nil, testNow)
 	office, _ := domain.ResolveOffice("Hollywood")
 	for _, plan := range []string{"Self Pay", "Aetna", "unknown words"} {
 		w := httptest.NewRecorder()
@@ -43,7 +43,7 @@ func TestInsuranceDecisionHTTPContract(t *testing.T) {
 }
 
 func TestInsuranceDecisionSelfPayReturnsTheOfficeSelfPayPlan(t *testing.T) {
-	handlers := NewHandlers(nil, nil, nil, testNow)
+	handlers := NewHandlers(nil, nil, nil, nil, testNow)
 	for _, tc := range []struct{ office, officeID, coverage, planID string }{
 		{"Hollywood", "hollywood", "medical", "self-pay-medical"},
 		{"Hollywood", "hollywood", "routine_vision", "self-pay-routine-vision"},
@@ -84,7 +84,7 @@ func TestInsuranceRoutesRejectInvalidInputWithTheSharedErrorContract(t *testing.
 			previousWriter := log.Writer()
 			log.SetOutput(&logs)
 			t.Cleanup(func() { log.SetOutput(previousWriter) })
-			router := NewRouter(NewHandlers(nil, nil, nil, testNow), "test-secret", nil)
+			router := NewRouter(NewHandlers(nil, nil, nil, nil, testNow), "test-secret", nil)
 			req := httptest.NewRequest(tc.method, tc.target, strings.NewReader(tc.body))
 			req.Header.Set("Authorization", "Bearer test-secret")
 			w := httptest.NewRecorder()
@@ -108,7 +108,7 @@ func TestInsuranceRoutesRejectInvalidInputWithTheSharedErrorContract(t *testing.
 
 func getInsurancePlans(t *testing.T, query, auth string) *httptest.ResponseRecorder {
 	t.Helper()
-	router := NewRouter(NewHandlers(nil, nil, nil, testNow), "test-secret", nil)
+	router := NewRouter(NewHandlers(nil, nil, nil, nil, testNow), "test-secret", nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/insurance/plans?"+query, nil)
 	if auth != "" {
 		req.Header.Set("Authorization", auth)

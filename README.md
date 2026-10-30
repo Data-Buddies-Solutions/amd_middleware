@@ -442,10 +442,11 @@ Operational routes have separate contracts:
 | `GET /ready` | Local initialization readiness; no provider call; a 200 writes no request log line |
 | `GET /metrics` | PHI-free patient mutation counters |
 | `POST /ops/session/maintenance` | Google-signed OIDC identity; never `API_SECRET` |
+| `POST /ops/insurance/refresh` | The same OIDC identity; re-reads Product's insurance revision and installs it only when its ID changed and it validates; `204`, or a redacted `503` that keeps the current catalog |
 
 Agent-readable business failures intentionally remain JSON tool results, often
 with HTTP 200 and `status: "error"`. Transport authentication failures use
-HTTP 401, and maintenance failures use a redacted HTTP 503.
+HTTP 401, and maintenance and insurance refresh failures use a redacted HTTP 503.
 [Provider error diagnostics](internal/clients/diagnostics.go) preserve request correlation,
 provider operation/status/code, and recovered failures without exposing payloads.
 

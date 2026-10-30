@@ -24,7 +24,7 @@ type catalogResponse struct {
 
 func serveCatalogRoute(t *testing.T, method, target string, body []byte, auth string) *httptest.ResponseRecorder {
 	t.Helper()
-	router := NewRouter(NewHandlers(nil, nil, nil, testNow), "test-secret", nil)
+	router := NewRouter(NewHandlers(nil, nil, nil, nil, testNow), "test-secret", nil)
 	req := httptest.NewRequest(method, target, bytes.NewReader(body))
 	if auth != "" {
 		req.Header.Set("Authorization", auth)

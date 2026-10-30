@@ -68,7 +68,7 @@ func main() {
 		time.Now,
 	)
 
-	handlers := apphttp.NewHandlers(amdSession, patients, scheduler, time.Now)
+	handlers := apphttp.NewHandlers(amdSession, patients, scheduler, product.ReadInsuranceCatalog, time.Now)
 
 	maintenanceAuthorizer := apphttp.NewMaintenanceAuthorizer(
 		cfg.MaintenanceOIDCAudience,
