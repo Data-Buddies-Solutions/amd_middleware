@@ -1036,6 +1036,31 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 	}
 }
 
+func TestResolveNamesThePlanTheStaffNoteNames(t *testing.T) {
+	office, ok := domain.LookupOffice("Spring Hill")
+	if !ok {
+		t.Fatal("Spring Hill office is not configured")
+	}
+	search := domain.PatientSearch{Phone: "9542872010"}
+	amd := advancedmdtest.NewAdapter()
+	amd.PatientSearches[search] = []domain.Patient{{ID: "123", FullName: "DOE,JANE", DOB: "01/15/1980", Phone: "850-373-3869"}}
+	amd.Demographics["123"] = domain.PatientDemographics{InsuranceStateKnown: true,
+		CarrierName:   "ICARE HEALTH OPTIONS TPA",
+		CarrierID:     "car40907",
+		InsuranceNote: "Simply Medicaid Vision:Icare",
+		DOB:           "01/15/1980",
+	}
+	amd.AppointmentResults["123"] = advancedmdtest.AppointmentResult{Read: advancedmd.AppointmentRead{Complete: true}}
+
+	got, err := patient.New(amd, testAppointmentTokens, testNow).Resolve(context.Background(), patient.ResolveQuery{Phone: "9542872010", OfficeID: office.ID})
+	if err != nil {
+		t.Fatalf("Resolve() error = %v", err)
+	}
+	if want := []string{"simply-medicaid", "simply-medicaid-vision"}; !slices.Equal(got.InsuranceNotePlanIDs, want) {
+		t.Fatalf("InsuranceNotePlanIDs = %v, want %v", got.InsuranceNotePlanIDs, want)
+	}
+}
+
 func assertResolveResult(t *testing.T, got, want patient.ResolveResult) {
 	t.Helper()
 	if got.Status != want.Status ||

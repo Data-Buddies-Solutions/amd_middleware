@@ -97,28 +97,29 @@ type Candidate struct {
 }
 
 type ResolveResult struct {
-	InsuranceDecision   *insurance.InsuranceDecision `json:"insuranceDecision,omitempty"`
-	Reason              string                       `json:"reason,omitempty"`
-	Status              Status                       `json:"status"`
-	ProviderFailure     safeerrors.Category          `json:"-"`
-	PatientID           string                       `json:"patientId,omitempty"`
-	Name                string                       `json:"name,omitempty"`
-	DOB                 string                       `json:"dob,omitempty"`
-	Phone               string                       `json:"phone,omitempty"`
-	InsuranceCarrier    string                       `json:"insuranceCarrier,omitempty"`
-	InsuranceCarrierID  string                       `json:"insuranceCarrierId,omitempty"`
-	InsuranceNote       string                       `json:"insuranceNote,omitempty"`
-	InsPlanID           string                       `json:"insPlanId,omitempty"`
-	RespPartyID         string                       `json:"respPartyId,omitempty"`
-	AllowedProviders    []string                     `json:"allowedProviders,omitempty"`
-	RoutingAmbiguous    bool                         `json:"routingAmbiguous,omitempty"`
-	PreauthRequired     bool                         `json:"preauthRequired,omitempty"`
-	AppointmentsStatus  AppointmentsStatus           `json:"appointmentsStatus,omitempty"`
-	Appointments        []Appointment                `json:"appointments"`
-	AppointmentsMessage string                       `json:"appointmentsMessage,omitempty"`
-	Message             string                       `json:"message,omitempty"`
-	Matches             []Candidate                  `json:"matches"`
-	Observation         ResolutionObservation        `json:"-"`
+	InsuranceDecision    *insurance.InsuranceDecision `json:"insuranceDecision,omitempty"`
+	Reason               string                       `json:"reason,omitempty"`
+	Status               Status                       `json:"status"`
+	ProviderFailure      safeerrors.Category          `json:"-"`
+	PatientID            string                       `json:"patientId,omitempty"`
+	Name                 string                       `json:"name,omitempty"`
+	DOB                  string                       `json:"dob,omitempty"`
+	Phone                string                       `json:"phone,omitempty"`
+	InsuranceCarrier     string                       `json:"insuranceCarrier,omitempty"`
+	InsuranceCarrierID   string                       `json:"insuranceCarrierId,omitempty"`
+	InsuranceNote        string                       `json:"insuranceNote,omitempty"`
+	InsuranceNotePlanIDs []string                     `json:"insuranceNotePlanIds,omitempty"`
+	InsPlanID            string                       `json:"insPlanId,omitempty"`
+	RespPartyID          string                       `json:"respPartyId,omitempty"`
+	AllowedProviders     []string                     `json:"allowedProviders,omitempty"`
+	RoutingAmbiguous     bool                         `json:"routingAmbiguous,omitempty"`
+	PreauthRequired      bool                         `json:"preauthRequired,omitempty"`
+	AppointmentsStatus   AppointmentsStatus           `json:"appointmentsStatus,omitempty"`
+	Appointments         []Appointment                `json:"appointments"`
+	AppointmentsMessage  string                       `json:"appointmentsMessage,omitempty"`
+	Message              string                       `json:"message,omitempty"`
+	Matches              []Candidate                  `json:"matches"`
+	Observation          ResolutionObservation        `json:"-"`
 }
 
 type ResolutionObservation struct {

@@ -163,7 +163,6 @@ hollywood	medical	leon-medical-center-health-plan	needs_staff_task	car40908	staf
 hollywood	medical	medical-center-international	needs_staff_task					pending_confirmation		blocked: The office needs to confirm this coverage.
 hollywood	medical	florida-medicaid	accepted	car40899		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Florida Medicaid.
 hollywood	medical	medicare-part-b	accepted	car40900		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Medicare Part B.
-hollywood	medical	icare-medical	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept iCare.
 hollywood	medical	meritain-health	accepted	car301578		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Meritain Health.
 hollywood	medical	miami-childrens-health-plan-medical	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Miami Children's Health Plan (Medicaid).
 hollywood	medical	molina-marketplace-non-par	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
@@ -542,7 +541,6 @@ sweetwater	medical	leon-medical-center-health-plan	needs_staff_task	car40908	sta
 sweetwater	medical	medical-center-international	needs_staff_task					pending_confirmation		blocked: The office needs to confirm this coverage.
 sweetwater	medical	florida-medicaid	accepted	car40899		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Florida Medicaid.
 sweetwater	medical	medicare-part-b	accepted	car40900		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Medicare Part B.
-sweetwater	medical	icare-medical	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept iCare.
 sweetwater	medical	meritain-health	accepted	car301578		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Meritain Health.
 sweetwater	medical	miami-childrens-health-plan-medical	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Miami Children's Health Plan (Medicaid).
 sweetwater	medical	molina-marketplace-non-par	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.

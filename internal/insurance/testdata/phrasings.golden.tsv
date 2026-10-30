@@ -94,9 +94,9 @@ hollywood	medical	Original Medicare	accepted	medicare-part-b	car40900		accepted	
 hollywood	medical	Traditional Medicare	accepted	medicare-part-b	car40900		accepted		success: Yes, we accept Medicare Part B.
 hollywood	medical	Regular Medicare	accepted	medicare-part-b	car40900		accepted		success: Yes, we accept Medicare Part B.
 hollywood	medical	Medicare Supplement	accepted	medicare-part-b	car40900		accepted		success: Yes, we accept Medicare Part B.
-hollywood	medical	iCare	accepted	icare-medical	car40907		accepted		success: Yes, we accept iCare.
-hollywood	medical	I care	accepted	icare-medical	car40907		accepted		success: Yes, we accept iCare.
-hollywood	medical	I-Care	accepted	icare-medical	car40907		accepted		success: Yes, we accept iCare.
+hollywood	medical	iCare	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
+hollywood	medical	I care	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
+hollywood	medical	I-Care	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 hollywood	medical	PPO	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 hollywood	medical	HMO	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 hollywood	medical	that one	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
@@ -354,9 +354,9 @@ sweetwater	medical	Original Medicare	accepted	medicare-part-b	car40900		accepted
 sweetwater	medical	Traditional Medicare	accepted	medicare-part-b	car40900		accepted		success: Yes, we accept Medicare Part B.
 sweetwater	medical	Regular Medicare	accepted	medicare-part-b	car40900		accepted		success: Yes, we accept Medicare Part B.
 sweetwater	medical	Medicare Supplement	accepted	medicare-part-b	car40900		accepted		success: Yes, we accept Medicare Part B.
-sweetwater	medical	iCare	accepted	icare-medical	car40907		accepted		success: Yes, we accept iCare.
-sweetwater	medical	I care	accepted	icare-medical	car40907		accepted		success: Yes, we accept iCare.
-sweetwater	medical	I-Care	accepted	icare-medical	car40907		accepted		success: Yes, we accept iCare.
+sweetwater	medical	iCare	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
+sweetwater	medical	I care	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
+sweetwater	medical	I-Care	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 sweetwater	medical	PPO	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 sweetwater	medical	HMO	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
 sweetwater	medical	that one	needs_clarification				ask_card		needs_input: What insurance plan is listed on your card?
