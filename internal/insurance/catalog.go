@@ -58,10 +58,6 @@ type CatalogError struct {
 
 type CatalogRule string
 
-func RunningCatalog() InsuranceCatalog {
-	return active.Load().catalog
-}
-
 func ValidateCatalog(candidate InsuranceCatalog) []CatalogError {
 	_, errs, drift := parseCatalog(candidate)
 	return append(errs, drift...)

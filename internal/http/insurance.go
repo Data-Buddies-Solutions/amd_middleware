@@ -62,10 +62,6 @@ type catalogVerdict struct {
 	Errors []insurance.CatalogError `json:"errors,omitempty"`
 }
 
-func (h *Handlers) HandleInsuranceCatalog(w http.ResponseWriter, r *http.Request) {
-	respond(w, insurance.RunningCatalog())
-}
-
 func (h *Handlers) HandleValidateInsuranceCatalog(w http.ResponseWriter, r *http.Request) {
 	var candidate insurance.InsuranceCatalog
 	if err := decodeStrict(r, &candidate); err != nil {

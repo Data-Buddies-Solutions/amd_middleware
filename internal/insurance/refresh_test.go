@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -13,6 +14,19 @@ import (
 )
 
 const removedPlan = "aetna-better-health-medicaid-medical"
+
+func fixtureCatalog(t *testing.T) InsuranceCatalog {
+	t.Helper()
+	b, err := os.ReadFile("testdata/catalog.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var c InsuranceCatalog
+	if err := decodeStrictJSON(b, &c); err != nil {
+		t.Fatal(err)
+	}
+	return c
+}
 
 func catalogJSON(t *testing.T, c InsuranceCatalog) []byte {
 	t.Helper()
@@ -69,7 +83,7 @@ func removedPlanSchedules(t *testing.T) bool {
 
 func TestRefreshInstallsTheFirstRevision(t *testing.T) {
 	logs := captureLog(t)
-	installRevision(t, "rev-a", RunningCatalog())
+	installRevision(t, "rev-a", fixtureCatalog(t))
 	if !removedPlanSchedules(t) || active.Load().id != "rev-a" {
 		t.Fatalf("installed revision %q does not decide revision A", active.Load().id)
 	}
@@ -79,7 +93,7 @@ func TestRefreshInstallsTheFirstRevision(t *testing.T) {
 }
 
 func TestRefreshSwapsToAChangedRevision(t *testing.T) {
-	a := RunningCatalog()
+	a := fixtureCatalog(t)
 	installRevision(t, "rev-a", a)
 	logs := captureLog(t)
 	if err := Refresh(context.Background(), serve("rev-b", catalogJSON(t, withoutPlan(t, a, removedPlan)), nil)); err != nil {
@@ -88,16 +102,13 @@ func TestRefreshSwapsToAChangedRevision(t *testing.T) {
 	if removedPlanSchedules(t) || active.Load().id != "rev-b" {
 		t.Fatalf("revision %q still decides the plan revision B removed", active.Load().id)
 	}
-	if strings.Contains(string(catalogJSON(t, RunningCatalog())), removedPlan) {
-		t.Fatal("the export still has the plan revision B removed")
-	}
 	if !strings.Contains(logs.String(), "insurance_catalog_installed revision=rev-b previous_revision=rev-a") {
 		t.Fatalf("logs = %q", logs)
 	}
 }
 
 func TestRefreshIgnoresTheSameRevisionID(t *testing.T) {
-	installRevision(t, "rev-a", RunningCatalog())
+	installRevision(t, "rev-a", fixtureCatalog(t))
 	installed := active.Load()
 	logs := captureLog(t)
 	if err := Refresh(context.Background(), serve("rev-a", []byte("not even JSON"), nil)); err != nil {
@@ -109,7 +120,7 @@ func TestRefreshIgnoresTheSameRevisionID(t *testing.T) {
 }
 
 func TestRefreshKeepsServingTheCurrentRevisionOnFailure(t *testing.T) {
-	a := RunningCatalog()
+	a := fixtureCatalog(t)
 	invalid := withoutPlan(t, a, removedPlan)
 	invalid.Regions[0].Plans[0].Family = ""
 	unknownField := bytes.Replace(catalogJSON(t, a), []byte(`"selfPay":false,`), []byte(`"selfPay":false,"extra":1,`), 1)
@@ -160,7 +171,7 @@ func TestRefreshWithNothingInstalledLeavesNothingInstalled(t *testing.T) {
 
 func TestRefreshInstallsARevisionWhoseDoctorColumnsDifferFromTheOfficeTable(t *testing.T) {
 	const planID, dropped, unknown = "aetna-better-health", "Dr. Joseph Licht", "Dr. Nobody"
-	a := RunningCatalog()
+	a := fixtureCatalog(t)
 	installRevision(t, "rev-a", a)
 	springHill := office(t, "spring_hill")
 	coverage := ""

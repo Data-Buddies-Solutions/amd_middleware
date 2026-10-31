@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"advancedmd-token-management/internal/insurance"
+	"advancedmd-token-management/internal/insurance/insurancetest"
 )
 
 type catalogResponse struct {
@@ -32,21 +33,6 @@ func serveCatalogRoute(t *testing.T, method, target string, body []byte, auth st
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	return w
-}
-
-func exportedCatalog(t *testing.T) insurance.InsuranceCatalog {
-	t.Helper()
-	w := serveCatalogRoute(t, http.MethodGet, "/api/insurance/catalog", nil, "Bearer test-secret")
-	if w.Code != http.StatusOK || w.Header().Get("Content-Type") != "application/json" {
-		t.Fatalf("export status=%d type=%q", w.Code, w.Header().Get("Content-Type"))
-	}
-	var c insurance.InsuranceCatalog
-	decoder := json.NewDecoder(w.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&c); err != nil {
-		t.Fatal(err)
-	}
-	return c
 }
 
 func validateCatalog(t *testing.T, body []byte) (int, catalogResponse) {
@@ -71,39 +57,30 @@ func marshal(t *testing.T, v any) []byte {
 	return b
 }
 
-func TestInsuranceCatalogRoutesRequireTheAPISecret(t *testing.T) {
-	body := marshal(t, insurance.RunningCatalog())
-	for _, route := range []struct{ method, target string }{
-		{http.MethodGet, "/api/insurance/catalog"},
-		{http.MethodPost, "/api/insurance/catalog/validate"},
-	} {
-		for _, auth := range []string{"", "Bearer wrong-secret"} {
-			if w := serveCatalogRoute(t, route.method, route.target, body, auth); w.Code != http.StatusUnauthorized {
-				t.Errorf("%s %s with %q: status=%d body=%s", route.method, route.target, auth, w.Code, w.Body)
-			}
+func TestValidateInsuranceCatalogRequiresTheAPISecret(t *testing.T) {
+	body := marshal(t, insurancetest.Catalog())
+	for _, auth := range []string{"", "Bearer wrong-secret"} {
+		if w := serveCatalogRoute(t, http.MethodPost, "/api/insurance/catalog/validate", body, auth); w.Code != http.StatusUnauthorized {
+			t.Errorf("validate with %q: status=%d body=%s", auth, w.Code, w.Body)
 		}
 	}
 }
 
-func TestInsuranceCatalogExportValidatesAndRoundTrips(t *testing.T) {
-	w := serveCatalogRoute(t, http.MethodGet, "/api/insurance/catalog", nil, "Bearer test-secret")
-	exported := w.Body.Bytes()
-	code, got := validateCatalog(t, exported)
-	if code != http.StatusOK || !got.Valid || got.Errors != nil {
-		t.Fatalf("export did not validate: status=%d %+v", code, got)
+func TestInsuranceCatalogIsNotExported(t *testing.T) {
+	if w := serveCatalogRoute(t, http.MethodGet, "/api/insurance/catalog", nil, "Bearer test-secret"); w.Code != http.StatusNotFound {
+		t.Fatalf("GET /api/insurance/catalog: status=%d, want 404; Product is the only copy of the catalog", w.Code)
 	}
-	again := serveCatalogRoute(t, http.MethodGet, "/api/insurance/catalog", nil, "Bearer test-secret")
-	if !bytes.Equal(again.Body.Bytes(), exported) {
-		t.Fatal("two exports differ")
-	}
-	valid := serveCatalogRoute(t, http.MethodPost, "/api/insurance/catalog/validate", exported, "Bearer test-secret")
-	if valid.Body.String() != "{\"valid\":true}\n" {
-		t.Fatalf("valid body = %q", valid.Body.String())
+}
+
+func TestValidateInsuranceCatalogAcceptsTheFixture(t *testing.T) {
+	valid := serveCatalogRoute(t, http.MethodPost, "/api/insurance/catalog/validate", marshal(t, insurancetest.Catalog()), "Bearer test-secret")
+	if valid.Code != http.StatusOK || valid.Body.String() != "{\"valid\":true}\n" {
+		t.Fatalf("status=%d body=%q", valid.Code, valid.Body.String())
 	}
 }
 
 func TestValidateInsuranceCatalogRejectsUnknownFields(t *testing.T) {
-	exported := marshal(t, insurance.RunningCatalog())
+	exported := marshal(t, insurancetest.Catalog())
 	for name, body := range map[string][]byte{
 		"top level":  append(bytes.TrimSuffix(exported, []byte("}")), []byte(`,"revision":"r1"}`)...),
 		"plan":       bytes.Replace(exported, []byte(`"selfPay":false,`), []byte(`"selfPay":false,"unexpected":true,`), 1),
@@ -121,7 +98,7 @@ func TestValidateInsuranceCatalogRejectsUnknownFields(t *testing.T) {
 }
 
 func TestValidateInsuranceCatalogReturnsEveryError(t *testing.T) {
-	c := exportedCatalog(t)
+	c := insurancetest.Catalog()
 	first := &c.Regions[0].Plans[0]
 	first.Family = ""
 	first.CarrierCode = ""
@@ -267,7 +244,7 @@ func TestValidateInsuranceCatalogNamesEachBrokenRule(t *testing.T) {
 	for _, tc := range tests {
 		covered = append(covered, tc.want...)
 		t.Run(tc.name, func(t *testing.T) {
-			c := exportedCatalog(t)
+			c := insurancetest.Catalog()
 			tc.change(t, &c)
 			code, got := validateCatalog(t, marshal(t, c))
 			rules := []string{}

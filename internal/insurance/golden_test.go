@@ -1,8 +1,6 @@
 package insurance
 
 import (
-	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -120,32 +118,4 @@ func forEachOfficeCoverage(t *testing.T, visit func(o *domain.OfficeConfig, cove
 			}
 		}
 	}
-}
-
-func TestExportedCatalogRoundTripsAndDecidesLikeTheEmbeddedFiles(t *testing.T) {
-	exported, err := json.Marshal(RunningCatalog())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if bytes.Contains(exported, []byte(":null")) {
-		t.Fatal("export has a null list; every empty list must be []")
-	}
-	var decoded InsuranceCatalog
-	if err := decodeStrictJSON(exported, &decoded); err != nil {
-		t.Fatal(err)
-	}
-	lists, errs, drift := parseCatalog(decoded)
-	if errs = append(errs, drift...); len(errs) > 0 {
-		t.Fatalf("exported catalog is invalid: %+v", errs)
-	}
-	again, err := json.Marshal(decoded)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(again, exported) {
-		t.Fatal("export, parse, export is not byte-identical")
-	}
-	installForTest(t, lists)
-	checkGolden(t, "testdata/phrasings.golden.tsv", phrasingRows(t))
-	checkGolden(t, "testdata/plans.golden.tsv", planRows(t))
 }

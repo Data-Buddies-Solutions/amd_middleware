@@ -45,7 +45,7 @@ func readRevision(ctx context.Context, read CatalogReader, current *revision) (*
 		first := drift[0]
 		log.Printf("insurance_catalog_doctor_columns_differ revision=%s count=%d first=%s region=%q table=%q: %s", id, len(drift), first.Rule, first.Region, first.Table, first.Message)
 	}
-	return &revision{id: id, catalog: source, lists: lists}, nil
+	return &revision{id: id, lists: lists}, nil
 }
 
 func revisionID(r *revision) string {
