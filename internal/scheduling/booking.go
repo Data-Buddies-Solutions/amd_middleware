@@ -27,7 +27,6 @@ type BookCommand struct {
 	AppointmentTypeID      int    `json:"appointmentTypeId"`
 	Office                 string `json:"office,omitempty"`
 	VisitCategory          string `json:"visitCategory,omitempty"`
-	PatientStatus          string `json:"patientStatus,omitempty"`
 	VisitReason            string `json:"visitReason,omitempty"`
 	AppointmentReason      string `json:"appointmentReason,omitempty"`
 	ReferringDoctor        string `json:"referringDoctor,omitempty"`
