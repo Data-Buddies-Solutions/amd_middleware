@@ -1,9 +1,18 @@
-package insurance
+package insurancetest
 
 import (
+	"os"
 	"strings"
 	"testing"
+
+	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 )
+
+func TestMain(m *testing.M) {
+	domain.InitRegistry(domain.Prod)
+	os.Exit(m.Run())
+}
 
 func TestReadCatalogFilesRejectsMalformedFiles(t *testing.T) {
 	tests := []struct {
@@ -28,9 +37,9 @@ func TestReadCatalogFilesRejectsMalformedFiles(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			files := syntheticFiles(t, syntheticSouthFlorida(), nil, nil)
+			files := files()
 			tc.change(files)
-			_, err := readCatalogFiles(files)
+			_, err := read(files)
 			if tc.want == "" && err != nil {
 				t.Fatalf("err = %v, want nil", err)
 			}
@@ -42,7 +51,7 @@ func TestReadCatalogFilesRejectsMalformedFiles(t *testing.T) {
 }
 
 func TestReadCatalogFilesMapsEachFileToTheCatalog(t *testing.T) {
-	c := RunningCatalog()
+	c := Catalog()
 	if len(c.Regions) != 2 || c.Regions[0].ID != "south_florida" || c.Regions[1].ID != "spring_hill_crystal_river" {
 		t.Fatalf("regions = %+v", c.Regions)
 	}
@@ -67,5 +76,11 @@ func TestReadCatalogFilesMapsEachFileToTheCatalog(t *testing.T) {
 		if c.Carriers[i-1].ID >= c.Carriers[i].ID {
 			t.Fatalf("carriers not sorted by id at %d: %v", i, c.Carriers[i-1:i+1])
 		}
+	}
+}
+
+func TestFixtureFilesAreAValidCatalog(t *testing.T) {
+	if errs := insurance.ValidateCatalog(Catalog()); len(errs) > 0 {
+		t.Fatalf("fixture files break %d catalog rules: %+v", len(errs), errs)
 	}
 }

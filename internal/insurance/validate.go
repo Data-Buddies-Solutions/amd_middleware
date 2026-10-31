@@ -48,24 +48,29 @@ const (
 var planIDPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
 type catalogCheck struct {
-	errs []CatalogError
+	errs              []CatalogError
+	doctorColumnDrift []CatalogError
 }
 
 func (c *catalogCheck) fail(region, table, planID string, rule CatalogRule, format string, args ...any) {
 	c.errs = append(c.errs, CatalogError{Region: region, Table: table, PlanID: planID, Rule: rule, Message: fmt.Sprintf(format, args...)})
 }
 
-func parseCatalog(source InsuranceCatalog) ([]planList, []CatalogError) {
-	lists, errs := readPlanLists(source)
+func (c *catalogCheck) drift(region, table string, rule CatalogRule, format string, args ...any) {
+	c.doctorColumnDrift = append(c.doctorColumnDrift, CatalogError{Region: region, Table: table, Rule: rule, Message: fmt.Sprintf(format, args...)})
+}
+
+func parseCatalog(source InsuranceCatalog) (lists []planList, errs, drift []CatalogError) {
+	lists, errs, drift = readPlanLists(source)
 	if len(errs) > 0 {
-		return lists, errs
+		return lists, errs, drift
 	}
 	c := &catalogCheck{}
 	c.decisions(lists)
-	return lists, c.errs
+	return lists, c.errs, drift
 }
 
-func readPlanLists(source InsuranceCatalog) ([]planList, []CatalogError) {
+func readPlanLists(source InsuranceCatalog) ([]planList, []CatalogError, []CatalogError) {
 	c := &catalogCheck{}
 	carriers := c.carriers(source.Carriers)
 	regions := c.distinctRegions(source.Regions)
@@ -90,7 +95,7 @@ func readPlanLists(source InsuranceCatalog) ([]planList, []CatalogError) {
 		}
 	}
 	c.notes(lists)
-	return lists, c.errs
+	return lists, c.errs, c.doctorColumnDrift
 }
 
 func (c *catalogCheck) carriers(carriers []CatalogCarrier) map[string]string {
@@ -292,12 +297,12 @@ func (c *catalogCheck) doctorColumns(region string, table CatalogTable) {
 		}
 		seen[doctor] = true
 		if !slices.Contains(want, doctor) {
-			c.fail(region, table.ID, "", ruleUnknownDoctorColumn, "doctor column %q is not a doctor at %s", doctor, strings.Join(table.Offices, ", "))
+			c.drift(region, table.ID, ruleUnknownDoctorColumn, "doctor column %q is not a doctor at %s", doctor, strings.Join(table.Offices, ", "))
 		}
 	}
 	for _, doctor := range want {
 		if !seen[doctor] {
-			c.fail(region, table.ID, "", ruleMissingDoctorColumn, "doctor column %q is missing", doctor)
+			c.drift(region, table.ID, ruleMissingDoctorColumn, "doctor column %q is missing", doctor)
 		}
 	}
 }
@@ -324,6 +329,29 @@ func (c *catalogCheck) tableNames(list planList) {
 			}
 			if !ok {
 				owners[key] = p.ID
+			}
+		}
+	}
+}
+
+func indexNames(list *planList) {
+	list.vocabulary = map[string]map[string]bool{}
+	for i := range list.Plans {
+		p := &list.Plans[i]
+		if list.vocabulary[p.Coverage] == nil {
+			list.vocabulary[p.Coverage] = map[string]bool{}
+		}
+		for _, name := range planNames(*p) {
+			words := tokens(name)
+			p.nameTokens = append(p.nameTokens, words)
+			for _, word := range words {
+				list.vocabulary[p.Coverage][word] = true
+				if planTypes[word] {
+					if p.planTypes == nil {
+						p.planTypes = map[string]bool{}
+					}
+					p.planTypes[word] = true
+				}
 			}
 		}
 	}

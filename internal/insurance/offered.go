@@ -8,11 +8,11 @@ import (
 )
 
 func DecideOfferedAnswer(heard string, offeredPlanIDs []string, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+	list := active.Load().listForOffice(office.ID)
 	d, ok := startDecision(coverage, office)
 	if !ok {
 		return d
 	}
-	list := listForOffice(office.ID)
 	offered := []plan{}
 	for _, p := range list.Plans {
 		if p.Coverage == coverage && slices.Contains(offeredPlanIDs, p.ID) {
@@ -20,7 +20,7 @@ func DecideOfferedAnswer(heard string, offeredPlanIDs []string, coverage string,
 		}
 	}
 	if len(offered) == 0 {
-		return DecideInsurance(heard, coverage, office, dob, asOf)
+		return decideInsurance(list, heard, coverage, office, dob, asOf)
 	}
 	words := callerWords(tokens(heard), list.vocabulary[coverage])
 	if len(words) == 0 {
@@ -33,7 +33,7 @@ func DecideOfferedAnswer(heard string, offeredPlanIDs []string, coverage string,
 	}
 	named := slices.DeleteFunc(slices.Clone(offered), func(p plan) bool { return !labelHasEvery(p, words) })
 	if len(named) == 0 {
-		return DecideInsurance(heard, coverage, office, dob, asOf)
+		return decideInsurance(list, heard, coverage, office, dob, asOf)
 	}
 	return decideCandidates(d, named, office, dob, asOf)
 }

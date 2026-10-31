@@ -32,7 +32,7 @@ func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
 		PatientID: patientID,
 	})
 
-	router := NewRouter(NewHandlers(nil, nil, nil, testNow), "test-secret", nil)
+	router := NewRouter(NewHandlers(nil, nil, nil, nil, testNow), "test-secret", nil)
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	w := httptest.NewRecorder()
 
@@ -52,7 +52,7 @@ func TestMetricsEndpointExposesSafePatientMutationOutcomes(t *testing.T) {
 
 func TestPatientResolveKeepsStableResponseWhenSessionUnavailable(t *testing.T) {
 	records := advancedmd.NewAdapter(unavailableSession{}, nil, nil, time.Now)
-	handlers := NewHandlers(unavailableSession{}, patientmodule.New(records, testAppointmentTokens, testNow), nil, testNow)
+	handlers := NewHandlers(unavailableSession{}, patientmodule.New(records, testAppointmentTokens, testNow), nil, nil, testNow)
 	req := httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"patientId":"123"}`))
 	w := httptest.NewRecorder()
 
@@ -82,7 +82,7 @@ func TestHandlePatientResolveMapsPatientModuleResult(t *testing.T) {
 		CarrierName: "HUMANA MEDICARE",
 		CarrierID:   "car40906",
 	}
-	handlers := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens, testNow), nil, testNow)
+	handlers := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens, testNow), nil, nil, testNow)
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -602,7 +602,7 @@ func TestAuthMiddleware(t *testing.T) {
 }
 
 func TestRouter(t *testing.T) {
-	handlers := NewHandlers(nil, nil, nil, testNow)
+	handlers := NewHandlers(nil, nil, nil, nil, testNow)
 
 	router := NewRouter(handlers, "test-secret", nil)
 
@@ -958,7 +958,7 @@ func newProviderFailureTestHandlers(t *testing.T, fail func(*http.Request, []byt
 		clients.NewAdvancedMDRestClient(httpClient),
 		time.Now,
 	)
-	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens, testNow), nil, testNow)
+	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens, testNow), nil, nil, testNow)
 }
 
 func newUpdateInsuranceTestHandlers(t *testing.T, dob, insPlanID string) (*Handlers, *[]string) {
@@ -1008,7 +1008,7 @@ func newUpdateInsuranceTestHandlers(t *testing.T, dob, insPlanID string) (*Handl
 		clients.NewAdvancedMDRestClient(httpClient),
 		time.Now,
 	)
-	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens, testNow), nil, testNow), &writes
+	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens, testNow), nil, nil, testNow), &writes
 }
 
 func newPatientResolveTestHandlers(
@@ -1178,7 +1178,7 @@ func newPatientResolveTestHandlers(
 	amdRestClient := clients.NewAdvancedMDRestClient(httpClient)
 	records := advancedmd.NewAdapter(amdSession, amdClient, amdRestClient, time.Now)
 
-	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens, testNow), nil, testNow)
+	return NewHandlers(amdSession, patientmodule.New(records, testAppointmentTokens, testNow), nil, nil, testNow)
 }
 
 func (s schedulingStub) List(ctx context.Context, command schedulingmodule.ListCommand) (schedulingmodule.AvailabilityResponse, error) {
@@ -1189,7 +1189,7 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: true, Patients: []domain.Patient{{ID: "1", FullName: "MEYER,JANE", DOB: "01/01/1980"}}}
 	amd.Demographics["1"] = domain.PatientDemographics{InsuranceStateKnown: true, FullName: "MEYER,JANE", DOB: "01/01/1980"}
-	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens, testNow), nil, testNow)
+	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens, testNow), nil, nil, testNow)
 	for _, tc := range []struct {
 		body  string
 		valid bool
@@ -1233,7 +1233,7 @@ func TestFirstNameDOBHTTPContract(t *testing.T) {
 func TestFirstNameDOBUnresolvedHTTPContract(t *testing.T) {
 	amd := advancedmdtest.NewAdapter()
 	amd.CandidateReads["Jane"] = domain.PatientCandidateRead{Complete: false}
-	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens, testNow), nil, testNow)
+	handler := NewHandlers(nil, patientmodule.New(amd, testAppointmentTokens, testNow), nil, nil, testNow)
 	writer := httptest.NewRecorder()
 	handler.HandlePatientResolve(writer, httptest.NewRequest(http.MethodPost, "/api/patient/resolve", strings.NewReader(`{"firstName":"Jane","dob":"01/01/1980","office":"spring_hill"}`)))
 	var body patientmodule.ResolveResult

@@ -1,11 +1,9 @@
 package insurance
 
 import (
-	"bytes"
-	"encoding/csv"
 	"encoding/json"
+	"maps"
 	"slices"
-	"strings"
 	"testing"
 
 	"advancedmd-token-management/internal/domain"
@@ -32,79 +30,60 @@ func syntheticSouthFlorida() []plan {
 
 func useSyntheticCatalog(t *testing.T, southFlorida, springHill, crystalRiver []plan) {
 	t.Helper()
-	source, err := readCatalogFiles(syntheticFiles(t, southFlorida, springHill, crystalRiver))
-	if err != nil {
-		t.Fatal(err)
-	}
-	lists, errs := readPlanLists(source)
-	if len(errs) > 0 {
+	lists, errs, drift := readPlanLists(syntheticCatalog(t, southFlorida, springHill, crystalRiver))
+	if errs = append(errs, drift...); len(errs) > 0 {
 		t.Fatalf("%+v", errs)
 	}
-	previous := catalog
-	catalog = lists
-	t.Cleanup(func() { catalog = previous })
+	installForTest(t, lists)
 }
 
-func syntheticFiles(t *testing.T, southFlorida, springHill, crystalRiver []plan) map[string][]byte {
+func installForTest(t *testing.T, lists []planList) {
 	t.Helper()
-	files := map[string][]byte{carriersFile: []byte(syntheticCarriers)}
-	officeTables := map[string][]string{
-		"south_florida/doctors.csv": {"hollywood", "sweetwater", "north_miami_beach_optical"},
-		"spring_hill/doctors.csv":   {"spring_hill"},
-		"crystal_river/doctors.csv": {"crystal_river"},
-	}
-	b, err := json.Marshal(officeTables)
-	if err != nil {
+	previous := active.Load()
+	active.Store(&revision{id: "test", lists: lists})
+	t.Cleanup(func() { active.Store(previous) })
+}
+
+func syntheticCatalog(t *testing.T, southFlorida, springHill, crystalRiver []plan) InsuranceCatalog {
+	t.Helper()
+	carriers := map[string]string{}
+	if err := json.Unmarshal([]byte(syntheticCarriers), &carriers); err != nil {
 		t.Fatal(err)
 	}
-	files[officeTablesFile] = b
-	for dir, plans := range map[string][]plan{"south_florida": southFlorida, "spring_hill": springHill, "crystal_river": crystalRiver} {
-		files[dir+"/"+plansFile], files[dir+"/doctors.csv"] = syntheticCSV(t, plans, officeTables[dir+"/doctors.csv"])
+	c := InsuranceCatalog{}
+	for _, id := range slices.Sorted(maps.Keys(carriers)) {
+		c.Carriers = append(c.Carriers, CatalogCarrier{ID: id, Name: carriers[id]})
 	}
-	return files
+	c.Regions = []CatalogRegion{
+		syntheticRegion(t, "crystal_river", []string{"crystal_river"}, crystalRiver),
+		syntheticRegion(t, "south_florida", []string{"hollywood", "sweetwater", "north_miami_beach_optical"}, southFlorida),
+		syntheticRegion(t, "spring_hill", []string{"spring_hill"}, springHill),
+	}
+	return c
 }
 
-func syntheticCSV(t *testing.T, plans []plan, offices []string) ([]byte, []byte) {
+func syntheticRegion(t *testing.T, id string, offices []string, plans []plan) CatalogRegion {
 	t.Helper()
-	planRows := [][]string{planColumns}
-	doctors := []string{}
-	for _, id := range offices {
-		for _, column := range office(t, id).Columns {
-			if !slices.Contains(doctors, column.DisplayName) {
-				doctors = append(doctors, column.DisplayName)
+	table := CatalogTable{ID: "doctors", Offices: offices, Rows: []CatalogRow{}}
+	for _, officeID := range offices {
+		for _, column := range office(t, officeID).Columns {
+			if !slices.Contains(table.Doctors, column.DisplayName) {
+				table.Doctors = append(table.Doctors, column.DisplayName)
 			}
 		}
 	}
-	slices.Sort(doctors)
-	tableRows := [][]string{append(append([]string{"plan"}, doctors...), tableColumns...)}
+	slices.Sort(table.Doctors)
+	region := CatalogRegion{ID: id, Plans: []CatalogPlan{}}
 	for _, p := range plans {
-		selfPay := ""
-		if p.SelfPay {
-			selfPay = "yes"
-		}
-		planRows = append(planRows, []string{p.ID, p.Label, p.Family, p.Coverage, p.CarrierCode, p.CarrierID, selfPay, strings.Join(p.Names, " | ")})
-		row := []string{p.ID}
-		for _, doctor := range doctors {
-			row = append(row, p.Doctors[doctor])
-		}
-		requirements := []string{}
+		region.Plans = append(region.Plans, CatalogPlan{ID: p.ID, Label: p.Label, Family: p.Family, Coverage: p.Coverage, CarrierCode: p.CarrierCode, CarrierID: p.CarrierID, SelfPay: p.SelfPay, Aliases: p.Names})
+		row := CatalogRow{PlanID: p.ID, Doctors: p.Doctors, Requires: []CatalogRequirement{}, OnlyOffices: p.OnlyOffices, Notice: p.CallerNotice, Note: p.Note}
 		for _, r := range p.Requirements {
-			requirements = append(requirements, strings.TrimSuffix(r.Kind+":"+r.Channel, ":"))
+			row.Requires = append(row.Requires, CatalogRequirement{Kind: r.Kind, Channel: r.Channel})
 		}
-		row = append(row, strings.Join(requirements, ";"), strings.Join(p.OnlyOffices, ";"), p.CallerNotice, p.Note)
-		tableRows = append(tableRows, row)
+		table.Rows = append(table.Rows, row)
 	}
-	return writeCSV(t, planRows), writeCSV(t, tableRows)
-}
-
-func writeCSV(t *testing.T, rows [][]string) []byte {
-	t.Helper()
-	var b bytes.Buffer
-	w := csv.NewWriter(&b)
-	if err := w.WriteAll(rows); err != nil {
-		t.Fatal(err)
-	}
-	return b.Bytes()
+	region.Tables = []CatalogTable{table}
+	return region
 }
 
 func office(t *testing.T, id string) *domain.OfficeConfig {

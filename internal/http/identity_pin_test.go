@@ -317,7 +317,7 @@ func newPinHarness(t *testing.T) pinHarness {
 		calls: calls,
 	}
 	tokens := schedulingmodule.NewAppointmentTokens(pinBookingSecret, testNow)
-	handlers := NewHandlers(amdSession, patientmodule.New(records, tokens, testNow), schedulingmodule.New(records, pinBookingSecret, testNow), testNow)
+	handlers := NewHandlers(amdSession, patientmodule.New(records, tokens, testNow), schedulingmodule.New(records, pinBookingSecret, testNow), nil, testNow)
 	return pinHarness{router: NewRouter(handlers, pinSecret, nil), calls: calls}
 }
 

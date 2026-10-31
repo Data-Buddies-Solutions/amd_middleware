@@ -12,12 +12,13 @@ require_value() {
 }
 
 resume_scheduler_job() {
+  local job="$1"
   local attempt
   local output
 
   for ((attempt = 1; attempt <= 6; attempt++)); do
     if output="$(
-      gcloud scheduler jobs resume "$MAINTENANCE_JOB" \
+      gcloud scheduler jobs resume "$job" \
         "--project=$PROJECT_ID" \
         "--location=$REGION" \
         --quiet 2>&1
@@ -37,6 +38,65 @@ resume_scheduler_job() {
     echo "Scheduler backend is not ready; retrying resume in 5 seconds."
     sleep 5
   done
+}
+
+scheduler_job_exists() {
+  gcloud scheduler jobs describe "$1" \
+    "--project=$PROJECT_ID" \
+    "--location=$REGION" >/dev/null 2>&1
+}
+
+pause_scheduler_job() {
+  local job="$1"
+  local scheduler_state
+
+  scheduler_state="$(
+    gcloud scheduler jobs describe "$job" \
+      "--project=$PROJECT_ID" \
+      "--location=$REGION" \
+      "--format=value(state)"
+  )"
+  if [[ "$scheduler_state" != "PAUSED" ]]; then
+    gcloud scheduler jobs pause "$job" \
+      "--project=$PROJECT_ID" \
+      "--location=$REGION" \
+      --quiet
+  fi
+}
+
+configure_paused_scheduler_job() {
+  local job="$1"
+  local schedule="$2"
+  local path="$3"
+  local attempt_deadline="$4"
+  local max_retry_attempts="$5"
+  local scheduler_args=(
+    "$job"
+    "--project=$PROJECT_ID"
+    "--location=$REGION"
+    "--schedule=$schedule"
+    "--time-zone=Etc/UTC"
+    "--uri=$MAINTENANCE_OIDC_AUDIENCE$path"
+    "--http-method=POST"
+    "--oidc-service-account-email=$MAINTENANCE_OIDC_SERVICE_ACCOUNT"
+    "--oidc-token-audience=$MAINTENANCE_OIDC_AUDIENCE"
+    "--attempt-deadline=$attempt_deadline"
+    "--max-retry-attempts=$max_retry_attempts"
+    "--min-backoff=30s"
+    "--max-backoff=300s"
+    "--quiet"
+  )
+
+  if scheduler_job_exists "$job"; then
+    pause_scheduler_job "$job"
+    gcloud scheduler jobs update http "${scheduler_args[@]}"
+  else
+    gcloud scheduler jobs create http "${scheduler_args[@]}"
+    gcloud scheduler jobs pause "$job" \
+      "--project=$PROJECT_ID" \
+      "--location=$REGION" \
+      --quiet
+  fi
 }
 
 for name in \
@@ -76,6 +136,7 @@ if [[ ! "$immutable_image" =~ ^$REGION-docker\.pkg\.dev/$PROJECT_ID/$REPOSITORY/
 fi
 
 revision="$SERVICE-$DEPLOYMENT_ID"
+secrets="ADVANCEDMD_USERNAME=advancedmd-username:2,ADVANCEDMD_PASSWORD=advancedmd-password:2,ADVANCEDMD_OFFICE_KEY=advancedmd-office-key:2,ADVANCEDMD_APP_NAME=advancedmd-app-name:2,API_SECRET=middleware-api-secret:2,BOOKING_TOKEN_SECRET=booking-token-secret:2"
 deploy_args=(
   "$SERVICE"
   "--project=$PROJECT_ID"
@@ -95,7 +156,6 @@ deploy_args=(
   "--port=8080"
   "--startup-probe=httpGet.path=/live,httpGet.port=8080"
   "--readiness-probe=httpGet.path=/ready,httpGet.port=8080"
-  "--set-secrets=ADVANCEDMD_USERNAME=advancedmd-username:2,ADVANCEDMD_PASSWORD=advancedmd-password:2,ADVANCEDMD_OFFICE_KEY=advancedmd-office-key:2,ADVANCEDMD_APP_NAME=advancedmd-app-name:2,API_SECRET=middleware-api-secret:2,BOOKING_TOKEN_SECRET=booking-token-secret:2"
   "--network=acuity-prod"
   "--subnet=cloud-run-us-east4"
   "--vpc-egress=all-traffic"
@@ -111,7 +171,9 @@ case "$DEPLOY_MODE" in
       MAINTENANCE_OIDC_AUDIENCE \
       MAINTENANCE_OIDC_SERVICE_ACCOUNT \
       MAINTENANCE_SCHEDULE \
-      MAINTENANCE_JOB; do
+      MAINTENANCE_JOB \
+      ACUITY_PRODUCT_URL \
+      INSURANCE_REFRESH_JOB; do
       require_value "$name"
     done
     if [[ ! "$MAINTENANCE_OIDC_AUDIENCE" =~ ^https://[^/@?#]+$ ]]; then
@@ -120,6 +182,10 @@ case "$DEPLOY_MODE" in
     fi
     if [[ ! "$MAINTENANCE_OIDC_SERVICE_ACCOUNT" =~ ^[^[:space:]@]+@[^[:space:]@]+\.iam\.gserviceaccount\.com$ ]]; then
       echo "MAINTENANCE_OIDC_SERVICE_ACCOUNT must be a service account email."
+      exit 1
+    fi
+    if [[ ! "$ACUITY_PRODUCT_URL" =~ ^https://[^/@?#]+$ ]]; then
+      echo "ACUITY_PRODUCT_URL must be an HTTPS service base URL."
       exit 1
     fi
     read -r minute hour day month weekday extra <<<"$MAINTENANCE_SCHEDULE"
@@ -137,9 +203,10 @@ case "$DEPLOY_MODE" in
       echo "MAINTENANCE_SCHEDULE must run before the 20-hour stale threshold."
       exit 1
     fi
+    secrets+=",ACUITY_PRODUCT_INSURANCE_TOKEN=acuity-product-insurance-token:1"
     deploy_args+=(
       "--cpu-throttling"
-      "--set-env-vars=AMD_ENV=prod,MAINTENANCE_OIDC_AUDIENCE=$MAINTENANCE_OIDC_AUDIENCE,MAINTENANCE_OIDC_SERVICE_ACCOUNT=$MAINTENANCE_OIDC_SERVICE_ACCOUNT"
+      "--set-env-vars=AMD_ENV=prod,MAINTENANCE_OIDC_AUDIENCE=$MAINTENANCE_OIDC_AUDIENCE,MAINTENANCE_OIDC_SERVICE_ACCOUNT=$MAINTENANCE_OIDC_SERVICE_ACCOUNT,ACUITY_PRODUCT_URL=$ACUITY_PRODUCT_URL"
     )
     ;;
   legacy-rollback)
@@ -153,6 +220,8 @@ case "$DEPLOY_MODE" in
     exit 1
     ;;
 esac
+
+deploy_args+=("--set-secrets=$secrets")
 
 gcloud run deploy "${deploy_args[@]}"
 
@@ -168,65 +237,14 @@ if [[ "$deployed_image" != "$immutable_image" ]]; then
 fi
 
 if [[ "$DEPLOY_MODE" == "legacy-rollback" ]]; then
-  if [[ -n "${MAINTENANCE_JOB:-}" ]] &&
-    gcloud scheduler jobs describe "$MAINTENANCE_JOB" \
-      "--project=$PROJECT_ID" \
-      "--location=$REGION" >/dev/null 2>&1; then
-    scheduler_state="$(
-      gcloud scheduler jobs describe "$MAINTENANCE_JOB" \
-        "--project=$PROJECT_ID" \
-        "--location=$REGION" \
-        "--format=value(state)"
-    )"
-    if [[ "$scheduler_state" != "PAUSED" ]]; then
-      gcloud scheduler jobs pause "$MAINTENANCE_JOB" \
-        "--project=$PROJECT_ID" \
-        "--location=$REGION" \
-        --quiet
+  for job in "${MAINTENANCE_JOB:-}" "${INSURANCE_REFRESH_JOB:-}"; do
+    if [[ -n "$job" ]] && scheduler_job_exists "$job"; then
+      pause_scheduler_job "$job"
     fi
-  fi
+  done
 else
-  maintenance_uri="$MAINTENANCE_OIDC_AUDIENCE/ops/session/maintenance"
-  scheduler_args=(
-    "$MAINTENANCE_JOB"
-    "--project=$PROJECT_ID"
-    "--location=$REGION"
-    "--schedule=$MAINTENANCE_SCHEDULE"
-    "--time-zone=Etc/UTC"
-    "--uri=$maintenance_uri"
-    "--http-method=POST"
-    "--oidc-service-account-email=$MAINTENANCE_OIDC_SERVICE_ACCOUNT"
-    "--oidc-token-audience=$MAINTENANCE_OIDC_AUDIENCE"
-    "--attempt-deadline=60s"
-    "--max-retry-attempts=3"
-    "--min-backoff=30s"
-    "--max-backoff=300s"
-    "--quiet"
-  )
-
-  if gcloud scheduler jobs describe "$MAINTENANCE_JOB" \
-    "--project=$PROJECT_ID" \
-    "--location=$REGION" >/dev/null 2>&1; then
-    scheduler_state="$(
-      gcloud scheduler jobs describe "$MAINTENANCE_JOB" \
-        "--project=$PROJECT_ID" \
-        "--location=$REGION" \
-        "--format=value(state)"
-    )"
-    if [[ "$scheduler_state" != "PAUSED" ]]; then
-      gcloud scheduler jobs pause "$MAINTENANCE_JOB" \
-        "--project=$PROJECT_ID" \
-        "--location=$REGION" \
-        --quiet
-    fi
-    gcloud scheduler jobs update http "${scheduler_args[@]}"
-  else
-    gcloud scheduler jobs create http "${scheduler_args[@]}"
-    gcloud scheduler jobs pause "$MAINTENANCE_JOB" \
-      "--project=$PROJECT_ID" \
-      "--location=$REGION" \
-      --quiet
-  fi
+  configure_paused_scheduler_job "$MAINTENANCE_JOB" "$MAINTENANCE_SCHEDULE" /ops/session/maintenance 60s 3
+  configure_paused_scheduler_job "$INSURANCE_REFRESH_JOB" "* * * * *" /ops/insurance/refresh 30s 0
 fi
 
 gcloud run services update-traffic "$SERVICE" \
@@ -236,5 +254,6 @@ gcloud run services update-traffic "$SERVICE" \
   --quiet
 
 if [[ "$DEPLOY_MODE" == "request" ]]; then
-  resume_scheduler_job
+  resume_scheduler_job "$MAINTENANCE_JOB"
+  resume_scheduler_job "$INSURANCE_REFRESH_JOB"
 fi

@@ -24,7 +24,7 @@ type catalogResponse struct {
 
 func serveCatalogRoute(t *testing.T, method, target string, body []byte, auth string) *httptest.ResponseRecorder {
 	t.Helper()
-	router := NewRouter(NewHandlers(nil, nil, nil, testNow), "test-secret", nil)
+	router := NewRouter(NewHandlers(nil, nil, nil, nil, testNow), "test-secret", nil)
 	req := httptest.NewRequest(method, target, bytes.NewReader(body))
 	if auth != "" {
 		req.Header.Set("Authorization", auth)
@@ -174,8 +174,9 @@ func TestValidateInsuranceCatalogNamesEachBrokenRule(t *testing.T) {
 		}},
 		{"missing doctor column", []string{"missing_doctor_column"}, func(t *testing.T, c *catalog) {
 			table := doctors(c)
-			removed := table.Doctors[0]
-			table.Doctors = table.Doctors[1:]
+			last := len(table.Doctors) - 1
+			removed := table.Doctors[last]
+			table.Doctors = table.Doctors[:last]
 			for _, row := range table.Rows {
 				delete(row.Doctors, removed)
 			}

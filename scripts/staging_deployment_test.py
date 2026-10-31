@@ -20,6 +20,7 @@ def service(amd_env="sandbox"):
             "serviceAccountName": f"{staging.SERVICE}@{staging.PROJECT}.iam.gserviceaccount.com",
             "containers": [{"image": "old-image", "env": [
                 {"name": "AMD_ENV", "value": amd_env},
+                {"name": "ACUITY_PRODUCT_URL", "value": "https://acuity-portal-api-example.a.run.app"},
             ] + [{"name": key, "valueFrom": {"secretKeyRef": {"name": value, "key": "1"}}}
                  for key, value in staging.SECRETS.items()]}],
         }}},
@@ -40,8 +41,19 @@ class StagingDeploymentTest(unittest.TestCase):
                 staging.validate(service(value))
         for key, value in [("name", "advancedmd-password"), ("key", "latest")]:
             candidate = service()
-            candidate["spec"]["template"]["spec"]["containers"][0]["env"][1]["valueFrom"]["secretKeyRef"][key] = value
+            candidate["spec"]["template"]["spec"]["containers"][0]["env"][2]["valueFrom"]["secretKeyRef"][key] = value
             with self.subTest(field=key), self.assertRaises(RuntimeError):
+                staging.validate(candidate)
+
+    def test_rejects_a_sandbox_without_an_https_product_url(self):
+        for value in [None, "", "http://acuity-portal-api-example.a.run.app", "https://acuity-portal-api-example.a.run.app/v1"]:
+            candidate = service()
+            env = candidate["spec"]["template"]["spec"]["containers"][0]["env"]
+            if value is None:
+                del env[1]
+            else:
+                env[1]["value"] = value
+            with self.subTest(url=value), self.assertRaises(RuntimeError):
                 staging.validate(candidate)
 
     def test_rejects_ready_service_with_pending_revision_or_split_traffic(self):
@@ -62,7 +74,7 @@ class StagingDeploymentTest(unittest.TestCase):
         changed["spec"]["template"]["spec"]["containerConcurrency"] = 100
         self.assertNotEqual(staging.runtime_spec(before), staging.runtime_spec(changed))
         changed = copy.deepcopy(after)
-        changed["spec"]["template"]["spec"]["containers"][0]["env"][1]["valueFrom"]["secretKeyRef"]["key"] = "2"
+        changed["spec"]["template"]["spec"]["containers"][0]["env"][2]["valueFrom"]["secretKeyRef"]["key"] = "2"
         self.assertNotEqual(staging.runtime_spec(before), staging.runtime_spec(changed))
         self.assertNotEqual(staging.runtime_spec(before), staging.runtime_spec(service("dev")))
 

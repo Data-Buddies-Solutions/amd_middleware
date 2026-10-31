@@ -8,6 +8,7 @@ import (
 
 	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/insurance"
 	patientmodule "advancedmd-token-management/internal/patient"
 	"advancedmd-token-management/internal/safeerrors"
 	schedulingmodule "advancedmd-token-management/internal/scheduling"
@@ -22,23 +23,26 @@ type errorResponse struct {
 }
 
 type Handlers struct {
-	session    session.Session
-	patient    patientmodule.Patient
-	scheduling schedulingmodule.Scheduling
-	now        func() time.Time
+	session              session.Session
+	patient              patientmodule.Patient
+	scheduling           schedulingmodule.Scheduling
+	readInsuranceCatalog insurance.CatalogReader
+	now                  func() time.Time
 }
 
 func NewHandlers(
 	amdSession session.Session,
 	patient patientmodule.Patient,
 	scheduling schedulingmodule.Scheduling,
+	readInsuranceCatalog insurance.CatalogReader,
 	now func() time.Time,
 ) *Handlers {
 	return &Handlers{
-		session:    amdSession,
-		patient:    patient,
-		scheduling: scheduling,
-		now:        now,
+		session:              amdSession,
+		patient:              patient,
+		scheduling:           scheduling,
+		readInsuranceCatalog: readInsuranceCatalog,
+		now:                  now,
 	}
 }
 
@@ -68,9 +72,16 @@ func (h *Handlers) HandleMetrics(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handlers) HandleSessionMaintenance(w http.ResponseWriter, r *http.Request) {
-	if err := h.session.Maintain(r.Context()); err != nil {
-		category := safeerrors.Classify(err)
-		recordRequestOutcome(r.Context(), outcomeProviderFailure, category)
+	respondMaintenance(w, r, h.session.Maintain(r.Context()))
+}
+
+func (h *Handlers) HandleInsuranceRefresh(w http.ResponseWriter, r *http.Request) {
+	respondMaintenance(w, r, insurance.Refresh(r.Context(), h.readInsuranceCatalog))
+}
+
+func respondMaintenance(w http.ResponseWriter, r *http.Request, err error) {
+	if err != nil {
+		recordRequestOutcome(r.Context(), outcomeProviderFailure, safeerrors.Classify(err))
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusServiceUnavailable)
 		w.Write([]byte(`{"status":"unavailable"}`))

@@ -22,6 +22,8 @@ steps:
       - MAINTENANCE_OIDC_SERVICE_ACCOUNT=${_MAINTENANCE_OIDC_SERVICE_ACCOUNT}
       - MAINTENANCE_SCHEDULE=${_MAINTENANCE_SCHEDULE}
       - MAINTENANCE_JOB=${_MAINTENANCE_JOB}
+      - ACUITY_PRODUCT_URL=${_ACUITY_PRODUCT_URL}
+      - INSURANCE_REFRESH_JOB=${_INSURANCE_REFRESH_JOB}
 
 substitutions:
   _IMAGE_TAG: DO_NOT_DEPLOY
@@ -35,6 +37,8 @@ substitutions:
   _MAINTENANCE_OIDC_SERVICE_ACCOUNT: DO_NOT_DEPLOY
   _MAINTENANCE_SCHEDULE: 0 */12 * * *
   _MAINTENANCE_JOB: abita-middleware-session-maintenance
+  _ACUITY_PRODUCT_URL: https://acuity-portal-api-cbuqwpsdsq-ue.a.run.app
+  _INSURANCE_REFRESH_JOB: abita-middleware-insurance-refresh
 
 options:
   logging: CLOUD_LOGGING_ONLY

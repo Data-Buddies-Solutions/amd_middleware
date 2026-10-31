@@ -20,6 +20,8 @@ func NewRouter(handlers *Handlers, apiSecret string, maintenanceAuthorizer Maint
 
 	r.With(maintenanceAuthMiddleware(maintenanceAuthorizer)).
 		Post("/ops/session/maintenance", handlers.HandleSessionMaintenance)
+	r.With(maintenanceAuthMiddleware(maintenanceAuthorizer)).
+		Post("/ops/insurance/refresh", handlers.HandleInsuranceRefresh)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Use(authMiddleware(apiSecret))

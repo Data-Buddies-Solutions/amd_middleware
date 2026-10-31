@@ -27,6 +27,7 @@ export SANDBOX_MAINTENANCE_OIDC_AUDIENCE=https://abita-middleware-sandbox-123456
 export SANDBOX_NETWORK=test-network SANDBOX_SUBNET=test-subnet
 export SANDBOX_USERNAME_VERSION=1 SANDBOX_PASSWORD_VERSION=2 SANDBOX_OFFICE_KEY_VERSION=3
 export SANDBOX_APP_NAME_VERSION=4 SANDBOX_API_SECRET_VERSION=5 SANDBOX_BOOKING_SECRET_VERSION=6
+export SANDBOX_ACUITY_PRODUCT_URL=https://acuity-portal-api-example.a.run.app SANDBOX_PRODUCT_INSURANCE_TOKEN_VERSION=7
 
 bash "$repo_root/scripts/deploy-sandbox-cloud-run.sh"
 for expected in \
@@ -38,6 +39,8 @@ for expected in \
   'ADVANCEDMD_APP_NAME=advancedmd-sandbox-app-name:4' \
   'API_SECRET=middleware-sandbox-api-secret:5' \
   'BOOKING_TOKEN_SECRET=sandbox-booking-token-secret:6' \
+  'ACUITY_PRODUCT_INSURANCE_TOKEN=acuity-product-sandbox-insurance-token:7' \
+  'ACUITY_PRODUCT_URL=https://acuity-portal-api-example.a.run.app' \
   '--network=test-network --subnet=test-subnet --vpc-egress=all-traffic'; do
   if ! grep -Fq -- "$expected" "$FAKE_GCLOUD_LOG"; then
     echo "Missing sandbox deployment flag: $expected" >&2
@@ -70,4 +73,6 @@ reject_before_cloud SANDBOX_MAINTENANCE_OIDC_AUDIENCE https://abita-middleware-1
 reject_before_cloud SANDBOX_PASSWORD_VERSION latest
 reject_before_cloud SANDBOX_API_SECRET_VERSION ''
 reject_before_cloud SANDBOX_NETWORK ''
+reject_before_cloud SANDBOX_ACUITY_PRODUCT_URL http://acuity-portal-api-example.a.run.app
+reject_before_cloud SANDBOX_PRODUCT_INSURANCE_TOKEN_VERSION latest
 echo 'sandbox deployment isolation tests passed'
