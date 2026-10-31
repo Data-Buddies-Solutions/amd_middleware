@@ -125,13 +125,13 @@ hollywood	medical	ambetter-premier-medical	accepted	car281245		Dr. Bach	Dr. Bach
 hollywood	medical	avmed-select	accepted	car40890		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept AvMed Select.
 hollywood	medical	avmed-jackson-first-network-hmo	not_accepted	car40890				not_accepted		blocked: This plan is not accepted for this visit type at this office.
 hollywood	medical	avmed-engage	needs_staff_task	car40890	pcp_referral	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
-hollywood	medical	avmed-entrust-medical	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	medical	avmed-entrust-medical	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
 hollywood	medical	careplus-medicare-medical	needs_staff_task	car281317	prior_authorization	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires prior authorization before scheduling.
 hollywood	medical	childrens-medical-services-medical	accepted	car281245		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Children's Medical Services.
-hollywood	medical	cigna-hmo	needs_staff_task	car301345	pcp_referral,staff_verify	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
-hollywood	medical	cigna-florida-connect-epo	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
-hollywood	medical	cigna-local-plus-non-par	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
-hollywood	medical	cigna-sure-fit	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	medical	cigna-hmo	needs_staff_task	car301345	staff_verify	Dr. Bach	Dr. Bach	requirement		blocked: The office needs to verify this plan's coverage before scheduling.
+hollywood	medical	cigna-florida-connect-epo	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
+hollywood	medical	cigna-local-plus-non-par	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
+hollywood	medical	cigna-sure-fit	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
 hollywood	medical	cigna-medicare-advantage-medical	needs_staff_task	car302890	pcp_referral	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
 hollywood	medical	cigna-open-access	accepted	car40895		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Cigna Open Access.
 hollywood	medical	cigna-miami-dade-public-schools	accepted	car40895		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Cigna Miami-Dade Public Schools.
@@ -147,7 +147,7 @@ hollywood	medical	florida-blue-medicare-ppo-medical	accepted	car40897		Dr. Bach	
 hollywood	medical	florida-blue-medicare-hmo-medical	needs_staff_task	car40897				pending_confirmation		blocked: The office needs to confirm this coverage.
 hollywood	medical	florida-blue-ppo-out-of-state	accepted	car40897		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Florida Blue PPO Out of State.
 hollywood	medical	florida-blue-ppo-federal-employee	accepted	car40897		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Florida Blue PPO Federal Employee.
-hollywood	medical	florida-blue-select-non-par	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	medical	florida-blue-select-non-par	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
 hollywood	medical	florida-blue-steward-tier-1	accepted	car40897		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Florida Blue Steward Healthcare Network Tier 1.
 hollywood	medical	florida-complete-care-medicare	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Florida Complete Care.
 hollywood	medical	florida-community-care	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Florida Community Care.
@@ -164,7 +164,7 @@ hollywood	medical	florida-medicaid	accepted	car40899		Dr. Bach	Dr. Bach	accepted
 hollywood	medical	medicare-part-b	accepted	car40900		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Medicare Part B.
 hollywood	medical	meritain-health	accepted	car301578		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Meritain Health.
 hollywood	medical	miami-childrens-health-plan-medical	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Miami Children's Health Plan (Medicaid).
-hollywood	medical	molina-marketplace-non-par	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	medical	molina-marketplace-non-par	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
 hollywood	medical	molina-medicaid-medical	not_accepted	car40907				not_accepted		blocked: This plan is not accepted for this visit type at this office.
 hollywood	medical	molina-medicare-medical	needs_staff_task	car301507	pcp_referral	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
 hollywood	medical	multiplan-phcs	accepted	car301648		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Multiplan PHCS.
@@ -184,7 +184,7 @@ hollywood	medical	tricare-select	accepted	car284327		Dr. Bach	Dr. Bach	accepted	
 hollywood	medical	tricare-for-life	accepted	car40921		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Tricare For Life.
 hollywood	medical	umr	needs_staff_task	car284838	staff_verify	Dr. Bach	Dr. Bach	requirement		blocked: The office needs to verify this plan's coverage before scheduling.
 hollywood	medical	united-healthcare-medical	accepted	car40923		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept United Healthcare Medical.
-hollywood	medical	united-healthcare-medicaid-non-par	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	medical	united-healthcare-medicaid-non-par	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
 hollywood	medical	us-health-group	accepted	car284838		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept US Health Group.
 hollywood	medical	united-healthcare-aarp-medicare	accepted	car302750		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept United Healthcare AARP Medicare Complete.
 hollywood	medical	united-healthcare-dual-complete-medical	accepted	car40923		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept United Healthcare Dual Complete.
@@ -254,9 +254,9 @@ hollywood	routine_vision	humana-vision-through-work	accepted	car280684		Dr. Farn
 hollywood	routine_vision	aetna-vision-through-work	accepted	car280684		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	accepted		success: Yes, we accept Aetna Vision (through work).
 hollywood	routine_vision	unum-vision	accepted	car280684		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	accepted		success: Yes, we accept Unum Vision.
 hollywood	routine_vision	cigna-vision	accepted	car280684		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	accepted		success: Yes, we accept Cigna Vision.
-hollywood	routine_vision	cigna-florida-connect-epo-vision	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
-hollywood	routine_vision	cigna-local-plus-non-par-vision	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
-hollywood	routine_vision	cigna-sure-fit-vision	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+hollywood	routine_vision	cigna-florida-connect-epo-vision	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
+hollywood	routine_vision	cigna-local-plus-non-par-vision	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
+hollywood	routine_vision	cigna-sure-fit-vision	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
 hollywood	routine_vision	superior-vision	accepted	car280612		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	accepted		success: Yes, we accept Superior Vision.
 hollywood	routine_vision	florida-blue-vision-through-work	accepted	car280612		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	accepted		success: Yes, we accept Florida Blue Vision (through work).
 hollywood	routine_vision	blueview-vision	accepted	car280612		Dr. Farnan,Dr. Vidal,Dr. Calero	Dr. Farnan,Dr. Vidal,Dr. Calero	accepted		success: Yes, we accept BlueView Vision.
@@ -313,9 +313,9 @@ north_miami_beach_optical	routine_vision	humana-vision-through-work	accepted	car
 north_miami_beach_optical	routine_vision	aetna-vision-through-work	accepted	car280684		Dr. Miriam Bach	Dr. Miriam Bach	accepted		success: Yes, we accept Aetna Vision (through work).
 north_miami_beach_optical	routine_vision	unum-vision	accepted	car280684		Dr. Miriam Bach	Dr. Miriam Bach	accepted		success: Yes, we accept Unum Vision.
 north_miami_beach_optical	routine_vision	cigna-vision	accepted	car280684		Dr. Miriam Bach	Dr. Miriam Bach	accepted		success: Yes, we accept Cigna Vision.
-north_miami_beach_optical	routine_vision	cigna-florida-connect-epo-vision	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
-north_miami_beach_optical	routine_vision	cigna-local-plus-non-par-vision	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
-north_miami_beach_optical	routine_vision	cigna-sure-fit-vision	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+north_miami_beach_optical	routine_vision	cigna-florida-connect-epo-vision	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
+north_miami_beach_optical	routine_vision	cigna-local-plus-non-par-vision	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
+north_miami_beach_optical	routine_vision	cigna-sure-fit-vision	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
 north_miami_beach_optical	routine_vision	superior-vision	accepted	car280612		Dr. Miriam Bach	Dr. Miriam Bach	accepted		success: Yes, we accept Superior Vision.
 north_miami_beach_optical	routine_vision	florida-blue-vision-through-work	accepted	car280612		Dr. Miriam Bach	Dr. Miriam Bach	accepted		success: Yes, we accept Florida Blue Vision (through work).
 north_miami_beach_optical	routine_vision	blueview-vision	accepted	car280612		Dr. Miriam Bach	Dr. Miriam Bach	accepted		success: Yes, we accept BlueView Vision.
@@ -502,13 +502,13 @@ sweetwater	medical	ambetter-premier-medical	accepted	car281245		Dr. Bach	Dr. Bac
 sweetwater	medical	avmed-select	accepted	car40890		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept AvMed Select.
 sweetwater	medical	avmed-jackson-first-network-hmo	not_accepted	car40890				not_accepted		blocked: This plan is not accepted for this visit type at this office.
 sweetwater	medical	avmed-engage	needs_staff_task	car40890	pcp_referral	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
-sweetwater	medical	avmed-entrust-medical	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	medical	avmed-entrust-medical	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
 sweetwater	medical	careplus-medicare-medical	not_accepted	car281317	prior_authorization			not_accepted		blocked: This plan is not accepted for this visit type at this office.
 sweetwater	medical	childrens-medical-services-medical	accepted	car281245		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Children's Medical Services.
-sweetwater	medical	cigna-hmo	needs_staff_task	car301345	pcp_referral,staff_verify	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
-sweetwater	medical	cigna-florida-connect-epo	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
-sweetwater	medical	cigna-local-plus-non-par	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
-sweetwater	medical	cigna-sure-fit	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	medical	cigna-hmo	needs_staff_task	car301345	staff_verify	Dr. Bach	Dr. Bach	requirement		blocked: The office needs to verify this plan's coverage before scheduling.
+sweetwater	medical	cigna-florida-connect-epo	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
+sweetwater	medical	cigna-local-plus-non-par	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
+sweetwater	medical	cigna-sure-fit	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
 sweetwater	medical	cigna-medicare-advantage-medical	needs_staff_task	car302890	pcp_referral	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
 sweetwater	medical	cigna-open-access	accepted	car40895		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Cigna Open Access.
 sweetwater	medical	cigna-miami-dade-public-schools	accepted	car40895		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Cigna Miami-Dade Public Schools.
@@ -524,7 +524,7 @@ sweetwater	medical	florida-blue-medicare-ppo-medical	accepted	car40897		Dr. Bach
 sweetwater	medical	florida-blue-medicare-hmo-medical	needs_staff_task	car40897				pending_confirmation		blocked: The office needs to confirm this coverage.
 sweetwater	medical	florida-blue-ppo-out-of-state	accepted	car40897		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Florida Blue PPO Out of State.
 sweetwater	medical	florida-blue-ppo-federal-employee	accepted	car40897		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Florida Blue PPO Federal Employee.
-sweetwater	medical	florida-blue-select-non-par	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	medical	florida-blue-select-non-par	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
 sweetwater	medical	florida-blue-steward-tier-1	accepted	car40897		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Florida Blue Steward Healthcare Network Tier 1.
 sweetwater	medical	florida-complete-care-medicare	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Florida Complete Care.
 sweetwater	medical	florida-community-care	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Florida Community Care.
@@ -541,7 +541,7 @@ sweetwater	medical	florida-medicaid	accepted	car40899		Dr. Bach	Dr. Bach	accepte
 sweetwater	medical	medicare-part-b	accepted	car40900		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Medicare Part B.
 sweetwater	medical	meritain-health	accepted	car301578		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Meritain Health.
 sweetwater	medical	miami-childrens-health-plan-medical	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Miami Children's Health Plan (Medicaid).
-sweetwater	medical	molina-marketplace-non-par	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	medical	molina-marketplace-non-par	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
 sweetwater	medical	molina-medicaid-medical	accepted	car40907		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Molina Medicaid.
 sweetwater	medical	molina-medicare-medical	needs_staff_task	car301507	pcp_referral	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
 sweetwater	medical	multiplan-phcs	accepted	car301648		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Multiplan PHCS.
@@ -561,7 +561,7 @@ sweetwater	medical	tricare-select	accepted	car284327		Dr. Bach	Dr. Bach	accepted
 sweetwater	medical	tricare-for-life	accepted	car40921		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Tricare For Life.
 sweetwater	medical	umr	needs_staff_task	car284838	staff_verify	Dr. Bach	Dr. Bach	requirement		blocked: The office needs to verify this plan's coverage before scheduling.
 sweetwater	medical	united-healthcare-medical	accepted	car40923		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept United Healthcare Medical.
-sweetwater	medical	united-healthcare-medicaid-non-par	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	medical	united-healthcare-medicaid-non-par	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
 sweetwater	medical	us-health-group	accepted	car284838		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept US Health Group.
 sweetwater	medical	united-healthcare-aarp-medicare	accepted	car302750		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept United Healthcare AARP Medicare Complete.
 sweetwater	medical	united-healthcare-dual-complete-medical	accepted	car40923		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept United Healthcare Dual Complete.
@@ -631,9 +631,9 @@ sweetwater	routine_vision	humana-vision-through-work	accepted	car280684		Dr. Cas
 sweetwater	routine_vision	aetna-vision-through-work	accepted	car280684		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	accepted		success: Yes, we accept Aetna Vision (through work).
 sweetwater	routine_vision	unum-vision	accepted	car280684		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	accepted		success: Yes, we accept Unum Vision.
 sweetwater	routine_vision	cigna-vision	accepted	car280684		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	accepted		success: Yes, we accept Cigna Vision.
-sweetwater	routine_vision	cigna-florida-connect-epo-vision	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
-sweetwater	routine_vision	cigna-local-plus-non-par-vision	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
-sweetwater	routine_vision	cigna-sure-fit-vision	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
+sweetwater	routine_vision	cigna-florida-connect-epo-vision	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
+sweetwater	routine_vision	cigna-local-plus-non-par-vision	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
+sweetwater	routine_vision	cigna-sure-fit-vision	not_accepted					not_accepted		blocked: This plan is not accepted for this visit type at this office.
 sweetwater	routine_vision	superior-vision	accepted	car280612		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	accepted		success: Yes, we accept Superior Vision.
 sweetwater	routine_vision	florida-blue-vision-through-work	accepted	car280612		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	accepted		success: Yes, we accept Florida Blue Vision (through work).
 sweetwater	routine_vision	blueview-vision	accepted	car280612		Dr. Casas,Dr. Farnan,Dr. Calero	Dr. Casas,Dr. Farnan,Dr. Calero	accepted		success: Yes, we accept BlueView Vision.

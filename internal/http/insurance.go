@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"advancedmd-token-management/internal/domain"
@@ -63,8 +64,13 @@ type catalogVerdict struct {
 }
 
 func (h *Handlers) HandleValidateInsuranceCatalog(w http.ResponseWriter, r *http.Request) {
-	var candidate insurance.InsuranceCatalog
-	if err := decodeStrict(r, &candidate); err != nil {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		rejectCatalog(w, r, []insurance.CatalogError{{Rule: "invalid_json", Message: err.Error()}})
+		return
+	}
+	candidate, err := insurance.DecodeCatalog(body)
+	if err != nil {
 		rejectCatalog(w, r, []insurance.CatalogError{{Rule: "invalid_json", Message: err.Error()}})
 		return
 	}

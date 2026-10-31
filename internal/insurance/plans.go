@@ -14,27 +14,20 @@ type planList struct {
 }
 
 type plan struct {
-	ID           string
-	Label        string
-	Family       string
-	Coverage     string
-	Names        []string
-	CarrierCode  string
-	CarrierID    string
-	CarrierName  string
-	Doctors      map[string]string
-	OnlyOffices  []string
-	Requirements []planRequirement
-	CallerNotice string
-	Note         string
-	SelfPay      bool
-	nameTokens   [][]string
-	planTypes    map[string]bool
-}
-
-type planRequirement struct {
-	Kind    string
-	Channel string
+	ID            string
+	Label         string
+	Family        string
+	Coverage      string
+	Names         []string
+	CarrierCode   string
+	CarrierID     string
+	CarrierName   string
+	Doctors       map[string]string
+	OnlyOffices   []string
+	BeforeBooking BeforeBooking
+	CallerNotice  string
+	nameTokens    [][]string
+	planTypes     map[string]bool
 }
 
 type revision struct {
@@ -43,6 +36,10 @@ type revision struct {
 }
 
 var active atomic.Pointer[revision]
+
+func (p plan) selfPay() bool {
+	return selfPayPlanIDs[p.Coverage] == p.ID
+}
 
 func planNames(p plan) []string {
 	return append([]string{p.Label}, p.Names...)

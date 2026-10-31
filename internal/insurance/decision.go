@@ -23,7 +23,6 @@ const (
 
 type InsuranceRequirement struct {
 	Kind         string `json:"kind"`
-	Channel      string `json:"channel,omitempty"`
 	Verification string `json:"verification"`
 }
 
@@ -107,7 +106,7 @@ func decideSelfPay(list planList, coverage string, office *domain.OfficeConfig, 
 		return d
 	}
 	for _, p := range list.Plans {
-		if p.SelfPay && p.Coverage == coverage {
+		if p.ID == selfPayPlanIDs[coverage] {
 			return decidePlanAtOffice(p, office, dob, asOf)
 		}
 	}
