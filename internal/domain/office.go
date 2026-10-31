@@ -232,7 +232,19 @@ func TableOfficeProviderNames(officeID string) ([]string, bool) {
 }
 
 func LookupOfficeByID(officeID string) (*OfficeConfig, bool) {
-	for _, office := range selected().offices {
+	return selected().officeByID(officeID)
+}
+
+func LookupOfficeInEnvironment(env Environment, officeID string) (*OfficeConfig, bool) {
+	r, ok := registries[env]
+	if !ok {
+		return nil, false
+	}
+	return r.officeByID(officeID)
+}
+
+func (r *registry) officeByID(officeID string) (*OfficeConfig, bool) {
+	for _, office := range r.offices {
 		if office.ID == officeID {
 			return office, true
 		}

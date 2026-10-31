@@ -4,6 +4,27 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.7.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.7.0...v8.7.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* **deploy:** pass the Product URL and insurance refresh job to the release build ([#319](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/319)) ([cabf19a](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/cabf19af14f3041720e86aaf0a8a193eb9ba81fc))
+
+## [8.7.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.6.0...v8.7.0) (2026-10-31)
+
+
+### Features
+
+* **insurance:** load the published insurance catalog from Product ([#312](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/312)) ([7b033b3](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/7b033b3c19bc59183470ba4297c4bc553557f47e))
+
+## [8.6.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.5.1...v8.6.0) (2026-10-30)
+
+
+### Features
+
+* **insurance:** export the insurance catalog and validate a candidate over HTTP ([#311](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/311)) ([ef474f7](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/ef474f70c6b2b50e6e26befd45a3211d9e7cd280))
+
 ## [8.5.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.5.0...v8.5.1) (2026-10-30)
 
 

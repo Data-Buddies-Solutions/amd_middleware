@@ -61,7 +61,7 @@ func TestListWithPlanDecidesThePlanBeforeReadingInventory(t *testing.T) {
 	provider := office.Columns["1550"].ShortName
 	var cleared, elsewhere, blocked string
 	plans, _ := insurance.ListPlans("medical", office)
-	for _, p := range plans {
+	for _, p := range plans.Plans {
 		d := insurance.DecidePlan(p.PlanID, "medical", office, "01/15/1980", now)
 		switch {
 		case !d.CanSchedule && blocked == "":

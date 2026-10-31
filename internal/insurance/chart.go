@@ -6,7 +6,8 @@ import (
 )
 
 func DecideChartInsurance(chart domain.PatientDemographics, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
-	d, list, ok := startDecision(coverage, office)
+	list := active.Load().listForOffice(office.ID)
+	d, ok := startDecision(coverage, office)
 	if !ok {
 		return d
 	}

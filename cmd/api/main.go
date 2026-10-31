@@ -14,11 +14,17 @@ import (
 	"advancedmd-token-management/internal/config"
 	"advancedmd-token-management/internal/domain"
 	apphttp "advancedmd-token-management/internal/http"
+	"advancedmd-token-management/internal/insurance"
 	"advancedmd-token-management/internal/patient"
 	"advancedmd-token-management/internal/safeerrors"
 	"advancedmd-token-management/internal/safelog"
 	"advancedmd-token-management/internal/scheduling"
 	"advancedmd-token-management/internal/session"
+)
+
+const (
+	insuranceStartupWindow = 18 * time.Second
+	insuranceStartupPause  = 2 * time.Second
 )
 
 func main() {
@@ -42,6 +48,14 @@ func main() {
 		},
 	}
 
+	product := clients.NewProductClient(httpClient, cfg.AcuityProductURL, cfg.AcuityProductInsuranceToken)
+	startupCtx, cancelStartup := context.WithTimeout(context.Background(), insuranceStartupWindow)
+	err = installInsuranceCatalog(startupCtx, product.ReadInsuranceCatalog, insuranceStartupPause)
+	cancelStartup()
+	if err != nil {
+		log.Fatalf("Failed to install the insurance catalog from Product category=%s", safeerrors.Classify(err))
+	}
+
 	amdSession := session.NewSession(session.Credentials{
 		Username:  cfg.AdvancedMDUsername,
 		Password:  cfg.AdvancedMDPassword,
@@ -62,7 +76,7 @@ func main() {
 		time.Now,
 	)
 
-	handlers := apphttp.NewHandlers(amdSession, patients, scheduler, time.Now)
+	handlers := apphttp.NewHandlers(amdSession, patients, scheduler, product.ReadInsuranceCatalog, time.Now)
 
 	maintenanceAuthorizer := apphttp.NewMaintenanceAuthorizer(
 		cfg.MaintenanceOIDCAudience,
@@ -98,4 +112,18 @@ func main() {
 	}
 
 	log.Println("Server exited")
+}
+
+func installInsuranceCatalog(ctx context.Context, read insurance.CatalogReader, pause time.Duration) error {
+	for {
+		err := insurance.Refresh(ctx, read)
+		if err == nil {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(pause):
+		}
+	}
 }

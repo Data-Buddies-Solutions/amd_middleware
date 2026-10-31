@@ -1,10 +1,12 @@
 package http
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/insurance"
+	"advancedmd-token-management/internal/safeerrors"
 )
 
 func (h *Handlers) HandleInsuranceDecision(w http.ResponseWriter, r *http.Request) {
@@ -52,9 +54,30 @@ func (h *Handlers) HandleInsurancePlans(w http.ResponseWriter, r *http.Request) 
 		rejectInvalidRequest(w, r, errorResponse{Status: "error", Message: "Unknown coverage"})
 		return
 	}
-	respond(w, struct {
-		OfficeID string                  `json:"officeId"`
-		Coverage string                  `json:"coverage"`
-		Plans    []insurance.PlanSummary `json:"plans"`
-	}{office.ID, coverage, plans})
+	respond(w, plans)
+}
+
+type catalogVerdict struct {
+	Valid  bool                     `json:"valid"`
+	Errors []insurance.CatalogError `json:"errors,omitempty"`
+}
+
+func (h *Handlers) HandleValidateInsuranceCatalog(w http.ResponseWriter, r *http.Request) {
+	var candidate insurance.InsuranceCatalog
+	if err := decodeStrict(r, &candidate); err != nil {
+		rejectCatalog(w, r, []insurance.CatalogError{{Rule: "invalid_json", Message: err.Error()}})
+		return
+	}
+	if errs := insurance.ValidateCatalog(candidate); len(errs) > 0 {
+		rejectCatalog(w, r, errs)
+		return
+	}
+	respond(w, catalogVerdict{Valid: true})
+}
+
+func rejectCatalog(w http.ResponseWriter, r *http.Request, errs []insurance.CatalogError) {
+	recordRequestOutcome(r.Context(), outcomeInvalidRequest, safeerrors.CategoryNone)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusBadRequest)
+	json.NewEncoder(w).Encode(catalogVerdict{Errors: errs})
 }

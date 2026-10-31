@@ -96,6 +96,8 @@ run_deploy() {
     MAINTENANCE_OIDC_SERVICE_ACCOUNT="scheduler@test-project.iam.gserviceaccount.com" \
     MAINTENANCE_SCHEDULE="0 */12 * * *" \
     MAINTENANCE_JOB="abita-middleware-session-maintenance" \
+    ACUITY_PRODUCT_URL="https://acuity-portal-api.example.run.app" \
+    INSURANCE_REFRESH_JOB="abita-middleware-insurance-refresh" \
     bash "$repo_root/scripts/deploy-cloud-run.sh"
 }
 
@@ -104,11 +106,41 @@ if ! run_deploy transient-once; then
   exit 1
 fi
 
-transient_resume_count="$(
-  grep -c '^scheduler jobs resume ' "$test_root/transient-once/gcloud.log"
-)"
-if [[ "$transient_resume_count" != "2" ]]; then
-  echo "Expected two resume attempts, got $transient_resume_count." >&2
+resume_count() {
+  grep -c "^scheduler jobs resume $2 " "$test_root/$1/gcloud.log" || true
+}
+
+if [[ "$(resume_count transient-once abita-middleware-session-maintenance)" != "2" ||
+  "$(resume_count transient-once abita-middleware-insurance-refresh)" != "1" ]]; then
+  echo "Expected the maintenance resume to be retried once, then the insurance refresh resume." >&2
+  exit 1
+fi
+
+deploy_line="$(grep '^run deploy ' "$test_root/transient-once/gcloud.log")"
+for expected in \
+  "ACUITY_PRODUCT_URL=https://acuity-portal-api.example.run.app" \
+  "ACUITY_PRODUCT_INSURANCE_TOKEN=acuity-product-insurance-token:1"; do
+  if [[ "$deploy_line" != *"$expected"* ]]; then
+    echo "Expected the Cloud Run deploy to set $expected." >&2
+    exit 1
+  fi
+done
+
+refresh_job="$(grep '^scheduler jobs create http abita-middleware-insurance-refresh ' "$test_root/transient-once/gcloud.log")"
+for expected in \
+  "--schedule=* * * * *" \
+  "--uri=https://example.run.app/ops/insurance/refresh" \
+  "--oidc-service-account-email=scheduler@test-project.iam.gserviceaccount.com" \
+  "--oidc-token-audience=https://example.run.app" \
+  "--max-retry-attempts=0"; do
+  if [[ "$refresh_job" != *"$expected"* ]]; then
+    echo "Expected the insurance refresh job to use $expected." >&2
+    exit 1
+  fi
+done
+
+if ! grep -q '^scheduler jobs create http abita-middleware-session-maintenance .*--uri=https://example.run.app/ops/session/maintenance' "$test_root/transient-once/gcloud.log"; then
+  echo "Expected the session maintenance job to keep its route." >&2
   exit 1
 fi
 
@@ -117,11 +149,9 @@ if run_deploy permanent; then
   exit 1
 fi
 
-permanent_resume_count="$(
-  grep -c '^scheduler jobs resume ' "$test_root/permanent/gcloud.log"
-)"
-if [[ "$permanent_resume_count" != "1" ]]; then
-  echo "Expected one permanent resume attempt, got $permanent_resume_count." >&2
+if [[ "$(resume_count permanent abita-middleware-session-maintenance)" != "1" ||
+  "$(resume_count permanent abita-middleware-insurance-refresh)" != "0" ]]; then
+  echo "Expected one permanent resume attempt and no later resume." >&2
   exit 1
 fi
 

@@ -22,6 +22,7 @@ SECRETS = {
     "ADVANCEDMD_APP_NAME": "advancedmd-sandbox-app-name",
     "API_SECRET": "middleware-sandbox-api-secret",
     "BOOKING_TOKEN_SECRET": "sandbox-booking-token-secret",
+    "ACUITY_PRODUCT_INSURANCE_TOKEN": "acuity-product-sandbox-insurance-token",
 }
 AMD_ENV = "sandbox"
 
@@ -50,6 +51,8 @@ def validate(service):
     require(len(spec["containers"]) == 1, "Unexpected sandbox containers")
     env = {item["name"]: item for item in spec["containers"][0]["env"]}
     require(env.get("AMD_ENV", {}).get("value") == AMD_ENV, f"Sandbox must use AMD_ENV={AMD_ENV}")
+    require(re.fullmatch(r"https://[^/@?#]+", env.get("ACUITY_PRODUCT_URL", {}).get("value", "")),
+            "Sandbox must read its insurance catalog from an HTTPS ACUITY_PRODUCT_URL")
     for variable, name in SECRETS.items():
         ref = env.get(variable, {}).get("valueFrom", {}).get("secretKeyRef", {})
         require(ref.get("name") == name and re.fullmatch(r"[1-9][0-9]*", ref.get("key", "")),

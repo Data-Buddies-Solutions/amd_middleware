@@ -8,7 +8,8 @@ for name in \
   SANDBOX_NETWORK SANDBOX_SUBNET \
   SANDBOX_MAINTENANCE_OIDC_AUDIENCE SANDBOX_MAINTENANCE_OIDC_SERVICE_ACCOUNT \
   SANDBOX_USERNAME_VERSION SANDBOX_PASSWORD_VERSION SANDBOX_OFFICE_KEY_VERSION \
-  SANDBOX_APP_NAME_VERSION SANDBOX_API_SECRET_VERSION SANDBOX_BOOKING_SECRET_VERSION; do
+  SANDBOX_APP_NAME_VERSION SANDBOX_API_SECRET_VERSION SANDBOX_BOOKING_SECRET_VERSION \
+  SANDBOX_ACUITY_PRODUCT_URL SANDBOX_PRODUCT_INSURANCE_TOKEN_VERSION; do
   if [[ -z "${!name:-}" || "${!name}" == "DO_NOT_DEPLOY" ]]; then
     echo "$name must be configured." >&2
     exit 1
@@ -28,9 +29,14 @@ if [[ ! "$SANDBOX_MAINTENANCE_OIDC_AUDIENCE" =~ ^https://abita-middleware-sandbo
   echo "Sandbox maintenance audience must be this sandbox service's HTTPS Cloud Run base URL." >&2
   exit 1
 fi
+if [[ ! "$SANDBOX_ACUITY_PRODUCT_URL" =~ ^https://[^/@?#]+$ ]]; then
+  echo "SANDBOX_ACUITY_PRODUCT_URL must be an HTTPS Product base URL." >&2
+  exit 1
+fi
 for name in \
   SANDBOX_USERNAME_VERSION SANDBOX_PASSWORD_VERSION SANDBOX_OFFICE_KEY_VERSION \
-  SANDBOX_APP_NAME_VERSION SANDBOX_API_SECRET_VERSION SANDBOX_BOOKING_SECRET_VERSION; do
+  SANDBOX_APP_NAME_VERSION SANDBOX_API_SECRET_VERSION SANDBOX_BOOKING_SECRET_VERSION \
+  SANDBOX_PRODUCT_INSURANCE_TOKEN_VERSION; do
   if [[ ! "${!name}" =~ ^[1-9][0-9]*$ ]]; then
     echo "$name must be an explicit numeric Secret Manager version." >&2
     exit 1
@@ -43,6 +49,7 @@ secret_bindings+=",ADVANCEDMD_OFFICE_KEY=advancedmd-sandbox-office-key:$SANDBOX_
 secret_bindings+=",ADVANCEDMD_APP_NAME=advancedmd-sandbox-app-name:$SANDBOX_APP_NAME_VERSION"
 secret_bindings+=",API_SECRET=middleware-sandbox-api-secret:$SANDBOX_API_SECRET_VERSION"
 secret_bindings+=",BOOKING_TOKEN_SECRET=sandbox-booking-token-secret:$SANDBOX_BOOKING_SECRET_VERSION"
+secret_bindings+=",ACUITY_PRODUCT_INSURANCE_TOKEN=acuity-product-sandbox-insurance-token:$SANDBOX_PRODUCT_INSURANCE_TOKEN_VERSION"
 
 # No Scheduler is created: request-time Session.Get owns cold-start recovery.
 # A dedicated maintenance identity is still required by runtime configuration.
@@ -59,7 +66,7 @@ gcloud run deploy abita-middleware-sandbox \
   --startup-probe=httpGet.path=/live,httpGet.port=8080 \
   --readiness-probe=httpGet.path=/ready,httpGet.port=8080 \
   "--set-secrets=$secret_bindings" \
-  "--set-env-vars=AMD_ENV=sandbox,MAINTENANCE_OIDC_AUDIENCE=$SANDBOX_MAINTENANCE_OIDC_AUDIENCE,MAINTENANCE_OIDC_SERVICE_ACCOUNT=$SANDBOX_MAINTENANCE_OIDC_SERVICE_ACCOUNT" \
+  "--set-env-vars=AMD_ENV=sandbox,MAINTENANCE_OIDC_AUDIENCE=$SANDBOX_MAINTENANCE_OIDC_AUDIENCE,MAINTENANCE_OIDC_SERVICE_ACCOUNT=$SANDBOX_MAINTENANCE_OIDC_SERVICE_ACCOUNT,ACUITY_PRODUCT_URL=$SANDBOX_ACUITY_PRODUCT_URL" \
   "--network=$SANDBOX_NETWORK" \
   "--subnet=$SANDBOX_SUBNET" \
   --vpc-egress=all-traffic --ingress=all --no-invoker-iam-check --quiet

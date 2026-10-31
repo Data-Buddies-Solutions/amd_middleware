@@ -12,10 +12,11 @@ import (
 
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/insurance"
+	"advancedmd-token-management/internal/insurance/insurancetest"
 )
 
 func TestInsuranceDecisionHTTPContract(t *testing.T) {
-	handlers := NewHandlers(nil, nil, nil, testNow)
+	handlers := NewHandlers(nil, nil, nil, nil, testNow)
 	office, _ := domain.ResolveOffice("Hollywood")
 	for _, plan := range []string{"Self Pay", "Aetna", "unknown words"} {
 		w := httptest.NewRecorder()
@@ -42,7 +43,7 @@ func TestInsuranceDecisionHTTPContract(t *testing.T) {
 }
 
 func TestInsuranceDecisionSelfPayReturnsTheOfficeSelfPayPlan(t *testing.T) {
-	handlers := NewHandlers(nil, nil, nil, testNow)
+	handlers := NewHandlers(nil, nil, nil, nil, testNow)
 	for _, tc := range []struct{ office, officeID, coverage, planID string }{
 		{"Hollywood", "hollywood", "medical", "self-pay-medical"},
 		{"Hollywood", "hollywood", "routine_vision", "self-pay-routine-vision"},
@@ -83,7 +84,7 @@ func TestInsuranceRoutesRejectInvalidInputWithTheSharedErrorContract(t *testing.
 			previousWriter := log.Writer()
 			log.SetOutput(&logs)
 			t.Cleanup(func() { log.SetOutput(previousWriter) })
-			router := NewRouter(NewHandlers(nil, nil, nil, testNow), "test-secret", nil)
+			router := NewRouter(NewHandlers(nil, nil, nil, nil, testNow), "test-secret", nil)
 			req := httptest.NewRequest(tc.method, tc.target, strings.NewReader(tc.body))
 			req.Header.Set("Authorization", "Bearer test-secret")
 			w := httptest.NewRecorder()
@@ -107,7 +108,7 @@ func TestInsuranceRoutesRejectInvalidInputWithTheSharedErrorContract(t *testing.
 
 func getInsurancePlans(t *testing.T, query, auth string) *httptest.ResponseRecorder {
 	t.Helper()
-	router := NewRouter(NewHandlers(nil, nil, nil, testNow), "test-secret", nil)
+	router := NewRouter(NewHandlers(nil, nil, nil, nil, testNow), "test-secret", nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/insurance/plans?"+query, nil)
 	if auth != "" {
 		req.Header.Set("Authorization", auth)
@@ -127,17 +128,15 @@ func TestInsurancePlansHTTPContract(t *testing.T) {
 		if w.Code != http.StatusOK || w.Header().Get("Content-Type") != "application/json" {
 			t.Fatalf("%s: status=%d body=%s", tc.key, w.Code, w.Body.String())
 		}
-		var got struct {
-			OfficeID string                  `json:"officeId"`
-			Coverage string                  `json:"coverage"`
-			Plans    []insurance.PlanSummary `json:"plans"`
-		}
-		if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+		var got insurance.PlanList
+		decoder := json.NewDecoder(w.Body)
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&got); err != nil {
 			t.Fatal(err)
 		}
 		office, _ := domain.LookupOfficeByID(tc.officeID)
 		want, _ := insurance.ListPlans(tc.coverage, office)
-		if got.OfficeID != tc.officeID || got.Coverage != tc.coverage || len(want) == 0 || !reflect.DeepEqual(got.Plans, want) {
+		if got.OfficeID != tc.officeID || got.Coverage != tc.coverage || got.CatalogRevisionID != insurancetest.RevisionID || len(want.Plans) == 0 || !reflect.DeepEqual(got, want) {
 			t.Fatalf("%s: response=%s", tc.key, w.Body.String())
 		}
 	}
@@ -145,7 +144,7 @@ func TestInsurancePlansHTTPContract(t *testing.T) {
 
 func TestInsurancePlansOfficeWithoutTheCoverageReturnsNoPlans(t *testing.T) {
 	w := getInsurancePlans(t, "office=north-miami-beach-optical&coverage=medical", "Bearer test-secret")
-	if w.Code != http.StatusOK || strings.TrimSpace(w.Body.String()) != `{"officeId":"north_miami_beach_optical","coverage":"medical","plans":[]}` {
+	if w.Code != http.StatusOK || strings.TrimSpace(w.Body.String()) != `{"officeId":"north_miami_beach_optical","coverage":"medical","catalogRevisionId":"fixture","plans":[]}` {
 		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
 	}
 }

@@ -1,8 +1,12 @@
 package insurance
 
-import "slices"
+import (
+	"slices"
+	"sync/atomic"
+)
 
 type planList struct {
+	Region     string
 	Table      string
 	Offices    []string
 	Plans      []plan
@@ -33,14 +37,19 @@ type planRequirement struct {
 	Channel string
 }
 
-var catalog = mustLoadCatalog()
+type revision struct {
+	id    string
+	lists []planList
+}
+
+var active atomic.Pointer[revision]
 
 func planNames(p plan) []string {
 	return append([]string{p.Label}, p.Names...)
 }
 
-func listForOffice(officeID string) planList {
-	for _, list := range catalog {
+func (r *revision) listForOffice(officeID string) planList {
+	for _, list := range r.lists {
 		if slices.Contains(list.Offices, officeID) {
 			return list
 		}

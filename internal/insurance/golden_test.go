@@ -91,7 +91,7 @@ func planRows(t *testing.T) string {
 	var b strings.Builder
 	b.WriteString("office\tcoverage\tplanId\toutcome\tcarrierId\trequirements\tadultDoctors\tchildDoctors\treason\tcallerNotice\tanswer\n")
 	forEachOfficeCoverage(t, func(o *domain.OfficeConfig, coverage string) {
-		for _, p := range listForOffice(o.ID).Plans {
+		for _, p := range active.Load().listForOffice(o.ID).Plans {
 			if p.Coverage != coverage {
 				continue
 			}
