@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.7.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.7.0...v8.7.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* **deploy:** pass the Product URL and insurance refresh job to the release build ([#319](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/319)) ([cabf19a](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/cabf19af14f3041720e86aaf0a8a193eb9ba81fc))
+
 ## [8.7.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.6.0...v8.7.0) (2026-10-31)
 
 
