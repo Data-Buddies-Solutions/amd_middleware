@@ -203,8 +203,8 @@ AdvancedMD's `getpatientvisits` lists any completed visit (status `3`), and new
 otherwise. No-shows, cancellations, scheduled visits, and the legacy status `1`
 do not count. If that history cannot be read, the booking fails with
 `write_failed` and nothing is written. An explicit or rescheduled appointment
-type skips the read. `patientStatus` is still accepted but ignored until Abita
-stops sending it.
+type skips the read. Callers do not send `patientStatus`; it is rejected as an
+unknown field.
 
 `POST /api/scheduler/slots` errors preserve the inventory envelope with `slots: []`.
 `invalid_input` requires corrected input and never retries the same search.

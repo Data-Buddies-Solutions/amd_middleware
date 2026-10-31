@@ -25,7 +25,7 @@ func TestExistingPatientListsAndBooksWithoutInsuranceClarification(t *testing.T)
 			if records.DemographicCalls != 0 {
 				t.Fatal("inventory unnecessarily rechecked chart insurance")
 			}
-			booked, err := svc.Book(context.Background(), scheduling.BookCommand{PatientID: "12345", DOB: "01/15/1980", Office: "Crystal River", BookingToken: result.Slots[0].BookingToken, VisitCategory: "medical", PatientStatus: "established", AppointmentReason: "Eye follow-up", ReferringDoctor: "none"})
+			booked, err := svc.Book(context.Background(), scheduling.BookCommand{PatientID: "12345", DOB: "01/15/1980", Office: "Crystal River", BookingToken: result.Slots[0].BookingToken, VisitCategory: "medical", AppointmentReason: "Eye follow-up", ReferringDoctor: "none"})
 			if err != nil || booked.Status != "booked" || len(records.Bookings) != 1 {
 				t.Fatalf("existing patient booking blocked: err=%v result=%+v writes=%d", err, booked, len(records.Bookings))
 			}
@@ -44,7 +44,7 @@ func TestVisionCarrierIdentitySurvivesAvailabilityAndBooking(t *testing.T) {
 	if err != nil || len(available.Slots) == 0 {
 		t.Fatalf("availability: %v %+v", err, available)
 	}
-	command := scheduling.BookCommand{PatientID: "12345", DOB: "01/15/1980", Office: office.DisplayName, BookingToken: available.Slots[0].BookingToken, VisitCategory: "routine_vision", PatientStatus: "new", AppointmentReason: "Routine eye exam", ReferringDoctor: "none"}
+	command := scheduling.BookCommand{PatientID: "12345", DOB: "01/15/1980", Office: office.DisplayName, BookingToken: available.Slots[0].BookingToken, VisitCategory: "routine_vision", AppointmentReason: "Routine eye exam", ReferringDoctor: "none"}
 	chart := records.Demographics["12345"]
 	chart.CarrierName = "Renamed directory label"
 	records.Demographics["12345"] = chart
