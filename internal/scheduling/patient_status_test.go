@@ -19,7 +19,7 @@ func patientStatusRecords() *advancedmdtest.Adapter {
 	return records
 }
 
-func bookMedicalAtCrystalRiver(t *testing.T, records *advancedmdtest.Adapter, sentStatus string) (scheduling.BookReceipt, error) {
+func bookMedicalAtCrystalRiver(t *testing.T, records *advancedmdtest.Adapter) (scheduling.BookReceipt, error) {
 	t.Helper()
 	now := mutationTestNow()
 	svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
@@ -29,7 +29,7 @@ func bookMedicalAtCrystalRiver(t *testing.T, records *advancedmdtest.Adapter, se
 	}
 	return svc.Book(context.Background(), scheduling.BookCommand{
 		PatientID: "12345", DOB: "01/15/1980", Office: "Crystal River", BookingToken: available.Slots[0].BookingToken,
-		VisitCategory: "medical", PatientStatus: sentStatus, AppointmentReason: "Blurry vision", ReferringDoctor: "none",
+		VisitCategory: "medical", AppointmentReason: "Blurry vision", ReferringDoctor: "none",
 	})
 }
 
@@ -42,19 +42,15 @@ func TestBookingClassifiesPatientFromCompletedVisits(t *testing.T) {
 	for _, c := range []struct {
 		name      string
 		completed bool
-		sent      string
 		want      int
 	}{
-		{"never seen though the caller sent established", false, "established", ladder.NewAdult},
-		{"never seen with status omitted", false, "", ladder.NewAdult},
-		{"seen though the caller sent new", true, "new", ladder.EstablishedAdult},
-		{"seen with status omitted", true, "", ladder.EstablishedAdult},
-		{"never seen with an unrecognized status", false, "Established", ladder.NewAdult},
+		{"never seen", false, ladder.NewAdult},
+		{"seen", true, ladder.EstablishedAdult},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			records := patientStatusRecords()
 			records.CompletedVisits["12345"] = c.completed
-			receipt, err := bookMedicalAtCrystalRiver(t, records, c.sent)
+			receipt, err := bookMedicalAtCrystalRiver(t, records)
 			if err != nil || len(records.Bookings) != 1 || receipt.AppointmentTypeID != c.want {
 				t.Fatalf("receipt=%+v err=%v writes=%d, want type %d", receipt, err, len(records.Bookings), c.want)
 			}
@@ -68,7 +64,7 @@ func TestBookingClassifiesPatientFromCompletedVisits(t *testing.T) {
 func TestBookingFailsVisiblyWhenVisitHistoryCannotBeRead(t *testing.T) {
 	records := patientStatusRecords()
 	records.CompletedVisitErrors["12345"] = advancedmd.NewError(safeerrors.CategoryUnavailable)
-	_, err := bookMedicalAtCrystalRiver(t, records, "established")
+	_, err := bookMedicalAtCrystalRiver(t, records)
 	if scheduling.CategoryOf(err) != scheduling.CategoryWriteFailed || !strings.Contains(err.Error(), "Unable to verify patient before booking") {
 		t.Fatalf("error=%v category=%s, want a visible write failure", err, scheduling.CategoryOf(err))
 	}

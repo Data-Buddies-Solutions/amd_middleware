@@ -12,7 +12,7 @@ import (
 	schedulingmodule "advancedmd-token-management/internal/scheduling"
 )
 
-const abitaS2SCommit = "2c97833f3075a24c308a2e01c83f98966358d603"
+const abitaS2SCommit = "35b3afd8384ce56d4e7b43612a0f3070d1f9d430"
 
 var abitaS2SRequestBodies = []struct {
 	name    string
@@ -80,7 +80,7 @@ var abitaS2SRequestBodies = []struct {
 func abitaBookingBody(extra map[string]any) map[string]any {
 	body := map[string]any{
 		"patientId": "12345", "patientName": "DOE,JANE", "dob": "01/15/1980", "bookingToken": "booking-token",
-		"visitCategory": "medical", "patientStatus": "established", "appointmentReason": "Eye follow-up",
+		"visitCategory": "medical", "appointmentReason": "Eye follow-up",
 		"visitReason": "Eye follow-up", "referringDoctor": "Dr. Lee",
 	}
 	for key, value := range extra {
@@ -122,6 +122,7 @@ func TestJSONRoutesRejectUnknownFieldsBeforeTheFeature(t *testing.T) {
 	serverOwnedBookingFields := map[string]any{
 		"visitKind": "post_op", "ageBand": "adult", "isPostOp": true, "insurancePlan": "ignored", "columnId": 999,
 		"profileId": 999, "startDatetime": "2026-06-03T10:00", "duration": 60, "routing": "optical_only",
+		"patientStatus": "established",
 	}
 	for field, value := range serverOwnedBookingFields {
 		rejections = append(rejections,
