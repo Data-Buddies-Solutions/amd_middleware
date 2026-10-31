@@ -29,3 +29,29 @@ func TestBuildImagesUseTheGoModToolchain(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildConfigsPassEverySettingTheDeployScriptRequires(t *testing.T) {
+	script, err := os.ReadFile("scripts/deploy-cloud-run.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	block := regexp.MustCompile(`(?s)request\)\s+for name in \\\n(.*?); do\s+require_value`).FindSubmatch(script)
+	if block == nil {
+		t.Fatal("deploy-cloud-run.sh has no request-mode require_value list")
+	}
+	required := regexp.MustCompile(`[A-Z][A-Z0-9_]+`).FindAll(block[1], -1)
+	if len(required) == 0 {
+		t.Fatal("request-mode require_value list is empty")
+	}
+	for _, file := range []string{"cloudbuild.yaml", "cloudbuild.deploy.yaml"} {
+		config, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, name := range required {
+			if !regexp.MustCompile(`(?m)^\s+- ` + string(name) + `=\S`).Match(config) {
+				t.Errorf("%s does not pass %s, which deploy-cloud-run.sh requires", file, name)
+			}
+		}
+	}
+}
