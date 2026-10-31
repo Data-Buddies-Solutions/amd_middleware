@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"slices"
 	"strconv"
@@ -79,11 +80,22 @@ func TestValidateInsuranceCatalogAcceptsTheFixture(t *testing.T) {
 	}
 }
 
+func TestValidateInsuranceCatalogAcceptsTheV1Fixture(t *testing.T) {
+	v1, err := os.ReadFile("../insurance/testdata/catalog_v1.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	valid := serveCatalogRoute(t, http.MethodPost, "/api/insurance/catalog/validate", v1, "Bearer test-secret")
+	if valid.Code != http.StatusOK || valid.Body.String() != "{\"valid\":true}\n" {
+		t.Fatalf("status=%d body=%q", valid.Code, valid.Body.String())
+	}
+}
+
 func TestValidateInsuranceCatalogRejectsUnknownFields(t *testing.T) {
 	exported := marshal(t, insurancetest.Catalog())
 	for name, body := range map[string][]byte{
 		"top level":  append(bytes.TrimSuffix(exported, []byte("}")), []byte(`,"revision":"r1"}`)...),
-		"plan":       bytes.Replace(exported, []byte(`"selfPay":false,`), []byte(`"selfPay":false,"unexpected":true,`), 1),
+		"plan":       bytes.Replace(exported, []byte(`"carrierId":`), []byte(`"unexpected":true,"carrierId":`), 1),
 		"row":        bytes.Replace(exported, []byte(`"notice":`), []byte(`"unexpected":1,"notice":`), 1),
 		"invalid":    []byte(`{"carriers":`),
 		"wrong type": []byte(`{"carriers":{}}`),
@@ -101,7 +113,6 @@ func TestValidateInsuranceCatalogReturnsEveryError(t *testing.T) {
 	c := insurancetest.Catalog()
 	first := &c.Regions[0].Plans[0]
 	first.Family = ""
-	first.CarrierCode = ""
 	first.CarrierID = "car404"
 	code, got := validateCatalog(t, marshal(t, c))
 	want := []insurance.CatalogError{
@@ -124,6 +135,9 @@ func TestValidateInsuranceCatalogNamesEachBrokenRule(t *testing.T) {
 		change func(t *testing.T, c *catalog)
 	}{
 		{"carrier listed twice", []string{"duplicate_carrier"}, func(t *testing.T, c *catalog) { c.Carriers = append(c.Carriers, c.Carriers[0]) }},
+		{"two carriers with one code", []string{"duplicate_carrier_code"}, func(t *testing.T, c *catalog) {
+			c.Carriers[0].Code, c.Carriers[1].Code = "DUP01", "DUP01"
+		}},
 		{"region listed twice", []string{"duplicate_region"}, func(t *testing.T, c *catalog) { c.Regions = append(c.Regions, c.Regions[0]) }},
 		{"table listed twice", []string{"duplicate_table"}, func(t *testing.T, c *catalog) {
 			springHill(c).Tables = append(springHill(c).Tables, springHill(c).Tables[0])
@@ -192,12 +206,7 @@ func TestValidateInsuranceCatalogNamesEachBrokenRule(t *testing.T) {
 			plans[1].Aliases = append(plans[1].Aliases, plans[0].Label)
 		}},
 		{"unknown carrier", []string{"unknown_carrier"}, func(t *testing.T, c *catalog) {
-			southFlorida(c).Plans[0].CarrierCode = ""
 			southFlorida(c).Plans[0].CarrierID = "car404"
-		}},
-		{"carrier code with two carriers", []string{"carrier_code_conflict"}, func(t *testing.T, c *catalog) {
-			plans := southFlorida(c).Plans
-			plans[1].CarrierCode = plans[0].CarrierCode
 		}},
 		{"plan in no table", []string{"plan_in_no_table"}, func(t *testing.T, c *catalog) {
 			southFlorida(c).Plans = append(southFlorida(c).Plans, insurance.CatalogPlan{ID: "ghost-plan", Label: "Ghost Plan", Family: "Ghost", Coverage: "medical", Aliases: []string{}})
@@ -212,28 +221,28 @@ func TestValidateInsuranceCatalogNamesEachBrokenRule(t *testing.T) {
 			doctors(c).Rows[0].Doctors[doctors(c).Doctors[0]] = "maybe"
 		}},
 		{"accepted plan without a carrier", []string{"accepted_plan_without_carrier"}, func(t *testing.T, c *catalog) {
-			southFlorida(c).Plans[0].CarrierCode = ""
 			southFlorida(c).Plans[0].CarrierID = ""
 		}},
 		{"only office outside the table", []string{"only_office_outside_table"}, func(t *testing.T, c *catalog) {
 			doctors(c).Rows[0].OnlyOffices = []string{"spring_hill"}
 		}},
-		{"unknown requirement", []string{"unknown_requirement"}, func(t *testing.T, c *catalog) {
-			doctors(c).Rows[0].Requires = []insurance.CatalogRequirement{{Kind: "vob_authorization"}}
+		{"unknown before-booking step", []string{"unknown_before_booking"}, func(t *testing.T, c *catalog) {
+			doctors(c).Rows[0].BeforeBooking = "vob_authorization"
 		}},
-		{"two self-pay plans for one coverage", []string{"two_self_pay_plans"}, func(t *testing.T, c *catalog) {
-			southFlorida(c).Plans[0].SelfPay = true
+		{"missing before-booking step", []string{"unknown_before_booking"}, func(t *testing.T, c *catalog) {
+			doctors(c).Rows[0].BeforeBooking = ""
 		}},
-		{"note states an unencoded rule", []string{"note_rule_not_encoded"}, func(t *testing.T, c *catalog) {
-			doctors(c).Rows[0].Note = "Requires referral from the PCP"
+		{"self-pay plan IDs on the other coverage", []string{"self_pay_coverage"}, func(t *testing.T, c *catalog) {
+			for _, region := range []*insurance.CatalogRegion{southFlorida(c), springHill(c)} {
+				findPlan(t, region, "self-pay-medical").Coverage = "routine_vision"
+				findPlan(t, region, "self-pay-routine-vision").Coverage = "medical"
+			}
 		}},
 		{"name decides another plan", []string{"name_does_not_resolve"}, func(t *testing.T, c *catalog) {
 			southFlorida(c).Plans[0].Aliases = append(southFlorida(c).Plans[0].Aliases, "Medicade")
 		}},
 		{"office without an accepted self-pay plan", []string{"no_accepted_self_pay"}, func(t *testing.T, c *catalog) {
-			for i := range southFlorida(c).Plans {
-				southFlorida(c).Plans[i].SelfPay = false
-			}
+			renamePlan(southFlorida(c), "self-pay-medical", "cash-medical")
 		}},
 		{"known phrasing decides the plan it contradicts", []string{"contradicted_phrasing"}, func(t *testing.T, c *catalog) {
 			plan := findPlan(t, southFlorida(c), "staywell-medicare-medical")

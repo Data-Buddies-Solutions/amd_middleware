@@ -123,7 +123,7 @@ func TestRefreshKeepsServingTheCurrentRevisionOnFailure(t *testing.T) {
 	a := fixtureCatalog(t)
 	invalid := withoutPlan(t, a, removedPlan)
 	invalid.Regions[0].Plans[0].Family = ""
-	unknownField := bytes.Replace(catalogJSON(t, a), []byte(`"selfPay":false,`), []byte(`"selfPay":false,"extra":1,`), 1)
+	unknownField := bytes.Replace(catalogJSON(t, a), []byte(`"carrierId":`), []byte(`"extra":1,"carrierId":`), 1)
 	tests := []struct {
 		name     string
 		read     CatalogReader

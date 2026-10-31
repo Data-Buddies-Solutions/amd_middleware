@@ -128,7 +128,7 @@ hollywood	medical	avmed-engage	needs_staff_task	car40890	pcp_referral	Dr. Bach	D
 hollywood	medical	avmed-entrust-medical	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
 hollywood	medical	careplus-medicare-medical	needs_staff_task	car281317	prior_authorization	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires prior authorization before scheduling.
 hollywood	medical	childrens-medical-services-medical	accepted	car281245		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Children's Medical Services.
-hollywood	medical	cigna-hmo	needs_staff_task	car301345	pcp_referral,staff_verify	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
+hollywood	medical	cigna-hmo	needs_staff_task	car301345	staff_verify	Dr. Bach	Dr. Bach	requirement		blocked: The office needs to verify this plan's coverage before scheduling.
 hollywood	medical	cigna-florida-connect-epo	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
 hollywood	medical	cigna-local-plus-non-par	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
 hollywood	medical	cigna-sure-fit	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
@@ -505,7 +505,7 @@ sweetwater	medical	avmed-engage	needs_staff_task	car40890	pcp_referral	Dr. Bach	
 sweetwater	medical	avmed-entrust-medical	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
 sweetwater	medical	careplus-medicare-medical	not_accepted	car281317	prior_authorization			not_accepted		blocked: This plan is not accepted for this visit type at this office.
 sweetwater	medical	childrens-medical-services-medical	accepted	car281245		Dr. Bach	Dr. Bach	accepted		success: Yes, we accept Children's Medical Services.
-sweetwater	medical	cigna-hmo	needs_staff_task	car301345	pcp_referral,staff_verify	Dr. Bach	Dr. Bach	requirement		blocked: This plan requires a referral from your primary care doctor before scheduling.
+sweetwater	medical	cigna-hmo	needs_staff_task	car301345	staff_verify	Dr. Bach	Dr. Bach	requirement		blocked: The office needs to verify this plan's coverage before scheduling.
 sweetwater	medical	cigna-florida-connect-epo	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
 sweetwater	medical	cigna-local-plus-non-par	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.
 sweetwater	medical	cigna-sure-fit	not_accepted					not_accepted	You can be seen as self-pay.	blocked: This plan is not accepted for this visit type at this office. You can be seen as self-pay.

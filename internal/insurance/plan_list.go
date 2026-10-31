@@ -22,7 +22,6 @@ type PlanSummary struct {
 	AllowedProviders []string `json:"allowedProviders"`
 	Requirements     []string `json:"requirements"`
 	CallerNotice     string   `json:"callerNotice"`
-	Note             string   `json:"note"`
 	AcceptedAt       []string `json:"acceptedAt"`
 }
 
@@ -52,7 +51,7 @@ func ListPlans(coverage string, office *domain.OfficeConfig) (PlanList, bool) {
 			PlanID:           p.ID,
 			Label:            p.Label,
 			Family:           p.Family,
-			SelfPay:          p.SelfPay,
+			SelfPay:          p.selfPay(),
 			Names:            append([]string{}, p.Names...),
 			CarrierCode:      p.CarrierCode,
 			CarrierID:        p.CarrierID,
@@ -61,7 +60,6 @@ func ListPlans(coverage string, office *domain.OfficeConfig) (PlanList, bool) {
 			AllowedProviders: d.AllowedProviders,
 			Requirements:     []string{},
 			CallerNotice:     p.CallerNotice,
-			Note:             p.Note,
 			AcceptedAt:       []string{},
 		}
 		for _, r := range d.Requirements {

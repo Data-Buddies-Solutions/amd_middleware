@@ -97,7 +97,7 @@ func TestListPlansNamesOfficesThatAcceptAMiamiDadeOnlyPlan(t *testing.T) {
 	if hollywood.Outcome != "not_accepted" || !slices.Equal(hollywood.AcceptedAt, []string{"Sweetwater"}) {
 		t.Fatalf("hollywood = %+v", hollywood)
 	}
-	if hollywood.CarrierName != "ICARE HEALTH OPTIONS TPA" || hollywood.Family != "Aetna" || hollywood.Note == "" || slices.Contains(hollywood.Names, hollywood.Label) {
+	if hollywood.CarrierName != "ICARE HEALTH OPTIONS TPA" || hollywood.Family != "Aetna" || slices.Contains(hollywood.Names, hollywood.Label) {
 		t.Fatalf("hollywood = %+v", hollywood)
 	}
 	sweetwater := findPlan(t, "sweetwater", "aetna-better-health-medicaid-medical")
@@ -144,12 +144,12 @@ func TestListPlansEncodesEveryFieldEvenWhenEmpty(t *testing.T) {
 	if err := json.Unmarshal(b, &fields); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"planId", "label", "family", "selfPay", "names", "carrierCode", "carrierId", "carrierName", "outcome", "allowedProviders", "requirements", "callerNotice", "note", "acceptedAt"} {
+	for _, key := range []string{"planId", "label", "family", "selfPay", "names", "carrierCode", "carrierId", "carrierName", "outcome", "allowedProviders", "requirements", "callerNotice", "acceptedAt"} {
 		if _, ok := fields[key]; !ok {
 			t.Fatalf("missing %s in %s", key, b)
 		}
 	}
-	if len(fields) != 14 {
+	if len(fields) != 13 {
 		t.Fatalf("unexpected fields in %s", b)
 	}
 	for _, s := range summaries {

@@ -13,10 +13,11 @@ func decidePlanAtOffice(p plan, office *domain.OfficeConfig, dob string, asOf ti
 	d.CanonicalPlan = p.Label
 	d.CarrierCode = p.CarrierCode
 	d.CarrierID = p.CarrierID
-	d.SelfPay = p.SelfPay
+	d.SelfPay = p.selfPay()
 	d.CallerNotice = p.CallerNotice
-	for _, r := range p.Requirements {
-		d.Requirements = append(d.Requirements, InsuranceRequirement{Kind: r.Kind, Channel: r.Channel, Verification: "unverified"})
+	blockedAnswer, blocked := blockedBeforeBooking[p.BeforeBooking]
+	if blocked {
+		d.Requirements = append(d.Requirements, InsuranceRequirement{Kind: string(p.BeforeBooking), Verification: "unverified"})
 	}
 	if len(p.OnlyOffices) > 0 && !slices.Contains(p.OnlyOffices, office.ID) {
 		return notAccepted(d)
@@ -39,9 +40,9 @@ func decidePlanAtOffice(p plan, office *domain.OfficeConfig, dob string, asOf ti
 		d.Answer = withNotice(answerNoDoctorForAge, d.CallerNotice)
 		return d
 	}
-	if len(p.Requirements) > 0 {
+	if blocked {
 		d.Reason = "requirement"
-		d.Answer = withNotice(requirementAnswer(p.Requirements[0].Kind), d.CallerNotice)
+		d.Answer = withNotice(blockedAnswer, d.CallerNotice)
 		return d
 	}
 	d.Outcome = "accepted"
@@ -97,16 +98,6 @@ func notAccepted(d InsuranceDecision) InsuranceDecision {
 	d.Reason = "not_accepted"
 	d.Answer = withNotice(answerNotAccepted, d.CallerNotice)
 	return d
-}
-
-func requirementAnswer(kind string) string {
-	switch kind {
-	case "pcp_referral":
-		return answerReferral
-	case "staff_verify":
-		return answerStaffVerify
-	}
-	return answerPriorAuth
 }
 
 func withNotice(answer, notice string) string {

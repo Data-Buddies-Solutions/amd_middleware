@@ -261,16 +261,28 @@ restart while Product is down for longer than the 18 second startup retry leaves
 the new instance unable to start, so the service is not ready until Product
 answers. That is an accepted risk.
 
-An `InsuranceCatalog` lists the AdvancedMD `carriers` and one entry per region. A
-region's `plans` define each plan once: a stable `id`, a caller-facing `label`, the
-`family` a caller would name the insurer by (`Aetna`, `Florida Blue`, `Self Pay`), a
-`coverage` (`medical` or `routine_vision`), its AdvancedMD `carrierCode` and
-`carrierId`, `selfPay`, and the `aliases` a caller might say. A region's `tables`
-mirror the office sheets. Each table names its `offices` and its `doctors`, and has
-one row per plan the sheet includes, with a `yes`, `no` or `pending` value per doctor,
-then `requires` (a `kind` with an optional `channel`), `onlyOffices`, the caller
-`notice`, and the sheet's `note`. Every empty list is `[]`. Decoding is strict, so an
-unknown field is rejected.
+An `InsuranceCatalog` lists the AdvancedMD `carriers` (`id`, `code`, which may be
+empty, and `name`) and one entry per region. A region's `plans` define each plan
+once: a stable `id`, a caller-facing `label`, the `family` a caller would name the
+insurer by (`Aetna`, `Florida Blue`, `Self Pay`), a `coverage` (`medical` or
+`routine_vision`), its AdvancedMD `carrierId`, and the `aliases` a caller might say.
+A plan's carrier code comes from its carrier. The plan with ID `self-pay-medical`
+is the self-pay plan for `medical`, and `self-pay-routine-vision` is the self-pay
+plan for `routine_vision`. A region's `tables` mirror the office sheets. Each table
+names its `offices` and its `doctors`, and has one row per plan the sheet includes,
+with a `yes`, `no` or `pending` value per doctor, then `beforeBooking` (`none`,
+`pcp_referral`, `prior_authorization`, or `staff_verify`), `onlyOffices`, and the
+caller `notice`. Every empty list is `[]`. Decoding is strict, so an unknown field
+is rejected.
+
+This is catalog v2. Until Product stores only v2, the middleware also accepts the v1
+shape, in which plans carry `carrierCode` and `selfPay` and rows carry `requires` and
+`note`. A body that is not strict v2 is decoded as strict v1 and converted in memory
+([internal/insurance/legacy_catalog.go](internal/insurance/legacy_catalog.go)): a
+carrier's `code` is the most common non-empty `carrierCode` of its plans (ties go to
+the lexically first), `beforeBooking` is `staff_verify` when any requirement is, else
+the first requirement's `kind`, else `none`, and `selfPay`, `channel` and `note` are
+dropped. Refresh and the validate route share this one decode.
 
 Tests decide from one frozen fixture,
 [internal/insurance/testdata/catalog.json](internal/insurance/testdata/catalog.json),
@@ -281,6 +293,13 @@ medical reference (2026-07-07, AMD directory verified 2026-09-17) and the Spring
 routine vision list. `insurancetest.Install` installs the fixture as revision
 `fixture` through the same parser a refresh uses. Change the fixture only to test a
 rule. A plan change callers should hear is a Portal publish.
+
+While v1 is accepted, the fixture is generated: `catalog_v1.json` is revision 1 as
+Product stored it, and `go test ./internal/insurance -run V2FixtureIsTheConvertedV1Fixture -update`
+writes its conversion to `catalog.json`. `catalog_v1_decisions.jsonl.gz` records
+every plan's list entry and adult and child decisions at every office, as the
+middleware decided revision 1 before v2. A test decides the v1 fixture through
+refresh and requires the same results, apart from what v2 changes on purpose.
 
 `POST /api/insurance/catalog/validate` is the only judge of a candidate: it parses
 it the way a refresh does and returns every error as `{region, table, planId, rule, message}`,
@@ -306,13 +325,11 @@ with empty strings where a field does not apply. A body that is not an
   was the only one taking self-pay. A refresh refuses those like any other error.
 - Plans: `invalid_plan_id`, `duplicate_plan`, `plan_id_reused`, `invalid_family`,
   `unknown_coverage`, `filler_only_name`, `repeated_name`, `name_conflict`,
-  `unknown_carrier`, `carrier_code_conflict`, `invalid_doctor_value`,
-  `accepted_plan_without_carrier`, `only_office_outside_table`,
-  `unknown_requirement`, `two_self_pay_plans`.
-- Data quality: `note_rule_not_encoded` (a note uses one of the sheet's known rule
-  phrasings, such as staff check, Dr. Bach only, referral, prior authorization, or
-  office limit, that the row doesn't encode; it can't read every possible wording, so
-  review new notes too), `name_does_not_resolve` (each plan name must decide its own
+  `unknown_carrier`, `duplicate_carrier_code` (two carriers share a non-empty `code`),
+  `self_pay_coverage` (a self-pay plan ID on the other coverage),
+  `invalid_doctor_value`, `accepted_plan_without_carrier`,
+  `only_office_outside_table`, `unknown_before_booking`.
+- Data quality: `name_does_not_resolve` (each plan name must decide its own
   plan at each of its offices), `no_accepted_self_pay` (each office's supported
   coverage has an accepted self-pay plan), and `contradicted_phrasing` (known caller
   phrasings, such as "Staywell Medicaid", never decide the plan they contradict).
@@ -430,7 +447,7 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/add-patient` | Create a patient and attach primary insurance | `patient.Create` |
 | `POST /api/patient/update-insurance` | Replace primary insurance | `patient.UpdateInsurance` |
 | `POST /api/insurance/decision` | Decide plan participation for an office from the caller's answer, matching offered plans first, or the office's self-pay plan when `selfPay` is set | `insurance.DecideOfferedAnswer`, `insurance.DecideSelfPay` |
-| `GET /api/insurance/plans?office=&coverage=` | List an office's plans for one coverage with each plan's family, self-pay flag, decision, carrier, sheet note, and other offices on the same insurance list that accept it, plus the `catalogRevisionId` every plan was decided from (read-only) | `insurance.ListPlans` |
+| `GET /api/insurance/plans?office=&coverage=` | List an office's plans for one coverage with each plan's family, self-pay flag, decision, carrier, caller notice, and other offices on the same insurance list that accept it, plus the `catalogRevisionId` every plan was decided from (read-only) | `insurance.ListPlans` |
 | `POST /api/insurance/catalog/validate` | Judge a candidate `InsuranceCatalog`: `200 {"valid": true}`, or `400 {"valid": false, "errors": [...]}` with every rule it breaks | `insurance.ValidateCatalog` |
 | `POST /api/scheduler/slots` | List openings as an inventory envelope | `scheduling.List` |
 | `POST /api/appointment/book` | Revalidate and book a signed slot | `scheduling.Book` |

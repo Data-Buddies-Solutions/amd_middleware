@@ -1,9 +1,7 @@
 package insurance
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"log"
 
 	"advancedmd-token-management/internal/safeerrors"
@@ -32,8 +30,8 @@ func readRevision(ctx context.Context, read CatalogReader, current *revision) (*
 	if current != nil && current.id == id {
 		return nil, nil
 	}
-	var source InsuranceCatalog
-	if err := decodeStrictJSON(body, &source); err != nil {
+	source, err := DecodeCatalog(body)
+	if err != nil {
 		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "revision %s is not an InsuranceCatalog: %v", id, err)
 	}
 	lists, errs, drift := parseCatalog(source)
@@ -53,10 +51,4 @@ func revisionID(r *revision) string {
 		return "none"
 	}
 	return r.id
-}
-
-func decodeStrictJSON(b []byte, v any) error {
-	decoder := json.NewDecoder(bytes.NewReader(b))
-	decoder.DisallowUnknownFields()
-	return decoder.Decode(v)
 }

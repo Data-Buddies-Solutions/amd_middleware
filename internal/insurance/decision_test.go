@@ -22,9 +22,9 @@ func springHillPlans() []plan {
 		{ID: "all-three", Label: "All Three", Family: "All Three", Coverage: "medical", CarrierID: "car1", Doctors: map[string]string{"Dr. Austin Bach": "yes", "Dr. Joseph Licht": "yes", "Dr. Noel": "yes"}},
 		{ID: "licht-only", Label: "Licht Only", Family: "Licht Only", Coverage: "medical", CarrierID: "car2", Doctors: map[string]string{"Dr. Joseph Licht": "yes", "Dr. Noel": "no"}},
 		{ID: "pending-plan", Label: "Pending Plan", Family: "Pending Plan", Coverage: "medical", CarrierID: "car3", Doctors: map[string]string{"Dr. Austin Bach": "pending"}, CallerNotice: "Staff will call you back."},
-		{ID: "prior-auth-plan", Label: "Prior Auth Plan", Family: "Prior Auth Plan", Coverage: "medical", CarrierID: "car4", Doctors: bach("yes"), Requirements: []planRequirement{{Kind: "prior_authorization", Channel: "availity"}}},
-		{ID: "referral-plan", Label: "Referral Plan", Family: "Referral Plan", Coverage: "medical", CarrierID: "car5", Doctors: bach("yes"), Requirements: []planRequirement{{Kind: "pcp_referral"}}},
-		{ID: "verify-plan", Label: "Verify Plan", Family: "Verify Plan", Coverage: "medical", CarrierID: "car5", Doctors: bach("yes"), Requirements: []planRequirement{{Kind: "staff_verify"}}},
+		{ID: "prior-auth-plan", Label: "Prior Auth Plan", Family: "Prior Auth Plan", Coverage: "medical", CarrierID: "car4", Doctors: bach("yes"), BeforeBooking: BeforeBookingPriorAuthorization},
+		{ID: "referral-plan", Label: "Referral Plan", Family: "Referral Plan", Coverage: "medical", CarrierID: "car5", Doctors: bach("yes"), BeforeBooking: BeforeBookingPCPReferral},
+		{ID: "verify-plan", Label: "Verify Plan", Family: "Verify Plan", Coverage: "medical", CarrierID: "car5", Doctors: bach("yes"), BeforeBooking: BeforeBookingStaffVerify},
 		{ID: "otero-vision", Label: "Otero Vision", Family: "Otero Vision", Coverage: "routine_vision", CarrierID: "car1", Doctors: map[string]string{"Dr. Melissa Otero": "yes"}, CallerNotice: "Bring your card."},
 	}
 }
@@ -90,7 +90,7 @@ func TestDecidePlanSendsPendingAndRequirementsToStaff(t *testing.T) {
 	}
 
 	auth := DecidePlan("prior-auth-plan", "medical", springHill, adultDOB, testNow)
-	want := []InsuranceRequirement{{Kind: "prior_authorization", Channel: "availity", Verification: "unverified"}}
+	want := []InsuranceRequirement{{Kind: "prior_authorization", Verification: "unverified"}}
 	if auth.Outcome != "needs_staff_task" || auth.Participation != "accepted" || auth.CanSchedule ||
 		!slices.Equal(auth.Requirements, want) || auth.Answer != answerPriorAuth {
 		t.Fatalf("prior auth = %+v", auth)
@@ -136,7 +136,7 @@ func TestDecidePlanRequiresThePlanInTheOfficeListAndCoverage(t *testing.T) {
 func TestDecideSelfPayWithoutASelfPayPlanIsNotAccepted(t *testing.T) {
 	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
 	hollywood := office(t, "hollywood")
-	if d := DecideSelfPay("medical", hollywood, adultDOB, testNow); !reflect.DeepEqual(d, DecidePlan("self-pay", "medical", hollywood, adultDOB, testNow)) || !d.SelfPay {
+	if d := DecideSelfPay("medical", hollywood, adultDOB, testNow); !reflect.DeepEqual(d, DecidePlan("self-pay-medical", "medical", hollywood, adultDOB, testNow)) || !d.SelfPay {
 		t.Fatalf("hollywood medical = %+v", d)
 	}
 	if d := DecideSelfPay("routine_vision", hollywood, adultDOB, testNow); d.Outcome != "not_accepted" || d.CanSchedule || d.PlanID != "" || d.Answer != answerNoSelfPay {

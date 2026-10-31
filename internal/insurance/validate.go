@@ -12,6 +12,7 @@ import (
 
 const (
 	ruleDuplicateCarrier       CatalogRule = "duplicate_carrier"
+	ruleDuplicateCarrierCode   CatalogRule = "duplicate_carrier_code"
 	ruleDuplicateRegion        CatalogRule = "duplicate_region"
 	ruleDuplicateTable         CatalogRule = "duplicate_table"
 	ruleTableWithoutOffices    CatalogRule = "table_without_offices"
@@ -30,16 +31,14 @@ const (
 	ruleRepeatedName           CatalogRule = "repeated_name"
 	ruleNameConflict           CatalogRule = "name_conflict"
 	ruleUnknownCarrier         CatalogRule = "unknown_carrier"
-	ruleCarrierCodeConflict    CatalogRule = "carrier_code_conflict"
+	ruleSelfPayCoverage        CatalogRule = "self_pay_coverage"
 	rulePlanInNoTable          CatalogRule = "plan_in_no_table"
 	ruleUnknownPlan            CatalogRule = "unknown_plan"
 	ruleDuplicateRow           CatalogRule = "duplicate_row"
 	ruleInvalidDoctorValue     CatalogRule = "invalid_doctor_value"
 	ruleAcceptedWithoutCarrier CatalogRule = "accepted_plan_without_carrier"
 	ruleOnlyOfficeOutsideTable CatalogRule = "only_office_outside_table"
-	ruleUnknownRequirement     CatalogRule = "unknown_requirement"
-	ruleTwoSelfPayPlans        CatalogRule = "two_self_pay_plans"
-	ruleNoteRuleNotEncoded     CatalogRule = "note_rule_not_encoded"
+	ruleUnknownBeforeBooking   CatalogRule = "unknown_before_booking"
 	ruleNameDoesNotResolve     CatalogRule = "name_does_not_resolve"
 	ruleNoAcceptedSelfPay      CatalogRule = "no_accepted_self_pay"
 	ruleContradictedPhrasing   CatalogRule = "contradicted_phrasing"
@@ -77,9 +76,8 @@ func readPlanLists(source InsuranceCatalog) ([]planList, []CatalogError, []Catal
 	c.officeTables(regions)
 	lists := []planList{}
 	planByID := map[string]plan{}
-	carrierForCode := map[string]string{}
 	for _, region := range regions {
-		plans := c.regionPlans(region, carriers, planByID, carrierForCode)
+		plans := c.regionPlans(region, carriers, planByID)
 		used := map[string]bool{}
 		for _, table := range region.Tables {
 			list := c.table(region.ID, table, plans, used)
@@ -94,20 +92,28 @@ func readPlanLists(source InsuranceCatalog) ([]planList, []CatalogError, []Catal
 			}
 		}
 	}
-	c.notes(lists)
 	return lists, c.errs, c.doctorColumnDrift
 }
 
-func (c *catalogCheck) carriers(carriers []CatalogCarrier) map[string]string {
-	names := map[string]string{}
+func (c *catalogCheck) carriers(carriers []CatalogCarrier) map[string]CatalogCarrier {
+	byID := map[string]CatalogCarrier{}
+	idForCode := map[string]string{}
 	for _, carrier := range carriers {
-		if _, ok := names[carrier.ID]; ok {
+		if _, ok := byID[carrier.ID]; ok {
 			c.fail("", "", "", ruleDuplicateCarrier, "carrier %s is listed twice", carrier.ID)
 			continue
 		}
-		names[carrier.ID] = carrier.Name
+		byID[carrier.ID] = carrier
+		if carrier.Code == "" {
+			continue
+		}
+		if other, ok := idForCode[carrier.Code]; ok {
+			c.fail("", "", "", ruleDuplicateCarrierCode, "carriers %s and %s both have code %s", other, carrier.ID, carrier.Code)
+			continue
+		}
+		idForCode[carrier.Code] = carrier.ID
 	}
-	return names
+	return byID
 }
 
 func (c *catalogCheck) distinctRegions(regions []CatalogRegion) []CatalogRegion {
@@ -162,10 +168,11 @@ func (c *catalogCheck) officeTables(regions []CatalogRegion) {
 	}
 }
 
-func (c *catalogCheck) regionPlans(region CatalogRegion, carriers map[string]string, planByID map[string]plan, carrierForCode map[string]string) map[string]plan {
+func (c *catalogCheck) regionPlans(region CatalogRegion, carriers map[string]CatalogCarrier, planByID map[string]plan) map[string]plan {
 	plans := map[string]plan{}
 	for _, source := range region.Plans {
-		p := plan{ID: source.ID, Label: source.Label, Family: source.Family, Coverage: source.Coverage, Names: source.Aliases, CarrierCode: source.CarrierCode, CarrierID: source.CarrierID, CarrierName: carriers[source.CarrierID], SelfPay: source.SelfPay}
+		carrier := carriers[source.CarrierID]
+		p := plan{ID: source.ID, Label: source.Label, Family: source.Family, Coverage: source.Coverage, Names: source.Aliases, CarrierCode: carrier.Code, CarrierID: source.CarrierID, CarrierName: carrier.Name}
 		if _, ok := plans[p.ID]; ok {
 			c.fail(region.ID, "", p.ID, ruleDuplicatePlan, "plan id is listed twice")
 			continue
@@ -176,19 +183,11 @@ func (c *catalogCheck) regionPlans(region CatalogRegion, carriers map[string]str
 			c.fail(region.ID, "", p.ID, rulePlanIDReused, "plan id is used by another region for a different plan")
 		}
 		planByID[p.ID] = p
-		if p.CarrierCode == "" {
-			continue
-		}
-		if id, ok := carrierForCode[p.CarrierCode]; ok && id != p.CarrierID {
-			c.fail(region.ID, "", p.ID, ruleCarrierCodeConflict, "carrier code %s maps to %s and %s", p.CarrierCode, id, p.CarrierID)
-			continue
-		}
-		carrierForCode[p.CarrierCode] = p.CarrierID
 	}
 	return plans
 }
 
-func (c *catalogCheck) plan(region string, p plan, carriers map[string]string) {
+func (c *catalogCheck) plan(region string, p plan, carriers map[string]CatalogCarrier) {
 	fail := func(rule CatalogRule, format string, args ...any) { c.fail(region, "", p.ID, rule, format, args...) }
 	if !planIDPattern.MatchString(p.ID) {
 		fail(ruleInvalidPlanID, "id %q must be lowercase kebab case", p.ID)
@@ -198,6 +197,11 @@ func (c *catalogCheck) plan(region string, p plan, carriers map[string]string) {
 	}
 	if p.Coverage != "medical" && p.Coverage != "routine_vision" {
 		fail(ruleUnknownCoverage, "unknown coverage %q", p.Coverage)
+	}
+	for coverage, id := range selfPayPlanIDs {
+		if p.ID == id && p.Coverage != coverage {
+			fail(ruleSelfPayCoverage, "%s is the self-pay plan for %s, not %s", id, coverage, p.Coverage)
+		}
 	}
 	repeated := map[string]bool{}
 	for _, name := range planNames(p) {
@@ -212,7 +216,7 @@ func (c *catalogCheck) plan(region string, p plan, carriers map[string]string) {
 		}
 		repeated[key] = true
 	}
-	if p.CarrierID != "" && carriers[p.CarrierID] == "" {
+	if _, ok := carriers[p.CarrierID]; p.CarrierID != "" && !ok {
 		fail(ruleUnknownCarrier, "carrierId %s is not in carriers", p.CarrierID)
 	}
 }
@@ -257,16 +261,13 @@ func (c *catalogCheck) table(region string, source CatalogTable, plans map[strin
 				fail(ruleOnlyOfficeOutsideTable, "onlyOffices has %q, which is not an office of this table", office)
 			}
 		}
-		for _, r := range row.Requires {
-			if r.Kind != "prior_authorization" && r.Kind != "pcp_referral" && r.Kind != "staff_verify" {
-				fail(ruleUnknownRequirement, "unknown requirement %q", r.Kind)
-			}
-			p.Requirements = append(p.Requirements, planRequirement{Kind: r.Kind, Channel: r.Channel})
+		if _, blocks := blockedBeforeBooking[row.BeforeBooking]; !blocks && row.BeforeBooking != BeforeBookingNone {
+			fail(ruleUnknownBeforeBooking, "beforeBooking %q is not none, pcp_referral, prior_authorization, or staff_verify", row.BeforeBooking)
 		}
 		p.Doctors = row.Doctors
 		p.OnlyOffices = row.OnlyOffices
+		p.BeforeBooking = row.BeforeBooking
 		p.CallerNotice = row.Notice
-		p.Note = row.Note
 		list.Plans = append(list.Plans, p)
 	}
 	return list
@@ -309,15 +310,7 @@ func (c *catalogCheck) doctorColumns(region string, table CatalogTable) {
 
 func (c *catalogCheck) tableNames(list planList) {
 	owners := map[string]string{}
-	selfPay := map[string]string{}
 	for _, p := range list.Plans {
-		if p.SelfPay {
-			if other, ok := selfPay[p.Coverage]; ok {
-				c.fail(list.Region, list.Table, p.ID, ruleTwoSelfPayPlans, "%s and %s are both self-pay plans for %s", other, p.ID, p.Coverage)
-			} else {
-				selfPay[p.Coverage] = p.ID
-			}
-		}
 		for _, name := range p.nameTokens {
 			if len(name) == 0 {
 				continue

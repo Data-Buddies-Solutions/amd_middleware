@@ -21,7 +21,7 @@ func TestDecideInsuranceMatchesWhatTheCallerSaid(t *testing.T) {
 		{"extra words", "I have Aetna Better Health through my job", "accepted", "aetna-better-health"},
 		{"fragment shared by plans that end the same", "Aetna Better", "accepted", "aetna-better-health"},
 		{"fuzzy fragment", "Aetna Medicaree", "accepted", "aetna-medicare"},
-		{"self pay", "cash", "accepted", "self-pay"},
+		{"self pay", "cash", "accepted", "self-pay-medical"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
