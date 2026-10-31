@@ -198,6 +198,14 @@ Booking and rescheduling obtain column, profile, start, duration, and routing
 from the verified `bookingToken`. Those fields and `insurancePlan` are no longer
 part of the booking request contract and are rejected as unknown fields.
 
+Booking decides new versus established itself: the patient is established when
+AdvancedMD's `getpatientvisits` lists any completed visit (status `3`), and new
+otherwise. No-shows, cancellations, scheduled visits, and the legacy status `1`
+do not count. If that history cannot be read, the booking fails with
+`write_failed` and nothing is written. An explicit or rescheduled appointment
+type skips the read. `patientStatus` is still accepted but ignored until Abita
+stops sending it.
+
 `POST /api/scheduler/slots` errors preserve the inventory envelope with `slots: []`.
 `invalid_input` requires corrected input and never retries the same search.
 `availability_search_incomplete` is a read failure, permits one retry, and then

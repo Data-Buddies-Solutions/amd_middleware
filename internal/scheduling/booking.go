@@ -76,6 +76,7 @@ type bookingContext struct {
 	office                   *domain.OfficeConfig
 	token                    SlotPolicy
 	preservedAppointmentType int
+	patientStatus            string
 	asOf                     time.Time
 }
 
@@ -121,6 +122,9 @@ func (s *service) book(ctx context.Context, booking bookingContext) (BookReceipt
 
 func (s *service) prepareBooking(ctx context.Context, booking bookingContext) (preparedBooking, error) {
 	if err := s.verifyBookingPatient(ctx, &booking); err != nil {
+		return preparedBooking{}, err
+	}
+	if err := s.classifyBookingPatient(ctx, &booking); err != nil {
 		return preparedBooking{}, err
 	}
 	policy, decision, comments, err := applyBookingPolicy(&booking)
@@ -205,9 +209,6 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 	if (command.VisitCategory != "" || command.AppointmentTypeID == 0) && command.VisitCategory != domain.AppointmentVisitMedical && command.VisitCategory != domain.AppointmentVisitRoutineVision {
 		return bookingContext{}, schedulingError("visitCategory must be medical or routine_vision")
 	}
-	if (command.PatientStatus != "" || command.AppointmentTypeID == 0) && command.PatientStatus != domain.AppointmentPatientNew && command.PatientStatus != domain.AppointmentPatientEstablished {
-		return bookingContext{}, schedulingError("patientStatus must be new or established")
-	}
 	return booking, nil
 }
 
@@ -237,6 +238,25 @@ func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingCont
 	return nil
 }
 
+func (s *service) classifyBookingPatient(ctx context.Context, booking *bookingContext) error {
+	if booking.command.AppointmentTypeID != 0 {
+		return nil
+	}
+	seen, err := s.records.HasCompletedVisit(ctx, string(booking.patientID))
+	if err != nil {
+		return categorizedProviderError(
+			CategoryWriteFailed,
+			providerCategory(err),
+			"Unable to verify patient before booking. Please try again.",
+		)
+	}
+	booking.patientStatus = domain.AppointmentPatientNew
+	if seen {
+		booking.patientStatus = domain.AppointmentPatientEstablished
+	}
+	return nil
+}
+
 func applyBookingPolicy(booking *bookingContext) (
 	schedulingPolicy,
 	bookingPolicyDecision,
@@ -260,7 +280,7 @@ func applyBookingPolicy(booking *bookingContext) (
 		DOB:               string(booking.dob),
 		Intent: appointmentIntent{
 			VisitCategory: command.VisitCategory,
-			PatientStatus: command.PatientStatus,
+			PatientStatus: booking.patientStatus,
 			DOB:           string(booking.dob),
 			VisitReason:   command.VisitReason,
 		},

@@ -237,6 +237,11 @@ func (r pinRecords) ReadPatientAppointments(_ context.Context, query domain.Pati
 	return pinAppointmentRead(query.PatientID), nil
 }
 
+func (r pinRecords) HasCompletedVisit(ctx context.Context, patientID string) (bool, error) {
+	r.calls.record("completed-visits patient=%q", patientID)
+	return r.amd.HasCompletedVisit(ctx, patientID)
+}
+
 func (r pinRecords) ReadPatientAppointmentsForDay(_ context.Context, query advancedmd.AppointmentDayQuery) (advancedmd.AppointmentRead, error) {
 	r.calls.record("appointment-day patient=%q", query.PatientID)
 	return pinAppointmentRead(query.PatientID), nil

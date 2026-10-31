@@ -21,7 +21,10 @@ import (
 
 var eastern = domain.EasternLocation()
 
-const scheduledVisitStatus = "0"
+const (
+	scheduledVisitStatus = "0"
+	completedVisitStatus = "3"
+)
 
 type Adapter struct {
 	session    session.Session
@@ -244,6 +247,20 @@ func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.Pati
 	normalizePatientAppointments(&read)
 	read.ProviderReads = providerReads
 	return read, nil
+}
+
+func (a *Adapter) HasCompletedVisit(ctx context.Context, patientID string) (bool, error) {
+	token, err := a.token(ctx)
+	if err != nil {
+		return false, err
+	}
+	visits, err := a.xmlClient.GetPatientVisits(ctx, token, patientID)
+	if err != nil {
+		return false, a.classify(token, err)
+	}
+	return slices.ContainsFunc(visits, func(visit clients.PatientVisit) bool {
+		return visit.Status == completedVisitStatus
+	}), nil
 }
 
 func appendUnmappedVisits(read *AppointmentRead, scheduled []clients.PatientVisit) {
