@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.7.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.7.1...v8.7.2) (2026-10-31)
+
+
+### Bug Fixes
+
+* **scheduling:** decide new vs established from completed AdvancedMD visits ([#314](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/314)) ([42cca14](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/42cca149119c03ba3e3583f03b00bd4d374c4768))
+
 ## [8.7.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.7.0...v8.7.1) (2026-10-31)
 
 
