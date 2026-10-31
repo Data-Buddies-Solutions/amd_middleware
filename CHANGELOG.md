@@ -4,6 +4,22 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [9.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.7.2...v9.0.0) (2026-10-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* **scheduling:** book and reschedule requests that send patientStatus fail with "Invalid JSON body".
+
+### Features
+
+* **insurance:** read insurance catalog v2 ([#323](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/323)) ([0ed8df8](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/0ed8df8fe49a1ab587d76ebeb581429ea1ef3fff))
+
+
+### Code Refactoring
+
+* **scheduling:** remove patientStatus from booking requests ([#322](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/322)) ([bd73743](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/bd73743b065f5d4e13e0bcd13187459ca4d75b77))
+
 ## [8.7.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.7.1...v8.7.2) (2026-10-31)
 
 
