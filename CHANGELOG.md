@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [8.7.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.6.0...v8.7.0) (2026-10-31)
+
+
+### Features
+
+* **insurance:** load the published insurance catalog from Product ([#312](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/312)) ([7b033b3](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/7b033b3c19bc59183470ba4297c4bc553557f47e))
+
 ## [8.6.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.5.1...v8.6.0) (2026-10-30)
 
 
