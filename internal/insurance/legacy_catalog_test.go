@@ -52,7 +52,7 @@ func TestDecodeCatalogConvertsV1ByTheContractRules(t *testing.T) {
 		],"tables":[{"id":"t","offices":["hollywood"],"doctors":["Dr. Austin Bach"],"rows":[
 			{"planId":"p1","doctors":{},"requires":[],"onlyOffices":[],"notice":"Bring your card.","note":"anything"},
 			{"planId":"p2","doctors":{},"requires":[{"kind":"pcp_referral","channel":""},{"kind":"staff_verify","channel":""}],"onlyOffices":[],"notice":"","note":""},
-			{"planId":"p3","doctors":{},"requires":[{"kind":"prior_authorization","channel":"availity"},{"kind":"pcp_referral","channel":""}],"onlyOffices":[],"notice":"","note":""}
+			{"planId":"p3","doctors":{},"requires":[{"kind":"prior_authorization","channel":"availity"},{"kind":"pcp_referral","channel":""}],"onlyOffices":[],"notice":" You can be seen as self-pay. ","note":""}
 		]}]},
 		{"id":"b","plans":[
 			{"id":"p4","label":"P4","family":"F","coverage":"medical","carrierCode":"AAA","carrierId":"car1","selfPay":false,"aliases":[]},
@@ -76,8 +76,8 @@ func TestDecodeCatalogConvertsV1ByTheContractRules(t *testing.T) {
 	if want := []BeforeBooking{BeforeBookingNone, BeforeBookingStaffVerify, BeforeBookingPriorAuthorization}; !slices.Equal(before, want) {
 		t.Errorf("beforeBooking = %v, want %v", before, want)
 	}
-	if rows[0].Notice != "Bring your card." {
-		t.Errorf("notice = %q", rows[0].Notice)
+	if notices := []string{rows[0].Notice, rows[2].Notice}; !slices.Equal(notices, []string{"Bring your card.", ""}) {
+		t.Errorf("notices = %q, want other notices kept and the self-pay notice cleared", notices)
 	}
 }
 
@@ -107,11 +107,11 @@ func TestV1CatalogDecidesAsItDidBeforeV2(t *testing.T) {
 	forEachOfficeCoverage(t, func(o *domain.OfficeConfig, coverage string) {
 		list, _ := ListPlans(coverage, o)
 		for _, summary := range list.Plans {
-			got[o.ID+"/"+coverage+"/"+summary.PlanID] = asJSON(t, map[string]any{
+			got[o.ID+"/"+coverage+"/"+summary.PlanID] = withoutSelfPayNotice(asJSON(t, map[string]any{
 				"summary": summary,
 				"adult":   DecidePlan(summary.PlanID, coverage, o, adultDOB, testNow),
 				"child":   DecidePlan(summary.PlanID, coverage, o, dobYearsAgo(8), testNow),
-			})
+			}))
 		}
 	})
 	if len(got) != len(want) {
@@ -181,7 +181,7 @@ func recordedV1Decisions(t *testing.T, carrierCodes map[string]string) map[strin
 			}
 			adult["requirements"] = v2RequirementObjects(adult)
 			child["requirements"] = v2RequirementObjects(child)
-			recorded[line.Office+"/"+line.Coverage+"/"+id] = asJSON(t, map[string]any{"summary": summary, "adult": adult, "child": child})
+			recorded[line.Office+"/"+line.Coverage+"/"+id] = withoutSelfPayNotice(asJSON(t, map[string]any{"summary": summary, "adult": adult, "child": child}))
 		}
 	}
 	if err := lines.Err(); err != nil {
@@ -211,6 +211,22 @@ func v2RequirementObjects(d map[string]any) []any {
 		d["answer"] = strings.Replace(d["answer"].(string), answerReferral, answerStaffVerify, 1)
 	}
 	return []any{map[string]any{"kind": "staff_verify", "verification": "unverified"}}
+}
+
+func withoutSelfPayNotice(entry any) any {
+	for _, v := range entry.(map[string]any) {
+		fields := v.(map[string]any)
+		if answer, ok := fields["answer"].(string); ok {
+			fields["answer"] = strings.TrimSpace(strings.ReplaceAll(answer, legacySelfPayNotice, ""))
+		}
+		notice, _ := fields["callerNotice"].(string)
+		if notice = strings.TrimSpace(strings.ReplaceAll(notice, legacySelfPayNotice, "")); notice == "" {
+			delete(fields, "callerNotice")
+		} else {
+			fields["callerNotice"] = notice
+		}
+	}
+	return entry
 }
 
 func asJSON(t *testing.T, v any) any {

@@ -3,6 +3,7 @@ package insurance
 import (
 	"maps"
 	"slices"
+	"strings"
 )
 
 type legacyCatalog struct {
@@ -86,13 +87,22 @@ func convertLegacyCatalog(legacy legacyCatalog) InsuranceCatalog {
 		for _, table := range region.Tables {
 			rows := []CatalogRow{}
 			for _, row := range table.Rows {
-				rows = append(rows, CatalogRow{PlanID: row.PlanID, Doctors: row.Doctors, BeforeBooking: legacyBeforeBooking(row.Requires), OnlyOffices: row.OnlyOffices, Notice: row.Notice})
+				rows = append(rows, CatalogRow{PlanID: row.PlanID, Doctors: row.Doctors, BeforeBooking: legacyBeforeBooking(row.Requires), OnlyOffices: row.OnlyOffices, Notice: legacyNotice(row.Notice)})
 			}
 			converted.Tables = append(converted.Tables, CatalogTable{ID: table.ID, Offices: table.Offices, Doctors: table.Doctors, Rows: rows})
 		}
 		catalog.Regions = append(catalog.Regions, converted)
 	}
 	return catalog
+}
+
+const legacySelfPayNotice = "You can be seen as self-pay."
+
+func legacyNotice(notice string) string {
+	if strings.TrimSpace(notice) == legacySelfPayNotice {
+		return ""
+	}
+	return notice
 }
 
 func mostCommonCode(counts map[string]int) string {
