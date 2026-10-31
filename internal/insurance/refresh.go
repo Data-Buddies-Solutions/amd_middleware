@@ -36,10 +36,14 @@ func readRevision(ctx context.Context, read CatalogReader, current *revision) (*
 	if err := decodeStrictJSON(body, &source); err != nil {
 		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "revision %s is not an InsuranceCatalog: %v", id, err)
 	}
-	lists, errs := parseCatalog(source)
+	lists, errs, drift := parseCatalog(source)
 	if len(errs) > 0 {
 		first := errs[0]
 		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "revision %s breaks %d catalog rules, first %s at region=%q table=%q plan=%q: %s", id, len(errs), first.Rule, first.Region, first.Table, first.PlanID, first.Message)
+	}
+	if len(drift) > 0 {
+		first := drift[0]
+		log.Printf("insurance_catalog_doctor_columns_differ revision=%s count=%d first=%s region=%q table=%q: %s", id, len(drift), first.Rule, first.Region, first.Table, first.Message)
 	}
 	return &revision{id: id, lists: lists}, nil
 }

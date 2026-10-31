@@ -59,6 +59,6 @@ type CatalogError struct {
 type CatalogRule string
 
 func ValidateCatalog(candidate InsuranceCatalog) []CatalogError {
-	_, errs := parseCatalog(candidate)
-	return errs
+	_, errs, drift := parseCatalog(candidate)
+	return append(errs, drift...)
 }

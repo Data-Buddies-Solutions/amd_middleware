@@ -168,3 +168,71 @@ func TestRefreshWithNothingInstalledLeavesNothingInstalled(t *testing.T) {
 		t.Fatalf("installed=%v logs=%q", active.Load(), logs)
 	}
 }
+
+func TestRefreshInstallsARevisionWhoseDoctorColumnsDifferFromTheOfficeTable(t *testing.T) {
+	const planID, dropped, unknown = "aetna-better-health", "Dr. Joseph Licht", "Dr. Nobody"
+	a := fixtureCatalog(t)
+	installRevision(t, "rev-a", a)
+	springHill := office(t, "spring_hill")
+	coverage := ""
+	for _, region := range a.Regions {
+		for _, p := range region.Plans {
+			if p.ID == planID && region.ID == "spring_hill_crystal_river" {
+				coverage = p.Coverage
+			}
+		}
+	}
+	before := DecidePlan(planID, coverage, springHill, adultDOB, testNow).AllowedProviders
+
+	var drifted InsuranceCatalog
+	if err := json.Unmarshal(catalogJSON(t, a), &drifted); err != nil {
+		t.Fatal(err)
+	}
+	for i := range drifted.Regions {
+		for j := range drifted.Regions[i].Tables {
+			table := &drifted.Regions[i].Tables[j]
+			if !slices.Equal(table.Offices, []string{"spring_hill"}) {
+				continue
+			}
+			table.Doctors = append(slices.DeleteFunc(table.Doctors, func(d string) bool { return d == dropped }), unknown)
+			for _, row := range table.Rows {
+				delete(row.Doctors, dropped)
+				if row.PlanID == planID {
+					row.Doctors[unknown] = "yes"
+				}
+			}
+		}
+	}
+
+	rules := []CatalogRule{}
+	for _, e := range ValidateCatalog(drifted) {
+		rules = append(rules, e.Rule)
+	}
+	if !slices.Equal(rules, []CatalogRule{ruleUnknownDoctorColumn, ruleMissingDoctorColumn}) {
+		t.Fatalf("validate rules = %v, want the drift still rejected", rules)
+	}
+
+	logs := captureLog(t)
+	if err := Refresh(context.Background(), serve("rev-b", catalogJSON(t, drifted), nil)); err != nil {
+		t.Fatalf("refresh refused a revision whose only problem is doctor columns: %v", err)
+	}
+	if active.Load().id != "rev-b" {
+		t.Fatalf("installed revision = %q, want rev-b", active.Load().id)
+	}
+	line := logs.String()
+	if !strings.Contains(line, "insurance_catalog_doctor_columns_differ revision=rev-b count=2") ||
+		!strings.Contains(line, "insurance_catalog_installed revision=rev-b previous_revision=rev-a") {
+		t.Fatalf("logs = %q", line)
+	}
+
+	after := DecidePlan(planID, coverage, springHill, adultDOB, testNow).AllowedProviders
+	removed := []string{}
+	for _, doctor := range before {
+		if !slices.Contains(after, doctor) {
+			removed = append(removed, displayName(springHill, doctor))
+		}
+	}
+	if len(after) != len(before)-1 || !slices.Equal(removed, []string{dropped}) {
+		t.Fatalf("allowed providers before=%v after=%v, want only %s removed", before, after, dropped)
+	}
+}

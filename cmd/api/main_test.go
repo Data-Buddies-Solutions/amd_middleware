@@ -1,8 +1,8 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
-	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -11,12 +11,14 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
 
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/insurance/insurancetest"
+	"advancedmd-token-management/internal/safeerrors"
 )
 
 const runMainEnv = "ABITA_MIDDLEWARE_TEST_RUN_MAIN"
@@ -67,44 +69,31 @@ func middleware(t *testing.T, productURL string) (*exec.Cmd, func() string, stri
 	return cmd, output, "http://127.0.0.1:" + strconv.Itoa(port)
 }
 
-func TestStartupExitsBeforeListeningWhenProductIsUnreachable(t *testing.T) {
-	product := httptest.NewServer(http.NotFoundHandler())
-	product.Close()
-	cmd, output, base := middleware(t, product.URL)
-
-	err := cmd.Run()
-
-	var exit *exec.ExitError
-	if !errors.As(err, &exit) || exit.ExitCode() == 0 {
-		t.Fatalf("process exit = %v, want a non-zero exit; output:\n%s", err, output())
-	}
-	logs := output()
-	if !strings.Contains(logs, "insurance_catalog_refresh_failed current_revision=none category=network") ||
-		!strings.Contains(logs, "Failed to install the insurance catalog from Product") ||
-		strings.Contains(logs, "Server listening") {
-		t.Fatalf("output:\n%s", logs)
-	}
-	if response, err := http.Get(base + "/ready"); err == nil {
-		response.Body.Close()
-		t.Fatalf("/ready answered %d after a failed startup", response.StatusCode)
-	}
-}
-
-func TestStartupInstallsTheProductCatalogBeforeItIsReady(t *testing.T) {
+func serveCatalog(t *testing.T, failFirst int) *httptest.Server {
+	t.Helper()
 	catalog, err := json.Marshal(insurancetest.Catalog())
 	if err != nil {
 		t.Fatal(err)
 	}
+	var reads atomic.Int32
 	product := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/agent/insurance/read" || r.Header.Get("Authorization") != "Bearer product-insurance-token" {
 			http.Error(w, "unexpected request", http.StatusBadRequest)
 			return
 		}
+		if int(reads.Add(1)) <= failFirst {
+			http.Error(w, "deploying", http.StatusServiceUnavailable)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"revisionId":"rev-a","catalog":` + string(catalog) + `}`))
 	}))
-	defer product.Close()
-	cmd, output, base := middleware(t, product.URL)
+	t.Cleanup(product.Close)
+	return product
+}
+
+func start(t *testing.T, cmd *exec.Cmd, output func() string, base string) {
+	t.Helper()
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +101,6 @@ func TestStartupInstallsTheProductCatalogBeforeItIsReady(t *testing.T) {
 		cmd.Process.Signal(syscall.SIGTERM)
 		cmd.Wait()
 	})
-
 	deadline := time.Now().Add(10 * time.Second)
 	for {
 		response, err := http.Get(base + "/ready")
@@ -121,13 +109,52 @@ func TestStartupInstallsTheProductCatalogBeforeItIsReady(t *testing.T) {
 			if response.StatusCode != http.StatusOK {
 				t.Fatalf("/ready = %d", response.StatusCode)
 			}
-			break
+			return
 		}
 		if time.Now().After(deadline) {
 			t.Fatalf("middleware never listened; output:\n%s", output())
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
+}
+
+func TestStartupRetriesAProductReadThatFailsBeforeListening(t *testing.T) {
+	product := serveCatalog(t, 1)
+	cmd, output, base := middleware(t, product.URL)
+
+	start(t, cmd, output, base)
+
+	logs := output()
+	failed := strings.Index(logs, "insurance_catalog_refresh_failed current_revision=none category=upstream_status")
+	installed := strings.Index(logs, "insurance_catalog_installed revision=rev-a previous_revision=none")
+	listening := strings.Index(logs, "Server listening")
+	if failed < 0 || installed < failed || listening < installed {
+		t.Fatalf("want a failed read, then the install, then listening; output:\n%s", logs)
+	}
+}
+
+func TestInstallInsuranceCatalogGivesUpWhenTheStartupWindowCloses(t *testing.T) {
+	reads := 0
+	unreachable := func(context.Context) (string, []byte, error) {
+		reads++
+		return "", nil, safeerrors.New(safeerrors.CategoryNetwork, "POST /v1/agent/insurance/read: network")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+
+	err := installInsuranceCatalog(ctx, unreachable, 10*time.Millisecond)
+
+	if safeerrors.Classify(err) != safeerrors.CategoryNetwork || reads < 2 {
+		t.Fatalf("err = %v after %d reads, want the network failure after retrying", err, reads)
+	}
+}
+
+func TestStartupInstallsTheProductCatalogBeforeItIsReady(t *testing.T) {
+	product := serveCatalog(t, 0)
+	cmd, output, base := middleware(t, product.URL)
+
+	start(t, cmd, output, base)
+
 	request, _ := http.NewRequest(http.MethodGet, base+"/api/insurance/plans?office=sweetwater&coverage=medical", nil)
 	request.Header.Set("Authorization", "Bearer test-secret")
 	response, err := http.DefaultClient.Do(request)

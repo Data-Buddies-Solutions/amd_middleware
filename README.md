@@ -229,8 +229,11 @@ on `ACUITY_PRODUCT_URL`, sending the middleware's own Product service token
 (`ACUITY_PRODUCT_INSURANCE_TOKEN`, which holds only `READ_INSURANCE`). The one
 catalog parser validates the revision, and the process opens its port only after
 the revision is installed. If Product is unreachable or the revision is invalid,
-the process logs `insurance_catalog_refresh_failed` and exits non-zero. It has no
-fallback catalog.
+the process logs `insurance_catalog_refresh_failed` and tries again every 2
+seconds for 18 seconds. That stays inside Cloud Run's default startup probe
+(`/live` every 10 seconds, 3 failures), which stops the instance about 20 seconds
+in. If no revision installs in that time, the process exits non-zero, so a deploy
+fails before traffic moves. It has no fallback catalog.
 
 Cloud Scheduler posts `POST /ops/insurance/refresh` every minute. A refresh reads
 Product again. When the revision ID is unchanged, it does nothing. When the ID
@@ -246,8 +249,9 @@ the new one. `GET /api/insurance/plans` returns that revision as
 `catalogRevisionId`.
 
 The installed revision is the last good copy, and it lives only in memory. A
-restart while Product is down leaves the new instance unable to start, so the
-service is not ready until Product answers. That is an accepted risk.
+restart while Product is down for longer than the 18 second startup retry leaves
+the new instance unable to start, so the service is not ready until Product
+answers. That is an accepted risk.
 
 An `InsuranceCatalog` lists the AdvancedMD `carriers` and one entry per region. A
 region's `plans` define each plan once: a stable `id`, a caller-facing `label`, the
@@ -282,6 +286,16 @@ with empty strings where a field does not apply. A body that is not an
   `office_without_table`, `unknown_doctor_column`, `missing_doctor_column`,
   `duplicate_doctor_column` (a table's doctor columns must be exactly the doctors of
   its offices), `unknown_plan`, `duplicate_row`, `plan_in_no_table`.
+
+  The validate route rejects a table whose doctor columns differ from the office
+  table in Go (`unknown_doctor_column` or `missing_doctor_column` on the table). A
+  refresh installs it anyway and logs `insurance_catalog_doctor_columns_differ`,
+  because a doctor change in Go and the matching column in Product ship in
+  different deploys. Until they match, a doctor with no column accepts no plan, and
+  a column for a doctor the office table doesn't have is never read. Because drift
+  alone does not stop the check, the validate route also reports any decision rule
+  the drifted catalog breaks, such as `no_accepted_self_pay` when the dropped doctor
+  was the only one taking self-pay. A refresh refuses those like any other error.
 - Plans: `invalid_plan_id`, `duplicate_plan`, `plan_id_reused`, `invalid_family`,
   `unknown_coverage`, `filler_only_name`, `repeated_name`, `name_conflict`,
   `unknown_carrier`, `carrier_code_conflict`, `invalid_doctor_value`,
