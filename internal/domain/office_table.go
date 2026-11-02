@@ -189,7 +189,7 @@ func newOfficeTable() officeTable {
 				ID:          "north_miami_beach_optical",
 				DisplayName: "North Miami Beach Optical",
 				Columns: map[string]columnDefinition{
-					"miriam_bach": {Provider: miriamBach},
+					"miriam_bach": {Provider: miriamBach, MinAgeYears: 7},
 				},
 				RoutingTiers: map[RoutingRule][]string{
 					RoutingOpticalOnly: {"miriam_bach"},

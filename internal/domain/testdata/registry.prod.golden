@@ -471,8 +471,8 @@ friendly	sweetwater	"VIDAL, LISBET"	"VIDAL, LISBET"
 friendly	sweetwater	"UNKNOWN, DOCTOR"	"UNKNOWN, DOCTOR"
 friendly	sweetwater	""	""
 office	north_miami_beach_optical	display=North Miami Beach Optical	facility=1582	defaultProfile=621	pediatric=not_accepted	supportsMedical=false	lookupGroup=north_miami_beach_optical
-column	north_miami_beach_optical	1601	profile=621	display=Dr. Miriam Bach	short=Dr. Miriam Bach	match=BACH	minAge=0	capacity=0	windows=
-columnDOB	north_miami_beach_optical	1601	none=true invalid=true age3=true age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+column	north_miami_beach_optical	1601	profile=621	display=Dr. Miriam Bach	short=Dr. Miriam Bach	match=BACH	minAge=7	capacity=0	windows=
+columnDOB	north_miami_beach_optical	1601	none=false invalid=false age3=false age4=false age5=false age6=false age7=true age10=true age17=true age18=true age40=true
 routing	north_miami_beach_optical	not_accepted	columns=nil	providers=nil	supports=false	adult=not_accepted	minor=not_accepted
 routingDOB	north_miami_beach_optical	not_accepted	none	columns=nil	providers=nil
 routingDOB	north_miami_beach_optical	not_accepted	invalid	columns=nil	providers=nil
@@ -527,11 +527,11 @@ routingDOB	north_miami_beach_optical	all_three	age40	columns=[]	providers=[]
 allowsTypes	north_miami_beach_optical	all_three	
 routing	north_miami_beach_optical	optical_only	columns=[1601]	providers=[Dr. Miriam Bach]	supports=true	adult=optical_only	minor=optical_only
 routingDOB	north_miami_beach_optical	optical_only	none	columns=[1601]	providers=[Dr. Miriam Bach]
-routingDOB	north_miami_beach_optical	optical_only	invalid	columns=[1601]	providers=[Dr. Miriam Bach]
-routingDOB	north_miami_beach_optical	optical_only	age3	columns=[1601]	providers=[Dr. Miriam Bach]
-routingDOB	north_miami_beach_optical	optical_only	age4	columns=[1601]	providers=[Dr. Miriam Bach]
-routingDOB	north_miami_beach_optical	optical_only	age5	columns=[1601]	providers=[Dr. Miriam Bach]
-routingDOB	north_miami_beach_optical	optical_only	age6	columns=[1601]	providers=[Dr. Miriam Bach]
+routingDOB	north_miami_beach_optical	optical_only	invalid	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	optical_only	age3	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	optical_only	age4	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	optical_only	age5	columns=[]	providers=[]
+routingDOB	north_miami_beach_optical	optical_only	age6	columns=[]	providers=[]
 routingDOB	north_miami_beach_optical	optical_only	age7	columns=[1601]	providers=[Dr. Miriam Bach]
 routingDOB	north_miami_beach_optical	optical_only	age10	columns=[1601]	providers=[Dr. Miriam Bach]
 routingDOB	north_miami_beach_optical	optical_only	age17	columns=[1601]	providers=[Dr. Miriam Bach]
