@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [9.0.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v9.0.0...v9.0.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* **scheduling:** enforce Dr. Miriam Bach's minimum patient age of 7 ([#325](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/325)) ([e24e88f](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/e24e88f5dc9237bc62ceed51a016324414fe6b59))
+
 ## [9.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v8.7.2...v9.0.0) (2026-10-31)
 
 
