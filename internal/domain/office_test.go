@@ -254,6 +254,17 @@ func TestOfficeConfig_NorthMiamiBeachOpticalColumn(t *testing.T) {
 	if got := office.FriendlyProviderName("BACH, MIRIAM"); got != "Dr. Miriam Bach" {
 		t.Fatalf("FriendlyProviderName(BACH, MIRIAM) = %q, want Dr. Miriam Bach", got)
 	}
+	six := testNow.AddDate(-7, 0, 1).Format("01/02/2006")
+	seven := testNow.AddDate(-7, 0, 0).Format("01/02/2006")
+	if office.ColumnAllowsDOB("1601", six, testNow) {
+		t.Fatal("Dr. Miriam Bach should refuse a patient one day short of age 7")
+	}
+	if !office.ColumnAllowsDOB("1601", seven, testNow) {
+		t.Fatal("Dr. Miriam Bach should accept a patient who turns 7 today")
+	}
+	if got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, six, testNow); len(got) != 0 {
+		t.Fatalf("routine providers for a 6-year-old = %v, want none", got)
+	}
 }
 
 func TestOfficeConfig_SameStartCapacityScope(t *testing.T) {
