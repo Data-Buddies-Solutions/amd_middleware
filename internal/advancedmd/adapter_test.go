@@ -1169,8 +1169,8 @@ func (staticSession) Maintain(context.Context) error {
 
 func (staticSession) Reject(*session.TokenData) {}
 
-func (staticSession) Status() session.SessionStatus {
-	return session.SessionStatus{}
+func (staticSession) State() session.SessionState {
+	return ""
 }
 
 func TestScheduleReadsAreConcurrentAndCannotUseMalformedOccupancy(t *testing.T) {

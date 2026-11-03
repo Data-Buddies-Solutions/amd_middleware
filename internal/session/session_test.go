@@ -30,7 +30,7 @@ func TestSessionRequestTimeAuthenticationTransitionsToFresh(t *testing.T) {
 		loginTimeout: time.Minute,
 	})
 
-	if got := session.Status().State; got != SessionUninitialized {
+	if got := session.State(); got != SessionUninitialized {
 		t.Fatalf("initial state = %q, want %q", got, SessionUninitialized)
 	}
 
@@ -41,14 +41,14 @@ func TestSessionRequestTimeAuthenticationTransitionsToFresh(t *testing.T) {
 	}()
 
 	<-started
-	if got := session.Status().State; got != sessionRefreshing {
+	if got := session.State(); got != sessionRefreshing {
 		t.Fatalf("state during login = %q, want %q", got, sessionRefreshing)
 	}
 	close(release)
 	if err := <-result; err != nil {
 		t.Fatalf("Get() error = %v", err)
 	}
-	if got := session.Status().State; got != sessionFresh {
+	if got := session.State(); got != sessionFresh {
 		t.Fatalf("state after login = %q, want %q", got, sessionFresh)
 	}
 }
@@ -114,7 +114,7 @@ func TestSessionReusesDocumentedFreshTokenBefore20Hours(t *testing.T) {
 	}
 
 	clock.Advance(time.Minute)
-	if got := session.Status().State; got != sessionStale {
+	if got := session.State(); got != sessionStale {
 		t.Fatalf("state at 20 hours = %q, want %q", got, sessionStale)
 	}
 }
@@ -231,7 +231,7 @@ func TestSessionUsesLastKnownGoodTokenWhenStaleRefreshFails(t *testing.T) {
 		t.Fatalf("initial Get() error = %v", err)
 	}
 	clock.Advance(90 * time.Minute)
-	if got := session.Status().State; got != sessionStale {
+	if got := session.State(); got != sessionStale {
 		t.Fatalf("state before failed refresh = %q, want %q", got, sessionStale)
 	}
 
@@ -242,7 +242,7 @@ func TestSessionUsesLastKnownGoodTokenWhenStaleRefreshFails(t *testing.T) {
 	if token.Token != "Bearer known-good" {
 		t.Fatalf("Get() token = %q, want last-known-good token", token.Token)
 	}
-	if got := session.Status().State; got != sessionDegraded {
+	if got := session.State(); got != sessionDegraded {
 		t.Fatalf("state after failed refresh = %q, want %q", got, sessionDegraded)
 	}
 }
@@ -363,7 +363,7 @@ func TestSessionRequestFallbackRecoversAfterFailedMaintenance(t *testing.T) {
 	}
 }
 
-func TestSessionStatusReportsSafeTimingWithoutSessionData(t *testing.T) {
+func TestSessionStateFollowsTokenAge(t *testing.T) {
 	now := time.Date(2026, time.July, 24, 12, 0, 0, 0, time.UTC)
 	clock := &testClock{now: now}
 	var session Session = newSession(loginAdapterFunc(func(context.Context) (string, string, error) {
@@ -377,16 +377,18 @@ func TestSessionStatusReportsSafeTimingWithoutSessionData(t *testing.T) {
 		t.Fatalf("Get() error = %v", err)
 	}
 
-	clock.Advance(30 * time.Minute)
-	status := session.Status()
-	if status.State != sessionFresh {
-		t.Fatalf("state = %q, want %q", status.State, sessionFresh)
-	}
-	if status.TokenAge != 30*time.Minute {
-		t.Fatalf("token age = %s, want 30m", status.TokenAge)
-	}
-	if status.ExpiresIn != 90*time.Minute {
-		t.Fatalf("expires in = %s, want 90m", status.ExpiresIn)
+	for _, step := range []struct {
+		advance time.Duration
+		want    SessionState
+	}{
+		{30 * time.Minute, sessionFresh},
+		{30 * time.Minute, sessionStale},
+		{time.Hour, SessionUnavailable},
+	} {
+		clock.Advance(step.advance)
+		if got := session.State(); got != step.want {
+			t.Fatalf("state at %s = %q, want %q", clock.Now().Sub(now), got, step.want)
+		}
 	}
 }
 
@@ -451,7 +453,7 @@ func TestSessionReturnsStableUnavailableAfterHardExpiration(t *testing.T) {
 	if err.Error() != "advancedmd session unavailable" {
 		t.Fatalf("unavailable error leaked provider detail: %q", err)
 	}
-	if got := session.Status().State; got != SessionUnavailable {
+	if got := session.State(); got != SessionUnavailable {
 		t.Fatalf("state = %q, want %q", got, SessionUnavailable)
 	}
 }
@@ -475,7 +477,7 @@ func TestSessionRetriesAfterUnavailableAuthentication(t *testing.T) {
 	if _, err := session.Get(context.Background()); !errors.Is(err, ErrSessionUnavailable) {
 		t.Fatalf("first Get() error = %v, want unavailable", err)
 	}
-	if got := session.Status().State; got != SessionUnavailable {
+	if got := session.State(); got != SessionUnavailable {
 		t.Fatalf("state after failed initial login = %q, want %q", got, SessionUnavailable)
 	}
 
@@ -488,7 +490,7 @@ func TestSessionRetriesAfterUnavailableAuthentication(t *testing.T) {
 	if token.Token != "Bearer recovered-token" {
 		t.Fatalf("recovery token = %q", token.Token)
 	}
-	if got := session.Status().State; got != sessionFresh {
+	if got := session.State(); got != sessionFresh {
 		t.Fatalf("state after recovery = %q, want %q", got, sessionFresh)
 	}
 }
@@ -593,7 +595,7 @@ func TestNewSessionDoesNotAuthenticateUntilRequested(t *testing.T) {
 		AppName:   "app",
 	}, client, time.Now)
 
-	if got := session.Status().State; got != SessionUninitialized {
+	if got := session.State(); got != SessionUninitialized {
 		t.Fatalf("state = %q, want %q", got, SessionUninitialized)
 	}
 	if got := calls.Load(); got != 0 {

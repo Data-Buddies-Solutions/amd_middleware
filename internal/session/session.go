@@ -14,7 +14,7 @@ type Session interface {
 	Get(context.Context) (*TokenData, error)
 	Maintain(context.Context) error
 	Reject(*TokenData)
-	Status() SessionStatus
+	State() SessionState
 }
 
 type SessionState string
@@ -36,12 +36,6 @@ const (
 )
 
 var ErrSessionUnavailable = safeerrors.New(safeerrors.CategoryUnavailable, "advancedmd session unavailable")
-
-type SessionStatus struct {
-	State     SessionState
-	TokenAge  time.Duration
-	ExpiresIn time.Duration
-}
 
 type loginAdapter interface {
 	Authenticate(context.Context) (token, webserverURL string, err error)
@@ -212,38 +206,26 @@ func (s *sessionImpl) freshLocked(now time.Time) bool {
 		now.Sub(s.createdAt) < s.policy.staleAfter
 }
 
-func (s *sessionImpl) Status() SessionStatus {
+func (s *sessionImpl) State() SessionState {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.statusLocked(s.now())
-}
-
-func (s *sessionImpl) statusLocked(now time.Time) SessionStatus {
-	status := SessionStatus{State: s.state}
-	if s.tokenData != nil {
-		status.TokenAge = max(now.Sub(s.createdAt), 0)
-		status.ExpiresIn = max(s.policy.expiresAfter-status.TokenAge, 0)
-	}
 	if s.flight != nil {
-		status.State = sessionRefreshing
-		return status
+		return sessionRefreshing
 	}
 	if s.tokenData == nil {
-		return status
+		return s.state
 	}
-	if status.TokenAge >= s.policy.expiresAfter {
-		status.State = SessionUnavailable
-		return status
+	tokenAge := max(s.now().Sub(s.createdAt), 0)
+	switch {
+	case tokenAge >= s.policy.expiresAfter:
+		return SessionUnavailable
+	case s.state == sessionDegraded:
+		return sessionDegraded
+	case tokenAge >= s.policy.staleAfter:
+		return sessionStale
+	default:
+		return s.state
 	}
-	if s.state == sessionDegraded {
-		status.State = sessionDegraded
-		return status
-	}
-	if status.TokenAge >= s.policy.staleAfter {
-		status.State = sessionStale
-		return status
-	}
-	return status
 }
 
 func cloneTokenData(data *TokenData) *TokenData {

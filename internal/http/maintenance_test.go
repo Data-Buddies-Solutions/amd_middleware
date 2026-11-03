@@ -170,8 +170,8 @@ func (s *recordingMaintenanceSession) Maintain(context.Context) error {
 
 func (*recordingMaintenanceSession) Reject(*session.TokenData) {}
 
-func (s *recordingMaintenanceSession) Status() session.SessionStatus {
-	return session.SessionStatus{State: session.SessionUninitialized}
+func (s *recordingMaintenanceSession) State() session.SessionState {
+	return session.SessionUninitialized
 }
 
 type oidcValidatorFunc func(context.Context, string, string) (oidcIdentity, error)

@@ -201,7 +201,7 @@ func requestSessionState(amdSession session.Session) session.SessionState {
 	if amdSession == nil {
 		return session.SessionUninitialized
 	}
-	return amdSession.Status().State
+	return amdSession.State()
 }
 
 func recordRequestOutcome(ctx context.Context, outcome outcomeCategory, providerFailure safeerrors.Category) {

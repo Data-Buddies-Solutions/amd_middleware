@@ -199,8 +199,8 @@ func (pinSession) Maintain(context.Context) error {
 
 func (pinSession) Reject(*session.TokenData) {}
 
-func (pinSession) Status() session.SessionStatus {
-	return session.SessionStatus{}
+func (pinSession) State() session.SessionState {
+	return ""
 }
 
 type pinRecords struct {

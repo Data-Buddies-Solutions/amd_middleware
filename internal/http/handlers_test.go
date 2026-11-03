@@ -129,8 +129,8 @@ func (unavailableSession) Maintain(context.Context) error {
 
 func (unavailableSession) Reject(*session.TokenData) {}
 
-func (unavailableSession) Status() session.SessionStatus {
-	return session.SessionStatus{State: session.SessionUnavailable}
+func (unavailableSession) State() session.SessionState {
+	return session.SessionUnavailable
 }
 
 func (s schedulingStub) Book(context.Context, schedulingmodule.BookCommand) (schedulingmodule.BookReceipt, error) {

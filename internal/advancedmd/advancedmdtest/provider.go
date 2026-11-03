@@ -257,6 +257,6 @@ func (providerSession) Maintain(context.Context) error {
 
 func (providerSession) Reject(*session.TokenData) {}
 
-func (providerSession) Status() session.SessionStatus {
-	return session.SessionStatus{}
+func (providerSession) State() session.SessionState {
+	return ""
 }
