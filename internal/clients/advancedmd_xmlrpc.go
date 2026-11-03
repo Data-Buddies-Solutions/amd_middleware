@@ -325,50 +325,29 @@ func (c *AdvancedMDClient) AddPatient(ctx context.Context, tokenData *session.To
 	return domain.CreatedPatient{}, safeerrors.New(safeerrors.CategoryInvalidResponse, "addpatient returned unexpected response")
 }
 
-func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *session.TokenData, patientID, respPartyID, carrierID, subscriberNum string) (resultErr error) {
-	ctx, finish := beginProviderOperation(ctx, "addinsurance")
-	defer func() { finish(resultErr) }()
-	payload := map[string]interface{}{
-		"ppmdmsg": map[string]interface{}{
-			"@action":  "addinsurance",
-			"@class":   "api",
-			"@msgtime": c.msgTime(),
-			"patient": map[string]interface{}{
-				"@id":      patientID,
-				"@changed": "1",
-				"insplanlist": map[string]interface{}{
-					"insplan": map[string]interface{}{
-						"@id":                "",
-						"@carrier":           carrierID,
-						"@subscriber":        respPartyID,
-						"@subscribernum":     subscriberNum,
-						"@hipaarelationship": "18",
-						"@relationship":      "1",
-						"@copay":             "0.00",
-						"@coverage":          "1",
-					},
-				},
-			},
-		},
-	}
-
-	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, writeRequest)
-	if err != nil {
-		return fmt.Errorf("addinsurance request failed: %w", err)
-	}
-
-	if err := checkXMLRPCMutation(body, "addinsurance"); err != nil {
-		return err
-	}
-
-	return nil
+func (c *AdvancedMDClient) AddInsurance(ctx context.Context, tokenData *session.TokenData, patientID, respPartyID, carrierID, subscriberNum string) error {
+	return c.sendInsurancePlan(ctx, tokenData, "addinsurance", patientID, map[string]interface{}{
+		"@id":                "",
+		"@carrier":           carrierID,
+		"@subscriber":        respPartyID,
+		"@subscribernum":     subscriberNum,
+		"@hipaarelationship": "18",
+		"@relationship":      "1",
+		"@copay":             "0.00",
+		"@coverage":          "1",
+	})
 }
 
-func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *session.TokenData, patientID, insPlanID string) (resultErr error) {
-	ctx, finish := beginProviderOperation(ctx, "enddateinsurance")
-	defer func() { finish(resultErr) }()
-	today := c.now().In(domain.EasternLocation()).Format("01/02/2006")
+func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *session.TokenData, patientID, insPlanID string) error {
+	return c.sendInsurancePlan(ctx, tokenData, "enddateinsurance", patientID, map[string]interface{}{
+		"@id":      insPlanID,
+		"@enddate": c.now().In(domain.EasternLocation()).Format("01/02/2006"),
+	})
+}
 
+func (c *AdvancedMDClient) sendInsurancePlan(ctx context.Context, tokenData *session.TokenData, operation, patientID string, plan map[string]interface{}) (resultErr error) {
+	ctx, finish := beginProviderOperation(ctx, operation)
+	defer func() { finish(resultErr) }()
 	payload := map[string]interface{}{
 		"ppmdmsg": map[string]interface{}{
 			"@action":  "addinsurance",
@@ -378,10 +357,7 @@ func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *sess
 				"@id":      patientID,
 				"@changed": "1",
 				"insplanlist": map[string]interface{}{
-					"insplan": map[string]interface{}{
-						"@id":      insPlanID,
-						"@enddate": today,
-					},
+					"insplan": plan,
 				},
 			},
 		},
@@ -389,14 +365,9 @@ func (c *AdvancedMDClient) EndDateInsurance(ctx context.Context, tokenData *sess
 
 	body, err := c.doXMLRPCRequest(ctx, tokenData, payload, writeRequest)
 	if err != nil {
-		return fmt.Errorf("enddate insurance request failed: %w", err)
+		return fmt.Errorf("%s request failed: %w", operation, err)
 	}
-
-	if err := checkXMLRPCMutation(body, "enddate insurance"); err != nil {
-		return err
-	}
-
-	return nil
+	return checkXMLRPCMutation(body, operation)
 }
 
 func (c *AdvancedMDClient) msgTime() string {

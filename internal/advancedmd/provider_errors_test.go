@@ -21,6 +21,27 @@ import (
 	"advancedmd-token-management/internal/session"
 )
 
+func TestCategoryOfClassifiesErrorsTheAdapterDidNotWrap(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+		want safeerrors.Category
+	}{
+		{"no error", nil, safeerrors.CategoryNone},
+		{"adapter error", NewAmbiguousWriteError(safeerrors.CategoryNetwork), safeerrors.CategoryNetwork},
+		{"wrapped adapter error", fmt.Errorf("read: %w", NewError(safeerrors.CategoryUnavailable)), safeerrors.CategoryUnavailable},
+		{"unwrapped deadline", context.DeadlineExceeded, safeerrors.CategoryTimeout},
+		{"unwrapped cancel", context.Canceled, safeerrors.Classify(context.Canceled)},
+		{"plain error", fmt.Errorf("unexpected"), safeerrors.CategoryInternal},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := CategoryOf(tc.err); got != tc.want {
+				t.Fatalf("CategoryOf(%v) = %q, want %q", tc.err, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestAdapterMapsEveryProviderCategory(t *testing.T) {
 	type mutation struct {
 		category  safeerrors.Category

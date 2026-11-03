@@ -121,13 +121,13 @@ func categorizedProviderError(category Category, providerFailure safeerrors.Cate
 func providerError(err error, fallback string) error {
 	return &Error{
 		category:        CategoryValidation,
-		providerFailure: providerCategory(err),
+		providerFailure: advancedmd.CategoryOf(err),
 		message:         providerFailureMessage(err, fallback),
 	}
 }
 
 func providerWriteError(err error, conflictCategory Category, conflictMessage, rejectedMessage, failedMessage string) error {
-	failure := providerCategory(err)
+	failure := advancedmd.CategoryOf(err)
 	switch failure {
 	case safeerrors.CategoryConflict:
 		return categorizedProviderError(conflictCategory, failure, conflictMessage)
@@ -139,18 +139,10 @@ func providerWriteError(err error, conflictCategory Category, conflictMessage, r
 }
 
 func providerFailureMessage(err error, fallback string) string {
-	switch providerCategory(err) {
+	switch advancedmd.CategoryOf(err) {
 	case safeerrors.CategoryAuthentication, safeerrors.CategoryUnavailable:
 		return "Service authentication is temporarily unavailable. Please try again."
 	default:
 		return fallback
 	}
-}
-
-func providerCategory(err error) safeerrors.Category {
-	var adapterErr *advancedmd.Error
-	if errors.As(err, &adapterErr) {
-		return advancedmd.CategoryOf(err)
-	}
-	return safeerrors.Classify(err)
 }

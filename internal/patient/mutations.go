@@ -38,14 +38,14 @@ var mutationMetrics = struct {
 	counts: make(map[mutationMetricKey]uint64),
 }
 
-func retryRead[T any](ctx context.Context, read func() (T, error)) (T, error) {
+func retryRead[T any](ctx context.Context, retryable func(error) bool, read func() (T, error)) (T, error) {
 	var zero T
 	for attempt := 1; attempt <= maxReadAttempts; attempt++ {
 		result, err := read()
 		if err == nil {
 			return result, nil
 		}
-		if attempt == maxReadAttempts || !isTransientReadError(err) {
+		if attempt == maxReadAttempts || !retryable(err) {
 			return zero, err
 		}
 
@@ -68,8 +68,12 @@ func waitReadRetry(ctx context.Context, attempt int) error {
 }
 
 func isTransientReadError(err error) bool {
+	return isTransientPreWriteReadError(err) || advancedmd.CategoryOf(err) == safeerrors.CategoryTimeout
+}
+
+func isTransientPreWriteReadError(err error) bool {
 	switch advancedmd.CategoryOf(err) {
-	case safeerrors.CategoryTimeout, safeerrors.CategoryNetwork, safeerrors.CategoryUnavailable:
+	case safeerrors.CategoryNetwork, safeerrors.CategoryUnavailable:
 		return true
 	default:
 		return false

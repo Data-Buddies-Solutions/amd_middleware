@@ -7,6 +7,7 @@ import (
 	"slices"
 	"time"
 
+	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/insurance"
 )
@@ -105,7 +106,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 
 	setup, err := s.schedulerSetup(ctx, now.UTC())
 	if err != nil {
-		log.Printf("availability: scheduler setup failed category=%s", providerCategory(err))
+		log.Printf("availability: scheduler setup failed category=%s", advancedmd.CategoryOf(err))
 		return empty, providerError(
 			err,
 			"Failed to load scheduler configuration from AdvancedMD. Please try again.",

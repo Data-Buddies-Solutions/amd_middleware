@@ -15,6 +15,7 @@ func setEnvVars(t *testing.T) func() {
 		"ADVANCEDMD_OFFICE_KEY":            "991TEST",
 		"ADVANCEDMD_APP_NAME":              "testapp",
 		"API_SECRET":                       "test-secret",
+		"BOOKING_TOKEN_SECRET":             "booking-secret",
 		"MAINTENANCE_OIDC_AUDIENCE":        "https://middleware.example.test",
 		"MAINTENANCE_OIDC_SERVICE_ACCOUNT": "middleware-maintenance@example.iam.gserviceaccount.com",
 		"AMD_ENV":                          "prod",
@@ -31,7 +32,6 @@ func setEnvVars(t *testing.T) func() {
 			os.Unsetenv(k)
 		}
 		os.Unsetenv("PORT")
-		os.Unsetenv("BOOKING_TOKEN_SECRET")
 	}
 }
 
@@ -65,8 +65,8 @@ func TestLoad_Success(t *testing.T) {
 	if cfg.MaintenanceOIDCServiceAccount != "middleware-maintenance@example.iam.gserviceaccount.com" {
 		t.Errorf("MaintenanceOIDCServiceAccount = %q", cfg.MaintenanceOIDCServiceAccount)
 	}
-	if cfg.BookingTokenSecret != "test-secret" {
-		t.Errorf("BookingTokenSecret = %q, want API secret fallback", cfg.BookingTokenSecret)
+	if cfg.BookingTokenSecret != "booking-secret" {
+		t.Errorf("BookingTokenSecret = %q, want 'booking-secret'", cfg.BookingTokenSecret)
 	}
 	if cfg.AMDEnv != domain.Prod {
 		t.Errorf("AMDEnv = %q, want prod", cfg.AMDEnv)
@@ -92,18 +92,14 @@ func TestLoad_AcceptsOnlyProdOrSandboxAMDEnv(t *testing.T) {
 	}
 }
 
-func TestLoad_CustomBookingTokenSecret(t *testing.T) {
+func TestLoad_RequiresBookingTokenSecret(t *testing.T) {
 	cleanup := setEnvVars(t)
 	defer cleanup()
-	os.Setenv("BOOKING_TOKEN_SECRET", "booking-secret")
+	os.Unsetenv("BOOKING_TOKEN_SECRET")
 
 	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load() failed: %v", err)
-	}
-
-	if cfg.BookingTokenSecret != "booking-secret" {
-		t.Errorf("BookingTokenSecret = %q, want 'booking-secret'", cfg.BookingTokenSecret)
+	if err == nil || err.Error() != "BOOKING_TOKEN_SECRET is required" {
+		t.Fatalf("Load() = (%+v, %v), want BOOKING_TOKEN_SECRET is required instead of the API secret", cfg, err)
 	}
 }
 

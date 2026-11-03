@@ -186,7 +186,7 @@ var (
 
 func (p *patient) creationBaseline(ctx context.Context, identity chartIdentity) (map[string]struct{}, CreateObservation, error) {
 	search := domain.PatientSearch{Phone: string(identity.phone)}
-	read, err := retryRead(ctx, func() (domain.PatientCandidateRead, error) {
+	read, err := retryRead(ctx, isTransientPreWriteReadError, func() (domain.PatientCandidateRead, error) {
 		return p.advancedMD.SearchPatients(ctx, search)
 	})
 	if err != nil {
@@ -271,7 +271,7 @@ func newCreationMatches(
 }
 
 func (p *patient) loadCreatedPatient(ctx context.Context, match domain.Patient) (domain.CreatedPatient, MutationOutcome) {
-	demographics, err := retryRead(ctx, func() (domain.PatientDemographics, error) {
+	demographics, err := retryRead(ctx, isTransientReadError, func() (domain.PatientDemographics, error) {
 		return p.advancedMD.GetPatientDemographics(ctx, match.ID)
 	})
 	if err != nil || demographics.RespPartyID == "" {

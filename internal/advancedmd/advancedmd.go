@@ -38,7 +38,7 @@ func CategoryOf(err error) safeerrors.Category {
 	if errors.As(err, &classified) {
 		return classified.category
 	}
-	return safeerrors.CategoryInternal
+	return safeerrors.Classify(err)
 }
 
 func IsAmbiguousWrite(err error) bool {

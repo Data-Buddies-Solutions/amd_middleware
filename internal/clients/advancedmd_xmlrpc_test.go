@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -536,6 +537,37 @@ func TestAdvancedMDClient_EndDateInsurance_SendsTheEasternCalendarDate(t *testin
 	}
 	if got := sent.Message.MsgTime; got != "10/21/2026 01:30:00 AM" {
 		t.Fatalf("msgtime = %q, want the unchanged UTC wall clock 10/21/2026 01:30:00 AM", got)
+	}
+}
+
+func TestAdvancedMDClient_InsuranceWritesSendTheAddInsuranceEnvelope(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		write func(context.Context, *AdvancedMDClient, *session.TokenData) error
+		want  string
+	}{
+		{"add", func(ctx context.Context, c *AdvancedMDClient, token *session.TokenData) error {
+			return c.AddInsurance(ctx, token, "pat123", "resp456", "car308175", "H123")
+		}, `{"ppmdmsg":{"@action":"addinsurance","@class":"api","@msgtime":"06/01/2026 04:00:00 PM","patient":{"@changed":"1","@id":"pat123","insplanlist":{"insplan":{"@carrier":"car308175","@copay":"0.00","@coverage":"1","@hipaarelationship":"18","@id":"","@relationship":"1","@subscriber":"resp456","@subscribernum":"H123"}}}}}`},
+		{"end-date", func(ctx context.Context, c *AdvancedMDClient, token *session.TokenData) error {
+			return c.EndDateInsurance(ctx, token, "pat123", "ins789")
+		}, `{"ppmdmsg":{"@action":"addinsurance","@class":"api","@msgtime":"06/01/2026 04:00:00 PM","patient":{"@changed":"1","@id":"pat123","insplanlist":{"insplan":{"@enddate":"06/01/2026","@id":"ins789"}}}}}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var sent []byte
+			client, tokenData, cleanup := newTestXMLRPCClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				sent, _ = io.ReadAll(r.Body)
+				w.Write([]byte(`{"PPMDResults":{"Results":{"@success":"1"}}}`))
+			}))
+			defer cleanup()
+
+			if err := tc.write(context.Background(), client, tokenData); err != nil {
+				t.Fatalf("write: %v", err)
+			}
+			if string(sent) != tc.want {
+				t.Fatalf("request body =\n%s\nwant\n%s", sent, tc.want)
+			}
+		})
 	}
 }
 

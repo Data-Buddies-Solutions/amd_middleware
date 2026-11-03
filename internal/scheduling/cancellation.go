@@ -160,7 +160,7 @@ func (s *service) reconcileCancellation(
 		Start:         appointment.Start,
 	})
 	if err != nil {
-		log.Printf("cancellation: reconciliation outcome=indeterminate category=%s", providerCategory(err))
+		log.Printf("cancellation: reconciliation outcome=indeterminate category=%s", advancedmd.CategoryOf(err))
 		return CancelReceipt{}, categorizedError(
 			CategoryIndeterminateWrite,
 			"AdvancedMD may have cancelled the appointment, but the result could not be verified. Do not retry automatically; load appointments before taking another action.",

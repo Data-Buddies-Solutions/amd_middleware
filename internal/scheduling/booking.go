@@ -274,7 +274,7 @@ func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingCont
 	if err != nil {
 		return categorizedProviderError(
 			CategoryWriteFailed,
-			providerCategory(err),
+			advancedmd.CategoryOf(err),
 			"Unable to verify patient before booking. Please try again.",
 		)
 	}
@@ -303,7 +303,7 @@ func classifyBookingPatient(booking *bookingContext, completedVisit func() (bool
 	if err != nil {
 		return categorizedProviderError(
 			CategoryWriteFailed,
-			providerCategory(err),
+			advancedmd.CategoryOf(err),
 			"Unable to verify patient before booking. Please try again.",
 		)
 	}
@@ -379,7 +379,7 @@ func revalidateBookingSlot(
 	if err != nil {
 		return time.Time{}, false, categorizedProviderError(
 			CategoryWriteFailed,
-			providerCategory(err),
+			advancedmd.CategoryOf(err),
 			"Unable to revalidate the selected provider. Please check availability again.",
 		)
 	}
@@ -403,7 +403,7 @@ func revalidateBookingSlot(
 	if err != nil {
 		return time.Time{}, false, categorizedProviderError(
 			CategoryWriteFailed,
-			providerCategory(err),
+			advancedmd.CategoryOf(err),
 			"Unable to revalidate the selected slot. Please check availability again.",
 		)
 	}
@@ -427,7 +427,7 @@ func (s *service) reconcileBooking(ctx context.Context, prepared preparedBooking
 		Day:       prepared.start,
 	})
 	if err != nil {
-		log.Printf("booking: reconciliation outcome=indeterminate category=%s", providerCategory(err))
+		log.Printf("booking: reconciliation outcome=indeterminate category=%s", advancedmd.CategoryOf(err))
 		return BookReceipt{}, categorizedError(
 			CategoryIndeterminateWrite,
 			"AdvancedMD may have booked the appointment, but the result could not be verified. Do not retry automatically; load appointments before taking another action.",
