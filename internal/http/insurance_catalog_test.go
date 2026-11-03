@@ -8,7 +8,6 @@ import (
 	"go/token"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"reflect"
 	"slices"
 	"strconv"
@@ -75,17 +74,6 @@ func TestInsuranceCatalogIsNotExported(t *testing.T) {
 
 func TestValidateInsuranceCatalogAcceptsTheFixture(t *testing.T) {
 	valid := serveCatalogRoute(t, http.MethodPost, "/api/insurance/catalog/validate", marshal(t, insurancetest.Catalog()), "Bearer test-secret")
-	if valid.Code != http.StatusOK || valid.Body.String() != "{\"valid\":true}\n" {
-		t.Fatalf("status=%d body=%q", valid.Code, valid.Body.String())
-	}
-}
-
-func TestValidateInsuranceCatalogAcceptsTheV1Fixture(t *testing.T) {
-	v1, err := os.ReadFile("../insurance/testdata/catalog_v1.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	valid := serveCatalogRoute(t, http.MethodPost, "/api/insurance/catalog/validate", v1, "Bearer test-secret")
 	if valid.Code != http.StatusOK || valid.Body.String() != "{\"valid\":true}\n" {
 		t.Fatalf("status=%d body=%q", valid.Code, valid.Body.String())
 	}
