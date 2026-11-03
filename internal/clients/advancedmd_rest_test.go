@@ -5,15 +5,18 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"advancedmd-token-management/internal/safeerrors"
 	"advancedmd-token-management/internal/session"
 )
 
@@ -310,5 +313,172 @@ func TestGetAppointmentsByMonthAcceptsSingleObject(t *testing.T) {
 	appointments, err := client.GetAppointmentsByMonth(context.Background(), token, "1513", "2026-03-01")
 	if err != nil || len(appointments) != 1 || appointments[0].ID != 42 {
 		t.Fatalf("GetAppointmentsByMonth() = %+v, err = %v", appointments, err)
+	}
+}
+
+type restCall struct {
+	name    string
+	method  string
+	write   bool
+	success string
+	send    func(context.Context, *AdvancedMDRestClient, *session.TokenData) error
+}
+
+var restCalls = []restCall{
+	{"read", http.MethodGet, false, `[{"id":1,"startdatetime":"2026-03-03T09:00:00"}]`, func(ctx context.Context, c *AdvancedMDRestClient, token *session.TokenData) error {
+		_, err := c.GetAppointmentsByDay(ctx, token, "1513", "2026-03-03")
+		return err
+	}},
+	{"book", http.MethodPost, true, `{"id":7}`, func(ctx context.Context, c *AdvancedMDRestClient, token *session.TokenData) error {
+		_, err := c.BookAppointment(ctx, token, BookAppointmentParams{PatientID: 1})
+		return err
+	}},
+	{"cancel", http.MethodPut, true, ``, func(ctx context.Context, c *AdvancedMDRestClient, token *session.TokenData) error {
+		return c.CancelAppointment(ctx, token, 9)
+	}},
+}
+
+func TestRestRequestsClassifyEveryProviderStatus(t *testing.T) {
+	const (
+		none     = safeerrors.CategoryNone
+		auth     = safeerrors.CategoryAuthentication
+		conflict = safeerrors.CategoryConflict
+		rejected = safeerrors.CategoryRejected
+		upstream = safeerrors.CategoryUpstreamStatus
+		invalid  = safeerrors.CategoryInvalidResponse
+	)
+	for _, tc := range []struct {
+		status int
+		want   map[string]safeerrors.Category
+	}{
+		{http.StatusOK, map[string]safeerrors.Category{"read": none, "book": none, "cancel": none}},
+		{http.StatusCreated, map[string]safeerrors.Category{"read": upstream, "book": none, "cancel": none}},
+		{http.StatusNoContent, map[string]safeerrors.Category{"read": upstream, "book": invalid, "cancel": none}},
+		{http.StatusBadRequest, map[string]safeerrors.Category{"read": upstream, "book": rejected, "cancel": rejected}},
+		{http.StatusUnauthorized, map[string]safeerrors.Category{"read": auth, "book": auth, "cancel": auth}},
+		{http.StatusForbidden, map[string]safeerrors.Category{"read": auth, "book": auth, "cancel": auth}},
+		{http.StatusNotFound, map[string]safeerrors.Category{"read": upstream, "book": rejected, "cancel": rejected}},
+		{http.StatusRequestTimeout, map[string]safeerrors.Category{"read": upstream, "book": upstream, "cancel": upstream}},
+		{http.StatusConflict, map[string]safeerrors.Category{"read": upstream, "book": conflict, "cancel": conflict}},
+		{http.StatusUnprocessableEntity, map[string]safeerrors.Category{"read": upstream, "book": rejected, "cancel": rejected}},
+		{http.StatusTooManyRequests, map[string]safeerrors.Category{"read": upstream, "book": rejected, "cancel": rejected}},
+		{http.StatusInternalServerError, map[string]safeerrors.Category{"read": upstream, "book": upstream, "cancel": upstream}},
+		{http.StatusBadGateway, map[string]safeerrors.Category{"read": upstream, "book": upstream, "cancel": upstream}},
+		{http.StatusServiceUnavailable, map[string]safeerrors.Category{"read": upstream, "book": upstream, "cancel": upstream}},
+	} {
+		for _, call := range restCalls {
+			t.Run(fmt.Sprintf("%s %d", call.name, tc.status), func(t *testing.T) {
+				var logs bytes.Buffer
+				previousWriter := log.Writer()
+				log.SetOutput(&logs)
+				t.Cleanup(func() { log.SetOutput(previousWriter) })
+
+				client, token, cleanup := newTestRestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					wantContentType := ""
+					if call.write {
+						wantContentType = "application/json"
+					}
+					if r.Method != call.method || r.Header.Get("Authorization") != "Bearer test-token" ||
+						r.Header.Get("Accept") != "application/json" || r.Header.Get("Content-Type") != wantContentType {
+						t.Errorf("request = %s Authorization=%q Accept=%q Content-Type=%q", r.Method,
+							r.Header.Get("Authorization"), r.Header.Get("Accept"), r.Header.Get("Content-Type"))
+					}
+					w.WriteHeader(tc.status)
+					fmt.Fprint(w, call.success)
+				}))
+				t.Cleanup(cleanup)
+
+				err := call.send(context.Background(), client, token)
+				want := tc.want[call.name]
+				if got := safeerrors.Classify(err); got != want || safeerrors.IsNotSent(err) {
+					t.Fatalf("error = %v, category = %q, not sent = %t; want a sent %q", err, got, safeerrors.IsNotSent(err), want)
+				}
+				var status *httpStatusError
+				if errors.As(err, &status) != (want != none && want != invalid) {
+					t.Fatalf("error = %v, want an HTTP status error only for a refused status", err)
+				}
+				if status != nil && status.statusCode != tc.status {
+					t.Fatalf("status error code = %d, want %d", status.statusCode, tc.status)
+				}
+				logged := strings.Contains(logs.String(), "upstream_http_status=")
+				if wantLog := !call.write && tc.status != http.StatusOK; logged != wantLog {
+					t.Fatalf("logged upstream status = %t, want %t", logged, wantLog)
+				}
+			})
+		}
+	}
+}
+
+func TestRestRequestsClassifyResponseBodies(t *testing.T) {
+	const (
+		none    = safeerrors.CategoryNone
+		invalid = safeerrors.CategoryInvalidResponse
+	)
+	for _, tc := range []struct {
+		name    string
+		handler http.HandlerFunc
+		want    map[string]safeerrors.Category
+	}{
+		{"empty", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) },
+			map[string]safeerrors.Category{"read": invalid, "book": invalid, "cancel": none}},
+		{"whitespace", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, " \n") },
+			map[string]safeerrors.Category{"read": invalid, "book": invalid, "cancel": none}},
+		{"malformed", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, `{"id":`) },
+			map[string]safeerrors.Category{"read": invalid, "book": invalid, "cancel": none}},
+		{"zero booking ID", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, `{"id":0}`) },
+			map[string]safeerrors.Category{"read": none, "book": invalid, "cancel": none}},
+		{"truncated", func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Length", "100")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, `{"id"`)
+		}, map[string]safeerrors.Category{"read": invalid, "book": invalid, "cancel": none}},
+	} {
+		for _, call := range restCalls {
+			t.Run(tc.name+" "+call.name, func(t *testing.T) {
+				client, token, cleanup := newTestRestClient(t, tc.handler)
+				t.Cleanup(cleanup)
+
+				err := call.send(context.Background(), client, token)
+				want := tc.want[call.name]
+				if got := safeerrors.Classify(err); got != want || safeerrors.IsNotSent(err) {
+					t.Fatalf("error = %v, category = %q, not sent = %t; want a sent %q", err, got, safeerrors.IsNotSent(err), want)
+				}
+			})
+		}
+	}
+}
+
+func TestRestRequestsSeparateUnsentRequestsFromTransportFailures(t *testing.T) {
+	for _, call := range restCalls {
+		t.Run(call.name, func(t *testing.T) {
+			var requests atomic.Int32
+			client, token, cleanup := newTestRestClient(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+				requests.Add(1)
+			}))
+			base := token.RestApiBase
+
+			token.RestApiBase = "provider host/api"
+			err := call.send(context.Background(), client, token)
+			if !safeerrors.IsNotSent(err) || safeerrors.Classify(err) != safeerrors.CategoryInternal {
+				t.Fatalf("unbuildable request error = %v, category = %q; want a not-sent internal failure", err, safeerrors.Classify(err))
+			}
+
+			token.RestApiBase = base
+			canceled, cancel := context.WithCancel(context.Background())
+			cancel()
+			err = call.send(canceled, client, token)
+			if safeerrors.IsNotSent(err) || safeerrors.Classify(err) != "canceled" {
+				t.Fatalf("canceled request error = %v, category = %q; want a sent canceled failure", err, safeerrors.Classify(err))
+			}
+
+			cleanup()
+			err = call.send(context.Background(), client, token)
+			if safeerrors.IsNotSent(err) || safeerrors.Classify(err) != safeerrors.CategoryNetwork {
+				t.Fatalf("unreachable provider error = %v, category = %q; want a sent network failure", err, safeerrors.Classify(err))
+			}
+			if got := requests.Load(); got != 0 {
+				t.Fatalf("provider requests = %d, want none", got)
+			}
+		})
 	}
 }

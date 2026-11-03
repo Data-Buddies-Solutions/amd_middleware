@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -209,30 +210,11 @@ func (c *AdvancedMDRestClient) BookAppointment(ctx context.Context, tokenData *s
 	defer func() { finish(resultErr) }()
 	url := fmt.Sprintf("https://%s/scheduler/Appointments", tokenData.RestApiBase)
 
-	bodyBytes, err := json.Marshal(params)
+	resp, err := c.send(ctx, tokenData, writeRequest, http.MethodPost, url, params)
 	if err != nil {
-		return 0, safeerrors.NotSent("failed to marshal request body: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(bodyBytes))
-	if err != nil {
-		return 0, safeerrors.NotSent("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", tokenData.Token)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return 0, fmt.Errorf("request failed: %w", err)
+		return 0, err
 	}
 	defer resp.Body.Close()
-	observeProviderStatus(ctx, resp.StatusCode)
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return 0, statusError(resp.StatusCode, writeRequest)
-	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -256,60 +238,27 @@ func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData 
 	url := fmt.Sprintf("https://%s/scheduler/appointments/%d/cancel",
 		tokenData.RestApiBase, appointmentID)
 
-	reqBody := map[string]interface{}{
-		"id": appointmentID,
-	}
-	bodyBytes, err := json.Marshal(reqBody)
+	resp, err := c.send(ctx, tokenData, writeRequest, http.MethodPut, url, map[string]int{"id": appointmentID})
 	if err != nil {
-		return safeerrors.NotSent("failed to marshal request body: %w", err)
+		return err
 	}
-
-	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewReader(bodyBytes))
-	if err != nil {
-		return safeerrors.NotSent("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", tokenData.Token)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-	observeProviderStatus(ctx, resp.StatusCode)
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return statusError(resp.StatusCode, writeRequest)
-	}
-
+	resp.Body.Close()
 	return nil
 }
 
 func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *session.TokenData, url, operation string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, safeerrors.NotSent("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", tokenData.Token)
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-	observeProviderStatus(ctx, resp.StatusCode)
-
-	if resp.StatusCode != http.StatusOK {
+	resp, err := c.send(ctx, tokenData, readRequest, http.MethodGet, url, nil)
+	var status *httpStatusError
+	if errors.As(err, &status) {
 		log.Printf(
 			"WARNING: provider=advancedmd operation=%q upstream_http_status=%d",
-			operation, resp.StatusCode,
+			operation, status.statusCode,
 		)
-		return nil, statusError(resp.StatusCode, readRequest)
 	}
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -319,4 +268,42 @@ func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *s
 		return nil, safeerrors.New(safeerrors.CategoryInvalidResponse, "failed to parse empty %s response", operation)
 	}
 	return body, nil
+}
+
+func (c *AdvancedMDRestClient) send(ctx context.Context, tokenData *session.TokenData, kind requestKind, method, url string, payload any) (*http.Response, error) {
+	var body io.Reader
+	if payload != nil {
+		encoded, err := json.Marshal(payload)
+		if err != nil {
+			return nil, safeerrors.NotSent("failed to marshal request body: %w", err)
+		}
+		body = bytes.NewReader(encoded)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
+	if err != nil {
+		return nil, safeerrors.NotSent("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", tokenData.Token)
+	if payload != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	observeProviderStatus(ctx, resp.StatusCode)
+
+	accepted := resp.StatusCode >= 200 && resp.StatusCode < 300
+	if kind == readRequest {
+		accepted = resp.StatusCode == http.StatusOK
+	}
+	if !accepted {
+		resp.Body.Close()
+		return nil, statusError(resp.StatusCode, kind)
+	}
+	return resp, nil
 }
