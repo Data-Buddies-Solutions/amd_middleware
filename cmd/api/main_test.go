@@ -61,6 +61,7 @@ func middleware(t *testing.T, productURL string) (*exec.Cmd, func() string, stri
 		"ADVANCEDMD_OFFICE_KEY=991TEST",
 		"ADVANCEDMD_APP_NAME=app",
 		"API_SECRET=test-secret",
+		"BOOKING_TOKEN_SECRET=booking-secret",
 		"MAINTENANCE_OIDC_AUDIENCE=https://middleware.example.test",
 		"MAINTENANCE_OIDC_SERVICE_ACCOUNT=middleware-maintenance@example.iam.gserviceaccount.com",
 		"ACUITY_PRODUCT_URL="+productURL,

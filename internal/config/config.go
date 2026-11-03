@@ -63,6 +63,9 @@ func Load() (*Config, error) {
 	if cfg.APISecret == "" {
 		return nil, fmt.Errorf("API_SECRET is required")
 	}
+	if cfg.BookingTokenSecret == "" {
+		return nil, fmt.Errorf("BOOKING_TOKEN_SECRET is required")
+	}
 	env, err := domain.ParseEnvironment(os.Getenv("AMD_ENV"))
 	if err != nil {
 		return nil, fmt.Errorf("AMD_ENV: %w", err)
@@ -80,10 +83,6 @@ func Load() (*Config, error) {
 	if cfg.AcuityProductInsuranceToken == "" {
 		return nil, fmt.Errorf("ACUITY_PRODUCT_INSURANCE_TOKEN is required")
 	}
-	if cfg.BookingTokenSecret == "" {
-		cfg.BookingTokenSecret = cfg.APISecret
-	}
-
 	return cfg, nil
 }
 
