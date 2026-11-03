@@ -194,8 +194,8 @@ func TestOfficeConfig_HollywoodAndSweetwaterColumns(t *testing.T) {
 			name:       "hollywood",
 			office:     mustOffice(t, "hollywood"),
 			facilityID: 1480,
-			columns:    []int{1268, 1478, 1555, 1510, 1305},
-			optical:    []int{1555, 1510, 1305},
+			columns:    []int{1268, 1478, 1555, 1615, 1510, 1305},
+			optical:    []int{1555, 1615, 1510, 1305},
 		},
 		{
 			name:       "sweetwater",
@@ -295,10 +295,11 @@ func TestOfficeConfig_SameStartCapacityScope(t *testing.T) {
 			doubleBook: []int{682, 1307, 1296, 1554, 1210},
 		},
 		{
-			name:       "hollywood all columns have same-start capacity",
+			name:       "hollywood adult vision column remains single-booked",
 			env:        Prod,
 			office:     "hollywood",
 			doubleBook: []int{1268, 1478, 1555, 1510, 1305},
+			singleBook: []int{1615},
 		},
 		{
 			name:       "sandbox spring hill all columns double-bookable",
