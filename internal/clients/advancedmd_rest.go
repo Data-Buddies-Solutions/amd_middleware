@@ -248,14 +248,14 @@ func (c *AdvancedMDRestClient) CancelAppointment(ctx context.Context, tokenData 
 
 func (c *AdvancedMDRestClient) getResponseBody(ctx context.Context, tokenData *session.TokenData, url, operation string) ([]byte, error) {
 	resp, err := c.send(ctx, tokenData, readRequest, http.MethodGet, url, nil)
-	var status *httpStatusError
-	if errors.As(err, &status) {
-		log.Printf(
-			"WARNING: provider=advancedmd operation=%q upstream_http_status=%d",
-			operation, status.statusCode,
-		)
-	}
 	if err != nil {
+		var status *httpStatusError
+		if errors.As(err, &status) {
+			log.Printf(
+				"WARNING: provider=advancedmd operation=%q upstream_http_status=%d",
+				operation, status.statusCode,
+			)
+		}
 		return nil, err
 	}
 	defer resp.Body.Close()

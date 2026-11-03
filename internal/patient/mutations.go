@@ -68,12 +68,7 @@ func waitReadRetry(ctx context.Context, attempt int) error {
 }
 
 func isTransientReadError(err error) bool {
-	switch advancedmd.CategoryOf(err) {
-	case safeerrors.CategoryTimeout, safeerrors.CategoryNetwork, safeerrors.CategoryUnavailable:
-		return true
-	default:
-		return false
-	}
+	return isTransientPreWriteReadError(err) || advancedmd.CategoryOf(err) == safeerrors.CategoryTimeout
 }
 
 func isTransientPreWriteReadError(err error) bool {
