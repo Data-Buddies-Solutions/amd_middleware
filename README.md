@@ -272,17 +272,9 @@ plan for `routine_vision`. A region's `tables` mirror the office sheets. Each ta
 names its `offices` and its `doctors`, and has one row per plan the sheet includes,
 with a `yes`, `no` or `pending` value per doctor, then `beforeBooking` (`none`,
 `pcp_referral`, `prior_authorization`, or `staff_verify`), `onlyOffices`, and the
-caller `notice`. Every empty list is `[]`. Decoding is strict, so an unknown field
-is rejected.
-
-This is catalog v2. Until Product stores only v2, the middleware also accepts the v1
-shape, in which plans carry `carrierCode` and `selfPay` and rows carry `requires` and
-`note`. A body that is not strict v2 is decoded as strict v1 and converted in memory
-([internal/insurance/legacy_catalog.go](internal/insurance/legacy_catalog.go)): a
-carrier's `code` is the most common non-empty `carrierCode` of its plans (ties go to
-the lexically first), `beforeBooking` is `staff_verify` when any requirement is, else
-the first requirement's `kind`, else `none`, and `selfPay`, `channel` and `note` are
-dropped. Refresh and the validate route share this one decode.
+caller `notice`. Every empty list is `[]`. This is catalog v2, the only shape
+Product stores. Decoding is strict, so an unknown field is rejected. Refresh and the
+validate route share this one decode.
 
 Tests decide from one frozen fixture,
 [internal/insurance/testdata/catalog.json](internal/insurance/testdata/catalog.json),
@@ -293,13 +285,6 @@ medical reference (2026-07-07, AMD directory verified 2026-09-17) and the Spring
 routine vision list. `insurancetest.Install` installs the fixture as revision
 `fixture` through the same parser a refresh uses. Change the fixture only to test a
 rule. A plan change callers should hear is a Portal publish.
-
-While v1 is accepted, the fixture is generated: `catalog_v1.json` is revision 1 as
-Product stored it, and `go test ./internal/insurance -run V2FixtureIsTheConvertedV1Fixture -update`
-writes its conversion to `catalog.json`. `catalog_v1_decisions.jsonl.gz` records
-every plan's list entry and adult and child decisions at every office, as the
-middleware decided revision 1 before v2. A test decides the v1 fixture through
-refresh and requires the same results, apart from what v2 changes on purpose.
 
 `POST /api/insurance/catalog/validate` is the only judge of a candidate: it parses
 it the way a refresh does and returns every error as `{region, table, planId, rule, message}`,

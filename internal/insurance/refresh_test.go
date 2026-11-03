@@ -21,8 +21,8 @@ func fixtureCatalog(t *testing.T) InsuranceCatalog {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var c InsuranceCatalog
-	if err := decodeStrictJSON(b, &c); err != nil {
+	c, err := DecodeCatalog(b)
+	if err != nil {
 		t.Fatal(err)
 	}
 	return c
@@ -166,6 +166,17 @@ func TestRefreshWithNothingInstalledLeavesNothingInstalled(t *testing.T) {
 	}
 	if active.Load() != nil || !strings.Contains(logs.String(), "insurance_catalog_refresh_failed current_revision=none") {
 		t.Fatalf("installed=%v logs=%q", active.Load(), logs)
+	}
+}
+
+func TestDecodeCatalogRejectsAV1Catalog(t *testing.T) {
+	v1 := `{"carriers":[{"id":"car1","name":"ONE"}],"regions":[{"id":"a","plans":[
+		{"id":"p1","label":"P1","family":"F","coverage":"medical","carrierCode":"AAA","carrierId":"car1","selfPay":false,"aliases":[]}
+	],"tables":[{"id":"t","offices":["hollywood"],"doctors":["Dr. Austin Bach"],"rows":[
+		{"planId":"p1","doctors":{},"requires":[],"onlyOffices":[],"notice":"","note":""}
+	]}]}]}`
+	if _, err := DecodeCatalog([]byte(v1)); err == nil || !strings.HasPrefix(err.Error(), "not a v2 catalog: ") {
+		t.Fatalf("err = %v, want not a v2 catalog", err)
 	}
 }
 
