@@ -115,6 +115,37 @@ func TestInsuranceReplacementOwnsReferencesAndWriteEffects(t *testing.T) {
 	}
 }
 
+func TestPreWriteReadsDoNotRetryTimeouts(t *testing.T) {
+	chart := domain.PatientDemographics{DOB: "01/15/1980", RespPartyID: "resp123", InsuranceStateKnown: true}
+	search := domain.PatientSearch{Phone: "9542872010"}
+	for _, tc := range []struct {
+		category safeerrors.Category
+		attempts int
+	}{
+		{safeerrors.CategoryTimeout, 1},
+		{safeerrors.CategoryNetwork, 2},
+		{safeerrors.CategoryUnavailable, 2},
+	} {
+		t.Run(string(tc.category)+" update-insurance chart read", func(t *testing.T) {
+			records := &insuranceRecords{Adapter: advancedmdtest.NewAdapter(), reads: []insuranceRead{
+				{err: advancedmd.NewError(tc.category)}, {chart: chart},
+			}}
+			got := patient.New(records, testAppointmentTokens, testNow).UpdateInsurance(context.Background(), validUpdateInsuranceCommand())
+			if records.DemographicCalls != tc.attempts || records.AddInsuranceCalls != tc.attempts-1 || records.EndInsuranceCalls != 0 {
+				t.Fatalf("result=%+v reads=%d end/add=%d/%d, want %d chart reads", got, records.DemographicCalls, records.EndInsuranceCalls, records.AddInsuranceCalls, tc.attempts)
+			}
+		})
+		t.Run(string(tc.category)+" add-patient duplicate check", func(t *testing.T) {
+			amd := advancedmdtest.NewAdapter()
+			amd.PatientSearchSequence[search] = []advancedmdtest.PatientSearchStep{{Err: advancedmd.NewError(tc.category)}, {}}
+			got := patient.New(amd, testAppointmentTokens, testNow).Create(context.Background(), validCreateCommand())
+			if amd.SearchPatientCalls != tc.attempts || amd.CreatePatientCalls != tc.attempts-1 {
+				t.Fatalf("result=%+v searches=%d creates=%d, want %d duplicate checks", got, amd.SearchPatientCalls, amd.CreatePatientCalls, tc.attempts)
+			}
+		})
+	}
+}
+
 func TestInsuranceReconciliationRetriesOnlyReads(t *testing.T) {
 	initial := domain.PatientDemographics{DOB: "01/15/1980", RespPartyID: "resp123", InsuranceStateKnown: true}
 	attached := initial

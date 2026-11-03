@@ -55,7 +55,7 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 		return UpdateInsuranceResult{Status: UpdateInsuranceStatusError, Outcome: MutationValidationFailed, Message: decision.Answer}
 	}
 
-	chart, err := retryRead(ctx, func() (domain.PatientDemographics, error) {
+	chart, err := retryRead(ctx, isTransientPreWriteReadError, func() (domain.PatientDemographics, error) {
 		return p.advancedMD.GetPatientDemographics(ctx, string(patientID))
 	})
 	if err != nil {
@@ -181,7 +181,7 @@ func insuranceMatches(demographics domain.PatientDemographics, intended domain.P
 }
 
 func (p *patient) reconcileInsurance(ctx context.Context, patientID string) (domain.PatientDemographics, bool) {
-	demographics, err := retryRead(ctx, func() (domain.PatientDemographics, error) {
+	demographics, err := retryRead(ctx, isTransientReadError, func() (domain.PatientDemographics, error) {
 		return p.advancedMD.GetPatientDemographics(ctx, patientID)
 	})
 	if err != nil || !demographics.InsuranceStateKnown ||
