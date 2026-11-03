@@ -32,7 +32,7 @@ func TestBookFailedRevalidationCanRetryWithoutClaimingSlotConflict(t *testing.T)
 	now := mutationTestNow()
 	records := bookingRecords()
 	records.BookAppointmentID = 98765
-	failedRead := advancedmdtest.ColumnDay{Date: "2026-06-03", ColumnID: "1513"}
+	failedRead := advancedmdtest.ColumnDay{Date: "2026-06-03", ColumnID: 1513}
 	records.ColumnReadErrors[failedRead] = advancedmd.NewError(safeerrors.CategoryInvalidResponse)
 	command := signedBookCommand(t, now)
 	scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
@@ -231,7 +231,7 @@ func TestBookRevalidatesPatientOfficeTypeProviderCapacityAndForce(t *testing.T) 
 		{
 			name: "provider eligibility",
 			mutate: func(records *advancedmdtest.Adapter, _ *scheduling.BookCommand) {
-				records.SchedulerSetup.Columns[0].FacilityID = "999"
+				records.SchedulerSetup.Columns[0].FacilityID = 999
 			},
 			category: scheduling.CategorySlotUnavailable,
 		},
@@ -259,7 +259,7 @@ func TestBookRevalidatesPatientOfficeTypeProviderCapacityAndForce(t *testing.T) 
 		{
 			name: "capacity and force decision",
 			mutate: func(records *advancedmdtest.Adapter, _ *scheduling.BookCommand) {
-				records.Schedule["2026-06-03"] = scheduleRows("1513", []domain.Appointment{{
+				records.Schedule["2026-06-03"] = scheduleRows(1513, []domain.Appointment{{
 					StartDateTime: time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
 					Duration:      15,
 				}}, nil)
@@ -623,7 +623,7 @@ func mutationTestNow() time.Time {
 }
 
 func bookingRecords() *advancedmdtest.Adapter {
-	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
+	records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "09:15", 15))
 	records.Demographics["12345"] = domain.PatientDemographics{CarrierName: "Self Pay", CarrierID: "car301672", DOB: "01/15/1980"}
 	return records
 }

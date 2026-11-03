@@ -183,7 +183,7 @@ func TestAdapterReportsWritesThatNeverLeftAsDefiniteFailures(t *testing.T) {
 		},
 		"schedule range": func() error {
 			_, err := adapter.ReadScheduleRange(ctx, domain.ScheduleRangeQuery{
-				ColumnIDs: []string{"1513"},
+				ColumnIDs: []int{1513},
 				Start:     time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC),
 				End:       time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC),
 			})
@@ -308,7 +308,7 @@ func TestAdapterClassifiesReadStatusesWithoutWriteSemantics(t *testing.T) {
 			)
 			_, xmlrpcErr := adapter.GetPatientDemographics(context.Background(), "123")
 			_, restErr := adapter.ReadScheduleRange(context.Background(), domain.ScheduleRangeQuery{
-				ColumnIDs: []string{"1513"},
+				ColumnIDs: []int{1513},
 				Start:     time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC),
 				End:       time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC),
 			})

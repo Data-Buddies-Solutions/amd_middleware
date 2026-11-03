@@ -142,13 +142,13 @@ func validateEnvironment(offices []officeDefinition, definitions map[string]offi
 		return fmt.Errorf("default office %s is unavailable", defaultOfficeID)
 	}
 	phoneOwners := map[string]string{}
-	columnOwners := map[string]string{}
+	columnOwners := map[int]string{}
 	for _, definition := range offices {
 		officeBinding, ok := binding.Offices[definition.ID]
 		if !ok {
 			continue
 		}
-		if len(officeBinding.Phones) == 0 || officeBinding.FacilityID == "" || officeBinding.DefaultProfileID == "" {
+		if len(officeBinding.Phones) == 0 || officeBinding.FacilityID <= 0 || officeBinding.DefaultProfileID <= 0 {
 			return fmt.Errorf("office %s needs a phone, a facility, and a default profile", definition.ID)
 		}
 		for _, phone := range officeBinding.Phones {
@@ -165,11 +165,11 @@ func validateEnvironment(offices []officeDefinition, definitions map[string]offi
 		}
 		for _, key := range slices.Sorted(maps.Keys(officeBinding.Columns)) {
 			column := officeBinding.Columns[key]
-			if column.ColumnID == "" || column.ProfileID == "" {
+			if column.ColumnID <= 0 || column.ProfileID <= 0 {
 				return fmt.Errorf("office %s column %s needs a column ID and a profile ID", definition.ID, key)
 			}
 			if owner, ok := columnOwners[column.ColumnID]; ok {
-				return fmt.Errorf("column ID %s is bound to %s and %s/%s", column.ColumnID, owner, definition.ID, key)
+				return fmt.Errorf("column ID %d is bound to %s and %s/%s", column.ColumnID, owner, definition.ID, key)
 			}
 			columnOwners[column.ColumnID] = definition.ID + "/" + key
 		}

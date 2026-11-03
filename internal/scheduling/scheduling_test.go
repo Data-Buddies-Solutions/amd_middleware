@@ -15,10 +15,10 @@ import (
 func TestListReturnsNoneOnlyAfterACompleteWindow(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	searchDate := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC)
-	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
+	records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "09:15", 15))
 	for day := 0; day <= 14; day++ {
 		date := searchDate.AddDate(0, 0, day)
-		records.Schedule[date.Format("2006-01-02")] = scheduleRows("1513", nil, []domain.BlockHold{{
+		records.Schedule[date.Format("2006-01-02")] = scheduleRows(1513, nil, []domain.BlockHold{{
 			StartDateTime: date.Add(9 * time.Hour),
 			EndDateTime:   date.Add(9*time.Hour + 15*time.Minute),
 		}})
@@ -48,11 +48,11 @@ func TestListReturnsNoneOnlyAfterACompleteWindow(t *testing.T) {
 func TestListReportsIncompleteForUnusableColumnSchedule(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	searchDate := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC)
-	noWorkweek := testColumn("1513", "620", "1568", "09:00", "10:00", 15)
+	noWorkweek := testColumn(1513, 620, 1568, "09:00", "10:00", 15)
 	noWorkweek.Workweek = 0
 	columns := map[string]domain.SchedulerColumn{
-		"zero interval":     testColumn("1513", "620", "1568", "09:00", "10:00", 0),
-		"negative interval": testColumn("1513", "620", "1568", "09:00", "10:00", -15),
+		"zero interval":     testColumn(1513, 620, 1568, "09:00", "10:00", 0),
+		"negative interval": testColumn(1513, 620, 1568, "09:00", "10:00", -15),
 		"no workweek":       noWorkweek,
 	}
 	for name, column := range columns {
@@ -90,14 +90,14 @@ func TestListReportsIncompleteForUnusableColumnSchedule(t *testing.T) {
 func TestListStartsAtStartDate(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	searchDate := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC)
-	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "16:00", 60))
-	records.Schedule["2026-06-04"] = scheduleRows("1513", nil, []domain.BlockHold{{
+	records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "16:00", 60))
+	records.Schedule["2026-06-04"] = scheduleRows(1513, nil, []domain.BlockHold{{
 		StartDateTime: time.Date(2026, 6, 4, 10, 0, 0, 0, time.UTC),
 		EndDateTime:   time.Date(2026, 6, 4, 16, 0, 0, 0, time.UTC),
 	}})
 	for day := 2; day <= 14; day++ {
 		date := searchDate.AddDate(0, 0, day)
-		records.Schedule[date.Format("2006-01-02")] = scheduleRows("1513", nil, []domain.BlockHold{{
+		records.Schedule[date.Format("2006-01-02")] = scheduleRows(1513, nil, []domain.BlockHold{{
 			StartDateTime: date.Add(9 * time.Hour),
 			EndDateTime:   date.Add(16 * time.Hour),
 		}})
@@ -120,7 +120,7 @@ func TestListStartsAtStartDate(t *testing.T) {
 func TestListReturnsIncompleteWhenProviderReadsCannotProveNone(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	searchDate := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC)
-	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
+	records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "09:15", 15))
 	for day := 0; day <= 14; day++ {
 		records.IncompleteDays[searchDate.AddDate(0, 0, day).Format("2006-01-02")] = true
 	}
@@ -149,15 +149,15 @@ func TestListReturnsIncompleteWhenOneDayIsIncompleteAndTheRestAreFull(t *testing
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	searchDate := time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC)
 	records := recordsWithSetup(
-		testColumn("1513", "620", "1568", "09:00", "09:15", 15),
-		testColumn("1598", "620", "1568", "09:00", "09:15", 15),
+		testColumn(1513, 620, 1568, "09:00", "09:15", 15),
+		testColumn(1598, 620, 1568, "09:00", "09:15", 15),
 	)
 	for day := 0; day <= 14; day++ {
 		date := searchDate.AddDate(0, 0, day)
 		hold := []domain.BlockHold{{StartDateTime: date.Add(9 * time.Hour), EndDateTime: date.Add(9*time.Hour + 15*time.Minute)}}
-		records.Schedule[date.Format("2006-01-02")] = map[string]advancedmdtest.ColumnRows{
-			"1513": {BlockHolds: hold},
-			"1598": {BlockHolds: hold},
+		records.Schedule[date.Format("2006-01-02")] = map[int]advancedmdtest.ColumnRows{
+			1513: {BlockHolds: hold},
+			1598: {BlockHolds: hold},
 		}
 	}
 	records.IncompleteDays[searchDate.Format("2006-01-02")] = true
@@ -179,7 +179,7 @@ func TestListReturnsIncompleteWhenOneDayIsIncompleteAndTheRestAreFull(t *testing
 
 func TestListExcludesRestrictedProviders(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	records := recordsWithSetup(testColumn("1210", "1993", "670", "09:00", "09:15", 15))
+	records := recordsWithSetup(testColumn(1210, 1993, 670, "09:00", "09:15", 15))
 
 	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		List(context.Background(), scheduling.ListCommand{
@@ -206,7 +206,7 @@ func TestListRoutesAPatientByTheirAgeOnTheEasternCalendar(t *testing.T) {
 		{"18 at 00:30 EDT on the 18th birthday", time.Date(2026, 10, 21, 4, 30, 0, 0, time.UTC), scheduling.AvailabilityOutcomeFound},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			records := recordsWithSetup(testColumn("1550", "2076", "1568", "09:00", "09:15", 15))
+			records := recordsWithSetup(testColumn(1550, 2076, 1568, "09:00", "09:15", 15))
 
 			result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return tt.now }).
 				List(context.Background(), scheduling.ListCommand{
@@ -229,8 +229,8 @@ func TestListRoutesAPatientByTheirAgeOnTheEasternCalendar(t *testing.T) {
 func TestListRejectsInvalidDOB(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	records := recordsWithSetup(
-		testColumn("1513", "620", "1568", "09:00", "09:15", 15),
-		testColumn("1551", "2064", "1568", "09:00", "09:15", 15),
+		testColumn(1513, 620, 1568, "09:00", "09:15", 15),
+		testColumn(1551, 2064, 1568, "09:00", "09:15", 15),
 	)
 	scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
 
@@ -248,7 +248,7 @@ func TestListPreservesAuthenticationFailureContract(t *testing.T) {
 	want := "Service authentication is temporarily unavailable. Please try again."
 
 	t.Run("scheduler setup", func(t *testing.T) {
-		records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
+		records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "09:15", 15))
 		records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryUnavailable)
 		_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 			List(context.Background(), scheduling.ListCommand{
@@ -263,7 +263,7 @@ func TestListPreservesAuthenticationFailureContract(t *testing.T) {
 	})
 
 	t.Run("schedule read", func(t *testing.T) {
-		records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
+		records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "09:15", 15))
 		records.ScheduleReadErrors["2026-06-03"] = advancedmd.NewError(safeerrors.CategoryAuthentication)
 		_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 			List(context.Background(), scheduling.ListCommand{
@@ -280,7 +280,7 @@ func TestListPreservesAuthenticationFailureContract(t *testing.T) {
 
 func TestListReportsAdapterInternalFailureAsInternal(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "09:15", 15))
+	records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "09:15", 15))
 	records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryInternal)
 	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		List(context.Background(), scheduling.ListCommand{
@@ -299,7 +299,7 @@ func recordsWithSetup(columns ...domain.SchedulerColumn) *advancedmdtest.Adapter
 	return records
 }
 
-func testColumn(id, profileID, facilityID, start, end string, interval int) domain.SchedulerColumn {
+func testColumn(id, profileID, facilityID int, start, end string, interval int) domain.SchedulerColumn {
 	return domain.SchedulerColumn{
 		ID:         id,
 		Name:       "TEST COLUMN",
@@ -312,6 +312,6 @@ func testColumn(id, profileID, facilityID, start, end string, interval int) doma
 	}
 }
 
-func scheduleRows(columnID string, appointments []domain.Appointment, blockHolds []domain.BlockHold) map[string]advancedmdtest.ColumnRows {
-	return map[string]advancedmdtest.ColumnRows{columnID: {Appointments: appointments, BlockHolds: blockHolds}}
+func scheduleRows(columnID int, appointments []domain.Appointment, blockHolds []domain.BlockHold) map[int]advancedmdtest.ColumnRows {
+	return map[int]advancedmdtest.ColumnRows{columnID: {Appointments: appointments, BlockHolds: blockHolds}}
 }

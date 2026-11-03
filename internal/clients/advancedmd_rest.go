@@ -54,16 +54,6 @@ type AMDAppointmentResponse struct {
 	PatientID        int    `json:"patientid"`
 }
 
-func (c *AdvancedMDRestClient) GetAppointments(ctx context.Context, tokenData *session.TokenData, columnID string, startDate string) (appointmentsResult []domain.Appointment, resultErr error) {
-	ctx, finish := beginProviderOperation(ctx, "get_appointments")
-	defer func() { finish(resultErr) }()
-	amdAppts, err := c.appointmentRows(ctx, tokenData, "day", columnID, startDate, "appointments")
-	if err != nil {
-		return nil, err
-	}
-	return ScheduledAppointments(amdAppts)
-}
-
 func ScheduledAppointments(amdAppts []AMDAppointmentResponse) ([]domain.Appointment, error) {
 	var appointments []domain.Appointment
 	for _, a := range amdAppts {

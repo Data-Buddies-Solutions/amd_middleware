@@ -53,7 +53,7 @@ func TestAdapterLogsInAgainAfterProviderRejectsToken(t *testing.T) {
 	failures := make(chan error, callers)
 	for range callers {
 		go func() {
-			_, err := adapter.ReadColumnDay(context.Background(), "101", "2026-10-26")
+			_, err := adapter.ReadColumnDay(context.Background(), 101, "2026-10-26")
 			failures <- err
 		}()
 	}
@@ -63,7 +63,7 @@ func TestAdapterLogsInAgainAfterProviderRejectsToken(t *testing.T) {
 		}
 	}
 
-	if _, err := adapter.ReadColumnDay(context.Background(), "101", "2026-10-26"); err != nil {
+	if _, err := adapter.ReadColumnDay(context.Background(), 101, "2026-10-26"); err != nil {
 		t.Fatalf("ReadColumnDay() after rejection error = %v", err)
 	}
 	if got := logins.Load(); got != 2 {

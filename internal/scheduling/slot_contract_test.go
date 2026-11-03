@@ -23,7 +23,7 @@ type slotContractToken struct {
 }
 
 func TestSlotContractListsAndRevalidatesRepresentativeSchedules(t *testing.T) {
-	notWednesday := testColumn("1513", "620", "1568", "09:00", "10:00", 30)
+	notWednesday := testColumn(1513, 620, 1568, "09:00", "10:00", 30)
 	notWednesday.Workweek = 127 &^ (1 << time.Wednesday)
 	tests := []struct {
 		name         string
@@ -39,7 +39,7 @@ func TestSlotContractListsAndRevalidatesRepresentativeSchedules(t *testing.T) {
 			name:    "final interval past work-hour end",
 			office:  "Spring Hill",
 			routing: domain.RoutingBachOnly,
-			column:  testColumn("1513", "620", "1568", "08:00", "08:45", 30),
+			column:  testColumn(1513, 620, 1568, "08:00", "08:45", 30),
 			listed:  []string{"08:00 0/0 force=false"},
 			rejected: []slotContractToken{
 				{start: "08:30", duration: 30, capacity: 2},
@@ -50,7 +50,7 @@ func TestSlotContractListsAndRevalidatesRepresentativeSchedules(t *testing.T) {
 			name:    "off-grid and wrong-length tokens",
 			office:  "Spring Hill",
 			routing: domain.RoutingBachOnly,
-			column:  testColumn("1513", "620", "1568", "09:00", "10:00", 30),
+			column:  testColumn(1513, 620, 1568, "09:00", "10:00", 30),
 			listed:  []string{"09:00 0/0 force=false", "09:30 0/0 force=false"},
 			rejected: []slotContractToken{
 				{start: "09:10", duration: 30, capacity: 2},
@@ -62,7 +62,7 @@ func TestSlotContractListsAndRevalidatesRepresentativeSchedules(t *testing.T) {
 			name:    "slot crossing a block hold",
 			office:  "Spring Hill",
 			routing: domain.RoutingBachOnly,
-			column:  testColumn("1513", "620", "1568", "09:00", "11:00", 30),
+			column:  testColumn(1513, 620, 1568, "09:00", "11:00", 30),
 			holds:   []domain.BlockHold{{ID: 1, StartDateTime: slotContractAt(9, 55), EndDateTime: slotContractAt(10, 30)}},
 			listed:  []string{"09:00 0/0 force=false", "10:30 0/0 force=false"},
 			rejected: []slotContractToken{
@@ -74,7 +74,7 @@ func TestSlotContractListsAndRevalidatesRepresentativeSchedules(t *testing.T) {
 			name:    "zero-length hold inside a slot",
 			office:  "Spring Hill",
 			routing: domain.RoutingBachOnly,
-			column:  testColumn("1513", "620", "1568", "09:00", "10:00", 30),
+			column:  testColumn(1513, 620, 1568, "09:00", "10:00", 30),
 			holds:   []domain.BlockHold{{ID: 1, StartDateTime: slotContractAt(9, 40), EndDateTime: slotContractAt(9, 40)}},
 			listed:  []string{"09:00 0/0 force=false"},
 			rejected: []slotContractToken{
@@ -85,7 +85,7 @@ func TestSlotContractListsAndRevalidatesRepresentativeSchedules(t *testing.T) {
 			name:    "hold carried over midnight from the previous day",
 			office:  "Spring Hill",
 			routing: domain.RoutingBachOnly,
-			column:  testColumn("1513", "620", "1568", "09:00", "10:30", 30),
+			column:  testColumn(1513, 620, 1568, "09:00", "10:30", 30),
 			holds: []domain.BlockHold{{
 				ID:            1,
 				StartDateTime: time.Date(2026, 6, 2, 14, 0, 0, 0, time.UTC),
@@ -100,7 +100,7 @@ func TestSlotContractListsAndRevalidatesRepresentativeSchedules(t *testing.T) {
 			name:    "appointment durations overlapping other starts",
 			office:  "Spring Hill",
 			routing: domain.RoutingBachOnly,
-			column:  testColumn("1513", "620", "1568", "08:30", "11:00", 30),
+			column:  testColumn(1513, 620, 1568, "08:30", "11:00", 30),
 			appointments: []domain.Appointment{
 				{ID: 1, StartDateTime: slotContractAt(8, 45), Duration: 15},
 				{ID: 2, StartDateTime: slotContractAt(9, 30), Duration: 60},
@@ -117,7 +117,7 @@ func TestSlotContractListsAndRevalidatesRepresentativeSchedules(t *testing.T) {
 			name:    "same-start capacity of two",
 			office:  "Spring Hill",
 			routing: domain.RoutingBachOnly,
-			column:  testColumn("1513", "620", "1568", "09:00", "10:30", 30),
+			column:  testColumn(1513, 620, 1568, "09:00", "10:30", 30),
 			appointments: []domain.Appointment{
 				{ID: 1, StartDateTime: slotContractAt(9, 0), Duration: 30},
 				{ID: 2, StartDateTime: slotContractAt(9, 0), Duration: 30},
@@ -136,7 +136,7 @@ func TestSlotContractListsAndRevalidatesRepresentativeSchedules(t *testing.T) {
 			name:    "same-start capacity of one",
 			office:  "Crystal River",
 			routing: domain.RoutingAll,
-			column:  testColumn("1593", "2064", "1576", "09:00", "10:00", 30),
+			column:  testColumn(1593, 2064, 1576, "09:00", "10:00", 30),
 			appointments: []domain.Appointment{
 				{ID: 1, StartDateTime: slotContractAt(9, 0), Duration: 30},
 			},
@@ -226,9 +226,7 @@ func slotContractBooking(office, token string) scheduling.BookCommand {
 
 func signSlotContractToken(t *testing.T, now time.Time, officeID string, routing domain.RoutingRule, column domain.SchedulerColumn, token slotContractToken) string {
 	t.Helper()
-	var columnID, profileID int
-	fmt.Sscan(column.ID, &columnID)
-	fmt.Sscan(column.ProfileID, &profileID)
+	columnID, profileID := column.ID, column.ProfileID
 	typeIDs := make([]int, 0, len(domain.AppointmentTypes))
 	for typeID := range domain.AppointmentTypes {
 		typeIDs = append(typeIDs, typeID)

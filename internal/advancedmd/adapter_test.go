@@ -1015,11 +1015,11 @@ func TestAdapterReadsCompleteScheduleThroughDomainSeam(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSchedulerSetup error = %v", err)
 	}
-	if len(setup.Columns) != 1 || setup.Columns[0].ID != "1513" {
+	if len(setup.Columns) != 1 || setup.Columns[0].ID != 1513 {
 		t.Fatalf("setup = %#v", setup)
 	}
 
-	column, err := adapter.ReadColumnDay(context.Background(), "1513", "2026-06-03")
+	column, err := adapter.ReadColumnDay(context.Background(), 1513, "2026-06-03")
 	if err != nil {
 		t.Fatalf("ReadColumnDay error = %v", err)
 	}
@@ -1189,7 +1189,7 @@ func TestScheduleReadsAreConcurrentAndCannotUseMalformedOccupancy(t *testing.T) 
 	adapter := NewAdapter(staticSession{token: &session.TokenData{RestApiBase: strings.TrimPrefix(server.URL, "https://")}}, nil, clients.NewAdvancedMDRestClient(server.Client()), time.Now)
 	done := make(chan error, 1)
 	go func() {
-		column, err := adapter.ReadColumnDay(context.Background(), "1513", "2026-09-15")
+		column, err := adapter.ReadColumnDay(context.Background(), 1513, "2026-09-15")
 		if column.Complete() {
 			done <- errors.New("malformed occupancy declared complete")
 			return

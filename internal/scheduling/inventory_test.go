@@ -12,7 +12,7 @@ import (
 func TestListLoadsEveryEligibleSlotAcrossCalendarWindow(t *testing.T) {
 	now := time.Date(2026, 10, 25, 15, 0, 0, 0, time.UTC)
 	const count = 14
-	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "10:00", 15))
+	records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "10:00", 15))
 	first := time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC)
 	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only"})
 	if err != nil {
@@ -43,7 +43,7 @@ func TestListLoadsEveryEligibleSlotAcrossCalendarWindow(t *testing.T) {
 
 func TestListIncompleteCalendarCannotClaimCompleteInventory(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "10:00", 15))
+	records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "10:00", 15))
 	records.IncompleteDays["2026-06-09"] = true
 	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only"})
 	if err != nil {
@@ -57,7 +57,7 @@ func TestListIncompleteCalendarCannotClaimCompleteInventory(t *testing.T) {
 func TestListReadsOnlyTheRequestedWindow(t *testing.T) {
 	now := time.Date(2026, 9, 8, 12, 0, 0, 0, time.UTC)
 	first := time.Date(2026, 11, 2, 0, 0, 0, 0, time.UTC)
-	column := testColumn("1513", "620", "1568", "09:00", "10:00", 15)
+	column := testColumn(1513, 620, 1568, "09:00", "10:00", 15)
 	column.Workweek = 62
 	records := recordsWithSetup(column)
 	scheduler := scheduling.New(records, "test-secret", func() time.Time { return now })
@@ -94,10 +94,10 @@ func TestListRejectsInvalidOrPastStartBeforeProviderRead(t *testing.T) {
 
 func TestListExcludesHeldAndFullSlots(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "10:00", 15))
+	records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "10:00", 15))
 	for i := 1; i <= 14; i++ {
 		day := time.Date(2026, 6, 1+i, 0, 0, 0, 0, time.UTC)
-		records.Schedule[day.Format("2006-01-02")] = scheduleRows("1513", []domain.Appointment{
+		records.Schedule[day.Format("2006-01-02")] = scheduleRows(1513, []domain.Appointment{
 			{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
 			{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
 		}, []domain.BlockHold{{StartDateTime: day.Add(9*time.Hour + 30*time.Minute), EndDateTime: day.Add(10 * time.Hour)}})
@@ -118,10 +118,10 @@ func TestListExcludesHeldAndFullSlots(t *testing.T) {
 
 func TestListBlocksSlotsOverlappedByMultiSlotAppointments(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	records := recordsWithSetup(testColumn("1550", "2076", "1568", "08:30", "10:30", 30))
+	records := recordsWithSetup(testColumn(1550, 2076, 1568, "08:30", "10:30", 30))
 	for i := 1; i <= 14; i++ {
 		day := time.Date(2026, 6, 1+i, 0, 0, 0, 0, time.UTC)
-		records.Schedule[day.Format("2006-01-02")] = scheduleRows("1550", []domain.Appointment{
+		records.Schedule[day.Format("2006-01-02")] = scheduleRows(1550, []domain.Appointment{
 			{StartDateTime: day.Add(9 * time.Hour), Duration: 60},
 		}, nil)
 	}
@@ -148,10 +148,10 @@ func TestPreauthInventoryExcludesOccupiedAndHeldWallClockSlots(t *testing.T) {
 			}
 			now := today.Add(16 * time.Hour)
 			first := today.AddDate(0, 0, 14)
-			records := recordsWithSetup(testColumn("1513", "620", "1568", "09:00", "10:00", 15))
+			records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "10:00", 15))
 			for i := 0; i < 14; i++ {
 				day := first.AddDate(0, 0, i)
-				records.Schedule[day.Format("2006-01-02")] = scheduleRows("1513", []domain.Appointment{
+				records.Schedule[day.Format("2006-01-02")] = scheduleRows(1513, []domain.Appointment{
 					{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
 					{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
 				}, []domain.BlockHold{{StartDateTime: day.Add(9*time.Hour + 30*time.Minute), EndDateTime: day.Add(10 * time.Hour)}})

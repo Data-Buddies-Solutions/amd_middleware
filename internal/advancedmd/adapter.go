@@ -98,7 +98,7 @@ func (a *Adapter) CreatePatient(ctx context.Context, command domain.PatientCreat
 		return domain.CreatedPatient{}, NewError(safeerrors.CategoryInternal)
 	}
 
-	created, err := a.xmlClient.AddPatient(ctx, token, command, office.DefaultProfileID)
+	created, err := a.xmlClient.AddPatient(ctx, token, command, strconv.Itoa(office.DefaultProfileID))
 	if err != nil {
 		return domain.CreatedPatient{}, a.classifyMutation(token, err)
 	}
@@ -220,7 +220,7 @@ func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.Pati
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	results := make(chan dayResult, len(days))
-	columnIDs := strings.Join(lookup.columnIDs, "-")
+	columnIDs := joinColumnIDs(lookup.columnIDs)
 	for _, day := range days {
 		go func() {
 			appointments, err := a.restClient.GetAppointmentsByDay(ctx, token, columnIDs, day)
@@ -295,7 +295,7 @@ func (a *Adapter) patientAppointmentsForOfficeDay(
 	rawAppointments, err := a.restClient.GetAppointmentsByDay(
 		ctx,
 		token,
-		strings.Join(office.AllowedColumnIDs(), "-"),
+		joinColumnIDs(office.AllowedColumnIDs()),
 		appointmentDay(day),
 	)
 	if err != nil {
@@ -307,13 +307,13 @@ func (a *Adapter) patientAppointmentsForOfficeDay(
 }
 
 type appointmentLookup struct {
-	columnIDs      []string
+	columnIDs      []int
 	officeByColumn map[int]*domain.OfficeConfig
 }
 
 func newAppointmentLookup(officeIDs []string) (appointmentLookup, error) {
 	lookup := appointmentLookup{
-		columnIDs:      make([]string, 0),
+		columnIDs:      make([]int, 0),
 		officeByColumn: make(map[int]*domain.OfficeConfig),
 	}
 	seenOffices := make(map[string]bool, len(officeIDs))
@@ -328,21 +328,16 @@ func newAppointmentLookup(officeIDs []string) (appointmentLookup, error) {
 			return appointmentLookup{}, NewError(safeerrors.CategoryInternal)
 		}
 		for _, columnID := range office.AllowedColumnIDs() {
-			columnIDNumber, err := strconv.Atoi(columnID)
-			if err != nil {
-				return appointmentLookup{}, NewError(safeerrors.CategoryInternal)
-			}
-			if _, exists := lookup.officeByColumn[columnIDNumber]; exists {
+			if _, exists := lookup.officeByColumn[columnID]; exists {
 				continue
 			}
-			lookup.officeByColumn[columnIDNumber] = office
+			lookup.officeByColumn[columnID] = office
 			lookup.columnIDs = append(lookup.columnIDs, columnID)
 		}
 	}
 	if len(lookup.columnIDs) == 0 {
 		return appointmentLookup{}, NewError(safeerrors.CategoryInternal)
 	}
-	sort.Strings(lookup.columnIDs)
 	return lookup, nil
 }
 
@@ -476,7 +471,7 @@ func (a *Adapter) ReadAppointmentState(
 	rawAppointments, err := a.restClient.GetAppointmentsByDay(
 		ctx,
 		token,
-		strings.Join(office.AllowedColumnIDs(), "-"),
+		joinColumnIDs(office.AllowedColumnIDs()),
 		appointmentDay(query.Start),
 	)
 	if err != nil {
@@ -500,6 +495,15 @@ func appointmentDay(value time.Time) string {
 	return value.Format("2006-01-02")
 }
 
+func joinColumnIDs(columnIDs []int) string {
+	sorted := slices.Sorted(slices.Values(columnIDs))
+	values := make([]string, len(sorted))
+	for i, columnID := range sorted {
+		values[i] = strconv.Itoa(columnID)
+	}
+	return strings.Join(values, "-")
+}
+
 func (a *Adapter) GetSchedulerSetup(ctx context.Context) (domain.SchedulerSetup, error) {
 	token, err := a.token(ctx)
 	if err != nil {
@@ -515,7 +519,7 @@ func (a *Adapter) GetSchedulerSetup(ctx context.Context) (domain.SchedulerSetup,
 	return *setup, nil
 }
 
-func (a *Adapter) ReadColumnDay(ctx context.Context, columnID, date string) (domain.ColumnSchedule, error) {
+func (a *Adapter) ReadColumnDay(ctx context.Context, columnID int, date string) (domain.ColumnSchedule, error) {
 	token, err := a.token(ctx)
 	if err != nil {
 		return domain.ColumnSchedule{}, err
@@ -525,10 +529,14 @@ func (a *Adapter) ReadColumnDay(ctx context.Context, columnID, date string) (dom
 	var appointmentsErr, holdsErr error
 	var reads sync.WaitGroup
 	reads.Go(func() {
-		appointments, appointmentsErr = a.restClient.GetAppointments(ctx, token, columnID, date)
+		var rows []clients.AMDAppointmentResponse
+		rows, appointmentsErr = a.restClient.GetAppointmentsByDay(ctx, token, strconv.Itoa(columnID), date)
+		if appointmentsErr == nil {
+			appointments, appointmentsErr = clients.ScheduledAppointments(rows)
+		}
 	})
 	reads.Go(func() {
-		holds, holdsErr = a.restClient.GetBlockHolds(ctx, token, columnID, date)
+		holds, holdsErr = a.restClient.GetBlockHolds(ctx, token, strconv.Itoa(columnID), date)
 	})
 	reads.Wait()
 	var firstErr error
@@ -557,7 +565,7 @@ func (a *Adapter) ReadScheduleRange(ctx context.Context, query domain.ScheduleRa
 	if err != nil {
 		return nil, err
 	}
-	columnIDs := strings.Join(query.ColumnIDs, "-")
+	columnIDs := joinColumnIDs(query.ColumnIDs)
 	var months []string
 	for month := time.Date(query.Start.Year(), query.Start.Month(), 1, 0, 0, 0, 0, time.UTC); !month.After(query.End); month = month.AddDate(0, 1, 0) {
 		months = append(months, month.Format("2006-01-02"))
@@ -603,17 +611,15 @@ func (a *Adapter) ReadScheduleRange(ctx context.Context, query domain.ScheduleRa
 }
 
 func scheduleByDate(query domain.ScheduleRangeQuery, appointments []domain.Appointment, holds []domain.BlockHold) map[string]domain.ScheduleReadResult {
-	queried := make(map[int]string, len(query.ColumnIDs))
+	queried := make(map[int]bool, len(query.ColumnIDs))
 	for _, columnID := range query.ColumnIDs {
-		if id, err := strconv.Atoi(columnID); err == nil {
-			queried[id] = columnID
-		}
+		queried[columnID] = true
 	}
 	result := make(map[string]domain.ScheduleReadResult)
 	unattributed := make(map[string]bool)
 	for day := query.Start; !day.After(query.End); day = day.AddDate(0, 0, 1) {
 		date := day.Format("2006-01-02")
-		columns := make(map[string]domain.ColumnSchedule, len(query.ColumnIDs))
+		columns := make(map[int]domain.ColumnSchedule, len(query.ColumnIDs))
 		for _, columnID := range query.ColumnIDs {
 			columns[columnID] = domain.ColumnSchedule{AppointmentsComplete: true, BlockHoldsComplete: true}
 		}
@@ -625,14 +631,13 @@ func scheduleByDate(query domain.ScheduleRangeQuery, appointments []domain.Appoi
 		if !ok {
 			continue
 		}
-		columnID, ok := queried[appointment.ColumnID]
-		if !ok {
+		if !queried[appointment.ColumnID] {
 			unattributed[date] = true
 			continue
 		}
-		column := read.Columns[columnID]
+		column := read.Columns[appointment.ColumnID]
 		column.Appointments = append(column.Appointments, appointment)
-		read.Columns[columnID] = column
+		read.Columns[appointment.ColumnID] = column
 	}
 	for _, hold := range distinctRows(holds, holdKey) {
 		span := hold.Interval()
@@ -644,14 +649,13 @@ func scheduleByDate(query domain.ScheduleRangeQuery, appointments []domain.Appoi
 			if !span.Overlaps(domain.Interval{Start: dayStart, End: dayStart.AddDate(0, 0, 1)}) {
 				continue
 			}
-			columnID, ok := queried[hold.ColumnID]
-			if !ok {
+			if !queried[hold.ColumnID] {
 				unattributed[date] = true
 				continue
 			}
-			column := read.Columns[columnID]
+			column := read.Columns[hold.ColumnID]
 			column.BlockHolds = append(column.BlockHolds, hold)
-			read.Columns[columnID] = column
+			read.Columns[hold.ColumnID] = column
 		}
 	}
 	for date := range unattributed {
@@ -700,10 +704,6 @@ func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, er
 	if !ok {
 		return 0, NewError(safeerrors.CategoryInternal)
 	}
-	facilityID, err := strconv.Atoi(office.FacilityID)
-	if err != nil {
-		return 0, NewError(safeerrors.CategoryInternal)
-	}
 	if booking.ProviderAppointmentTypeID <= 0 || booking.AppointmentColor == "" {
 		return 0, NewError(safeerrors.CategoryInternal)
 	}
@@ -722,7 +722,7 @@ func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, er
 			ID int `json:"id"`
 		}{{ID: booking.ProviderAppointmentTypeID}},
 		EpisodeID:  1,
-		FacilityID: facilityID,
+		FacilityID: office.FacilityID,
 		Color:      booking.AppointmentColor,
 		Force:      force,
 		Comments:   booking.Comments,

@@ -342,7 +342,7 @@ func (s *service) revalidateBookingSlot(
 	if !slices.ContainsFunc(column.Slots(start), slot.Equal) {
 		return time.Time{}, false, slotUnavailableError()
 	}
-	schedule, err := s.records.ReadColumnDay(ctx, strconv.Itoa(booking.token.ColumnID), start.Format("2006-01-02"))
+	schedule, err := s.records.ReadColumnDay(ctx, booking.token.ColumnID, start.Format("2006-01-02"))
 	if err != nil {
 		return time.Time{}, false, categorizedProviderError(
 			CategoryWriteFailed,
@@ -377,7 +377,7 @@ func (s *service) reconcileBooking(ctx context.Context, prepared preparedBooking
 		)
 	}
 
-	provider := prepared.office.Columns[strconv.Itoa(prepared.token.ColumnID)].DisplayName
+	provider := prepared.office.Columns[prepared.token.ColumnID].DisplayName
 	for _, appointment := range read.Appointments {
 		if appointment.Start.Equal(prepared.start) &&
 			appointment.OfficeID == prepared.office.ID &&
@@ -429,8 +429,8 @@ func currentBookingColumn(
 		string(booking.dob),
 	)
 	for _, column := range eligible {
-		if column.ID == strconv.Itoa(booking.token.ColumnID) &&
-			column.ProfileID == strconv.Itoa(booking.token.ProfileID) &&
+		if column.ID == booking.token.ColumnID &&
+			column.ProfileID == booking.token.ProfileID &&
 			column.FacilityID == booking.office.FacilityID {
 			return column, true
 		}
@@ -440,7 +440,7 @@ func currentBookingColumn(
 
 func buildBookReceipt(prepared preparedBooking, appointmentID int) BookReceipt {
 	command, office := prepared.command, prepared.office
-	column := office.Columns[strconv.Itoa(prepared.token.ColumnID)]
+	column := office.Columns[prepared.token.ColumnID]
 	appointmentTypeName, _ := office.AppointmentTypeName(command.AppointmentTypeID)
 	return BookReceipt{
 		Status:              "booked",

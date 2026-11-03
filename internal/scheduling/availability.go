@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"slices"
-	"strconv"
 	"time"
 
 	"advancedmd-token-management/internal/domain"
@@ -151,7 +150,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 
 	for !searchDate.After(maxDate) {
 		date := searchDate.Format("2006-01-02")
-		workingColumnSet := make(map[string]bool, len(allowedColumns))
+		workingColumnSet := make(map[int]bool, len(allowedColumns))
 		for _, column := range allowedColumns {
 			if column.WorksOnDay(searchDate.Weekday()) {
 				workingColumnSet[column.ID] = true
@@ -176,8 +175,6 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 			}
 
 			displayName := office.Columns[column.ID].DisplayName
-			columnID, _ := strconv.Atoi(column.ID)
-			profileID, _ := strconv.Atoi(column.ProfileID)
 			for _, slot := range column.Slots(searchDate) {
 				decision := policy.Slot(column.ID, slot, columnSchedule)
 				if !decision.Bookable {
@@ -187,8 +184,8 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 					Provider:          displayName,
 					Time:              formatSlotTime(slot.Start),
 					DateTime:          domain.FormatSlotDateTime(slot.Start),
-					ColumnID:          columnID,
-					ProfileID:         profileID,
+					ColumnID:          column.ID,
+					ProfileID:         column.ProfileID,
 					Duration:          column.Interval,
 					SameStartBooked:   decision.Booked,
 					SameStartCapacity: decision.Capacity,

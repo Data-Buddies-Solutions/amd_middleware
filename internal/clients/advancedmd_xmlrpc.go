@@ -779,11 +779,10 @@ type amdColumn struct {
 }
 
 type amdColumnSetting struct {
-	Start           amdAttribute `json:"@start"`
-	End             amdAttribute `json:"@end"`
-	Interval        amdAttribute `json:"@interval"`
-	MaxApptsPerSlot amdAttribute `json:"@maxapptsperslot"`
-	Workweek        amdAttribute `json:"@workweek"`
+	Start    amdAttribute `json:"@start"`
+	End      amdAttribute `json:"@end"`
+	Interval amdAttribute `json:"@interval"`
+	Workweek amdAttribute `json:"@workweek"`
 }
 
 func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *session.TokenData) (setupResult *domain.SchedulerSetup, resultErr error) {
@@ -832,17 +831,16 @@ func (c *AdvancedMDClient) GetSchedulerSetup(ctx context.Context, tokenData *ses
 
 func schedulerColumn(column amdColumn) domain.SchedulerColumn {
 	result := domain.SchedulerColumn{
-		ID:         strings.TrimPrefix(string(column.ID), "col"),
+		ID:         amdAttribute(strings.TrimPrefix(string(column.ID), "col")).int(),
 		Name:       string(column.Name),
-		ProfileID:  strings.TrimPrefix(string(column.Profile), "prof"),
-		FacilityID: strings.TrimPrefix(string(column.Facility), "fac"),
+		ProfileID:  amdAttribute(strings.TrimPrefix(string(column.Profile), "prof")).int(),
+		FacilityID: amdAttribute(strings.TrimPrefix(string(column.Facility), "fac")).int(),
 	}
 	var setting amdColumnSetting
 	if json.Unmarshal(column.Setting, &setting) == nil {
 		result.StartTime = normalizeTime(string(setting.Start))
 		result.EndTime = normalizeTime(string(setting.End))
 		result.Interval = setting.Interval.int()
-		result.MaxApptsPerSlot = setting.MaxApptsPerSlot.int()
 		result.Workweek = parseWorkweek(string(setting.Workweek))
 	}
 	return result

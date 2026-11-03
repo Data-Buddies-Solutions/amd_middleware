@@ -14,7 +14,7 @@ import (
 )
 
 func patientStatusRecords() *advancedmdtest.Adapter {
-	records := recordsWithSetup(testColumn("1593", "2064", "1576", "09:00", "09:15", 15))
+	records := recordsWithSetup(testColumn(1593, 2064, 1576, "09:00", "09:15", 15))
 	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: "Self Pay", CarrierID: "car301672"}
 	return records
 }

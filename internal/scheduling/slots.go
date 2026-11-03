@@ -52,7 +52,7 @@ type slotDecision struct {
 	RequiresForce bool
 }
 
-func (p schedulingPolicy) Slot(columnID string, slot domain.Interval, schedule domain.ColumnSchedule) slotDecision {
+func (p schedulingPolicy) Slot(columnID int, slot domain.Interval, schedule domain.ColumnSchedule) slotDecision {
 	for _, hold := range schedule.BlockHolds {
 		if slot.Overlaps(hold.Interval()) {
 			return slotDecision{}

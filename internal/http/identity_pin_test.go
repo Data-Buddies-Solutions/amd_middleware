@@ -253,12 +253,12 @@ func (pinRecords) ReadAppointmentState(context.Context, advancedmd.AppointmentSt
 
 func (pinRecords) GetSchedulerSetup(context.Context) (domain.SchedulerSetup, error) {
 	return domain.SchedulerSetup{Columns: []domain.SchedulerColumn{{
-		ID: "1513", Name: "BACH, AUSTIN", ProfileID: "620", FacilityID: "1568",
+		ID: 1513, Name: "BACH, AUSTIN", ProfileID: 620, FacilityID: 1568,
 		StartTime: "09:00", EndTime: "09:15", Interval: 15, Workweek: 127,
 	}}}, nil
 }
 
-func (pinRecords) ReadColumnDay(context.Context, string, string) (domain.ColumnSchedule, error) {
+func (pinRecords) ReadColumnDay(context.Context, int, string) (domain.ColumnSchedule, error) {
 	return domain.ColumnSchedule{AppointmentsComplete: true, BlockHoldsComplete: true}, nil
 }
 
@@ -280,8 +280,8 @@ func (r pinRecords) CancelAppointment(_ context.Context, cancellation advancedmd
 	return nil
 }
 
-func openSchedule(columnIDs []string) domain.ScheduleReadResult {
-	columns := map[string]domain.ColumnSchedule{}
+func openSchedule(columnIDs []int) domain.ScheduleReadResult {
+	columns := map[int]domain.ColumnSchedule{}
 	for _, id := range columnIDs {
 		columns[id] = domain.ColumnSchedule{AppointmentsComplete: true, BlockHoldsComplete: true}
 	}
