@@ -95,7 +95,7 @@ func (s *service) book(ctx context.Context, booking bookingContext) (BookReceipt
 
 	appointmentID, err := s.records.BookAppointment(ctx, advancedmd.Booking{
 		PatientID:                 prepared.patientID.Int(),
-		OfficeID:                  prepared.office.ID,
+		FacilityID:                prepared.office.FacilityID,
 		ColumnID:                  prepared.token.ColumnID,
 		ProfileID:                 prepared.token.ProfileID,
 		Start:                     prepared.start,
@@ -366,7 +366,7 @@ func (s *service) revalidateBookingSlot(
 func (s *service) reconcileBooking(ctx context.Context, prepared preparedBooking) (BookReceipt, error) {
 	read, err := s.records.ReadPatientAppointmentsForDay(ctx, advancedmd.AppointmentDayQuery{
 		PatientID: string(prepared.patientID),
-		OfficeIDs: prepared.office.AppointmentLookupOfficeIDs,
+		Offices:   prepared.office.AppointmentLookupOffices,
 		Day:       prepared.start,
 	})
 	if err != nil {

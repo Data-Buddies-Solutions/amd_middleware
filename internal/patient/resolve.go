@@ -36,7 +36,7 @@ func (p *patient) Resolve(ctx context.Context, query ResolveQuery) (ResolveResul
 		Recorded:                true,
 		PatientSearchDurationMS: time.Since(searchStarted).Milliseconds(),
 		PatientSearchReads:      1,
-		OfficeGroupSize:         len(office.AppointmentLookupOfficeIDs),
+		OfficeGroupSize:         len(office.AppointmentLookupOffices),
 		AppointmentOutcome:      "not_requested",
 	}
 	if err != nil {
@@ -125,7 +125,7 @@ func (p *patient) resolvePatient(ctx context.Context, candidate domain.Patient, 
 }
 
 func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate domain.Patient, lookupPhone domain.Phone, office *domain.OfficeConfig, loaded *domain.PatientDemographics) (ResolveResult, error) {
-	officeIDs := office.AppointmentLookupOfficeIDs
+	lookupOffices := office.AppointmentLookupOffices
 	result := ResolveResult{
 		Status:       StatusVerified,
 		PatientID:    candidate.ID,
@@ -136,7 +136,7 @@ func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate 
 		Observation: ResolutionObservation{
 			Recorded:             true,
 			DemographicReads:     1,
-			OfficeGroupSize:      len(officeIDs),
+			OfficeGroupSize:      len(lookupOffices),
 			CandidateCountBucket: "1",
 			AppointmentOutcome:   "not_requested",
 		},
@@ -175,7 +175,7 @@ func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate 
 		started := time.Now()
 		read, err := p.advancedMD.ReadPatientAppointments(appointmentsCtx, domain.PatientAppointmentsQuery{
 			PatientID: candidate.ID,
-			OfficeIDs: officeIDs,
+			Offices:   lookupOffices,
 		})
 		appointmentsResults <- appointmentsResult{
 			read:       read,

@@ -95,13 +95,13 @@ type AppointmentRead struct {
 
 type AppointmentDayQuery struct {
 	PatientID string
-	OfficeIDs []string
+	Offices   []*domain.OfficeConfig
 	Day       time.Time
 }
 
 type AppointmentStateQuery struct {
 	AppointmentID int
-	OfficeID      string
+	Office        *domain.OfficeConfig
 	Start         time.Time
 }
 
@@ -112,7 +112,7 @@ type AppointmentState struct {
 
 type Booking struct {
 	PatientID                 int
-	OfficeID                  string
+	FacilityID                int
 	ColumnID                  int
 	ProfileID                 int
 	Start                     time.Time

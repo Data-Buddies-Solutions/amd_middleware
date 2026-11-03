@@ -93,12 +93,7 @@ func (a *Adapter) CreatePatient(ctx context.Context, command domain.PatientCreat
 	if err != nil {
 		return domain.CreatedPatient{}, err
 	}
-	office, ok := domain.LookupOfficeByID(command.OfficeID)
-	if !ok {
-		return domain.CreatedPatient{}, NewError(safeerrors.CategoryInternal)
-	}
-
-	created, err := a.xmlClient.AddPatient(ctx, token, command, strconv.Itoa(office.DefaultProfileID))
+	created, err := a.xmlClient.AddPatient(ctx, token, command, strconv.Itoa(command.ProfileID))
 	if err != nil {
 		return domain.CreatedPatient{}, a.classifyMutation(token, err)
 	}
@@ -154,11 +149,7 @@ func (a *Adapter) ReadPatientAppointmentsForDay(
 		Appointments: make([]domain.PatientAppointment, 0),
 		Complete:     true,
 	}
-	for _, officeID := range query.OfficeIDs {
-		office, ok := domain.LookupOfficeByID(officeID)
-		if !ok {
-			return read, NewError(safeerrors.CategoryInternal)
-		}
+	for _, office := range query.Offices {
 		officeRead, err := a.patientAppointmentsForOfficeDay(
 			ctx,
 			token,
@@ -186,7 +177,7 @@ func (a *Adapter) ReadPatientAppointments(ctx context.Context, query domain.Pati
 		return AppointmentRead{}, NewError(safeerrors.CategoryInternal)
 	}
 
-	lookup, err := newAppointmentLookup(query.OfficeIDs)
+	lookup, err := newAppointmentLookup(query.Offices)
 	if err != nil {
 		return AppointmentRead{}, err
 	}
@@ -311,22 +302,12 @@ type appointmentLookup struct {
 	officeByColumn map[int]*domain.OfficeConfig
 }
 
-func newAppointmentLookup(officeIDs []string) (appointmentLookup, error) {
+func newAppointmentLookup(offices []*domain.OfficeConfig) (appointmentLookup, error) {
 	lookup := appointmentLookup{
 		columnIDs:      make([]int, 0),
 		officeByColumn: make(map[int]*domain.OfficeConfig),
 	}
-	seenOffices := make(map[string]bool, len(officeIDs))
-	for _, officeID := range officeIDs {
-		if seenOffices[officeID] {
-			continue
-		}
-		seenOffices[officeID] = true
-
-		office, ok := domain.LookupOfficeByID(officeID)
-		if !ok {
-			return appointmentLookup{}, NewError(safeerrors.CategoryInternal)
-		}
+	for _, office := range offices {
 		for _, columnID := range office.AllowedColumnIDs() {
 			if _, exists := lookup.officeByColumn[columnID]; exists {
 				continue
@@ -463,15 +444,10 @@ func (a *Adapter) ReadAppointmentState(
 	if query.AppointmentID <= 0 || query.Start.IsZero() {
 		return AppointmentState{}, NewError(safeerrors.CategoryInternal)
 	}
-	office, ok := domain.LookupOfficeByID(query.OfficeID)
-	if !ok {
-		return AppointmentState{}, NewError(safeerrors.CategoryInternal)
-	}
-
 	rawAppointments, err := a.restClient.GetAppointmentsByDay(
 		ctx,
 		token,
-		joinColumnIDs(office.AllowedColumnIDs()),
+		joinColumnIDs(query.Office.AllowedColumnIDs()),
 		appointmentDay(query.Start),
 	)
 	if err != nil {
@@ -700,11 +676,7 @@ func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, er
 	if err != nil {
 		return 0, err
 	}
-	office, ok := domain.LookupOfficeByID(booking.OfficeID)
-	if !ok {
-		return 0, NewError(safeerrors.CategoryInternal)
-	}
-	if booking.ProviderAppointmentTypeID <= 0 || booking.AppointmentColor == "" {
+	if booking.FacilityID <= 0 || booking.ProviderAppointmentTypeID <= 0 || booking.AppointmentColor == "" {
 		return 0, NewError(safeerrors.CategoryInternal)
 	}
 	force := 0
@@ -722,7 +694,7 @@ func (a *Adapter) BookAppointment(ctx context.Context, booking Booking) (int, er
 			ID int `json:"id"`
 		}{{ID: booking.ProviderAppointmentTypeID}},
 		EpisodeID:  1,
-		FacilityID: office.FacilityID,
+		FacilityID: booking.FacilityID,
 		Color:      booking.AppointmentColor,
 		Force:      force,
 		Comments:   booking.Comments,

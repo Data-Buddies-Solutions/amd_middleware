@@ -10,16 +10,16 @@ import (
 )
 
 type OfficeConfig struct {
-	ID                         string
-	DisplayName                string
-	FacilityID                 int
-	DefaultProfileID           int
-	Columns                    map[int]OfficeColumn
-	RoutingTiers               map[RoutingRule][]int
-	PediatricRouting           RoutingRule
-	AppointmentLookupOfficeIDs []string
-	AppointmentTypes           OfficeAppointmentTypes
-	RoutineVisionMinimumAge    MinimumAge
+	ID                       string
+	DisplayName              string
+	FacilityID               int
+	DefaultProfileID         int
+	Columns                  map[int]OfficeColumn
+	RoutingTiers             map[RoutingRule][]int
+	PediatricRouting         RoutingRule
+	AppointmentLookupOffices []*OfficeConfig
+	AppointmentTypes         OfficeAppointmentTypes
+	RoutineVisionMinimumAge  MinimumAge
 }
 
 type MinimumAge struct {
@@ -338,8 +338,8 @@ func buildRegistry(definitions []officeDefinition, binding environmentBinding) *
 			continue
 		}
 		for _, id := range definition.AppointmentLookupOfficeIDs {
-			if _, available := byID[id]; available {
-				office.AppointmentLookupOfficeIDs = append(office.AppointmentLookupOfficeIDs, id)
+			if lookupOffice, available := byID[id]; available {
+				office.AppointmentLookupOffices = append(office.AppointmentLookupOffices, lookupOffice)
 			}
 		}
 	}

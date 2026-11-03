@@ -64,8 +64,8 @@ func TestAppointmentLookupOfficeIDs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Cleanup(func() { InitRegistry(Prod) })
 			InitRegistry(tt.env)
-			if got := mustOffice(t, tt.office).AppointmentLookupOfficeIDs; !slices.Equal(got, tt.want) {
-				t.Fatalf("AppointmentLookupOfficeIDs = %v, want %v", got, tt.want)
+			if got := officeIDs(mustOffice(t, tt.office).AppointmentLookupOffices); !slices.Equal(got, tt.want) {
+				t.Fatalf("AppointmentLookupOffices = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -511,4 +511,12 @@ func TestInitRegistryRejectsAnUnknownEnvironment(t *testing.T) {
 			InitRegistry(env)
 		}()
 	}
+}
+
+func officeIDs(offices []*OfficeConfig) []string {
+	ids := make([]string, len(offices))
+	for i, office := range offices {
+		ids[i] = office.ID
+	}
+	return ids
 }

@@ -180,7 +180,7 @@ func TestAdapterClassifiesCreatePatientMutationOutcomes(t *testing.T) {
 		State:     "FL",
 		Zip:       "34609",
 		Sex:       "F",
-		OfficeID:  "spring_hill",
+		ProfileID: testOffice("spring_hill").DefaultProfileID,
 	}
 
 	t.Run("explicit rejection", func(t *testing.T) {
@@ -362,7 +362,7 @@ func TestAdapterUpcomingAppointmentsUsesControlledRESTServer(t *testing.T) {
 		context.Background(),
 		domain.PatientAppointmentsQuery{
 			PatientID: "123",
-			OfficeIDs: []string{"spring_hill", "crystal_river", "spring_hill"},
+			Offices:   testOffices("spring_hill", "crystal_river", "spring_hill"),
 		},
 	)
 	if err != nil {
@@ -438,7 +438,7 @@ func TestAdapterSkipsDayReadsWithoutUpcomingVisits(t *testing.T) {
 			defer server.Close()
 
 			read, err := patientVisitAdapter(server, fixedNow).ReadPatientAppointments(context.Background(),
-				domain.PatientAppointmentsQuery{PatientID: "123", OfficeIDs: []string{"spring_hill"}})
+				domain.PatientAppointmentsQuery{PatientID: "123", Offices: testOffices("spring_hill")})
 			if err != nil || !read.Complete || read.ProviderReads != 1 || len(read.Appointments) != 0 {
 				t.Fatalf("ReadPatientAppointments() = %#v, %v; want complete empty read from one visit read", read, err)
 			}
@@ -456,7 +456,7 @@ func TestAdapterReturnsPatientVisitFailureWithoutDayReads(t *testing.T) {
 	defer server.Close()
 
 	read, err := patientVisitAdapter(server, time.Now()).ReadPatientAppointments(context.Background(),
-		domain.PatientAppointmentsQuery{PatientID: "123", OfficeIDs: []string{"spring_hill"}})
+		domain.PatientAppointmentsQuery{PatientID: "123", Offices: testOffices("spring_hill")})
 	if CategoryOf(err) != safeerrors.CategoryUpstreamStatus || read.ProviderReads != 1 {
 		t.Fatalf("ReadPatientAppointments() = %#v, %v; want upstream status after one read", read, err)
 	}
@@ -589,7 +589,7 @@ func TestAdapterCanonicalizesSandboxAppointmentTypeIDs(t *testing.T) {
 
 	read, err := patientVisitAdapter(server, fixedNow).ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
 		PatientID: "12345",
-		OfficeIDs: []string{office.ID},
+		Offices:   testOffices(office.ID),
 	})
 	if err != nil {
 		t.Fatalf("ReadPatientAppointments() error = %v", err)
@@ -648,7 +648,7 @@ func TestAdapterPreservesUnrecognizedProductionAppointmentType(t *testing.T) {
 	)
 	_, err := adapter.BookAppointment(context.Background(), Booking{
 		PatientID:                 12345,
-		OfficeID:                  "spring_hill",
+		FacilityID:                testOffice("spring_hill").FacilityID,
 		ColumnID:                  1513,
 		ProfileID:                 620,
 		Start:                     time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
@@ -697,7 +697,7 @@ func TestAdapterSingleOfficeMarksUnreconciledRowsIncomplete(t *testing.T) {
 
 	read, err := patientVisitAdapter(server, fixedNow).ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
 		PatientID: "12345",
-		OfficeIDs: []string{"spring_hill"},
+		Offices:   testOffices("spring_hill"),
 	})
 	if err != nil {
 		t.Fatalf("ReadPatientAppointments() error = %v", err)
@@ -750,7 +750,7 @@ func TestAdapterCancelsAndWaitsForRemainingDayReadsWhenOneDayFails(t *testing.T)
 		ctx, diagnostics := safeerrors.WithDiagnostics(context.Background())
 		_, err := patientVisitAdapter(server, fixedNow).ReadPatientAppointments(ctx, domain.PatientAppointmentsQuery{
 			PatientID: "12345",
-			OfficeIDs: []string{"spring_hill"},
+			Offices:   testOffices("spring_hill"),
 		})
 		readDone <- readOutcome{err: err, calls: diagnostics.Calls()}
 	}()
@@ -813,7 +813,7 @@ func TestAdapterReadsIntendedAppointmentDay(t *testing.T) {
 	)
 	read, err := adapter.ReadPatientAppointmentsForDay(context.Background(), AppointmentDayQuery{
 		PatientID: "12345",
-		OfficeIDs: []string{"spring_hill"},
+		Offices:   testOffices("spring_hill"),
 		Day:       time.Date(2027, time.January, 3, 9, 0, 0, 0, time.UTC),
 	})
 	if err != nil {
@@ -850,7 +850,7 @@ func TestAdapterIntendedDayReadPreservesPerOfficeReconciliation(t *testing.T) {
 	)
 	read, err := adapter.ReadPatientAppointmentsForDay(context.Background(), AppointmentDayQuery{
 		PatientID: "12345",
-		OfficeIDs: []string{"spring_hill", "crystal_river"},
+		Offices:   testOffices("spring_hill", "crystal_river"),
 		Day:       time.Date(2027, time.January, 3, 9, 0, 0, 0, time.UTC),
 	})
 	if err != nil {
@@ -896,7 +896,7 @@ func TestAdapterMarksMissingPatientIDIncomplete(t *testing.T) {
 	)
 	read, err := adapter.ReadPatientAppointmentsForDay(context.Background(), AppointmentDayQuery{
 		PatientID: "12345",
-		OfficeIDs: []string{"spring_hill"},
+		Offices:   testOffices("spring_hill"),
 		Day:       time.Date(2027, time.January, 3, 9, 0, 0, 0, time.UTC),
 	})
 	if err != nil {
@@ -934,7 +934,7 @@ func TestAdapterReadsCurrentAppointmentStateAfterStartTime(t *testing.T) {
 	)
 	state, err := adapter.ReadAppointmentState(context.Background(), AppointmentStateQuery{
 		AppointmentID: 30003,
-		OfficeID:      "spring_hill",
+		Office:        testOffice("spring_hill"),
 		Start:         time.Date(2026, time.August, 14, 12, 0, 0, 0, time.UTC),
 	})
 	if err != nil {
@@ -1063,7 +1063,7 @@ func TestAdapterBooksAndCancelsThroughControlledRESTServer(t *testing.T) {
 	)
 	appointmentID, err := adapter.BookAppointment(context.Background(), Booking{
 		PatientID:                 12345,
-		OfficeID:                  "spring_hill",
+		FacilityID:                testOffice("spring_hill").FacilityID,
 		ColumnID:                  1513,
 		ProfileID:                 620,
 		Start:                     time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
@@ -1125,7 +1125,7 @@ func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
 			)
 			_, err := adapter.BookAppointment(context.Background(), Booking{
 				PatientID:                 12345,
-				OfficeID:                  "spring_hill",
+				FacilityID:                testOffice("spring_hill").FacilityID,
 				ColumnID:                  1513,
 				ProfileID:                 620,
 				Start:                     time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
@@ -1146,7 +1146,7 @@ func TestAdapterClassifiesProviderMutationOutcomes(t *testing.T) {
 				nil,
 				time.Now,
 			)
-			_, err = xmlAdapter.CreatePatient(context.Background(), domain.PatientCreate{FirstName: "JANE", LastName: "DOE", OfficeID: "spring_hill"})
+			_, err = xmlAdapter.CreatePatient(context.Background(), domain.PatientCreate{FirstName: "JANE", LastName: "DOE", ProfileID: testOffice("spring_hill").DefaultProfileID})
 			if CategoryOf(err) != tt.category || IsAmbiguousWrite(err) != tt.ambiguous {
 				t.Fatalf("create error = %v, category = %q, ambiguous = %t", err, CategoryOf(err), IsAmbiguousWrite(err))
 			}
@@ -1267,7 +1267,7 @@ func TestAdapterPatientAppointmentWindowFollowsTheInjectedEasternClock(t *testin
 
 	read, err := patientVisitAdapter(server, now).ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
 		PatientID: "123",
-		OfficeIDs: []string{"spring_hill"},
+		Offices:   testOffices("spring_hill"),
 	})
 	if err != nil {
 		t.Fatalf("ReadPatientAppointments() error = %v", err)
@@ -1307,7 +1307,7 @@ func TestAdapterReturnsScheduledVisitsOutsideConfiguredColumns(t *testing.T) {
 
 	read, err := patientVisitAdapter(server, now).ReadPatientAppointments(context.Background(), domain.PatientAppointmentsQuery{
 		PatientID: "123",
-		OfficeIDs: []string{"spring_hill"},
+		Offices:   testOffices("spring_hill"),
 	})
 	if err != nil {
 		t.Fatalf("ReadPatientAppointments() error = %v", err)

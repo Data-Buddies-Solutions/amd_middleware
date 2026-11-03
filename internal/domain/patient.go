@@ -49,7 +49,7 @@ type PatientAppointment struct {
 
 type PatientAppointmentsQuery struct {
 	PatientID string
-	OfficeIDs []string
+	Offices   []*OfficeConfig
 }
 
 type PatientCreate struct {
@@ -64,7 +64,7 @@ type PatientCreate struct {
 	State     string
 	Zip       string
 	Sex       string
-	OfficeID  string
+	ProfileID int
 }
 
 type CreatedPatient struct {

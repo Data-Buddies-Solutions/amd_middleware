@@ -89,10 +89,7 @@ func (s *service) cancelWithToken(
 	if command.AppointmentID != 0 && command.AppointmentID != policy.AppointmentID {
 		return CancelReceipt{}, invalidCancellationTokenError()
 	}
-	office, ok := domain.LookupOfficeByID(policy.OfficeID)
-	if !ok {
-		return CancelReceipt{}, invalidCancellationTokenError()
-	}
+	office := policy.office
 	if command.Office != "" {
 		requestedOffice, err := domain.ResolveOffice(command.Office)
 		if err != nil || requestedOffice.ID != office.ID {
@@ -159,7 +156,7 @@ func (s *service) reconcileCancellation(
 ) (CancelReceipt, error) {
 	state, err := s.records.ReadAppointmentState(ctx, advancedmd.AppointmentStateQuery{
 		AppointmentID: appointmentID,
-		OfficeID:      office.ID,
+		Office:        office,
 		Start:         appointment.Start,
 	})
 	if err != nil {
