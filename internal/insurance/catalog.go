@@ -84,19 +84,10 @@ func ValidateCatalog(candidate InsuranceCatalog) []CatalogError {
 
 func DecodeCatalog(body []byte) (InsuranceCatalog, error) {
 	var catalog InsuranceCatalog
-	err := decodeStrictJSON(body, &catalog)
-	if err == nil {
-		return catalog, nil
-	}
-	catalog, legacyErr := decodeLegacyCatalog(body)
-	if legacyErr != nil {
-		return InsuranceCatalog{}, fmt.Errorf("not a v2 catalog (%v) and not a v1 catalog (%v)", err, legacyErr)
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&catalog); err != nil {
+		return InsuranceCatalog{}, fmt.Errorf("not a v2 catalog: %v", err)
 	}
 	return catalog, nil
-}
-
-func decodeStrictJSON(b []byte, v any) error {
-	decoder := json.NewDecoder(bytes.NewReader(b))
-	decoder.DisallowUnknownFields()
-	return decoder.Decode(v)
 }
