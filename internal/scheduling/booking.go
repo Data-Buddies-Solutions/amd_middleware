@@ -205,7 +205,7 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 	}
 	booking.patientID = patientID
 	booking.dob = dob
-	if (command.VisitCategory != "" || command.AppointmentTypeID == 0) && command.VisitCategory != domain.AppointmentVisitMedical && command.VisitCategory != domain.AppointmentVisitRoutineVision {
+	if (command.VisitCategory != "" || command.AppointmentTypeID == 0) && !domain.ValidVisitType(command.VisitCategory) {
 		return bookingContext{}, schedulingError("visitCategory must be medical or routine_vision")
 	}
 	return booking, nil
@@ -276,11 +276,10 @@ func applyBookingPolicy(booking *bookingContext) (
 		ProfileID:         booking.token.ProfileID,
 		AppointmentTypeID: command.AppointmentTypeID,
 		Routing:           booking.token.Routing,
-		DOB:               string(booking.dob),
+		DOB:               booking.dob,
 		Intent: appointmentIntent{
 			VisitCategory: command.VisitCategory,
 			PatientStatus: booking.patientStatus,
-			DOB:           string(booking.dob),
 			VisitReason:   command.VisitReason,
 		},
 		PreservedAppointmentTypeID: booking.preservedAppointmentType,
@@ -426,7 +425,7 @@ func currentBookingColumn(
 	eligible := newSchedulingPolicy(booking.office, booking.asOf).EligibleColumns(
 		setup.Columns,
 		booking.token.Routing,
-		string(booking.dob),
+		booking.dob,
 	)
 	for _, column := range eligible {
 		if column.ID == booking.token.ColumnID &&

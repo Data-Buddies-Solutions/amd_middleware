@@ -100,7 +100,7 @@ func (o *OfficeConfig) ColumnsForRouting(rule RoutingRule) map[int]bool {
 	return result
 }
 
-func (o *OfficeConfig) ColumnsForRoutingAndDOB(rule RoutingRule, dob string, asOf time.Time) map[int]bool {
+func (o *OfficeConfig) ColumnsForRoutingAndDOB(rule RoutingRule, dob DOB, asOf time.Time) map[int]bool {
 	cols := o.ColumnsForRouting(rule)
 	if cols == nil {
 		return cols
@@ -123,7 +123,7 @@ func (o *OfficeConfig) ProvidersForRouting(rule RoutingRule) []string {
 	return o.providerNamesForColumnIDs(colIDs, nil)
 }
 
-func (o *OfficeConfig) ProvidersForRoutingAndDOB(rule RoutingRule, dob string, asOf time.Time) []string {
+func (o *OfficeConfig) ProvidersForRoutingAndDOB(rule RoutingRule, dob DOB, asOf time.Time) []string {
 	colIDs, ok := o.columnIDsForRouting(rule)
 	if !ok {
 		return nil
@@ -132,7 +132,7 @@ func (o *OfficeConfig) ProvidersForRoutingAndDOB(rule RoutingRule, dob string, a
 	return o.providerNamesForColumnIDs(colIDs, colMap)
 }
 
-func (o *OfficeConfig) ColumnAllowsDOB(columnID int, dob string, asOf time.Time) bool {
+func (o *OfficeConfig) ColumnAllowsDOB(columnID int, dob DOB, asOf time.Time) bool {
 	col, ok := o.Columns[columnID]
 	if !ok {
 		return false
@@ -140,7 +140,7 @@ func (o *OfficeConfig) ColumnAllowsDOB(columnID int, dob string, asOf time.Time)
 	if col.MinAgeYears == 0 {
 		return true
 	}
-	age, ok := AgeYearsOn(dob, asOf)
+	age, ok := dob.AgeOn(asOf)
 	if !ok {
 		return false
 	}
@@ -488,8 +488,8 @@ func normalizeOfficeLookup(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
-func (o *OfficeConfig) SchedulingRouting(routing RoutingRule, dob string, asOf time.Time) RoutingRule {
-	if routing == RoutingNotAccepted || routing == RoutingOpticalOnly || !isMinor(dob, asOf) {
+func (o *OfficeConfig) SchedulingRouting(routing RoutingRule, dob DOB, asOf time.Time) RoutingRule {
+	if routing == RoutingNotAccepted || routing == RoutingOpticalOnly || dob.AgeBandOn(asOf) != AppointmentAgePediatric {
 		return routing
 	}
 	return o.PediatricRouting

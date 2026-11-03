@@ -51,10 +51,6 @@ func (l AppointmentTypeLadder) TypeFor(patientStatus, ageBand string) int {
 	return l.EstablishedAdult
 }
 
-func (l AppointmentTypeLadder) DependsOnAge() bool {
-	return l.NewPediatric != l.NewAdult || l.EstablishedPediatric != l.EstablishedAdult
-}
-
 func (l AppointmentTypeLadder) includes(typeID int) bool {
 	return typeID == l.NewPediatric || typeID == l.NewAdult || typeID == l.EstablishedPediatric || typeID == l.EstablishedAdult
 }
@@ -70,6 +66,24 @@ func ValidAppointmentTypeIDs() string {
 		values[i] = strconv.Itoa(id)
 	}
 	return strings.Join(values, ", ")
+}
+
+func ValidVisitType(visit string) bool {
+	return visit == AppointmentVisitMedical || visit == AppointmentVisitRoutineVision
+}
+
+func VisitRouting(visit string) RoutingRule {
+	if visit == AppointmentVisitRoutineVision {
+		return RoutingOpticalOnly
+	}
+	return RoutingAll
+}
+
+func (o *OfficeConfig) SupportsVisit(visit string) bool {
+	if visit == AppointmentVisitMedical {
+		return o.SupportsMedical()
+	}
+	return o.SupportsRouting(RoutingOpticalOnly)
 }
 
 func AppointmentVisitType(typeID int) string {

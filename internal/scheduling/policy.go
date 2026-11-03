@@ -18,7 +18,7 @@ func newSchedulingPolicy(office *domain.OfficeConfig, asOf time.Time) scheduling
 	return schedulingPolicy{office: office, asOf: asOf}
 }
 
-func (p schedulingPolicy) AllowedAppointmentTypeIDs(routing domain.RoutingRule, dob string) []int {
+func (p schedulingPolicy) AllowedAppointmentTypeIDs(routing domain.RoutingRule, dob domain.DOB) []int {
 	if p.office == nil {
 		return nil
 	}
@@ -33,23 +33,16 @@ func (p schedulingPolicy) AllowedAppointmentTypeIDs(routing domain.RoutingRule, 
 	return typeIDs
 }
 
-func appointmentTypeMatchesDOB(typeID int, dob string, asOf time.Time) bool {
-	age, ok := domain.AgeYearsOn(dob, asOf)
-	if !ok {
+func appointmentTypeMatchesDOB(typeID int, dob domain.DOB, asOf time.Time) bool {
+	patientBand := dob.AgeBandOn(asOf)
+	typeBand := domain.AppointmentTypes[typeID].AgeBand
+	if patientBand == "" || (typeBand != domain.AppointmentAgePediatric && typeBand != domain.AppointmentAgeAdult) {
 		return true
 	}
-
-	switch domain.AppointmentTypes[typeID].AgeBand {
-	case domain.AppointmentAgePediatric:
-		return age < 18
-	case domain.AppointmentAgeAdult:
-		return age >= 18
-	default:
-		return true
-	}
+	return typeBand == patientBand
 }
 
-func (p schedulingPolicy) EligibleColumns(columns []domain.SchedulerColumn, routing domain.RoutingRule, dob string) []domain.SchedulerColumn {
+func (p schedulingPolicy) EligibleColumns(columns []domain.SchedulerColumn, routing domain.RoutingRule, dob domain.DOB) []domain.SchedulerColumn {
 	if p.office == nil {
 		return nil
 	}
@@ -74,7 +67,7 @@ type bookingPolicyRequest struct {
 	ProfileID                  int
 	AppointmentTypeID          int
 	Routing                    domain.RoutingRule
-	DOB                        string
+	DOB                        domain.DOB
 	Intent                     appointmentIntent
 	PreservedAppointmentTypeID int
 }
@@ -112,7 +105,7 @@ func (p schedulingPolicy) PrepareBooking(req bookingPolicyRequest) (bookingPolic
 		typeID = req.PreservedAppointmentTypeID
 	}
 	if typeID == 0 {
-		resolution := resolveAppointmentTypeForIntent(p.office, routing, req.Intent, p.asOf)
+		resolution := resolveAppointmentTypeForIntent(p.office, routing, req.Intent, req.DOB, p.asOf)
 		if resolution.AppointmentTypeID == 0 {
 			message := resolution.Message
 			if message == "" {

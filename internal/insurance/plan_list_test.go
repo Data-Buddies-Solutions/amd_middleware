@@ -40,7 +40,7 @@ func TestListPlansMatchesPlanDecisionsAtEveryOffice(t *testing.T) {
 				if !ok {
 					t.Fatalf("%s %s rejected", officeID, coverage)
 				}
-				if !officeSupports(o, coverage) {
+				if !o.SupportsVisit(coverage) {
 					if len(summaries) != 0 {
 						t.Fatalf("%s %s lists plans the office does not offer", officeID, coverage)
 					}

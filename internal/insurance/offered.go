@@ -7,7 +7,7 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
-func DecideOfferedAnswer(heard string, offeredPlanIDs []string, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+func DecideOfferedAnswer(heard string, offeredPlanIDs []string, coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {
 	list := active.Load().listForOffice(office.ID)
 	d, ok := startDecision(coverage, office)
 	if !ok {

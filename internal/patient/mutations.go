@@ -108,9 +108,9 @@ func decideInsurance(name, planID, coverage string, office *domain.OfficeConfig,
 		coverage = "medical"
 	}
 	if planID != "" {
-		return insurance.DecidePlan(planID, coverage, office, string(dob), asOf)
+		return insurance.DecidePlan(planID, coverage, office, dob, asOf)
 	}
-	return insurance.DecideInsurance(name, coverage, office, string(dob), asOf)
+	return insurance.DecideInsurance(name, coverage, office, dob, asOf)
 }
 
 func recordMutation(operation, outcome string) {

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func DecideChartInsurance(chart domain.PatientDemographics, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+func DecideChartInsurance(chart domain.PatientDemographics, coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {
 	list := active.Load().listForOffice(office.ID)
 	d, ok := startDecision(coverage, office)
 	if !ok {

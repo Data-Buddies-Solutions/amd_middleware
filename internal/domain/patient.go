@@ -84,11 +84,3 @@ type PatientInsuranceEnd struct {
 	PatientID string
 	InsPlanID string
 }
-
-func isMinor(dob string, asOf time.Time) bool {
-	age, ok := AgeYearsOn(dob, asOf)
-	if !ok {
-		return false
-	}
-	return age < 18
-}

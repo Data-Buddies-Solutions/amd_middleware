@@ -52,8 +52,8 @@ func TestAbitaAppointmentTypeMatrix(t *testing.T) {
 							name := fmt.Sprintf("%s/%s/%s/%s/age%d/%s", row.office, routing, category, status, age, reason)
 							t.Run(name, func(t *testing.T) {
 								got := resolveAppointmentTypeForIntent(office, routing, appointmentIntent{
-									VisitCategory: category, PatientStatus: status, DOB: policyTestNow.AddDate(-age, 0, -1).Format("01/02/2006"), VisitReason: reason,
-								}, policyTestNow)
+									VisitCategory: category, PatientStatus: status, VisitReason: reason,
+								}, domain.DOB(policyTestNow.AddDate(-age, 0, -1).Format("01/02/2006")), policyTestNow)
 								if got.AppointmentTypeID != want {
 									t.Fatalf("type = %d, want %d; missing=%v", got.AppointmentTypeID, want, got.Missing)
 								}

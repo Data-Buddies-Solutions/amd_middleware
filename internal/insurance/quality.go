@@ -37,7 +37,7 @@ func (c *catalogCheck) decisions(lists []planList) {
 
 func (c *catalogCheck) namesResolve(list planList, office *domain.OfficeConfig) {
 	for _, p := range list.Plans {
-		if !officeSupports(office, p.Coverage) {
+		if !office.SupportsVisit(p.Coverage) {
 			continue
 		}
 		byID := decidePlan(list, p.ID, p.Coverage, office, "", time.Time{})
@@ -51,7 +51,7 @@ func (c *catalogCheck) namesResolve(list planList, office *domain.OfficeConfig) 
 
 func (c *catalogCheck) selfPayAccepted(list planList, office *domain.OfficeConfig) {
 	for _, coverage := range []string{"medical", "routine_vision"} {
-		if !officeSupports(office, coverage) {
+		if !office.SupportsVisit(coverage) {
 			continue
 		}
 		if d := decideSelfPay(list, coverage, office, "", time.Time{}); d.Outcome != "accepted" || !d.CanSchedule || !d.SelfPay {
@@ -62,7 +62,7 @@ func (c *catalogCheck) selfPayAccepted(list planList, office *domain.OfficeConfi
 
 func (c *catalogCheck) phrasingsAvoidContradictedPlans(list planList, office *domain.OfficeConfig) {
 	for _, phrasing := range contradictedPhrasings {
-		if !officeSupports(office, phrasing.coverage) {
+		if !office.SupportsVisit(phrasing.coverage) {
 			continue
 		}
 		if d := decideInsurance(list, phrasing.heard, phrasing.coverage, office, "", time.Time{}); d.PlanID == phrasing.planID {

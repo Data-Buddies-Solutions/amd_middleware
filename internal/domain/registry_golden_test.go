@@ -40,13 +40,13 @@ var goldenProviderNames = []string{
 
 type goldenDOB struct {
 	label string
-	dob   string
+	dob   DOB
 }
 
 func goldenDOBs() []goldenDOB {
 	dobs := []goldenDOB{{"none", ""}, {"invalid", "not-a-date"}}
 	for _, age := range []int{3, 4, 5, 6, 7, 10, 17, 18, 40} {
-		dobs = append(dobs, goldenDOB{fmt.Sprintf("age%d", age), goldenNow.AddDate(-age, 0, -1).Format("01/02/2006")})
+		dobs = append(dobs, goldenDOB{fmt.Sprintf("age%d", age), DOB(goldenNow.AddDate(-age, 0, -1).Format("01/02/2006"))})
 	}
 	return dobs
 }
@@ -154,8 +154,8 @@ func writeGoldenOffice(b *strings.Builder, office *OfficeConfig) {
 		}
 		fmt.Fprintf(b, "columnDOB\t%s\t%d\t%s\n", office.ID, id, strings.Join(allows, " "))
 	}
-	adult := goldenNow.AddDate(-40, 0, 0).Format("01/02/2006")
-	child := goldenNow.AddDate(-10, 0, 0).Format("01/02/2006")
+	adult := DOB(goldenNow.AddDate(-40, 0, 0).Format("01/02/2006"))
+	child := DOB(goldenNow.AddDate(-10, 0, 0).Format("01/02/2006"))
 	for _, rule := range goldenRoutings {
 		columns := office.ColumnsForRouting(rule)
 		columnList := "nil"

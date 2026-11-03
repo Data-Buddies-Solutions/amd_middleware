@@ -22,6 +22,7 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 		office  *domain.OfficeConfig
 		routing domain.RoutingRule
 		intent  appointmentIntent
+		dob     domain.DOB
 		wantID  int
 		missing []string
 	}{
@@ -32,8 +33,8 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitMedical,
 				PatientStatus: domain.AppointmentPatientNew,
-				DOB:           "01/01/1980",
 			},
+			dob:    "01/01/1980",
 			wantID: 1006,
 		},
 		{
@@ -43,8 +44,8 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitMedical,
 				PatientStatus: domain.AppointmentPatientNew,
-				DOB:           "01/01/2015",
 			},
+			dob:    "01/01/2015",
 			wantID: 1004,
 		},
 		{
@@ -54,8 +55,8 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitMedical,
 				PatientStatus: domain.AppointmentPatientEstablished,
-				DOB:           "01/01/1980",
 			},
+			dob:    "01/01/1980",
 			wantID: 1007,
 		},
 		{
@@ -63,10 +64,10 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			office:  springHill,
 			routing: domain.RoutingBachOnly,
 			intent: appointmentIntent{
-				DOB:           "01/01/2015",
 				VisitCategory: domain.AppointmentVisitMedical,
 				PatientStatus: domain.AppointmentPatientEstablished,
 			},
+			dob:    "01/01/2015",
 			wantID: 1005,
 		},
 		{
@@ -76,8 +77,8 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitReason:   "post-op",
 				PatientStatus: domain.AppointmentPatientEstablished,
-				DOB:           "01/01/1980",
 			},
+			dob:    "01/01/1980",
 			wantID: 1008,
 		},
 		{
@@ -87,8 +88,8 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitReason:   "recent surgery follow-up",
 				PatientStatus: domain.AppointmentPatientEstablished,
-				DOB:           "01/01/1980",
 			},
+			dob:    "01/01/1980",
 			wantID: 1008,
 		},
 		{
@@ -98,8 +99,8 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitRoutineVision,
 				PatientStatus: domain.AppointmentPatientNew,
-				DOB:           "01/01/1980",
 			},
+			dob:    "01/01/1980",
 			wantID: 1010,
 		},
 		{
@@ -109,8 +110,8 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitRoutineVision,
 				PatientStatus: domain.AppointmentPatientEstablished,
-				DOB:           "01/01/1980",
 			},
+			dob:    "01/01/1980",
 			wantID: 3364,
 		},
 		{
@@ -120,8 +121,8 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitRoutineVision,
 				PatientStatus: domain.AppointmentPatientNew,
-				DOB:           "01/01/2018",
 			},
+			dob:    "01/01/2018",
 			wantID: 4244,
 		},
 		{
@@ -131,8 +132,8 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitRoutineVision,
 				PatientStatus: domain.AppointmentPatientEstablished,
-				DOB:           "01/01/2018",
 			},
+			dob:    "01/01/2018",
 			wantID: 4245,
 		},
 		{
@@ -172,8 +173,8 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitRoutineVision,
 				PatientStatus: domain.AppointmentPatientEstablished,
-				DOB:           "01/01/1980",
 			},
+			dob:    "01/01/1980",
 			wantID: 3364,
 		},
 		{
@@ -183,18 +184,9 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitRoutineVision,
 				PatientStatus: domain.AppointmentPatientEstablished,
-				DOB:           "01/01/1980",
 			},
+			dob:    "01/01/1980",
 			wantID: 3364,
-		},
-		{
-			name:    "requires status and DOB for non-Crystal River medical",
-			office:  springHill,
-			routing: domain.RoutingAll,
-			intent: appointmentIntent{
-				VisitCategory: domain.AppointmentVisitMedical,
-			},
-			missing: []string{"patientStatus", "dob"},
 		},
 		{
 			name:    "North Miami Beach Optical has no medical lane",
@@ -203,8 +195,8 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitMedical,
 				PatientStatus: domain.AppointmentPatientEstablished,
-				DOB:           "01/01/1980",
 			},
+			dob:     "01/01/1980",
 			missing: []string{"routing"},
 		},
 		{
@@ -214,15 +206,15 @@ func TestResolveAppointmentTypeForIntent(t *testing.T) {
 			intent: appointmentIntent{
 				VisitCategory: domain.AppointmentVisitRoutineVision,
 				PatientStatus: domain.AppointmentPatientEstablished,
-				DOB:           "01/01/1980",
 			},
+			dob:     "01/01/1980",
 			missing: []string{"routeToSpringHill"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := resolveAppointmentTypeForIntent(tt.office, tt.routing, tt.intent, policyTestNow)
+			got := resolveAppointmentTypeForIntent(tt.office, tt.routing, tt.intent, tt.dob, policyTestNow)
 			if got.AppointmentTypeID != tt.wantID {
 				t.Fatalf("AppointmentTypeID = %d, want %d (missing=%v message=%q)", got.AppointmentTypeID, tt.wantID, got.Missing, got.Message)
 			}
@@ -240,8 +232,7 @@ func TestResolveAppointmentTypeForIntent_SpringHillUnderSevenRoutineVision(t *te
 	got := resolveAppointmentTypeForIntent(domain.DefaultOffice(), domain.RoutingOpticalOnly, appointmentIntent{
 		VisitCategory: domain.AppointmentVisitRoutineVision,
 		PatientStatus: domain.AppointmentPatientNew,
-		DOB:           "01/01/2021",
-	}, policyTestNow)
+	}, "01/01/2021", policyTestNow)
 
 	if got.AppointmentTypeID != 0 {
 		t.Fatalf("AppointmentTypeID = %d, want unresolved", got.AppointmentTypeID)

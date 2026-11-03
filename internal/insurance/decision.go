@@ -51,11 +51,11 @@ type InsuranceDecision struct {
 	Options          []InsuranceOption      `json:"options,omitempty"`
 }
 
-func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {
 	return decideInsurance(active.Load().listForOffice(office.ID), heard, coverage, office, dob, asOf)
 }
 
-func decideInsurance(list planList, heard, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+func decideInsurance(list planList, heard, coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {
 	d, ok := startDecision(coverage, office)
 	if !ok {
 		return d
@@ -79,11 +79,11 @@ func decideInsurance(list planList, heard, coverage string, office *domain.Offic
 	return decideCandidates(d, found, office, dob, asOf)
 }
 
-func DecidePlan(planID, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+func DecidePlan(planID, coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {
 	return decidePlan(active.Load().listForOffice(office.ID), planID, coverage, office, dob, asOf)
 }
 
-func decidePlan(list planList, planID, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+func decidePlan(list planList, planID, coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {
 	d, ok := startDecision(coverage, office)
 	if !ok {
 		return d
@@ -96,11 +96,11 @@ func decidePlan(list planList, planID, coverage string, office *domain.OfficeCon
 	return d
 }
 
-func DecideSelfPay(coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+func DecideSelfPay(coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {
 	return decideSelfPay(active.Load().listForOffice(office.ID), coverage, office, dob, asOf)
 }
 
-func decideSelfPay(list planList, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+func decideSelfPay(list planList, coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {
 	d, ok := startDecision(coverage, office)
 	if !ok {
 		return d
@@ -118,11 +118,11 @@ func decideSelfPay(list planList, coverage string, office *domain.OfficeConfig, 
 
 func startDecision(coverage string, office *domain.OfficeConfig) (InsuranceDecision, bool) {
 	d := newDecision(coverage, office)
-	if coverage != "medical" && coverage != "routine_vision" {
+	if !domain.ValidVisitType(coverage) {
 		d.Reason, d.Answer = "ask_coverage", answerAskCoverage
 		return d, false
 	}
-	if !officeSupports(office, coverage) {
+	if !office.SupportsVisit(coverage) {
 		d.Outcome = "not_accepted"
 		d.Participation = "not_accepted"
 		d.Reason, d.Answer = "office_no_coverage", answerOfficeNoCoverage
@@ -143,11 +143,4 @@ func newDecision(coverage string, office *domain.OfficeConfig) InsuranceDecision
 		Reason:           "ask_card",
 		Answer:           answerAskCard,
 	}
-}
-
-func officeSupports(office *domain.OfficeConfig, coverage string) bool {
-	if coverage == "medical" {
-		return office.SupportsMedical()
-	}
-	return office.SupportsRouting(domain.RoutingOpticalOnly)
 }

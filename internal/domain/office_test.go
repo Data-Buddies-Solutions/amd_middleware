@@ -254,8 +254,8 @@ func TestOfficeConfig_NorthMiamiBeachOpticalColumn(t *testing.T) {
 	if got := office.FriendlyProviderName("BACH, MIRIAM"); got != "Dr. Miriam Bach" {
 		t.Fatalf("FriendlyProviderName(BACH, MIRIAM) = %q, want Dr. Miriam Bach", got)
 	}
-	six := testNow.AddDate(-7, 0, 1).Format("01/02/2006")
-	seven := testNow.AddDate(-7, 0, 0).Format("01/02/2006")
+	six := DOB(testNow.AddDate(-7, 0, 1).Format("01/02/2006"))
+	seven := DOB(testNow.AddDate(-7, 0, 0).Format("01/02/2006"))
 	if office.ColumnAllowsDOB(1601, six, testNow) {
 		t.Fatal("Dr. Miriam Bach should refuse a patient one day short of age 7")
 	}
@@ -424,7 +424,7 @@ func TestOfficeConfig_RoutineAgeRules(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dob := testNow.AddDate(-tt.age, 0, 0).Format("01/02/2006")
+			dob := DOB(testNow.AddDate(-tt.age, 0, 0).Format("01/02/2006"))
 			got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, dob, testNow)
 			if len(got) != len(tt.wantNames) {
 				t.Fatalf("got %v, want %v", got, tt.wantNames)

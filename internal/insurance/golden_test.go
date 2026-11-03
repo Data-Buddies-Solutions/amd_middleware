@@ -113,7 +113,7 @@ func forEachOfficeCoverage(t *testing.T, visit func(o *domain.OfficeConfig, cove
 	for _, officeID := range officeIDs {
 		o := office(t, officeID)
 		for _, coverage := range []string{"medical", "routine_vision"} {
-			if officeSupports(o, coverage) {
+			if o.SupportsVisit(coverage) {
 				visit(o, coverage)
 			}
 		}
