@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"advancedmd-token-management/internal/advancedmd"
 	"advancedmd-token-management/internal/domain"
 )
 
@@ -53,7 +54,7 @@ func (s *service) schedulerSetup(ctx context.Context, now time.Time) (*domain.Sc
 			s.setupLoadedAt = refreshedAt
 			s.setupExpiresAt = refreshedAt.Add(schedulerSetupCacheTTL)
 		} else if ctx.Err() == nil && s.setup != nil && refreshedAt.Sub(s.setupLoadedAt) < schedulerSetupMaxAge {
-			log.Printf("WARNING: scheduler setup refresh failed; using cached setup category=%s", providerCategory(err))
+			log.Printf("WARNING: scheduler setup refresh failed; using cached setup category=%s", advancedmd.CategoryOf(err))
 			s.setupExpiresAt = refreshedAt.Add(time.Minute)
 			if limit := s.setupLoadedAt.Add(schedulerSetupMaxAge); s.setupExpiresAt.After(limit) {
 				s.setupExpiresAt = limit
