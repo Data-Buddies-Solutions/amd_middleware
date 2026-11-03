@@ -4,6 +4,23 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [9.1.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v9.0.1...v9.1.0) (2026-11-03)
+
+
+### Features
+
+* **scheduling:** book only adults for vision in Dr. Farnan's Hollywood adult vision column ([#331](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/331)) ([ff6e256](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/ff6e256fec4872c6b08dbb68ac7d77f1296cede4))
+
+
+### Bug Fixes
+
+* **patient:** stop retrying timed-out pre-write reads, and share AdvancedMD request code ([#328](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/328)) ([3ccb491](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/3ccb491f7abacb0f7dc97175d1faa0a084100c65))
+
+
+### Performance Improvements
+
+* **scheduling:** run booking reads together and carry typed IDs, offices and DOBs ([#329](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/329)) ([e0c76b7](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/e0c76b7a5e870d57f6ed1cbe57df9a66c5441902))
+
 ## [9.0.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v9.0.0...v9.0.1) (2026-11-02)
 
 
