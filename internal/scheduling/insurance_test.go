@@ -14,7 +14,7 @@ import (
 func TestExistingPatientListsAndBooksWithoutInsuranceClarification(t *testing.T) {
 	for _, plan := range []string{"AETNA", "Unknown", ""} {
 		t.Run(plan, func(t *testing.T) {
-			records := recordsWithSetup(testColumn("1593", "2064", "1576", "09:00", "09:15", 15))
+			records := recordsWithSetup(testColumn(1593, 2064, 1576, "09:00", "09:15", 15))
 			records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: plan, CarrierID: "car40887"}
 			now := mutationTestNow()
 			svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
@@ -36,7 +36,7 @@ func TestExistingPatientListsAndBooksWithoutInsuranceClarification(t *testing.T)
 func TestVisionCarrierIdentitySurvivesAvailabilityAndBooking(t *testing.T) {
 	office, _ := domain.ResolveOffice("North Miami Beach Optical")
 	accepted := insurance.DecideInsurance("Devoted", "routine_vision", office, "01/15/1980", mutationTestNow())
-	records := recordsWithSetup(testColumn("1601", "621", "1582", "09:00", "09:15", 15))
+	records := recordsWithSetup(testColumn(1601, 621, 1582, "09:00", "09:15", 15))
 	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierID: accepted.CarrierID, CarrierName: "PREMIER EYE CARE"}
 	now := mutationTestNow()
 	svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
@@ -57,8 +57,8 @@ func TestVisionCarrierIdentitySurvivesAvailabilityAndBooking(t *testing.T) {
 func TestListWithPlanDecidesThePlanBeforeReadingInventory(t *testing.T) {
 	office, _ := domain.ResolveOffice("Spring Hill")
 	now := mutationTestNow()
-	column := testColumn("1550", "620", "1568", "09:00", "09:15", 15)
-	provider := office.Columns["1550"].ShortName
+	column := testColumn(1550, 620, 1568, "09:00", "09:15", 15)
+	provider := office.Columns[1550].ShortName
 	var cleared, elsewhere, blocked string
 	plans, _ := insurance.ListPlans("medical", office)
 	for _, p := range plans.Plans {

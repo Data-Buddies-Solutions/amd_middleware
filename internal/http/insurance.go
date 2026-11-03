@@ -35,10 +35,10 @@ func (h *Handlers) HandleInsuranceDecision(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if req.SelfPay {
-		respond(w, insurance.DecideSelfPay(req.CoverageType, office, string(dob), now))
+		respond(w, insurance.DecideSelfPay(req.CoverageType, office, dob, now))
 		return
 	}
-	respond(w, insurance.DecideOfferedAnswer(req.Plan, req.Offered, req.CoverageType, office, string(dob), now))
+	respond(w, insurance.DecideOfferedAnswer(req.Plan, req.Offered, req.CoverageType, office, dob, now))
 }
 
 func (h *Handlers) HandleInsurancePlans(w http.ResponseWriter, r *http.Request) {

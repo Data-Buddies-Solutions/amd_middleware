@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -39,13 +40,13 @@ var goldenProviderNames = []string{
 
 type goldenDOB struct {
 	label string
-	dob   string
+	dob   DOB
 }
 
 func goldenDOBs() []goldenDOB {
 	dobs := []goldenDOB{{"none", ""}, {"invalid", "not-a-date"}}
 	for _, age := range []int{3, 4, 5, 6, 7, 10, 17, 18, 40} {
-		dobs = append(dobs, goldenDOB{fmt.Sprintf("age%d", age), goldenNow.AddDate(-age, 0, -1).Format("01/02/2006")})
+		dobs = append(dobs, goldenDOB{fmt.Sprintf("age%d", age), DOB(goldenNow.AddDate(-age, 0, -1).Format("01/02/2006"))})
 	}
 	return dobs
 }
@@ -135,9 +136,9 @@ func goldenOfficeID(office *OfficeConfig, ok bool) string {
 }
 
 func writeGoldenOffice(b *strings.Builder, office *OfficeConfig) {
-	fmt.Fprintf(b, "office\t%s\tdisplay=%s\tfacility=%s\tdefaultProfile=%s\tpediatric=%s\tsupportsMedical=%t\tlookupGroup=%s\n",
+	fmt.Fprintf(b, "office\t%s\tdisplay=%s\tfacility=%d\tdefaultProfile=%d\tpediatric=%s\tsupportsMedical=%t\tlookupGroup=%s\n",
 		office.ID, office.DisplayName, office.FacilityID, office.DefaultProfileID, office.PediatricRouting,
-		office.SupportsMedical(), strings.Join(office.AppointmentLookupOfficeIDs, ","))
+		office.SupportsMedical(), strings.Join(officeIDs(office.AppointmentLookupOffices), ","))
 	columnIDs := goldenSortedKeys(office.Columns)
 	for _, id := range columnIDs {
 		c := office.Columns[id]
@@ -145,21 +146,21 @@ func writeGoldenOffice(b *strings.Builder, office *OfficeConfig) {
 		for _, w := range c.SameStartWindows {
 			windows = append(windows, fmt.Sprintf("%s %02d:%02d-%02d:%02d", w.Weekday.String()[:3], w.StartMinute/60, w.StartMinute%60, w.EndMinute/60, w.EndMinute%60))
 		}
-		fmt.Fprintf(b, "column\t%s\t%s\tprofile=%s\tdisplay=%s\tshort=%s\tmatch=%s\tminAge=%d\tcapacity=%d\twindows=%s\n",
+		fmt.Fprintf(b, "column\t%s\t%d\tprofile=%d\tdisplay=%s\tshort=%s\tmatch=%s\tminAge=%d\tcapacity=%d\twindows=%s\n",
 			office.ID, id, c.ProfileID, c.DisplayName, c.ShortName, c.MatchKey, c.MinAgeYears, c.SameStartCapacity, strings.Join(windows, ","))
 		allows := []string{}
 		for _, d := range goldenDOBs() {
 			allows = append(allows, fmt.Sprintf("%s=%t", d.label, office.ColumnAllowsDOB(id, d.dob, goldenNow)))
 		}
-		fmt.Fprintf(b, "columnDOB\t%s\t%s\t%s\n", office.ID, id, strings.Join(allows, " "))
+		fmt.Fprintf(b, "columnDOB\t%s\t%d\t%s\n", office.ID, id, strings.Join(allows, " "))
 	}
-	adult := goldenNow.AddDate(-40, 0, 0).Format("01/02/2006")
-	child := goldenNow.AddDate(-10, 0, 0).Format("01/02/2006")
+	adult := DOB(goldenNow.AddDate(-40, 0, 0).Format("01/02/2006"))
+	child := DOB(goldenNow.AddDate(-10, 0, 0).Format("01/02/2006"))
 	for _, rule := range goldenRoutings {
 		columns := office.ColumnsForRouting(rule)
 		columnList := "nil"
 		if columns != nil {
-			columnList = "[" + strings.Join(goldenSortedKeys(columns), ",") + "]"
+			columnList = "[" + goldenJoinIDs(goldenSortedKeys(columns)) + "]"
 		}
 		providers := office.ProvidersForRouting(rule)
 		providerList := "nil"
@@ -173,7 +174,7 @@ func writeGoldenOffice(b *strings.Builder, office *OfficeConfig) {
 			byDOB := office.ColumnsForRoutingAndDOB(rule, d.dob, goldenNow)
 			byDOBList := "nil"
 			if byDOB != nil {
-				byDOBList = "[" + strings.Join(goldenSortedKeys(byDOB), ",") + "]"
+				byDOBList = "[" + goldenJoinIDs(goldenSortedKeys(byDOB)) + "]"
 			}
 			names := office.ProvidersForRoutingAndDOB(rule, d.dob, goldenNow)
 			nameList := "nil"
@@ -213,11 +214,16 @@ func writeGoldenAppointmentTypes(b *strings.Builder) {
 	}
 }
 
-func goldenSortedKeys[V any](m map[string]V) []string {
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-	slices.Sort(keys)
+func goldenSortedKeys[V any](m map[int]V) []int {
+	keys := slices.Collect(maps.Keys(m))
+	slices.SortFunc(keys, func(a, b int) int { return strings.Compare(strconv.Itoa(a), strconv.Itoa(b)) })
 	return keys
+}
+
+func goldenJoinIDs(ids []int) string {
+	values := make([]string, len(ids))
+	for i, id := range ids {
+		values[i] = strconv.Itoa(id)
+	}
+	return strings.Join(values, ",")
 }

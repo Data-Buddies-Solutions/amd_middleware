@@ -89,7 +89,7 @@ func TestEveryCatalogOfficeIsServedOrDeclinedInEachEnvironment(t *testing.T) {
 						}
 					}
 					for _, p := range list.Plans {
-						for _, dob := range []string{adultDOB, dobYearsAgo(8)} {
+						for _, dob := range []domain.DOB{adultDOB, dobYearsAgo(8)} {
 							for _, provider := range DecidePlan(p.ID, coverage, o, dob, testNow).AllowedProviders {
 								if !doctors[provider] {
 									t.Errorf("%s: %s %s decision allows %s, who has no column there", env, officeID, p.ID, provider)

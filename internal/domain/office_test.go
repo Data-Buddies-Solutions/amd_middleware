@@ -64,8 +64,8 @@ func TestAppointmentLookupOfficeIDs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Cleanup(func() { InitRegistry(Prod) })
 			InitRegistry(tt.env)
-			if got := mustOffice(t, tt.office).AppointmentLookupOfficeIDs; !slices.Equal(got, tt.want) {
-				t.Fatalf("AppointmentLookupOfficeIDs = %v, want %v", got, tt.want)
+			if got := officeIDs(mustOffice(t, tt.office).AppointmentLookupOffices); !slices.Equal(got, tt.want) {
+				t.Fatalf("AppointmentLookupOffices = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -106,7 +106,7 @@ func TestCanonicalAppointmentTypeID(t *testing.T) {
 func TestSandboxRejectsUnmappedProductionIDs(t *testing.T) {
 	defer InitRegistry(Prod)
 	InitRegistry(Sandbox)
-	if office, ok := LookupOffice("spring_hill"); !ok || office.FacilityID != "1032" {
+	if office, ok := LookupOffice("spring_hill"); !ok || office.FacilityID != 1032 {
 		t.Fatal("sandbox office ID must resolve to the sandbox Spring Hill config")
 	}
 	for _, selector := range []string{"crystal_river", "+13523202007"} {
@@ -134,7 +134,7 @@ func TestSandboxRejectsUnmappedProductionIDs(t *testing.T) {
 			t.Errorf("production mapping changed for type %d", id)
 		}
 	}
-	if office, ok := LookupOffice("crystal_river"); !ok || office.FacilityID != "1576" {
+	if office, ok := LookupOffice("crystal_river"); !ok || office.FacilityID != 1576 {
 		t.Fatal("production Crystal River mapping changed")
 	}
 }
@@ -186,40 +186,40 @@ func TestOfficeConfig_HollywoodAndSweetwaterColumns(t *testing.T) {
 	tests := []struct {
 		name       string
 		office     *OfficeConfig
-		facilityID string
-		columns    []string
-		optical    []string
+		facilityID int
+		columns    []int
+		optical    []int
 	}{
 		{
 			name:       "hollywood",
 			office:     mustOffice(t, "hollywood"),
-			facilityID: "1480",
-			columns:    []string{"1268", "1478", "1555", "1510", "1305"},
-			optical:    []string{"1555", "1510", "1305"},
+			facilityID: 1480,
+			columns:    []int{1268, 1478, 1555, 1510, 1305},
+			optical:    []int{1555, 1510, 1305},
 		},
 		{
 			name:       "sweetwater",
 			office:     mustOffice(t, "sweetwater"),
-			facilityID: "670",
-			columns:    []string{"682", "1307", "1296", "1554", "1210"},
-			optical:    []string{"1296", "1554", "1210"},
+			facilityID: 670,
+			columns:    []int{682, 1307, 1296, 1554, 1210},
+			optical:    []int{1296, 1554, 1210},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.office.FacilityID != tt.facilityID {
-				t.Fatalf("FacilityID = %q, want %q", tt.office.FacilityID, tt.facilityID)
+				t.Fatalf("FacilityID = %d, want %d", tt.office.FacilityID, tt.facilityID)
 			}
 			for _, columnID := range tt.columns {
 				if _, ok := tt.office.Columns[columnID]; !ok {
-					t.Fatalf("expected column %s to be allowed", columnID)
+					t.Fatalf("expected column %d to be allowed", columnID)
 				}
 			}
 			optical := tt.office.ColumnsForRouting(RoutingOpticalOnly)
 			for _, columnID := range tt.optical {
 				if !optical[columnID] {
-					t.Fatalf("expected optical routing to include column %s", columnID)
+					t.Fatalf("expected optical routing to include column %d", columnID)
 				}
 			}
 		})
@@ -231,35 +231,35 @@ func TestOfficeConfig_NorthMiamiBeachOpticalColumn(t *testing.T) {
 	if office == nil {
 		t.Fatal("expected North Miami Beach Optical office")
 	}
-	if office.FacilityID != "1582" {
-		t.Fatalf("FacilityID = %q, want 1582", office.FacilityID)
+	if office.FacilityID != 1582 {
+		t.Fatalf("FacilityID = %d, want 1582", office.FacilityID)
 	}
-	if office.DefaultProfileID != "621" {
-		t.Fatalf("DefaultProfileID = %q, want 621", office.DefaultProfileID)
+	if office.DefaultProfileID != 621 {
+		t.Fatalf("DefaultProfileID = %d, want 621", office.DefaultProfileID)
 	}
-	if _, ok := office.Columns["1601"]; !ok {
+	if _, ok := office.Columns[1601]; !ok {
 		t.Fatal("expected column 1601 to be allowed")
 	}
 	if medical := office.ColumnsForRouting(RoutingAll); len(medical) != 0 {
 		t.Fatalf("medical routing columns = %v, want none", medical)
 	}
 	optical := office.ColumnsForRouting(RoutingOpticalOnly)
-	if len(optical) != 1 || !optical["1601"] {
+	if len(optical) != 1 || !optical[1601] {
 		t.Fatalf("optical routing columns = %v, want only 1601", optical)
 	}
-	col := office.Columns["1601"]
-	if col.ProfileID != "621" || col.DisplayName != "Dr. Miriam Bach" || col.SameStartCapacity != 0 {
+	col := office.Columns[1601]
+	if col.ProfileID != 621 || col.DisplayName != "Dr. Miriam Bach" || col.SameStartCapacity != 0 {
 		t.Fatalf("column 1601 = %+v, want Dr. Miriam Bach profile 621 single-booked", col)
 	}
 	if got := office.FriendlyProviderName("BACH, MIRIAM"); got != "Dr. Miriam Bach" {
 		t.Fatalf("FriendlyProviderName(BACH, MIRIAM) = %q, want Dr. Miriam Bach", got)
 	}
-	six := testNow.AddDate(-7, 0, 1).Format("01/02/2006")
-	seven := testNow.AddDate(-7, 0, 0).Format("01/02/2006")
-	if office.ColumnAllowsDOB("1601", six, testNow) {
+	six := DOB(testNow.AddDate(-7, 0, 1).Format("01/02/2006"))
+	seven := DOB(testNow.AddDate(-7, 0, 0).Format("01/02/2006"))
+	if office.ColumnAllowsDOB(1601, six, testNow) {
 		t.Fatal("Dr. Miriam Bach should refuse a patient one day short of age 7")
 	}
-	if !office.ColumnAllowsDOB("1601", seven, testNow) {
+	if !office.ColumnAllowsDOB(1601, seven, testNow) {
 		t.Fatal("Dr. Miriam Bach should accept a patient who turns 7 today")
 	}
 	if got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, six, testNow); len(got) != 0 {
@@ -272,39 +272,39 @@ func TestOfficeConfig_SameStartCapacityScope(t *testing.T) {
 		name       string
 		env        Environment
 		office     string
-		doubleBook []string
-		singleBook []string
+		doubleBook []int
+		singleBook []int
 	}{
 		{
 			name:       "spring hill medical columns double-bookable",
 			env:        Prod,
 			office:     "spring_hill",
-			doubleBook: []string{"1513", "1598", "1551", "1550"},
-			singleBook: []string{"1600"},
+			doubleBook: []int{1513, 1598, 1551, 1550},
+			singleBook: []int{1600},
 		},
 		{
 			name:       "crystal river remains single-booked",
 			env:        Prod,
 			office:     "crystal_river",
-			singleBook: []string{"1593"},
+			singleBook: []int{1593},
 		},
 		{
 			name:       "sweetwater all columns have same-start capacity",
 			env:        Prod,
 			office:     "sweetwater",
-			doubleBook: []string{"682", "1307", "1296", "1554", "1210"},
+			doubleBook: []int{682, 1307, 1296, 1554, 1210},
 		},
 		{
 			name:       "hollywood all columns have same-start capacity",
 			env:        Prod,
 			office:     "hollywood",
-			doubleBook: []string{"1268", "1478", "1555", "1510", "1305"},
+			doubleBook: []int{1268, 1478, 1555, 1510, 1305},
 		},
 		{
 			name:       "sandbox spring hill all columns double-bookable",
 			env:        Sandbox,
 			office:     "spring_hill",
-			doubleBook: []string{"1716", "1723", "1726"},
+			doubleBook: []int{1716, 1723, 1726},
 		},
 	}
 
@@ -316,19 +316,19 @@ func TestOfficeConfig_SameStartCapacityScope(t *testing.T) {
 			for _, columnID := range tt.doubleBook {
 				col, ok := office.Columns[columnID]
 				if !ok {
-					t.Fatalf("missing column %s", columnID)
+					t.Fatalf("missing column %d", columnID)
 				}
 				if col.SameStartCapacity != 2 {
-					t.Fatalf("column %s SameStartCapacity = %d, want 2", columnID, col.SameStartCapacity)
+					t.Fatalf("column %d SameStartCapacity = %d, want 2", columnID, col.SameStartCapacity)
 				}
 			}
 			for _, columnID := range tt.singleBook {
 				col, ok := office.Columns[columnID]
 				if !ok {
-					t.Fatalf("missing column %s", columnID)
+					t.Fatalf("missing column %d", columnID)
 				}
 				if col.SameStartCapacity != 0 {
-					t.Fatalf("column %s SameStartCapacity = %d, want default 0", columnID, col.SameStartCapacity)
+					t.Fatalf("column %d SameStartCapacity = %d, want default 0", columnID, col.SameStartCapacity)
 				}
 			}
 		})
@@ -339,20 +339,20 @@ func TestOfficeConfig_HollywoodSweetwaterRoutineSameStartWindows(t *testing.T) {
 	tests := []struct {
 		name       string
 		office     *OfficeConfig
-		routineIDs []string
-		medicalIDs []string
+		routineIDs []int
+		medicalIDs []int
 	}{
 		{
 			name:       "sweetwater",
 			office:     mustOffice(t, "sweetwater"),
-			routineIDs: []string{"1296", "1554", "1210"},
-			medicalIDs: []string{"682", "1307"},
+			routineIDs: []int{1296, 1554, 1210},
+			medicalIDs: []int{682, 1307},
 		},
 		{
 			name:       "hollywood",
 			office:     mustOffice(t, "hollywood"),
-			routineIDs: []string{"1555", "1510", "1305"},
-			medicalIDs: []string{"1268", "1478"},
+			routineIDs: []int{1555, 1510, 1305},
+			medicalIDs: []int{1268, 1478},
 		},
 	}
 
@@ -378,18 +378,18 @@ func TestOfficeConfig_HollywoodSweetwaterRoutineSameStartWindows(t *testing.T) {
 			for _, columnID := range tt.routineIDs {
 				col := tt.office.Columns[columnID]
 				if len(col.SameStartWindows) == 0 {
-					t.Fatalf("routine column %s has no same-start windows", columnID)
+					t.Fatalf("routine column %d has no same-start windows", columnID)
 				}
 				for _, tc := range cases {
 					if got := col.SameStartCapacityAt(tc.start); got != tc.want {
-						t.Fatalf("%s column %s SameStartCapacityAt(%s) = %d, want %d", tc.name, columnID, tc.start.Format("Monday 15:04"), got, tc.want)
+						t.Fatalf("%s column %d SameStartCapacityAt(%s) = %d, want %d", tc.name, columnID, tc.start.Format("Monday 15:04"), got, tc.want)
 					}
 				}
 			}
 			for _, columnID := range tt.medicalIDs {
 				col := tt.office.Columns[columnID]
 				if len(col.SameStartWindows) != 0 {
-					t.Fatalf("medical column %s should not have time-limited same-start windows", columnID)
+					t.Fatalf("medical column %d should not have time-limited same-start windows", columnID)
 				}
 			}
 		})
@@ -404,10 +404,10 @@ func TestOfficeConfig_RoutineAgeRules(t *testing.T) {
 	if got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, "not-a-date", testNow); len(got) != 0 {
 		t.Fatalf("invalid DOB routine providers = %v, want none", got)
 	}
-	if !office.ColumnAllowsDOB("682", "", testNow) {
+	if !office.ColumnAllowsDOB(682, "", testNow) {
 		t.Fatal("Bach column should allow missing DOB because it has no minimum age")
 	}
-	if office.ColumnAllowsDOB("1296", "", testNow) {
+	if office.ColumnAllowsDOB(1296, "", testNow) {
 		t.Fatal("Casas column should require DOB because it has a minimum age")
 	}
 
@@ -424,7 +424,7 @@ func TestOfficeConfig_RoutineAgeRules(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dob := testNow.AddDate(-tt.age, 0, 0).Format("01/02/2006")
+			dob := DOB(testNow.AddDate(-tt.age, 0, 0).Format("01/02/2006"))
 			got := office.ProvidersForRoutingAndDOB(RoutingOpticalOnly, dob, testNow)
 			if len(got) != len(tt.wantNames) {
 				t.Fatalf("got %v, want %v", got, tt.wantNames)
@@ -446,13 +446,13 @@ func TestInitRegistry(t *testing.T) {
 	if !ok {
 		t.Fatal("sandbox registry should have +14843989071")
 	}
-	if office.FacilityID != "1032" {
-		t.Errorf("sandbox FacilityID = %q, want %q", office.FacilityID, "1032")
+	if office.FacilityID != 1032 {
+		t.Errorf("sandbox FacilityID = %d, want %d", office.FacilityID, 1032)
 	}
-	if _, ok := office.Columns["1716"]; !ok {
+	if _, ok := office.Columns[1716]; !ok {
 		t.Error("sandbox registry should have column 1716 (Bach)")
 	}
-	if _, ok := office.Columns["1513"]; ok {
+	if _, ok := office.Columns[1513]; ok {
 		t.Error("sandbox registry should NOT have prod column 1513")
 	}
 
@@ -465,22 +465,22 @@ func TestInitRegistry(t *testing.T) {
 	if sandboxDefault == nil {
 		t.Fatal("DefaultOffice() returned nil in sandbox")
 	}
-	if sandboxDefault.FacilityID != "1032" {
-		t.Errorf("sandbox DefaultOffice().FacilityID = %q, want %q", sandboxDefault.FacilityID, "1032")
+	if sandboxDefault.FacilityID != 1032 {
+		t.Errorf("sandbox DefaultOffice().FacilityID = %d, want %d", sandboxDefault.FacilityID, 1032)
 	}
 
 	InitRegistry(Prod)
 	office = DefaultOffice()
-	if office.FacilityID != "1568" {
-		t.Errorf("prod FacilityID = %q, want %q", office.FacilityID, "1568")
+	if office.FacilityID != 1568 {
+		t.Errorf("prod FacilityID = %d, want %d", office.FacilityID, 1568)
 	}
-	if _, ok := office.Columns["1513"]; !ok {
+	if _, ok := office.Columns[1513]; !ok {
 		t.Error("prod registry should have column 1513 (Bach)")
 	}
-	if _, ok := office.Columns["1600"]; !ok {
+	if _, ok := office.Columns[1600]; !ok {
 		t.Error("prod registry should have column 1600 (Dr. Melissa Otero)")
 	}
-	if _, ok := office.Columns["1716"]; ok {
+	if _, ok := office.Columns[1716]; ok {
 		t.Error("prod registry should NOT have sandbox column 1716")
 	}
 
@@ -511,4 +511,12 @@ func TestInitRegistryRejectsAnUnknownEnvironment(t *testing.T) {
 			InitRegistry(env)
 		}()
 	}
+}
+
+func officeIDs(offices []*OfficeConfig) []string {
+	ids := make([]string, len(offices))
+	for i, office := range offices {
+		ids[i] = office.ID
+	}
+	return ids
 }

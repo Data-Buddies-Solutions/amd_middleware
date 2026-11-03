@@ -49,7 +49,7 @@ type PatientAppointment struct {
 
 type PatientAppointmentsQuery struct {
 	PatientID string
-	OfficeIDs []string
+	Offices   []*OfficeConfig
 }
 
 type PatientCreate struct {
@@ -64,7 +64,7 @@ type PatientCreate struct {
 	State     string
 	Zip       string
 	Sex       string
-	OfficeID  string
+	ProfileID int
 }
 
 type CreatedPatient struct {
@@ -83,12 +83,4 @@ type PatientInsurance struct {
 type PatientInsuranceEnd struct {
 	PatientID string
 	InsPlanID string
-}
-
-func isMinor(dob string, asOf time.Time) bool {
-	age, ok := AgeYearsOn(dob, asOf)
-	if !ok {
-		return false
-	}
-	return age < 18
 }

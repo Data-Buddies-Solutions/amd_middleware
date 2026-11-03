@@ -10,8 +10,8 @@ import (
 var policyTestNow = time.Date(2026, time.June, 1, 16, 0, 0, 0, time.UTC)
 
 func TestAppointmentTypeMatchesDOBUsesCatalogAgeBand(t *testing.T) {
-	pediatricDOB := policyTestNow.AddDate(-10, 0, 0).Format("01/02/2006")
-	adultDOB := policyTestNow.AddDate(-40, 0, 0).Format("01/02/2006")
+	pediatricDOB := domain.DOB(policyTestNow.AddDate(-10, 0, 0).Format("01/02/2006"))
+	adultDOB := domain.DOB(policyTestNow.AddDate(-40, 0, 0).Format("01/02/2006"))
 	for id, appointmentType := range domain.AppointmentTypes {
 		wantPediatric := appointmentType.AgeBand != domain.AppointmentAgeAdult
 		wantAdult := appointmentType.AgeBand != domain.AppointmentAgePediatric
@@ -42,7 +42,7 @@ func TestInvalidAppointmentTypeMessageUsesCatalog(t *testing.T) {
 
 func TestSchedulingPolicy_PrepareBookingRejectsAppointmentTypeForWrongAge(t *testing.T) {
 	policy := newSchedulingPolicy(domain.DefaultOffice(), policyTestNow)
-	adultDOB := policyTestNow.AddDate(-30, 0, 0).Format("01/02/2006")
+	adultDOB := domain.DOB(policyTestNow.AddDate(-30, 0, 0).Format("01/02/2006"))
 
 	_, policyErr := policy.PrepareBooking(bookingPolicyRequest{
 		ColumnID:          1513,

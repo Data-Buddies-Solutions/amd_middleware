@@ -10,7 +10,7 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
-func decideCandidates(d InsuranceDecision, plans []plan, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+func decideCandidates(d InsuranceDecision, plans []plan, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {
 	groups := distinctOutcomes(plans, office, dob, asOf)
 	if len(groups) == 1 {
 		return groups[0]
@@ -29,7 +29,7 @@ func decideCandidates(d InsuranceDecision, plans []plan, office *domain.OfficeCo
 	return d
 }
 
-func distinctOutcomes(plans []plan, office *domain.OfficeConfig, dob string, asOf time.Time) []InsuranceDecision {
+func distinctOutcomes(plans []plan, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) []InsuranceDecision {
 	plans = slices.Clone(plans)
 	slices.SortStableFunc(plans, func(a, b plan) int {
 		return cmp.Or(cmp.Compare(len(a.Label), len(b.Label)), cmp.Compare(a.Label, b.Label))

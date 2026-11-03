@@ -162,7 +162,7 @@ func TestAdapterReportsWritesThatNeverLeftAsDefiniteFailures(t *testing.T) {
 	ctx := context.Background()
 	writes := map[string]func() error{
 		"create patient": func() error {
-			_, err := adapter.CreatePatient(ctx, domain.PatientCreate{FirstName: "JANE", LastName: "DOE", OfficeID: "spring_hill"})
+			_, err := adapter.CreatePatient(ctx, domain.PatientCreate{FirstName: "JANE", LastName: "DOE", ProfileID: testOffice("spring_hill").DefaultProfileID})
 			return err
 		},
 		"add insurance": func() error {
@@ -173,7 +173,7 @@ func TestAdapterReportsWritesThatNeverLeftAsDefiniteFailures(t *testing.T) {
 		},
 		"book appointment": func() error {
 			_, err := adapter.BookAppointment(ctx, Booking{
-				PatientID: 12345, OfficeID: "spring_hill", ColumnID: 1513, ProfileID: 620,
+				PatientID: 12345, FacilityID: testOffice("spring_hill").FacilityID, ColumnID: 1513, ProfileID: 620,
 				Start: time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC), Duration: 15,
 				ProviderAppointmentTypeID: 1007, AppointmentColor: "ORANGE",
 			})
@@ -204,7 +204,7 @@ func TestAdapterReportsWritesThatNeverLeftAsDefiniteFailures(t *testing.T) {
 		},
 		"schedule range": func() error {
 			_, err := adapter.ReadScheduleRange(ctx, domain.ScheduleRangeQuery{
-				ColumnIDs: []string{"1513"},
+				ColumnIDs: []int{1513},
 				Start:     time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC),
 				End:       time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC),
 			})
@@ -297,7 +297,7 @@ func TestAdapterTreatsUnusableBookingAnswerAsAmbiguousInvalidResponse(t *testing
 		time.Now,
 	)
 	_, err := adapter.BookAppointment(context.Background(), Booking{
-		PatientID: 12345, OfficeID: "spring_hill", ColumnID: 1513, ProfileID: 620,
+		PatientID: 12345, FacilityID: testOffice("spring_hill").FacilityID, ColumnID: 1513, ProfileID: 620,
 		Start: time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC), Duration: 15,
 		ProviderAppointmentTypeID: 1007, AppointmentColor: "ORANGE",
 	})
@@ -329,7 +329,7 @@ func TestAdapterClassifiesReadStatusesWithoutWriteSemantics(t *testing.T) {
 			)
 			_, xmlrpcErr := adapter.GetPatientDemographics(context.Background(), "123")
 			_, restErr := adapter.ReadScheduleRange(context.Background(), domain.ScheduleRangeQuery{
-				ColumnIDs: []string{"1513"},
+				ColumnIDs: []int{1513},
 				Start:     time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC),
 				End:       time.Date(2026, 6, 3, 0, 0, 0, 0, time.UTC),
 			})

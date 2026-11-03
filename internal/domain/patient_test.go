@@ -7,52 +7,49 @@ import (
 
 var testNow = time.Date(2026, time.June, 1, 16, 0, 0, 0, time.UTC)
 
-func TestIsMinor(t *testing.T) {
+func TestDOBAgeBandOn(t *testing.T) {
 	tests := []struct {
 		name     string
-		dob      string
-		expected bool
+		dob      DOB
+		expected string
 	}{
-		{"adult born 30 years ago", testNow.AddDate(-30, 0, 0).Format("01/02/2006"), false},
-		{"child born 10 years ago", testNow.AddDate(-10, 0, 0).Format("01/02/2006"), true},
-		{"turns 18 tomorrow", testNow.AddDate(-18, 0, 1).Format("01/02/2006"), true},
-		{"exactly 18 today", testNow.AddDate(-18, 0, 0).Format("01/02/2006"), false},
-		{"turned 18 yesterday", testNow.AddDate(-18, 0, -1).Format("01/02/2006"), false},
-		{"invalid format returns false", "not-a-date", false},
-		{"empty string returns false", "", false},
+		{"adult born 30 years ago", DOB(testNow.AddDate(-30, 0, 0).Format("01/02/2006")), AppointmentAgeAdult},
+		{"child born 10 years ago", DOB(testNow.AddDate(-10, 0, 0).Format("01/02/2006")), AppointmentAgePediatric},
+		{"turns 18 tomorrow", DOB(testNow.AddDate(-18, 0, 1).Format("01/02/2006")), AppointmentAgePediatric},
+		{"exactly 18 today", DOB(testNow.AddDate(-18, 0, 0).Format("01/02/2006")), AppointmentAgeAdult},
+		{"turned 18 yesterday", DOB(testNow.AddDate(-18, 0, -1).Format("01/02/2006")), AppointmentAgeAdult},
+		{"unknown DOB has no band", "", ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := isMinor(tt.dob, testNow)
-			if got != tt.expected {
-				t.Errorf("isMinor(%q, testNow) = %v, want %v", tt.dob, got, tt.expected)
+			if got := tt.dob.AgeBandOn(testNow); got != tt.expected {
+				t.Errorf("DOB(%q).AgeBandOn(testNow) = %q, want %q", tt.dob, got, tt.expected)
 			}
 		})
 	}
 }
 
-func TestAgeYearsOn(t *testing.T) {
+func TestDOBAgeOn(t *testing.T) {
 	asOf := time.Date(2026, 5, 14, 12, 0, 0, 0, time.UTC)
 
 	tests := []struct {
 		name string
-		dob  string
+		dob  DOB
 		age  int
 		ok   bool
 	}{
 		{"birthday already passed", "05/13/2019", 7, true},
 		{"birthday today", "05/14/2019", 7, true},
 		{"birthday tomorrow", "05/15/2019", 6, true},
-		{"iso date is normalized", "2019-05-14", 7, true},
-		{"invalid", "not-a-date", 0, false},
+		{"unknown", "", 0, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			age, ok := AgeYearsOn(tt.dob, asOf)
+			age, ok := tt.dob.AgeOn(asOf)
 			if ok != tt.ok || age != tt.age {
-				t.Fatalf("AgeYearsOn(%q) = %d, %v; want %d, %v", tt.dob, age, ok, tt.age, tt.ok)
+				t.Fatalf("DOB(%q).AgeOn = %d, %v; want %d, %v", tt.dob, age, ok, tt.age, tt.ok)
 			}
 		})
 	}

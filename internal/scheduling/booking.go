@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"advancedmd-token-management/internal/advancedmd"
@@ -95,7 +96,7 @@ func (s *service) book(ctx context.Context, booking bookingContext) (BookReceipt
 
 	appointmentID, err := s.records.BookAppointment(ctx, advancedmd.Booking{
 		PatientID:                 prepared.patientID.Int(),
-		OfficeID:                  prepared.office.ID,
+		FacilityID:                prepared.office.FacilityID,
 		ColumnID:                  prepared.token.ColumnID,
 		ProfileID:                 prepared.token.ProfileID,
 		Start:                     prepared.start,
@@ -119,18 +120,75 @@ func (s *service) book(ctx context.Context, booking bookingContext) (BookReceipt
 	)
 }
 
+type bookingReads struct {
+	running        *sync.WaitGroup
+	completedVisit func() (bool, error)
+	setup          func() (*domain.SchedulerSetup, error)
+	day            func() (domain.ColumnSchedule, error)
+}
+
+func (s *service) startBookingReads(ctx context.Context, booking bookingContext) bookingReads {
+	running := &sync.WaitGroup{}
+	reads := bookingReads{
+		running: running,
+		setup: startRead(running, func() (*domain.SchedulerSetup, error) {
+			return s.schedulerSetup(ctx, s.now().UTC())
+		}),
+		day: startRead(running, func() (domain.ColumnSchedule, error) {
+			start, err := time.Parse(domain.SlotDateTimeLayout, booking.token.StartDatetime)
+			if err != nil {
+				return domain.ColumnSchedule{}, err
+			}
+			return s.records.ReadColumnDay(ctx, booking.token.ColumnID, start.Format("2006-01-02"))
+		}),
+	}
+	if booking.command.AppointmentTypeID == 0 {
+		reads.completedVisit = startRead(running, func() (bool, error) {
+			return s.records.HasCompletedVisit(ctx, string(booking.patientID))
+		})
+	}
+	return reads
+}
+
+func startRead[T any](running *sync.WaitGroup, read func() (T, error)) func() (T, error) {
+	var value T
+	var err error
+	var recovered any
+	done := make(chan struct{})
+	running.Go(func() {
+		defer close(done)
+		defer func() {
+			if recovered = recover(); recovered != nil {
+				log.Printf("booking: pre-write read panicked type=%T", recovered)
+			}
+		}()
+		value, err = read()
+	})
+	return func() (T, error) {
+		<-done
+		if recovered != nil {
+			panic(recovered)
+		}
+		return value, err
+	}
+}
+
 func (s *service) prepareBooking(ctx context.Context, booking bookingContext) (preparedBooking, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	reads := s.startBookingReads(ctx, booking)
+	defer reads.running.Wait()
+	defer cancel()
 	if err := s.verifyBookingPatient(ctx, &booking); err != nil {
 		return preparedBooking{}, err
 	}
-	if err := s.classifyBookingPatient(ctx, &booking); err != nil {
+	if err := classifyBookingPatient(&booking, reads.completedVisit); err != nil {
 		return preparedBooking{}, err
 	}
 	policy, decision, comments, err := applyBookingPolicy(&booking)
 	if err != nil {
 		return preparedBooking{}, err
 	}
-	start, force, err := s.revalidateBookingSlot(ctx, booking, policy)
+	start, force, err := revalidateBookingSlot(booking, policy, reads)
 	if err != nil {
 		return preparedBooking{}, err
 	}
@@ -205,7 +263,7 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 	}
 	booking.patientID = patientID
 	booking.dob = dob
-	if (command.VisitCategory != "" || command.AppointmentTypeID == 0) && command.VisitCategory != domain.AppointmentVisitMedical && command.VisitCategory != domain.AppointmentVisitRoutineVision {
+	if (command.VisitCategory != "" || command.AppointmentTypeID == 0) && !domain.ValidVisitType(command.VisitCategory) {
 		return bookingContext{}, schedulingError("visitCategory must be medical or routine_vision")
 	}
 	return booking, nil
@@ -237,11 +295,11 @@ func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingCont
 	return nil
 }
 
-func (s *service) classifyBookingPatient(ctx context.Context, booking *bookingContext) error {
-	if booking.command.AppointmentTypeID != 0 {
+func classifyBookingPatient(booking *bookingContext, completedVisit func() (bool, error)) error {
+	if completedVisit == nil {
 		return nil
 	}
-	seen, err := s.records.HasCompletedVisit(ctx, string(booking.patientID))
+	seen, err := completedVisit()
 	if err != nil {
 		return categorizedProviderError(
 			CategoryWriteFailed,
@@ -276,11 +334,10 @@ func applyBookingPolicy(booking *bookingContext) (
 		ProfileID:         booking.token.ProfileID,
 		AppointmentTypeID: command.AppointmentTypeID,
 		Routing:           booking.token.Routing,
-		DOB:               string(booking.dob),
+		DOB:               booking.dob,
 		Intent: appointmentIntent{
 			VisitCategory: command.VisitCategory,
 			PatientStatus: booking.patientStatus,
-			DOB:           string(booking.dob),
 			VisitReason:   command.VisitReason,
 		},
 		PreservedAppointmentTypeID: booking.preservedAppointmentType,
@@ -313,12 +370,12 @@ func invalidRescheduleTokenError() error {
 	)
 }
 
-func (s *service) revalidateBookingSlot(
-	ctx context.Context,
+func revalidateBookingSlot(
 	booking bookingContext,
 	policy schedulingPolicy,
+	reads bookingReads,
 ) (time.Time, bool, error) {
-	setup, err := s.schedulerSetup(ctx, s.now().UTC())
+	setup, err := reads.setup()
 	if err != nil {
 		return time.Time{}, false, categorizedProviderError(
 			CategoryWriteFailed,
@@ -342,7 +399,7 @@ func (s *service) revalidateBookingSlot(
 	if !slices.ContainsFunc(column.Slots(start), slot.Equal) {
 		return time.Time{}, false, slotUnavailableError()
 	}
-	schedule, err := s.records.ReadColumnDay(ctx, strconv.Itoa(booking.token.ColumnID), start.Format("2006-01-02"))
+	schedule, err := reads.day()
 	if err != nil {
 		return time.Time{}, false, categorizedProviderError(
 			CategoryWriteFailed,
@@ -366,7 +423,7 @@ func (s *service) revalidateBookingSlot(
 func (s *service) reconcileBooking(ctx context.Context, prepared preparedBooking) (BookReceipt, error) {
 	read, err := s.records.ReadPatientAppointmentsForDay(ctx, advancedmd.AppointmentDayQuery{
 		PatientID: string(prepared.patientID),
-		OfficeIDs: prepared.office.AppointmentLookupOfficeIDs,
+		Offices:   prepared.office.AppointmentLookupOffices,
 		Day:       prepared.start,
 	})
 	if err != nil {
@@ -377,7 +434,7 @@ func (s *service) reconcileBooking(ctx context.Context, prepared preparedBooking
 		)
 	}
 
-	provider := prepared.office.Columns[strconv.Itoa(prepared.token.ColumnID)].DisplayName
+	provider := prepared.office.Columns[prepared.token.ColumnID].DisplayName
 	for _, appointment := range read.Appointments {
 		if appointment.Start.Equal(prepared.start) &&
 			appointment.OfficeID == prepared.office.ID &&
@@ -426,11 +483,11 @@ func currentBookingColumn(
 	eligible := newSchedulingPolicy(booking.office, booking.asOf).EligibleColumns(
 		setup.Columns,
 		booking.token.Routing,
-		string(booking.dob),
+		booking.dob,
 	)
 	for _, column := range eligible {
-		if column.ID == strconv.Itoa(booking.token.ColumnID) &&
-			column.ProfileID == strconv.Itoa(booking.token.ProfileID) &&
+		if column.ID == booking.token.ColumnID &&
+			column.ProfileID == booking.token.ProfileID &&
 			column.FacilityID == booking.office.FacilityID {
 			return column, true
 		}
@@ -440,7 +497,7 @@ func currentBookingColumn(
 
 func buildBookReceipt(prepared preparedBooking, appointmentID int) BookReceipt {
 	command, office := prepared.command, prepared.office
-	column := office.Columns[strconv.Itoa(prepared.token.ColumnID)]
+	column := office.Columns[prepared.token.ColumnID]
 	appointmentTypeName, _ := office.AppointmentTypeName(command.AppointmentTypeID)
 	return BookReceipt{
 		Status:              "booked",

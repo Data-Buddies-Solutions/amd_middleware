@@ -11,13 +11,13 @@ func TestColumnsForRouting(t *testing.T) {
 		name    string
 		rule    RoutingRule
 		wantLen int
-		wantIDs []string
+		wantIDs []int
 	}{
 		{"not accepted returns nil", RoutingNotAccepted, 0, nil},
-		{"bach only returns 1513,1598", RoutingBachOnly, 2, []string{"1513", "1598"}},
-		{"bach+licht returns 1513,1598,1551", RoutingBachLicht, 3, []string{"1513", "1598", "1551"}},
-		{"all returns all", RoutingAll, 4, []string{"1513", "1598", "1551", "1550"}},
-		{"optical only returns routine vision", RoutingOpticalOnly, 1, []string{"1600"}},
+		{"bach only returns 1513,1598", RoutingBachOnly, 2, []int{1513, 1598}},
+		{"bach+licht returns 1513,1598,1551", RoutingBachLicht, 3, []int{1513, 1598, 1551}},
+		{"all returns all", RoutingAll, 4, []int{1513, 1598, 1551, 1550}},
+		{"optical only returns routine vision", RoutingOpticalOnly, 1, []int{1600}},
 	}
 
 	for _, tt := range tests {
@@ -34,7 +34,7 @@ func TestColumnsForRouting(t *testing.T) {
 			}
 			for _, id := range tt.wantIDs {
 				if !cols[id] {
-					t.Errorf("ColumnsForRouting(%q) missing column %q", tt.rule, id)
+					t.Errorf("ColumnsForRouting(%q) missing column %d", tt.rule, id)
 				}
 			}
 		})

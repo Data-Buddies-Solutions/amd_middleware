@@ -77,7 +77,7 @@ type PatientRecords interface {
 
 type SchedulingRecords interface {
 	GetSchedulerSetup(ctx context.Context) (domain.SchedulerSetup, error)
-	ReadColumnDay(ctx context.Context, columnID, date string) (domain.ColumnSchedule, error)
+	ReadColumnDay(ctx context.Context, columnID int, date string) (domain.ColumnSchedule, error)
 	ReadScheduleRange(ctx context.Context, query domain.ScheduleRangeQuery) (map[string]domain.ScheduleReadResult, error)
 	GetPatientDemographics(ctx context.Context, patientID string) (domain.PatientDemographics, error)
 	HasCompletedVisit(ctx context.Context, patientID string) (bool, error)
@@ -95,13 +95,13 @@ type AppointmentRead struct {
 
 type AppointmentDayQuery struct {
 	PatientID string
-	OfficeIDs []string
+	Offices   []*domain.OfficeConfig
 	Day       time.Time
 }
 
 type AppointmentStateQuery struct {
 	AppointmentID int
-	OfficeID      string
+	Office        *domain.OfficeConfig
 	Start         time.Time
 }
 
@@ -112,7 +112,7 @@ type AppointmentState struct {
 
 type Booking struct {
 	PatientID                 int
-	OfficeID                  string
+	FacilityID                int
 	ColumnID                  int
 	ProfileID                 int
 	Start                     time.Time

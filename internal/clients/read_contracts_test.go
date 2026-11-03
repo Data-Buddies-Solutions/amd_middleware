@@ -4,6 +4,9 @@ import (
 	"context"
 	"net/http"
 	"testing"
+
+	"advancedmd-token-management/internal/domain"
+	"advancedmd-token-management/internal/session"
 )
 
 func TestScheduleOccupancyRejectsLostRows(t *testing.T) {
@@ -11,7 +14,7 @@ func TestScheduleOccupancyRejectsLostRows(t *testing.T) {
 		t.Run(body, func(t *testing.T) {
 			client, token, close := newTestRestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(body)) }))
 			defer close()
-			if _, err := client.GetAppointments(context.Background(), token, "1513", "2026-09-15"); err == nil {
+			if _, err := readScheduledDay(client, token, "1513", "2026-09-15"); err == nil {
 				t.Error("lost appointment rows must not prove empty occupancy")
 			}
 			if _, err := client.GetBlockHolds(context.Background(), token, "1513", "2026-09-15"); err == nil {
@@ -62,7 +65,15 @@ func TestSchedulerSetupPreservesProviderFieldVariants(t *testing.T) {
 	}))
 	defer close()
 	setup, err := client.GetSchedulerSetup(context.Background(), token)
-	if err != nil || len(setup.Columns) != 1 || setup.Columns[0].ID != "1" {
+	if err != nil || len(setup.Columns) != 1 || setup.Columns[0].ID != 1 {
 		t.Fatalf("setup=%+v error=%v", setup, err)
 	}
+}
+
+func readScheduledDay(client *AdvancedMDRestClient, token *session.TokenData, columnID, date string) ([]domain.Appointment, error) {
+	rows, err := client.GetAppointmentsByDay(context.Background(), token, columnID, date)
+	if err != nil {
+		return nil, err
+	}
+	return ScheduledAppointments(rows)
 }

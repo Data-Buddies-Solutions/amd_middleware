@@ -15,7 +15,7 @@ func (s *service) signSlots(
 ) ([]AvailabilitySlotOption, time.Time, error) {
 	issuedAt := now.Unix()
 	expiresAt := now.Add(tokenTTL).Unix()
-	appointmentTypeIDs := newSchedulingPolicy(office, now).AllowedAppointmentTypeIDs(routing, string(dob))
+	appointmentTypeIDs := newSchedulingPolicy(office, now).AllowedAppointmentTypeIDs(routing, dob)
 	for i := range slots {
 		token, err := SignSlotToken(s.bookingTokenSecret, SlotPolicy{
 			OfficeID:           office.ID,
@@ -52,7 +52,7 @@ type slotDecision struct {
 	RequiresForce bool
 }
 
-func (p schedulingPolicy) Slot(columnID string, slot domain.Interval, schedule domain.ColumnSchedule) slotDecision {
+func (p schedulingPolicy) Slot(columnID int, slot domain.Interval, schedule domain.ColumnSchedule) slotDecision {
 	for _, hold := range schedule.BlockHolds {
 		if slot.Overlaps(hold.Interval()) {
 			return slotDecision{}

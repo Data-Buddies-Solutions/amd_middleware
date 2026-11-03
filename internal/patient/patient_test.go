@@ -930,6 +930,7 @@ func TestResolveDoesNotVerifyPatientWithoutIdentity(t *testing.T) {
 		{"authentication failure", domain.PatientDemographics{}, advancedmd.NewError(safeerrors.CategoryAuthentication), "demographics_failed", safeerrors.CategoryAuthentication},
 		{"missing name", domain.PatientDemographics{InsuranceStateKnown: true, DOB: "01/15/1980"}, nil, "incomplete_identity", safeerrors.CategoryInvalidResponse},
 		{"missing DOB", domain.PatientDemographics{InsuranceStateKnown: true, FullName: "DOE,JANE"}, nil, "incomplete_identity", safeerrors.CategoryInvalidResponse},
+		{"unparseable DOB", domain.PatientDemographics{InsuranceStateKnown: true, FullName: "DOE,JANE", DOB: "not a date", CarrierID: "car1"}, nil, "incomplete_identity", safeerrors.CategoryInvalidResponse},
 		{"unknown insurance state", domain.PatientDemographics{FullName: "DOE,JANE", DOB: "01/15/1980"}, nil, "insurance_unknown", safeerrors.CategoryInvalidResponse},
 	}
 	for _, test := range tests {

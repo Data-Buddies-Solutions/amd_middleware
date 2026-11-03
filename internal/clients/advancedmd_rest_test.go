@@ -111,10 +111,6 @@ func TestScheduleReadLogsUpstreamStatus(t *testing.T) {
 		status    int
 		read      func(*AdvancedMDRestClient, *session.TokenData) error
 	}{
-		{"appointments", http.StatusTooManyRequests, func(c *AdvancedMDRestClient, token *session.TokenData) error {
-			_, err := c.GetAppointments(context.Background(), token, "1513", "2026-03-03")
-			return err
-		}},
 		{"block holds", http.StatusServiceUnavailable, func(c *AdvancedMDRestClient, token *session.TokenData) error {
 			_, err := c.GetBlockHolds(context.Background(), token, "1513", "2026-03-03")
 			return err
@@ -293,7 +289,7 @@ func TestScheduleReadsRejectEmptyResponseBodies(t *testing.T) {
 	}))
 	defer cleanup()
 
-	if _, err := client.GetAppointments(context.Background(), token, "1513", "2026-03-01"); err == nil {
+	if _, err := readScheduledDay(client, token, "1513", "2026-03-01"); err == nil {
 		t.Fatal("empty appointments body must not read as an empty schedule")
 	}
 	if _, err := client.GetBlockHolds(context.Background(), token, "1513", "2026-03-01"); err == nil {

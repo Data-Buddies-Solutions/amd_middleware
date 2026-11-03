@@ -9,7 +9,7 @@ import (
 )
 
 func TestBookingUsesDirectoryRoundTripAndMedicalCategory(t *testing.T) {
-	records := recordsWithSetup(testColumn("1268", "620", "1480", "09:00", "09:15", 15))
+	records := recordsWithSetup(testColumn(1268, 620, 1480, "09:00", "09:15", 15))
 	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: "AETNA", CarrierID: "car40887"}
 	now := mutationTestNow()
 	token, err := scheduling.SignSlotToken("test-booking-secret", scheduling.SlotPolicy{

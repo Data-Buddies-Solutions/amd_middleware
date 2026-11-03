@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"slices"
-	"strconv"
 	"time"
 
 	"advancedmd-token-management/internal/advancedmd"
@@ -28,10 +27,7 @@ type ListCommand struct {
 
 func (s *service) List(ctx context.Context, command ListCommand) (AvailabilityResponse, error) {
 	if command.Routing == "" {
-		command.Routing = string(domain.RoutingAll)
-		if command.VisitType == domain.AppointmentVisitRoutineVision {
-			command.Routing = string(domain.RoutingOpticalOnly)
-		}
+		command.Routing = string(domain.VisitRouting(command.VisitType))
 	}
 	return s.list(ctx, command)
 }
@@ -74,7 +70,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 		return empty, schedulingError(err.Error())
 	}
 	policy := newSchedulingPolicy(office, now)
-	if command.VisitType != "" && command.VisitType != domain.AppointmentVisitMedical && command.VisitType != domain.AppointmentVisitRoutineVision {
+	if command.VisitType != "" && !domain.ValidVisitType(command.VisitType) {
 		return empty, schedulingError("visitType must be medical or routine_vision")
 	}
 	var plan *insurance.InsuranceDecision
@@ -82,7 +78,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 		if command.VisitType == "" {
 			return empty, schedulingError("visitType is required with insurancePlanId")
 		}
-		decision := insurance.DecidePlan(command.InsurancePlanID, command.VisitType, office, string(dob), now)
+		decision := insurance.DecidePlan(command.InsurancePlanID, command.VisitType, office, dob, now)
 		if !decision.CanSchedule {
 			return insuranceNotClearedResponse(originalRequestedDate, decision), nil
 		}
@@ -95,15 +91,14 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 			Slots: []AvailabilitySlotOption{}, Message: "This office or routing does not support the requested visit type.",
 		}
 	}
-	if (command.VisitType == domain.AppointmentVisitMedical && !office.SupportsMedical()) ||
-		(command.VisitType == domain.AppointmentVisitRoutineVision && !office.SupportsRouting(domain.RoutingOpticalOnly)) {
+	if command.VisitType != "" && !office.SupportsVisit(command.VisitType) {
 		return unsupportedVisit(), nil
 	}
-	if age, ok := domain.AgeYearsOn(string(dob), nowEastern); ok && command.VisitType == domain.AppointmentVisitRoutineVision && routineVisionTooYoung(office, age) {
+	if age, ok := dob.AgeOn(nowEastern); ok && command.VisitType == domain.AppointmentVisitRoutineVision && routineVisionTooYoung(office, age) {
 		return empty, schedulingError(office.RoutineVisionMinimumAge.Message)
 	}
 
-	routing := office.SchedulingRouting(requestedRouting, string(dob), now)
+	routing := office.SchedulingRouting(requestedRouting, dob, now)
 	if (command.VisitType == domain.AppointmentVisitMedical && routing == domain.RoutingOpticalOnly) ||
 		(command.VisitType == domain.AppointmentVisitRoutineVision && routing != domain.RoutingOpticalOnly) {
 		return unsupportedVisit(), nil
@@ -118,7 +113,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 		)
 	}
 
-	allowedColumns := policy.EligibleColumns(setup.Columns, routing, string(dob))
+	allowedColumns := policy.EligibleColumns(setup.Columns, routing, dob)
 	if plan != nil {
 		allowedColumns = columnsForProviders(office, allowedColumns, plan.AllowedProviders)
 	}
@@ -152,7 +147,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 
 	for !searchDate.After(maxDate) {
 		date := searchDate.Format("2006-01-02")
-		workingColumnSet := make(map[string]bool, len(allowedColumns))
+		workingColumnSet := make(map[int]bool, len(allowedColumns))
 		for _, column := range allowedColumns {
 			if column.WorksOnDay(searchDate.Weekday()) {
 				workingColumnSet[column.ID] = true
@@ -177,8 +172,6 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 			}
 
 			displayName := office.Columns[column.ID].DisplayName
-			columnID, _ := strconv.Atoi(column.ID)
-			profileID, _ := strconv.Atoi(column.ProfileID)
 			for _, slot := range column.Slots(searchDate) {
 				decision := policy.Slot(column.ID, slot, columnSchedule)
 				if !decision.Bookable {
@@ -188,8 +181,8 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 					Provider:          displayName,
 					Time:              formatSlotTime(slot.Start),
 					DateTime:          domain.FormatSlotDateTime(slot.Start),
-					ColumnID:          columnID,
-					ProfileID:         profileID,
+					ColumnID:          column.ID,
+					ProfileID:         column.ProfileID,
 					Duration:          column.Interval,
 					SameStartBooked:   decision.Booked,
 					SameStartCapacity: decision.Capacity,

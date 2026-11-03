@@ -57,7 +57,8 @@ type appointmentTokenPolicy struct {
 	IssuedAt          int64            `json:"iat"`
 	ExpiresAt         int64            `json:"exp"`
 
-	start time.Time
+	start  time.Time
+	office *domain.OfficeConfig
 }
 
 func SignSlotToken(secret string, policy SlotPolicy) (string, error) {
@@ -155,13 +156,15 @@ func (t *AppointmentTokens) verify(token string, now time.Time, purpose, domainS
 	if patientID, err := domain.ParsePatientID(string(policy.PatientID)); err != nil || patientID == "" || patientID != policy.PatientID {
 		return appointmentTokenPolicy{}, errTokenInvalid
 	}
-	if _, ok := domain.LookupOfficeByID(policy.OfficeID); !ok {
+	office, ok := domain.LookupOfficeByID(policy.OfficeID)
+	if !ok {
 		return appointmentTokenPolicy{}, errTokenInvalid
 	}
 	if err := checkTokenLifetime(policy.IssuedAt, policy.ExpiresAt, now); err != nil {
 		return appointmentTokenPolicy{}, err
 	}
 	policy.start = start
+	policy.office = office
 	return policy, nil
 }
 

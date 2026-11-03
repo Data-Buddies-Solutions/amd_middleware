@@ -21,15 +21,14 @@ func loadEasternLocation() *time.Location {
 }
 
 type SchedulerColumn struct {
-	ID              string
-	Name            string
-	ProfileID       string
-	FacilityID      string
-	StartTime       string
-	EndTime         string
-	Interval        int
-	MaxApptsPerSlot int
-	Workweek        int
+	ID         int
+	Name       string
+	ProfileID  int
+	FacilityID int
+	StartTime  string
+	EndTime    string
+	Interval   int
+	Workweek   int
 }
 
 type SchedulerSetup struct {
@@ -37,7 +36,7 @@ type SchedulerSetup struct {
 }
 
 type ScheduleRangeQuery struct {
-	ColumnIDs []string
+	ColumnIDs []int
 	Start     time.Time
 	End       time.Time
 }
@@ -54,7 +53,7 @@ func (s ColumnSchedule) Complete() bool {
 }
 
 type ScheduleReadResult struct {
-	Columns map[string]ColumnSchedule
+	Columns map[int]ColumnSchedule
 }
 
 type Appointment struct {

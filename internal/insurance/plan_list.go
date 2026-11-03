@@ -33,12 +33,12 @@ type PlanList struct {
 }
 
 func ListPlans(coverage string, office *domain.OfficeConfig) (PlanList, bool) {
-	if coverage != "medical" && coverage != "routine_vision" {
+	if !domain.ValidVisitType(coverage) {
 		return PlanList{}, false
 	}
 	r := active.Load()
 	summaries := []PlanSummary{}
-	if !officeSupports(office, coverage) {
+	if !office.SupportsVisit(coverage) {
 		return PlanList{OfficeID: office.ID, Coverage: coverage, CatalogRevisionID: r.id, Plans: summaries}, true
 	}
 	list := r.listForOffice(office.ID)

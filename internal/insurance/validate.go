@@ -195,7 +195,7 @@ func (c *catalogCheck) plan(region string, p plan, carriers map[string]CatalogCa
 	if p.Family == "" || p.Family != strings.TrimSpace(p.Family) {
 		fail(ruleInvalidFamily, "family %q is empty or has surrounding spaces", p.Family)
 	}
-	if p.Coverage != "medical" && p.Coverage != "routine_vision" {
+	if !domain.ValidVisitType(p.Coverage) {
 		fail(ruleUnknownCoverage, "unknown coverage %q", p.Coverage)
 	}
 	for coverage, id := range selfPayPlanIDs {

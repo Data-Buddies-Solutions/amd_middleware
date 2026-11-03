@@ -42,15 +42,15 @@ type environmentBinding struct {
 
 type officeBinding struct {
 	Phones             []string
-	FacilityID         string
-	DefaultProfileID   string
+	FacilityID         int
+	DefaultProfileID   int
 	Columns            map[string]columnBinding
 	UnavailableColumns []string
 }
 
 type columnBinding struct {
-	ColumnID  string
-	ProfileID string
+	ColumnID  int
+	ProfileID int
 }
 
 var (
@@ -204,54 +204,54 @@ func newOfficeTable() officeTable {
 				Offices: map[string]officeBinding{
 					"spring_hill": {
 						Phones:           []string{"+17275919997"},
-						FacilityID:       "1568",
-						DefaultProfileID: "620",
+						FacilityID:       1568,
+						DefaultProfileID: 620,
 						Columns: map[string]columnBinding{
-							"bach":   {ColumnID: "1513", ProfileID: "620"},
-							"bach_2": {ColumnID: "1598", ProfileID: "620"},
-							"licht":  {ColumnID: "1551", ProfileID: "2064"},
-							"noel":   {ColumnID: "1550", ProfileID: "2076"},
-							"otero":  {ColumnID: "1600", ProfileID: "1983"},
+							"bach":   {ColumnID: 1513, ProfileID: 620},
+							"bach_2": {ColumnID: 1598, ProfileID: 620},
+							"licht":  {ColumnID: 1551, ProfileID: 2064},
+							"noel":   {ColumnID: 1550, ProfileID: 2076},
+							"otero":  {ColumnID: 1600, ProfileID: 1983},
 						},
 					},
 					"crystal_river": {
 						Phones:           []string{"+13523202007"},
-						FacilityID:       "1576",
-						DefaultProfileID: "2064",
+						FacilityID:       1576,
+						DefaultProfileID: 2064,
 						Columns: map[string]columnBinding{
-							"licht": {ColumnID: "1593", ProfileID: "2064"},
+							"licht": {ColumnID: 1593, ProfileID: 2064},
 						},
 					},
 					"hollywood": {
 						Phones:           []string{"+19542872010"},
-						FacilityID:       "1480",
-						DefaultProfileID: "620",
+						FacilityID:       1480,
+						DefaultProfileID: 620,
 						Columns: map[string]columnBinding{
-							"bach":   {ColumnID: "1268", ProfileID: "620"},
-							"bach_2": {ColumnID: "1478", ProfileID: "620"},
-							"farnan": {ColumnID: "1555", ProfileID: "2075"},
-							"vidal":  {ColumnID: "1510", ProfileID: "2057"},
-							"calero": {ColumnID: "1305", ProfileID: "1993"},
+							"bach":   {ColumnID: 1268, ProfileID: 620},
+							"bach_2": {ColumnID: 1478, ProfileID: 620},
+							"farnan": {ColumnID: 1555, ProfileID: 2075},
+							"vidal":  {ColumnID: 1510, ProfileID: 2057},
+							"calero": {ColumnID: 1305, ProfileID: 1993},
 						},
 					},
 					"sweetwater": {
 						Phones:           []string{"+17864657475", "+17864654845", "+17866134310", "+17864657479", "+17864654836", "+17864654882"},
-						FacilityID:       "670",
-						DefaultProfileID: "620",
+						FacilityID:       670,
+						DefaultProfileID: 620,
 						Columns: map[string]columnBinding{
-							"bach":   {ColumnID: "682", ProfileID: "620"},
-							"bach_2": {ColumnID: "1307", ProfileID: "620"},
-							"casas":  {ColumnID: "1296", ProfileID: "1996"},
-							"farnan": {ColumnID: "1554", ProfileID: "2075"},
-							"calero": {ColumnID: "1210", ProfileID: "1993"},
+							"bach":   {ColumnID: 682, ProfileID: 620},
+							"bach_2": {ColumnID: 1307, ProfileID: 620},
+							"casas":  {ColumnID: 1296, ProfileID: 1996},
+							"farnan": {ColumnID: 1554, ProfileID: 2075},
+							"calero": {ColumnID: 1210, ProfileID: 1993},
 						},
 					},
 					"north_miami_beach_optical": {
 						Phones:           []string{"+13055095333"},
-						FacilityID:       "1582",
-						DefaultProfileID: "621",
+						FacilityID:       1582,
+						DefaultProfileID: 621,
 						Columns: map[string]columnBinding{
-							"miriam_bach": {ColumnID: "1601", ProfileID: "621"},
+							"miriam_bach": {ColumnID: 1601, ProfileID: 621},
 						},
 					},
 				},
@@ -265,12 +265,12 @@ func newOfficeTable() officeTable {
 				Offices: map[string]officeBinding{
 					"spring_hill": {
 						Phones:           []string{"+14843989071"},
-						FacilityID:       "1032",
-						DefaultProfileID: "1135",
+						FacilityID:       1032,
+						DefaultProfileID: 1135,
 						Columns: map[string]columnBinding{
-							"bach":  {ColumnID: "1716", ProfileID: "1135"},
-							"licht": {ColumnID: "1723", ProfileID: "1141"},
-							"noel":  {ColumnID: "1726", ProfileID: "1137"},
+							"bach":  {ColumnID: 1716, ProfileID: 1135},
+							"licht": {ColumnID: 1723, ProfileID: 1141},
+							"noel":  {ColumnID: 1726, ProfileID: 1137},
 						},
 						UnavailableColumns: []string{"bach_2", "otero"},
 					},

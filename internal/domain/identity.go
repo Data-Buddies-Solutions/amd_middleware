@@ -93,9 +93,11 @@ func (d DOB) Matches(recorded string) bool {
 	return ok && d != "" && DOB(born.Format(dobLayout)) == d
 }
 
-func AgeYearsOn(dob string, asOf time.Time) (int, bool) {
-	born, ok := birthDate(dob)
-	if !ok {
+const adultAgeYears = 18
+
+func (d DOB) AgeOn(asOf time.Time) (int, bool) {
+	born, err := time.Parse(dobLayout, string(d))
+	if err != nil {
 		return 0, false
 	}
 	age := yearsBetween(born, asOf)
@@ -103,6 +105,18 @@ func AgeYearsOn(dob string, asOf time.Time) (int, bool) {
 		return 0, false
 	}
 	return age, true
+}
+
+func (d DOB) AgeBandOn(asOf time.Time) string {
+	age, ok := d.AgeOn(asOf)
+	switch {
+	case !ok:
+		return ""
+	case age < adultAgeYears:
+		return AppointmentAgePediatric
+	default:
+		return AppointmentAgeAdult
+	}
 }
 
 func birthDate(raw string) (time.Time, bool) {

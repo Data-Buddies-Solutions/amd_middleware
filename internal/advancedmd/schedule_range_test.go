@@ -95,7 +95,7 @@ func TestReadScheduleRangeReadsEachMonthOnceAndFilesRowsByDayAndColumn(t *testin
 	adapter := newMonthScheduleAdapter(t, server)
 
 	schedule, err := adapter.ReadScheduleRange(context.Background(), domain.ScheduleRangeQuery{
-		ColumnIDs: []string{"1513", "1550"},
+		ColumnIDs: []int{1513, 1550},
 		Start:     time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC),
 		End:       time.Date(2026, 11, 3, 0, 0, 0, 0, time.UTC),
 	})
@@ -117,24 +117,24 @@ func TestReadScheduleRangeReadsEachMonthOnceAndFilesRowsByDayAndColumn(t *testin
 		t.Fatalf("days = %d, want 7", len(schedule))
 	}
 
-	want := map[string]map[string][2][]int{
-		"2026-10-28": {"1513": {{1}, nil}},
-		"2026-10-29": {"1513": {nil, {11}}},
-		"2026-10-30": {"1550": {{2}, nil}},
-		"2026-10-31": {"1550": {nil, {10}}},
-		"2026-11-01": {"1550": {nil, {10}}},
-		"2026-11-02": {"1550": {{9}, {10}}},
-		"2026-11-03": {"1513": {{4}, {11}}},
+	want := map[string]map[int][2][]int{
+		"2026-10-28": {1513: {{1}, nil}},
+		"2026-10-29": {1513: {nil, {11}}},
+		"2026-10-30": {1550: {{2}, nil}},
+		"2026-10-31": {1550: {nil, {10}}},
+		"2026-11-01": {1550: {nil, {10}}},
+		"2026-11-02": {1550: {{9}, {10}}},
+		"2026-11-03": {1513: {{4}, {11}}},
 	}
 	for date, read := range schedule {
-		for _, columnID := range []string{"1513", "1550"} {
+		for _, columnID := range []int{1513, 1550} {
 			column, ok := read.Columns[columnID]
 			if !ok || !column.Complete() {
-				t.Fatalf("%s column %s present=%v complete=%v", date, columnID, ok, column.Complete())
+				t.Fatalf("%s column %d present=%v complete=%v", date, columnID, ok, column.Complete())
 			}
 			expected := want[date][columnID]
 			if !slices.Equal(appointmentIDs(column), expected[0]) || !slices.Equal(holdIDs(column), expected[1]) {
-				t.Fatalf("%s column %s appointments=%v holds=%v, want %v %v", date, columnID, appointmentIDs(column), holdIDs(column), expected[0], expected[1])
+				t.Fatalf("%s column %d appointments=%v holds=%v, want %v %v", date, columnID, appointmentIDs(column), holdIDs(column), expected[0], expected[1])
 			}
 		}
 	}
@@ -150,19 +150,19 @@ func TestReadScheduleRangeMarksDayIncompleteWhenRowHasNoQueriedColumn(t *testing
 	adapter := newMonthScheduleAdapter(t, server)
 
 	schedule, err := adapter.ReadScheduleRange(context.Background(), domain.ScheduleRangeQuery{
-		ColumnIDs: []string{"1513", "1550"},
+		ColumnIDs: []int{1513, 1550},
 		Start:     time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC),
 		End:       time.Date(2026, 10, 16, 0, 0, 0, 0, time.UTC),
 	})
 	if err != nil {
 		t.Fatalf("ReadScheduleRange error = %v", err)
 	}
-	for _, columnID := range []string{"1513", "1550"} {
+	for _, columnID := range []int{1513, 1550} {
 		if schedule["2026-10-15"].Columns[columnID].Complete() {
-			t.Fatalf("2026-10-15 column %s complete despite an unattributed hold", columnID)
+			t.Fatalf("2026-10-15 column %d complete despite an unattributed hold", columnID)
 		}
 		if !schedule["2026-10-16"].Columns[columnID].Complete() {
-			t.Fatalf("2026-10-16 column %s incomplete", columnID)
+			t.Fatalf("2026-10-16 column %d incomplete", columnID)
 		}
 	}
 }
@@ -172,7 +172,7 @@ func TestReadScheduleRangeFailsWhenAnyMonthReadFails(t *testing.T) {
 	adapter := newMonthScheduleAdapter(t, server)
 
 	_, err := adapter.ReadScheduleRange(context.Background(), domain.ScheduleRangeQuery{
-		ColumnIDs: []string{"1513"},
+		ColumnIDs: []int{1513},
 		Start:     time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC),
 		End:       time.Date(2026, 11, 3, 0, 0, 0, 0, time.UTC),
 	})
@@ -191,16 +191,16 @@ func TestReadScheduleRangeKeepsHoldSharedByProvidersForEachProvider(t *testing.T
 	adapter := newMonthScheduleAdapter(t, server)
 
 	schedule, err := adapter.ReadScheduleRange(context.Background(), domain.ScheduleRangeQuery{
-		ColumnIDs: []string{"1513", "1550"},
+		ColumnIDs: []int{1513, 1550},
 		Start:     time.Date(2026, 10, 5, 0, 0, 0, 0, time.UTC),
 		End:       time.Date(2026, 10, 5, 0, 0, 0, 0, time.UTC),
 	})
 	if err != nil {
 		t.Fatalf("ReadScheduleRange error = %v", err)
 	}
-	for _, columnID := range []string{"1513", "1550"} {
+	for _, columnID := range []int{1513, 1550} {
 		if got := holdIDs(schedule["2026-10-05"].Columns[columnID]); !slices.Equal(got, []int{30}) {
-			t.Fatalf("column %s holds = %v, want the shared hold", columnID, got)
+			t.Fatalf("column %d holds = %v, want the shared hold", columnID, got)
 		}
 	}
 }
@@ -218,7 +218,7 @@ func TestReadScheduleRangeFilesHoldsOnTheDaysTheyCover(t *testing.T) {
 	adapter := newMonthScheduleAdapter(t, server)
 
 	schedule, err := adapter.ReadScheduleRange(context.Background(), domain.ScheduleRangeQuery{
-		ColumnIDs: []string{"1513"},
+		ColumnIDs: []int{1513},
 		Start:     time.Date(2026, 10, 5, 0, 0, 0, 0, time.UTC),
 		End:       time.Date(2026, 10, 7, 0, 0, 0, 0, time.UTC),
 	})
@@ -231,7 +231,7 @@ func TestReadScheduleRangeFilesHoldsOnTheDaysTheyCover(t *testing.T) {
 		"2026-10-07": {43, 44},
 	}
 	for date, ids := range want {
-		got := holdIDs(schedule[date].Columns["1513"])
+		got := holdIDs(schedule[date].Columns[1513])
 		slices.Sort(got)
 		if !slices.Equal(got, ids) {
 			t.Fatalf("%s holds = %v, want %v", date, got, ids)
@@ -259,19 +259,19 @@ func TestScheduleReadsCountEveryRowWithoutAnID(t *testing.T) {
 		"blockholds 2026-10-01":   holds,
 	}}
 	adapter := newMonthScheduleAdapter(t, server)
-	day, err := adapter.ReadColumnDay(context.Background(), "1513", "2026-10-15")
+	day, err := adapter.ReadColumnDay(context.Background(), 1513, "2026-10-15")
 	if err != nil {
 		t.Fatalf("ReadColumnDay error = %v", err)
 	}
 	month, err := adapter.ReadScheduleRange(context.Background(), domain.ScheduleRangeQuery{
-		ColumnIDs: []string{"1513"},
+		ColumnIDs: []int{1513},
 		Start:     time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC),
 		End:       time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC),
 	})
 	if err != nil {
 		t.Fatalf("ReadScheduleRange error = %v", err)
 	}
-	for view, column := range map[string]domain.ColumnSchedule{"day": day, "month": month["2026-10-15"].Columns["1513"]} {
+	for view, column := range map[string]domain.ColumnSchedule{"day": day, "month": month["2026-10-15"].Columns[1513]} {
 		gotAppointments, gotHolds := appointmentIDs(column), holdIDs(column)
 		slices.Sort(gotAppointments)
 		slices.Sort(gotHolds)
@@ -290,14 +290,14 @@ func TestReadScheduleRangeReadsAnIDLessAppointmentOnceWhenTwoMonthsReturnIt(t *t
 	adapter := newMonthScheduleAdapter(t, server)
 
 	schedule, err := adapter.ReadScheduleRange(context.Background(), domain.ScheduleRangeQuery{
-		ColumnIDs: []string{"1513"},
+		ColumnIDs: []int{1513},
 		Start:     time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC),
 		End:       time.Date(2026, 11, 3, 0, 0, 0, 0, time.UTC),
 	})
 	if err != nil {
 		t.Fatalf("ReadScheduleRange error = %v", err)
 	}
-	if got := appointmentIDs(schedule["2026-11-02"].Columns["1513"]); !slices.Equal(got, []int{0, 0}) {
+	if got := appointmentIDs(schedule["2026-11-02"].Columns[1513]); !slices.Equal(got, []int{0, 0}) {
 		t.Fatalf("2026-11-02 appointments = %v, want the two id-less rows November returns and not October's copy of one", got)
 	}
 }

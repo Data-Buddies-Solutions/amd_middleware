@@ -13,8 +13,8 @@ import (
 
 var testNow = time.Date(2026, time.June, 1, 16, 0, 0, 0, time.UTC)
 
-func dobYearsAgo(years int) string {
-	return testNow.AddDate(-years, 0, -1).Format("01/02/2006")
+func dobYearsAgo(years int) domain.DOB {
+	return domain.DOB(testNow.AddDate(-years, 0, -1).Format("01/02/2006"))
 }
 
 func springHillPlans() []plan {
@@ -37,7 +37,7 @@ func TestDecidePlanFiltersOfficeDoctorsByThePlan(t *testing.T) {
 		planID   string
 		coverage string
 		office   string
-		dob      string
+		dob      domain.DOB
 		outcome  string
 		allowed  []string
 	}{
@@ -65,7 +65,10 @@ func TestDecidePlanFiltersOfficeDoctorsByThePlan(t *testing.T) {
 			}
 		})
 	}
-	for _, tc := range []struct{ planID, coverage, office, dob string }{
+	for _, tc := range []struct {
+		planID, coverage, office string
+		dob                      domain.DOB
+	}{
 		{"licht-only", "medical", "spring_hill", dobYearsAgo(10)},
 		{"vsp", "routine_vision", "hollywood", dobYearsAgo(3)},
 	} {

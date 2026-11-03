@@ -10,16 +10,16 @@ import (
 )
 
 type OfficeConfig struct {
-	ID                         string
-	DisplayName                string
-	FacilityID                 string
-	DefaultProfileID           string
-	Columns                    map[string]OfficeColumn
-	RoutingTiers               map[RoutingRule][]string
-	PediatricRouting           RoutingRule
-	AppointmentLookupOfficeIDs []string
-	AppointmentTypes           OfficeAppointmentTypes
-	RoutineVisionMinimumAge    MinimumAge
+	ID                       string
+	DisplayName              string
+	FacilityID               int
+	DefaultProfileID         int
+	Columns                  map[int]OfficeColumn
+	RoutingTiers             map[RoutingRule][]int
+	PediatricRouting         RoutingRule
+	AppointmentLookupOffices []*OfficeConfig
+	AppointmentTypes         OfficeAppointmentTypes
+	RoutineVisionMinimumAge  MinimumAge
 }
 
 type MinimumAge struct {
@@ -28,7 +28,7 @@ type MinimumAge struct {
 }
 
 type OfficeColumn struct {
-	ProfileID         string
+	ProfileID         int
 	DisplayName       string
 	ShortName         string
 	MatchKey          string
@@ -79,34 +79,34 @@ func sameStartWindow(weekday time.Weekday, startHour, startMinute, endHour, endM
 	}
 }
 
-func (o *OfficeConfig) AllowedColumnIDs() []string {
-	ids := make([]string, 0, len(o.Columns))
+func (o *OfficeConfig) AllowedColumnIDs() []int {
+	ids := make([]int, 0, len(o.Columns))
 	for id := range o.Columns {
 		ids = append(ids, id)
 	}
 	return ids
 }
 
-func (o *OfficeConfig) ColumnsForRouting(rule RoutingRule) map[string]bool {
+func (o *OfficeConfig) ColumnsForRouting(rule RoutingRule) map[int]bool {
 	colIDs, ok := o.columnIDsForRouting(rule)
 	if !ok {
 		return nil
 	}
 
-	result := make(map[string]bool, len(colIDs))
+	result := make(map[int]bool, len(colIDs))
 	for _, id := range colIDs {
 		result[id] = true
 	}
 	return result
 }
 
-func (o *OfficeConfig) ColumnsForRoutingAndDOB(rule RoutingRule, dob string, asOf time.Time) map[string]bool {
+func (o *OfficeConfig) ColumnsForRoutingAndDOB(rule RoutingRule, dob DOB, asOf time.Time) map[int]bool {
 	cols := o.ColumnsForRouting(rule)
 	if cols == nil {
 		return cols
 	}
 
-	filtered := make(map[string]bool, len(cols))
+	filtered := make(map[int]bool, len(cols))
 	for id := range cols {
 		if dob == "" || o.ColumnAllowsDOB(id, dob, asOf) {
 			filtered[id] = true
@@ -123,7 +123,7 @@ func (o *OfficeConfig) ProvidersForRouting(rule RoutingRule) []string {
 	return o.providerNamesForColumnIDs(colIDs, nil)
 }
 
-func (o *OfficeConfig) ProvidersForRoutingAndDOB(rule RoutingRule, dob string, asOf time.Time) []string {
+func (o *OfficeConfig) ProvidersForRoutingAndDOB(rule RoutingRule, dob DOB, asOf time.Time) []string {
 	colIDs, ok := o.columnIDsForRouting(rule)
 	if !ok {
 		return nil
@@ -132,7 +132,7 @@ func (o *OfficeConfig) ProvidersForRoutingAndDOB(rule RoutingRule, dob string, a
 	return o.providerNamesForColumnIDs(colIDs, colMap)
 }
 
-func (o *OfficeConfig) ColumnAllowsDOB(columnID, dob string, asOf time.Time) bool {
+func (o *OfficeConfig) ColumnAllowsDOB(columnID int, dob DOB, asOf time.Time) bool {
 	col, ok := o.Columns[columnID]
 	if !ok {
 		return false
@@ -140,14 +140,14 @@ func (o *OfficeConfig) ColumnAllowsDOB(columnID, dob string, asOf time.Time) boo
 	if col.MinAgeYears == 0 {
 		return true
 	}
-	age, ok := AgeYearsOn(dob, asOf)
+	age, ok := dob.AgeOn(asOf)
 	if !ok {
 		return false
 	}
 	return age >= col.MinAgeYears
 }
 
-func (o *OfficeConfig) columnIDsForRouting(rule RoutingRule) ([]string, bool) {
+func (o *OfficeConfig) columnIDsForRouting(rule RoutingRule) ([]int, bool) {
 	if rule == RoutingNotAccepted {
 		return nil, false
 	}
@@ -157,12 +157,12 @@ func (o *OfficeConfig) columnIDsForRouting(rule RoutingRule) ([]string, bool) {
 		return colIDs, true
 	}
 	if rule == RoutingOpticalOnly {
-		return []string{}, true
+		return []int{}, true
 	}
 	return o.RoutingTiers[RoutingAll], true
 }
 
-func (o *OfficeConfig) providerNamesForColumnIDs(colIDs []string, allowed map[string]bool) []string {
+func (o *OfficeConfig) providerNamesForColumnIDs(colIDs []int, allowed map[int]bool) []string {
 	names := make([]string, 0, len(colIDs))
 	seen := make(map[string]bool)
 	for _, id := range colIDs {
@@ -338,8 +338,8 @@ func buildRegistry(definitions []officeDefinition, binding environmentBinding) *
 			continue
 		}
 		for _, id := range definition.AppointmentLookupOfficeIDs {
-			if _, available := byID[id]; available {
-				office.AppointmentLookupOfficeIDs = append(office.AppointmentLookupOfficeIDs, id)
+			if lookupOffice, available := byID[id]; available {
+				office.AppointmentLookupOffices = append(office.AppointmentLookupOffices, lookupOffice)
 			}
 		}
 	}
@@ -357,8 +357,8 @@ func bindOffice(definition officeDefinition, binding officeBinding) *OfficeConfi
 		DisplayName:             definition.DisplayName,
 		FacilityID:              binding.FacilityID,
 		DefaultProfileID:        binding.DefaultProfileID,
-		Columns:                 make(map[string]OfficeColumn, len(binding.Columns)),
-		RoutingTiers:            make(map[RoutingRule][]string, len(definition.RoutingTiers)),
+		Columns:                 make(map[int]OfficeColumn, len(binding.Columns)),
+		RoutingTiers:            make(map[RoutingRule][]int, len(definition.RoutingTiers)),
 		PediatricRouting:        definition.PediatricRouting,
 		AppointmentTypes:        definition.AppointmentTypes,
 		RoutineVisionMinimumAge: definition.RoutineVisionMinimumAge,
@@ -379,7 +379,7 @@ func bindOffice(definition officeDefinition, binding officeBinding) *OfficeConfi
 		}
 	}
 	for rule, keys := range definition.RoutingTiers {
-		columnIDs := make([]string, 0, len(keys))
+		columnIDs := make([]int, 0, len(keys))
 		for _, key := range keys {
 			if columnBinding, ok := binding.Columns[key]; ok {
 				columnIDs = append(columnIDs, columnBinding.ColumnID)
@@ -488,8 +488,8 @@ func normalizeOfficeLookup(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
-func (o *OfficeConfig) SchedulingRouting(routing RoutingRule, dob string, asOf time.Time) RoutingRule {
-	if routing == RoutingNotAccepted || routing == RoutingOpticalOnly || !isMinor(dob, asOf) {
+func (o *OfficeConfig) SchedulingRouting(routing RoutingRule, dob DOB, asOf time.Time) RoutingRule {
+	if routing == RoutingNotAccepted || routing == RoutingOpticalOnly || dob.AgeBandOn(asOf) != AppointmentAgePediatric {
 		return routing
 	}
 	return o.PediatricRouting

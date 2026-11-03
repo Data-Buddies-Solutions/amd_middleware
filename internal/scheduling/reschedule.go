@@ -57,8 +57,7 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 		partial.Failure = err
 		return partial, nil
 	}
-	office, _ := domain.LookupOfficeByID(policy.OfficeID)
-	cancellation, err := s.cancelVerifiedAppointment(ctx, advancedmd.Cancellation{AppointmentID: policy.AppointmentID}, domain.PatientAppointment{ID: policy.AppointmentID, OfficeID: policy.OfficeID, Start: policy.start}, office, &cancellationTelemetry{})
+	cancellation, err := s.cancelVerifiedAppointment(ctx, advancedmd.Cancellation{AppointmentID: policy.AppointmentID}, domain.PatientAppointment{ID: policy.AppointmentID, OfficeID: policy.OfficeID, Start: policy.start}, policy.office, &cancellationTelemetry{})
 	if err != nil {
 		partial.Outcome = string(CategoryOf(err))
 		partial.Failure = err
@@ -69,7 +68,7 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 
 func (s *service) verifyRescheduleOriginal(ctx context.Context, policy appointmentTokenPolicy) error {
 	read, err := s.records.ReadPatientAppointmentsForDay(ctx, advancedmd.AppointmentDayQuery{
-		PatientID: string(policy.PatientID), OfficeIDs: []string{policy.OfficeID}, Day: policy.start,
+		PatientID: string(policy.PatientID), Offices: []*domain.OfficeConfig{policy.office}, Day: policy.start,
 	})
 	if err != nil || !read.Complete {
 		return ownershipCheckError()

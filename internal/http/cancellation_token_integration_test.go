@@ -484,7 +484,7 @@ func TestTokenCancellationPreservesAmbiguousWriteReconciliation(t *testing.T) {
 		t.Fatalf("provider operations = reads %d, cancellations %#v", records.appointmentReads, records.Cancellations)
 	}
 	if len(records.AppointmentStateQueries) != 1 ||
-		records.AppointmentStateQueries[0].OfficeID != "crystal_river" ||
+		records.AppointmentStateQueries[0].Office.ID != "crystal_river" ||
 		records.AppointmentStateQueries[0].Start != start {
 		t.Fatalf("reconciliation query = %#v", records.AppointmentStateQueries)
 	}

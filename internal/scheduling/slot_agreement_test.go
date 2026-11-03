@@ -34,16 +34,16 @@ const (
 type agreementColumn struct {
 	office     string
 	routing    domain.RoutingRule
-	id         string
-	profileID  string
-	facilityID string
+	id         int
+	profileID  int
+	facilityID int
 	visit      string
 }
 
 var agreementColumns = []agreementColumn{
-	{"Spring Hill", domain.RoutingBachOnly, "1513", "620", "1568", domain.AppointmentVisitMedical},
-	{"Crystal River", domain.RoutingAll, "1593", "2064", "1576", domain.AppointmentVisitMedical},
-	{"Sweetwater", domain.RoutingOpticalOnly, "1296", "1996", "670", domain.AppointmentVisitRoutineVision},
+	{"Spring Hill", domain.RoutingBachOnly, 1513, 620, 1568, domain.AppointmentVisitMedical},
+	{"Crystal River", domain.RoutingAll, 1593, 2064, 1576, domain.AppointmentVisitMedical},
+	{"Sweetwater", domain.RoutingOpticalOnly, 1296, 1996, 670, domain.AppointmentVisitRoutineVision},
 }
 
 type amdRows struct {
@@ -51,20 +51,19 @@ type amdRows struct {
 	holds        []advancedmdtest.HoldRow
 }
 
-func (rows *amdRows) addAppointment(id int, columnID string, start time.Time, duration int) {
-	column, _ := strconv.Atoi(columnID)
-	rows.appointments = append(rows.appointments, clients.AMDAppointmentResponse{ID: id, StartDateTime: start.Format(amdRowLayout), Duration: duration, ColumnID: column})
+func (rows *amdRows) addAppointment(id int, columnID int, start time.Time, duration int) {
+	rows.appointments = append(rows.appointments, clients.AMDAppointmentResponse{ID: id, StartDateTime: start.Format(amdRowLayout), Duration: duration, ColumnID: columnID})
 }
 
-func (rows *amdRows) addHold(id int, columnID string, start, end time.Time) {
+func (rows *amdRows) addHold(id int, columnID int, start, end time.Time) {
 	hold := advancedmdtest.HoldRow{ID: id, StartDateTime: start.Format(amdRowLayout), EndDateTime: end.Format(amdRowLayout)}
-	hold.Column.ID, _ = strconv.Atoi(columnID)
+	hold.Column.ID = columnID
 	rows.holds = append(rows.holds, hold)
 }
 
-func (rows *amdRows) addRecurringHold(id int, columnID string, start time.Time, duration int) {
+func (rows *amdRows) addRecurringHold(id int, columnID int, start time.Time, duration int) {
 	hold := advancedmdtest.HoldRow{ID: id, StartDateTime: start.Format(amdRowLayout), EndDateTime: start.AddDate(0, 6, 0).Format(amdRowLayout), Duration: duration}
-	hold.Column.ID, _ = strconv.Atoi(columnID)
+	hold.Column.ID = columnID
 	hold.Recurrence.RecurrenceType = 2
 	rows.holds = append(rows.holds, hold)
 }
@@ -80,7 +79,7 @@ type agreementRecords struct {
 	days     map[advancedmdtest.ColumnDay]domain.ColumnSchedule
 }
 
-func (r agreementRecords) ReadColumnDay(ctx context.Context, columnID, date string) (domain.ColumnSchedule, error) {
+func (r agreementRecords) ReadColumnDay(ctx context.Context, columnID int, date string) (domain.ColumnSchedule, error) {
 	key := advancedmdtest.ColumnDay{Date: date, ColumnID: columnID}
 	if read, ok := r.days[key]; ok {
 		return read, nil
@@ -107,7 +106,7 @@ type agreementCase struct {
 
 func (c agreementCase) String() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "%s column %s %s-%s every %d min workweek %07b, now %s, search from %s\n",
+	fmt.Fprintf(&b, "%s column %d %s-%s every %d min workweek %07b, now %s, search from %s\n",
 		c.target.office, c.column.ID, c.column.StartTime, c.column.EndTime, c.column.Interval, c.column.Workweek,
 		c.now.Format(time.RFC3339), c.first.Format("2006-01-02"))
 	for _, row := range c.rows.appointments {
@@ -471,8 +470,8 @@ func TestBookingRevalidationFailsWithTheFirstFailedDayRead(t *testing.T) {
 	target := agreementColumns[0]
 	day, _ := time.Parse("2006-01-02", slotContractDate)
 	now := mutationTestNow()
-	appointments := "appointments day " + slotContractDate + " " + target.id
-	holds := "blockholds day " + slotContractDate + " " + target.id
+	appointments := "appointments day " + slotContractDate + " " + strconv.Itoa(target.id)
+	holds := "blockholds day " + slotContractDate + " " + strconv.Itoa(target.id)
 	unavailable := advancedmdtest.Response{Status: http.StatusServiceUnavailable, Body: `{}`}
 	malformed := advancedmdtest.Response{Status: http.StatusOK, Body: `not json`}
 	tests := []struct {

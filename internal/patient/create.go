@@ -161,7 +161,7 @@ func (p *patient) createPatient(ctx context.Context, command CreateCommand, iden
 		State:     strings.ToUpper(command.State),
 		Zip:       command.Zip,
 		Sex:       normalizeSex(command.Sex),
-		OfficeID:  office.ID,
+		ProfileID: office.DefaultProfileID,
 	})
 	if err == nil {
 		return created, false, ""

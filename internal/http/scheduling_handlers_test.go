@@ -292,7 +292,7 @@ func TestListSlotsIncompleteSearchCarriesTheRetryHint(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			records := advancedmdtest.NewAdapter()
 			records.SchedulerSetup = domain.SchedulerSetup{Columns: []domain.SchedulerColumn{{
-				ID: "1513", Name: "TEST COLUMN", ProfileID: "620", FacilityID: "1568",
+				ID: 1513, Name: "TEST COLUMN", ProfileID: 620, FacilityID: 1568,
 				StartTime: "09:00", EndTime: "09:15", Interval: 15, Workweek: 127,
 			}}}
 			tc.inject(records)

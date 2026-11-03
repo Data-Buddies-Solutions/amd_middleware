@@ -621,14 +621,14 @@ func TestAdvancedMDClient_GetSchedulerSetup(t *testing.T) {
 		t.Fatalf("Expected 1 column, got %d", len(setup.Columns))
 	}
 	col := setup.Columns[0]
-	if col.ID != "1513" {
-		t.Errorf("Expected column ID '1513' (stripped), got %q", col.ID)
+	if col.ID != 1513 {
+		t.Errorf("Expected column ID '1513' (stripped), got %d", col.ID)
 	}
-	if col.ProfileID != "620" {
-		t.Errorf("Expected profile ID '620' (stripped), got %q", col.ProfileID)
+	if col.ProfileID != 620 {
+		t.Errorf("Expected profile ID '620' (stripped), got %d", col.ProfileID)
 	}
-	if col.FacilityID != "1568" {
-		t.Errorf("Expected facility ID '1568' (stripped), got %q", col.FacilityID)
+	if col.FacilityID != 1568 {
+		t.Errorf("Expected facility ID '1568' (stripped), got %d", col.FacilityID)
 	}
 	if col.StartTime != "08:00" {
 		t.Errorf("Expected start time '08:00', got %q", col.StartTime)
@@ -764,7 +764,7 @@ func TestAdvancedMDClient_GetSchedulerSetupAcceptsNumericAttributes(t *testing.T
 		t.Fatalf("GetSchedulerSetup() = %+v, err = %v", setup, err)
 	}
 	column := setup.Columns[0]
-	if column.ID != "1513" || column.ProfileID != "620" || column.FacilityID != "1568" || column.Interval != 15 || column.MaxApptsPerSlot != 2 || column.StartTime != "08:00" || column.Workweek != 62 {
+	if column.ID != 1513 || column.ProfileID != 620 || column.FacilityID != 1568 || column.Interval != 15 || column.StartTime != "08:00" || column.Workweek != 62 {
 		t.Fatalf("column = %+v", column)
 	}
 }

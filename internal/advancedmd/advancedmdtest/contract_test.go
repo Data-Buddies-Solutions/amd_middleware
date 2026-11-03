@@ -436,7 +436,7 @@ func patientRows(p *advancedmdtest.Provider) {
 
 func readPatientAppointments(patientID string) func(context.Context, records) (any, error) {
 	return func(ctx context.Context, r records) (any, error) {
-		return r.ReadPatientAppointments(ctx, domain.PatientAppointmentsQuery{PatientID: patientID, OfficeIDs: []string{"spring_hill"}})
+		return r.ReadPatientAppointments(ctx, domain.PatientAppointmentsQuery{PatientID: patientID, Offices: testOffices("spring_hill")})
 	}
 }
 
@@ -522,9 +522,9 @@ func patientAppointmentScenarios() []scenario {
 	}
 }
 
-func readPatientDay(offices []string, day time.Time) func(context.Context, records) (any, error) {
+func readPatientDay(officeIDs []string, day time.Time) func(context.Context, records) (any, error) {
 	return func(ctx context.Context, r records) (any, error) {
-		return r.ReadPatientAppointmentsForDay(ctx, advancedmd.AppointmentDayQuery{PatientID: "123", OfficeIDs: offices, Day: day})
+		return r.ReadPatientAppointmentsForDay(ctx, advancedmd.AppointmentDayQuery{PatientID: "123", Offices: testOffices(officeIDs...), Day: day})
 	}
 }
 
@@ -584,7 +584,7 @@ func readState(query advancedmd.AppointmentStateQuery) func(context.Context, rec
 }
 
 func appointmentStateScenarios() []scenario {
-	query := advancedmd.AppointmentStateQuery{AppointmentID: 9570263, OfficeID: "spring_hill", Start: bachFollowUp.Start}
+	query := advancedmd.AppointmentStateQuery{AppointmentID: 9570263, Office: testOffice("spring_hill"), Start: bachFollowUp.Start}
 	return []scenario{
 		{
 			name: "appointment state for a booked appointment",
@@ -599,7 +599,7 @@ func appointmentStateScenarios() []scenario {
 		{
 			name: "appointment state without a start is an internal error",
 			op:   "ReadAppointmentState",
-			call: readState(advancedmd.AppointmentStateQuery{AppointmentID: 9570263, OfficeID: "spring_hill"}),
+			call: readState(advancedmd.AppointmentStateQuery{AppointmentID: 9570263, Office: testOffice("spring_hill")}),
 			want: outcome{Value: advancedmd.AppointmentState{}, Category: safeerrors.CategoryInternal},
 		},
 	}
@@ -611,8 +611,8 @@ func readSetup(ctx context.Context, r records) (any, error) {
 
 func schedulerSetupScenarios() []scenario {
 	column := domain.SchedulerColumn{
-		ID: "1513", Name: "BACH SPRING HILL", ProfileID: "620", FacilityID: "1568",
-		StartTime: "08:00", EndTime: "17:00", Interval: 15, MaxApptsPerSlot: 2, Workweek: 62,
+		ID: 1513, Name: "BACH SPRING HILL", ProfileID: 620, FacilityID: 1568,
+		StartTime: "08:00", EndTime: "17:00", Interval: 15, Workweek: 62,
 	}
 	return []scenario{
 		{
@@ -677,7 +677,7 @@ func complete(appointments []domain.Appointment, holds []domain.BlockHold) domai
 }
 
 func readDay(ctx context.Context, r records) (any, error) {
-	return r.ReadColumnDay(ctx, "1513", "2026-06-03")
+	return r.ReadColumnDay(ctx, 1513, "2026-06-03")
 }
 
 func scheduleDayScenarios() []scenario {
@@ -695,8 +695,8 @@ func scheduleDayScenarios() []scenario {
 		}
 	}
 	filedRows := func(f *advancedmdtest.Adapter) {
-		f.Schedule[day] = map[string]advancedmdtest.ColumnRows{
-			"1513": {
+		f.Schedule[day] = map[int]advancedmdtest.ColumnRows{
+			1513: {
 				Appointments: []domain.Appointment{
 					scheduled(18, 1513, at(day, "09:00"), 30),
 					scheduled(18, 1513, at(day, "09:00"), 30),
@@ -733,7 +733,7 @@ func scheduleDayScenarios() []scenario {
 			},
 			fake: func(f *advancedmdtest.Adapter) {
 				filedRows(f)
-				f.ColumnReadErrors[advancedmdtest.ColumnDay{Date: day, ColumnID: "1513"}] = advancedmd.NewError(safeerrors.CategoryUpstreamStatus)
+				f.ColumnReadErrors[advancedmdtest.ColumnDay{Date: day, ColumnID: 1513}] = advancedmd.NewError(safeerrors.CategoryUpstreamStatus)
 			},
 			call: readDay,
 			want: outcome{Value: domain.ColumnSchedule{}, Category: safeerrors.CategoryUpstreamStatus},
@@ -757,7 +757,7 @@ func scheduleDayScenarios() []scenario {
 
 func readRange(ctx context.Context, r records) (any, error) {
 	return r.ReadScheduleRange(ctx, domain.ScheduleRangeQuery{
-		ColumnIDs: []string{"1513", "1598"},
+		ColumnIDs: []int{1513, 1598},
 		Start:     time.Date(2026, 6, 29, 0, 0, 0, 0, time.UTC),
 		End:       time.Date(2026, 7, 2, 0, 0, 0, 0, time.UTC),
 	})
@@ -778,45 +778,45 @@ func scheduleRangeScenarios() []scenario {
 	}
 	overnight := held(7, 1513, at("2026-06-30", "22:00"), at("2026-07-01", "02:00"))
 	filedRows := func(f *advancedmdtest.Adapter) {
-		f.Schedule["2026-06-30"] = map[string]advancedmdtest.ColumnRows{
-			"1513": {
+		f.Schedule["2026-06-30"] = map[int]advancedmdtest.ColumnRows{
+			1513: {
 				Appointments: []domain.Appointment{scheduled(18, 1513, at("2026-06-30", "09:00"), 30), scheduled(18, 1513, at("2026-06-30", "09:00"), 30)},
 				BlockHolds:   []domain.BlockHold{overnight},
 			},
 		}
-		f.Schedule["2026-07-01"] = map[string]advancedmdtest.ColumnRows{
-			"1513": {
+		f.Schedule["2026-07-01"] = map[int]advancedmdtest.ColumnRows{
+			1513: {
 				Appointments: []domain.Appointment{scheduled(0, 1513, at("2026-07-01", "10:00"), 15), scheduled(0, 1513, at("2026-07-01", "10:00"), 15)},
 				BlockHolds:   []domain.BlockHold{overnight},
 			},
 		}
-		f.Schedule["2026-07-02"] = map[string]advancedmdtest.ColumnRows{
-			"1598": {Appointments: []domain.Appointment{scheduled(19, 1598, at("2026-07-02", "11:00"), 15)}},
+		f.Schedule["2026-07-02"] = map[int]advancedmdtest.ColumnRows{
+			1598: {Appointments: []domain.Appointment{scheduled(19, 1598, at("2026-07-02", "11:00"), 15)}},
 		}
 	}
 	empty := complete(nil, nil)
 	read := map[string]domain.ScheduleReadResult{
-		"2026-06-29": {Columns: map[string]domain.ColumnSchedule{"1513": empty, "1598": empty}},
-		"2026-06-30": {Columns: map[string]domain.ColumnSchedule{
-			"1513": complete([]domain.Appointment{scheduled(18, 1513, at("2026-06-30", "09:00"), 30)}, []domain.BlockHold{overnight}),
-			"1598": empty,
+		"2026-06-29": {Columns: map[int]domain.ColumnSchedule{1513: empty, 1598: empty}},
+		"2026-06-30": {Columns: map[int]domain.ColumnSchedule{
+			1513: complete([]domain.Appointment{scheduled(18, 1513, at("2026-06-30", "09:00"), 30)}, []domain.BlockHold{overnight}),
+			1598: empty,
 		}},
-		"2026-07-01": {Columns: map[string]domain.ColumnSchedule{
-			"1513": complete(
+		"2026-07-01": {Columns: map[int]domain.ColumnSchedule{
+			1513: complete(
 				[]domain.Appointment{scheduled(0, 1513, at("2026-07-01", "10:00"), 15), scheduled(0, 1513, at("2026-07-01", "10:00"), 15)},
 				[]domain.BlockHold{overnight},
 			),
-			"1598": empty,
+			1598: empty,
 		}},
-		"2026-07-02": {Columns: map[string]domain.ColumnSchedule{
-			"1513": empty,
-			"1598": complete([]domain.Appointment{scheduled(19, 1598, at("2026-07-02", "11:00"), 15)}, nil),
+		"2026-07-02": {Columns: map[int]domain.ColumnSchedule{
+			1513: empty,
+			1598: complete([]domain.Appointment{scheduled(19, 1598, at("2026-07-02", "11:00"), 15)}, nil),
 		}},
 	}
 	unattributed := maps.Clone(read)
-	unattributed["2026-07-02"] = domain.ScheduleReadResult{Columns: map[string]domain.ColumnSchedule{
-		"1513": {},
-		"1598": {Appointments: []domain.Appointment{scheduled(19, 1598, at("2026-07-02", "11:00"), 15)}},
+	unattributed["2026-07-02"] = domain.ScheduleReadResult{Columns: map[int]domain.ColumnSchedule{
+		1513: {},
+		1598: {Appointments: []domain.Appointment{scheduled(19, 1598, at("2026-07-02", "11:00"), 15)}},
 	}}
 	return []scenario{
 		{
@@ -855,7 +855,7 @@ func scheduleRangeScenarios() []scenario {
 			},
 			fake: func(f *advancedmdtest.Adapter) {
 				filedRows(f)
-				f.ColumnReadErrors[advancedmdtest.ColumnDay{Date: "2026-07-01", ColumnID: "1598"}] = advancedmd.NewError(safeerrors.CategoryUpstreamStatus)
+				f.ColumnReadErrors[advancedmdtest.ColumnDay{Date: "2026-07-01", ColumnID: 1598}] = advancedmd.NewError(safeerrors.CategoryUpstreamStatus)
 			},
 			call: readRange,
 			want: outcome{Value: map[string]domain.ScheduleReadResult(nil), Category: safeerrors.CategoryUpstreamStatus},
@@ -864,7 +864,7 @@ func scheduleRangeScenarios() []scenario {
 }
 
 var booking = advancedmd.Booking{
-	PatientID: 123, OfficeID: "spring_hill", ColumnID: 1513, ProfileID: 620,
+	PatientID: 123, FacilityID: 1568, ColumnID: 1513, ProfileID: 620,
 	Start: time.Date(2026, 8, 3, 9, 0, 0, 0, time.UTC), Duration: 15,
 	ProviderAppointmentTypeID: 1007, AppointmentColor: "#3366FF", Comments: "Follow up",
 }
@@ -880,8 +880,8 @@ func bookingScenarios() []scenario {
 	untyped.ProviderAppointmentTypeID = 0
 	uncolored := booking
 	uncolored.AppointmentColor = ""
-	elsewhere := booking
-	elsewhere.OfficeID = "nowhere"
+	unplaced := booking
+	unplaced.FacilityID = 0
 	return []scenario{
 		{
 			name: "book",
@@ -924,9 +924,9 @@ func bookingScenarios() []scenario {
 			want: outcome{Value: 0, Category: safeerrors.CategoryInternal},
 		},
 		{
-			name: "book for an unknown office never reaches AdvancedMD",
+			name: "book without a facility never reaches AdvancedMD",
 			op:   "BookAppointment",
-			call: book(elsewhere),
+			call: book(unplaced),
 			want: outcome{Value: 0, Category: safeerrors.CategoryInternal},
 		},
 	}
@@ -968,11 +968,11 @@ func cancellationScenarios() []scenario {
 	}
 }
 
-func createPatient(officeID string) func(context.Context, records) (any, error) {
+func createPatient() func(context.Context, records) (any, error) {
 	return func(ctx context.Context, r records) (any, error) {
 		return r.CreatePatient(ctx, domain.PatientCreate{
 			FirstName: "JANE", LastName: "DOE", DOB: "01/15/1980", Phone: "(954)287-2010",
-			Street: "123 Main St", City: "Spring Hill", State: "FL", Zip: "34609", Sex: "F", OfficeID: officeID,
+			Street: "123 Main St", City: "Spring Hill", State: "FL", Zip: "34609", Sex: "F", ProfileID: 620,
 		})
 	}
 }
@@ -987,7 +987,7 @@ func patientCreateScenarios() []scenario {
 				reply(p, "addpatient", results(`{"patientlist":{"patient":{"@id":"pat555","@respparty":"resp555","@name":"DOE,JANE"}}}`))
 			},
 			fake: func(f *advancedmdtest.Adapter) { f.CreatedPatient = created },
-			call: createPatient("spring_hill"),
+			call: createPatient(),
 			want: outcome{Value: created, Writes: 1},
 		},
 		{
@@ -998,15 +998,8 @@ func patientCreateScenarios() []scenario {
 				f.CreatedPatient = created
 				f.CreatePatientError = advancedmd.NewError(safeerrors.CategoryRejected)
 			},
-			call: createPatient("spring_hill"),
+			call: createPatient(),
 			want: outcome{Value: domain.CreatedPatient{}, Category: safeerrors.CategoryRejected, Mutation: advancedmd.MutationRejected, Writes: 1},
-		},
-		{
-			name: "create patient for an unknown office never reaches AdvancedMD",
-			op:   "CreatePatient",
-			fake: func(f *advancedmdtest.Adapter) { f.CreatedPatient = created },
-			call: createPatient("nowhere"),
-			want: outcome{Value: domain.CreatedPatient{}, Category: safeerrors.CategoryInternal},
 		},
 	}
 }
@@ -1057,4 +1050,17 @@ func insuranceScenarios() []scenario {
 			want: outcome{Category: safeerrors.CategoryUpstreamStatus, Mutation: advancedmd.MutationAmbiguous, Writes: 1},
 		},
 	}
+}
+
+func testOffice(officeID string) *domain.OfficeConfig {
+	office, _ := domain.LookupOfficeByID(officeID)
+	return office
+}
+
+func testOffices(officeIDs ...string) []*domain.OfficeConfig {
+	offices := make([]*domain.OfficeConfig, len(officeIDs))
+	for i, officeID := range officeIDs {
+		offices[i] = testOffice(officeID)
+	}
+	return offices
 }

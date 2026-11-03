@@ -7,7 +7,7 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
-func decidePlanAtOffice(p plan, office *domain.OfficeConfig, dob string, asOf time.Time) InsuranceDecision {
+func decidePlanAtOffice(p plan, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {
 	d := newDecision(p.Coverage, office)
 	d.PlanID = p.ID
 	d.CanonicalPlan = p.Label
@@ -52,17 +52,10 @@ func decidePlanAtOffice(p plan, office *domain.OfficeConfig, dob string, asOf ti
 	return d
 }
 
-func visitRouting(coverage string) domain.RoutingRule {
-	if coverage == "routine_vision" {
-		return domain.RoutingOpticalOnly
-	}
-	return domain.RoutingAll
-}
-
 func acceptingDoctors(p plan, office *domain.OfficeConfig) ([]string, bool) {
 	accepting := []string{}
 	pending := false
-	for _, doctor := range office.ProvidersForRouting(visitRouting(p.Coverage)) {
+	for _, doctor := range office.ProvidersForRouting(domain.VisitRouting(p.Coverage)) {
 		switch p.Doctors[displayName(office, doctor)] {
 		case "yes":
 			accepting = append(accepting, doctor)
@@ -73,9 +66,9 @@ func acceptingDoctors(p plan, office *domain.OfficeConfig) ([]string, bool) {
 	return accepting, pending
 }
 
-func doctorsForPatient(accepting []string, coverage string, office *domain.OfficeConfig, dob string, asOf time.Time) []string {
+func doctorsForPatient(accepting []string, coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) []string {
 	allowed := []string{}
-	for _, doctor := range office.ProvidersForRoutingAndDOB(office.SchedulingRouting(visitRouting(coverage), dob, asOf), dob, asOf) {
+	for _, doctor := range office.ProvidersForRoutingAndDOB(office.SchedulingRouting(domain.VisitRouting(coverage), dob, asOf), dob, asOf) {
 		if slices.Contains(accepting, doctor) {
 			allowed = append(allowed, doctor)
 		}
