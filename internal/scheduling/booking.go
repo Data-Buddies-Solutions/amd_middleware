@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"advancedmd-token-management/internal/advancedmd"
@@ -119,18 +120,75 @@ func (s *service) book(ctx context.Context, booking bookingContext) (BookReceipt
 	)
 }
 
+type bookingReads struct {
+	running        *sync.WaitGroup
+	completedVisit func() (bool, error)
+	setup          func() (*domain.SchedulerSetup, error)
+	day            func() (domain.ColumnSchedule, error)
+}
+
+func (s *service) startBookingReads(ctx context.Context, booking bookingContext) bookingReads {
+	running := &sync.WaitGroup{}
+	reads := bookingReads{
+		running: running,
+		setup: startRead(running, func() (*domain.SchedulerSetup, error) {
+			return s.schedulerSetup(ctx, s.now().UTC())
+		}),
+		day: startRead(running, func() (domain.ColumnSchedule, error) {
+			start, err := time.Parse(domain.SlotDateTimeLayout, booking.token.StartDatetime)
+			if err != nil {
+				return domain.ColumnSchedule{}, err
+			}
+			return s.records.ReadColumnDay(ctx, booking.token.ColumnID, start.Format("2006-01-02"))
+		}),
+	}
+	if booking.command.AppointmentTypeID == 0 {
+		reads.completedVisit = startRead(running, func() (bool, error) {
+			return s.records.HasCompletedVisit(ctx, string(booking.patientID))
+		})
+	}
+	return reads
+}
+
+func startRead[T any](running *sync.WaitGroup, read func() (T, error)) func() (T, error) {
+	var value T
+	var err error
+	var recovered any
+	done := make(chan struct{})
+	running.Go(func() {
+		defer close(done)
+		defer func() {
+			if recovered = recover(); recovered != nil {
+				log.Printf("booking: pre-write read panicked type=%T", recovered)
+			}
+		}()
+		value, err = read()
+	})
+	return func() (T, error) {
+		<-done
+		if recovered != nil {
+			panic(recovered)
+		}
+		return value, err
+	}
+}
+
 func (s *service) prepareBooking(ctx context.Context, booking bookingContext) (preparedBooking, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	reads := s.startBookingReads(ctx, booking)
+	defer reads.running.Wait()
+	defer cancel()
 	if err := s.verifyBookingPatient(ctx, &booking); err != nil {
 		return preparedBooking{}, err
 	}
-	if err := s.classifyBookingPatient(ctx, &booking); err != nil {
+	if err := classifyBookingPatient(&booking, reads.completedVisit); err != nil {
 		return preparedBooking{}, err
 	}
 	policy, decision, comments, err := applyBookingPolicy(&booking)
 	if err != nil {
 		return preparedBooking{}, err
 	}
-	start, force, err := s.revalidateBookingSlot(ctx, booking, policy)
+	start, force, err := revalidateBookingSlot(booking, policy, reads)
 	if err != nil {
 		return preparedBooking{}, err
 	}
@@ -237,11 +295,11 @@ func (s *service) verifyBookingPatient(ctx context.Context, booking *bookingCont
 	return nil
 }
 
-func (s *service) classifyBookingPatient(ctx context.Context, booking *bookingContext) error {
-	if booking.command.AppointmentTypeID != 0 {
+func classifyBookingPatient(booking *bookingContext, completedVisit func() (bool, error)) error {
+	if completedVisit == nil {
 		return nil
 	}
-	seen, err := s.records.HasCompletedVisit(ctx, string(booking.patientID))
+	seen, err := completedVisit()
 	if err != nil {
 		return categorizedProviderError(
 			CategoryWriteFailed,
@@ -312,12 +370,12 @@ func invalidRescheduleTokenError() error {
 	)
 }
 
-func (s *service) revalidateBookingSlot(
-	ctx context.Context,
+func revalidateBookingSlot(
 	booking bookingContext,
 	policy schedulingPolicy,
+	reads bookingReads,
 ) (time.Time, bool, error) {
-	setup, err := s.schedulerSetup(ctx, s.now().UTC())
+	setup, err := reads.setup()
 	if err != nil {
 		return time.Time{}, false, categorizedProviderError(
 			CategoryWriteFailed,
@@ -341,7 +399,7 @@ func (s *service) revalidateBookingSlot(
 	if !slices.ContainsFunc(column.Slots(start), slot.Equal) {
 		return time.Time{}, false, slotUnavailableError()
 	}
-	schedule, err := s.records.ReadColumnDay(ctx, booking.token.ColumnID, start.Format("2006-01-02"))
+	schedule, err := reads.day()
 	if err != nil {
 		return time.Time{}, false, categorizedProviderError(
 			CategoryWriteFailed,
