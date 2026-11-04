@@ -38,6 +38,7 @@ type environmentBinding struct {
 	UnavailableOffices          []string
 	AppointmentTypes            map[int]int
 	UnavailableAppointmentTypes []int
+	Carriers                    map[string]string
 }
 
 type officeBinding struct {
@@ -282,6 +283,10 @@ func newOfficeTable() officeTable {
 					1004: 20, 1005: 8, 1006: 12, 1007: 18, 1008: 1627,
 				},
 				UnavailableAppointmentTypes: []int{1010, 3364, 4244, 4245, 6167, 6168, 6169},
+				Carriers: map[string]string{
+					"car40887": "car7551",
+					"car40897": "car7077",
+				},
 			},
 		},
 	}

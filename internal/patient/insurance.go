@@ -70,7 +70,7 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 	}
 	replacement := domain.PatientInsurance{
 		PatientID: string(patientID), RespPartyID: chart.RespPartyID,
-		CarrierID: decision.CarrierID, SubscriberNum: command.SubscriberNum,
+		CarrierID: domain.ResolveCarrierID(decision.CarrierID), SubscriberNum: command.SubscriberNum,
 	}
 	replacementAlreadyActive := chart.InsPlanID != "" && insuranceMatches(chart, replacement)
 	reconciled := false
