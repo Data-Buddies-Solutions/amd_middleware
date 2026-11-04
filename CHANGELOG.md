@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [9.1.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v9.1.0...v9.1.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* **insurance:** attach sandbox carrier IDs in the AdvancedMD sandbox ([#332](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/332)) ([b343349](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/b3433490017e092a9d8a9475ec2e6618c74a4d5f))
+
 ## [9.1.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v9.0.1...v9.1.0) (2026-11-03)
 
 
