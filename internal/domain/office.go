@@ -259,6 +259,13 @@ func ResolveAppointmentTypeID(typeID int) (int, bool) {
 	return providerTypeID, ok
 }
 
+func ResolveCarrierID(carrierID string) string {
+	if environmentID, ok := selected().carrierIDs[carrierID]; ok {
+		return environmentID
+	}
+	return carrierID
+}
+
 func CanonicalAppointmentTypeID(typeID int) (int, bool) {
 	canonicalID, ok := selected().canonicalTypeIDs[typeID]
 	return canonicalID, ok
@@ -283,6 +290,7 @@ type registry struct {
 	defaultOffice    *OfficeConfig
 	providerTypeIDs  map[int]int
 	canonicalTypeIDs map[int]int
+	carrierIDs       map[string]string
 }
 
 var officeData = newOfficeTable()
@@ -318,6 +326,7 @@ func buildRegistry(definitions []officeDefinition, binding environmentBinding) *
 		byPhone:          map[string]*OfficeConfig{},
 		providerTypeIDs:  make(map[int]int, len(binding.AppointmentTypes)),
 		canonicalTypeIDs: make(map[int]int, len(binding.AppointmentTypes)),
+		carrierIDs:       binding.Carriers,
 	}
 	byID := map[string]*OfficeConfig{}
 	for _, definition := range definitions {

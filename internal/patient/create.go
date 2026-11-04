@@ -74,7 +74,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 	insuranceReconciled, outcome := p.addInsurance(ctx, domain.PatientInsurance{
 		PatientID:     created.ID,
 		RespPartyID:   created.RespPartyID,
-		CarrierID:     decision.CarrierID,
+		CarrierID:     domain.ResolveCarrierID(decision.CarrierID),
 		SubscriberNum: command.SubscriberNum,
 	})
 	if outcome != "" {
