@@ -4,6 +4,18 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [9.2.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v9.1.2...v9.2.0) (2026-11-07)
+
+
+### Features
+
+* **scheduling:** search a move from its reschedule token ([#335](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/335)) ([94cf046](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/94cf0466a0b5fdf31e160b7edfd0f5fc9462d7c7))
+
+
+### Bug Fixes
+
+* **http:** name validation failures in scheduling outcomes ([#336](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/336)) ([d8ddc03](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/d8ddc03379c3ea5d7fbd199cd98643c47e841224))
+
 ## [9.1.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v9.1.1...v9.1.2) (2026-11-07)
 
 
