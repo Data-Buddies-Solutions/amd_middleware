@@ -185,6 +185,12 @@ insurance decision. Office, visit type, age, and requested routing select provid
 routine vision defaults to optical routing. Booking verifies patient identity, the
 signed slot, appointment policy, and live occupancy without re-triaging insurance.
 
+The slot token signs the `patientId` it was searched for. Booking or rescheduling
+for any other patient returns `patient_context_mismatch` and writes nothing. A
+`patientId` that does not parse is `invalid_input` before any provider read; a slot
+is never issued unbound because its patient could not be read. Tokens issued without
+the claim still verify until they expire.
+
 Slots accept `patientId`, `visitType`, `startDate`, `office`, `dob`, `routing`,
 `preauthRequired`, and `insurancePlanId`. Each search covers 14 days; use `startDate` to move the window.
 `routing` is `not_accepted`, `bach_only`, `bach_licht`, `all_three`, or

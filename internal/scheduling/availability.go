@@ -46,6 +46,10 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 	if err != nil {
 		return empty, schedulingError("Invalid date format. Use YYYY-MM-DD.")
 	}
+	patientID, err := domain.ParsePatientID(command.PatientID)
+	if err != nil {
+		return empty, schedulingError(err.Error())
+	}
 	dob, err := domain.ParseDOB(command.DOB, now)
 	if err != nil {
 		return empty, schedulingError(err.Error())
@@ -205,7 +209,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 
 	actualDate := slots[0].DateTime[:len("2006-01-02")]
 	tokenIssuedAt := s.now().UTC()
-	slots, tokenExpiresAt, err := s.signSlots(slots, office, routing, dob, tokenIssuedAt)
+	slots, tokenExpiresAt, err := s.signSlots(slots, office, routing, dob, patientID, tokenIssuedAt)
 	if err != nil {
 		return empty, schedulingError("Failed to create booking tokens: " + err.Error())
 	}

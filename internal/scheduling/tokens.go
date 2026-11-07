@@ -38,6 +38,7 @@ type SlotPolicy struct {
 	StartDatetime      string             `json:"startDatetime"`
 	Duration           int                `json:"duration"`
 	DOB                domain.DOB         `json:"dob,omitempty"`
+	PatientID          domain.PatientID   `json:"patientId,omitempty"`
 	AppointmentTypeIDs []int              `json:"appointmentTypeIds,omitempty"`
 	SameStartBooked    int                `json:"sameStartBooked,omitempty"`
 	SameStartCapacity  int                `json:"sameStartCapacity,omitempty"`
