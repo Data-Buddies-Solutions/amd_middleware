@@ -6,12 +6,17 @@ import (
 	"advancedmd-token-management/internal/domain"
 )
 
+type slotClaims struct {
+	patientID domain.PatientID
+	moveOf    int
+}
+
 func (s *service) signSlots(
 	slots []AvailabilitySlotOption,
 	office *domain.OfficeConfig,
 	routing domain.RoutingRule,
 	dob domain.DOB,
-	patientID domain.PatientID,
+	claims slotClaims,
 	now time.Time,
 ) ([]AvailabilitySlotOption, time.Time, error) {
 	issuedAt := now.Unix()
@@ -26,7 +31,8 @@ func (s *service) signSlots(
 			StartDatetime:      slots[i].DateTime,
 			Duration:           slots[i].Duration,
 			DOB:                dob,
-			PatientID:          patientID,
+			PatientID:          claims.patientID,
+			MoveOf:             claims.moveOf,
 			AppointmentTypeIDs: appointmentTypeIDs,
 			SameStartBooked:    slots[i].SameStartBooked,
 			SameStartCapacity:  slots[i].SameStartCapacity,

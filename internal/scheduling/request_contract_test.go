@@ -86,7 +86,7 @@ func TestBookRejectsUnknownIntentBeforeProviderCall(t *testing.T) {
 }
 
 func TestBookAllowsOmittedIntentWithExplicitOrPreservedType(t *testing.T) {
-	for _, mode := range []string{"explicit", "preserved_on_book", "reschedule"} {
+	for _, mode := range []string{"explicit", "reschedule"} {
 		t.Run(mode, func(t *testing.T) {
 			records, command, _ := rescheduleFixture(t)
 			command.VisitCategory = ""
@@ -118,7 +118,7 @@ func TestBookAllowsOmittedIntentWithExplicitOrPreservedType(t *testing.T) {
 }
 
 func TestBookRejectsUnknownIntentEvenWithExplicitOrPreservedType(t *testing.T) {
-	for _, mode := range []string{"explicit", "preserved_on_book", "reschedule"} {
+	for _, mode := range []string{"explicit", "reschedule"} {
 		t.Run(mode, func(t *testing.T) {
 			_, command, _ := rescheduleFixture(t)
 			if mode == "explicit" {

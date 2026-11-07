@@ -191,8 +191,26 @@ for any other patient returns `patient_context_mismatch` and writes nothing. A
 is never issued unbound because its patient could not be read. Tokens issued without
 the claim still verify until they expire.
 
+A move searches with `rescheduleToken`, which must belong to `patientId`. Without
+`insurancePlanId`, the token supplies the office, visit type, and doctor. Openings
+come from every column the office table binds to that doctor at that office, and a
+`visitType` or `office` that disagrees with the token is `invalid_input`. With
+`insurancePlanId`, the search is the normal plan-gated one, using the request's
+office or else the token's. An invalid or expired token returns status `error`,
+`outcome: invalid_reschedule_token`, and `slots: []`. A token that names no doctor
+or a visit type the table does not know returns `outcome: move_needs_staff` with
+`nextAction: offer_staff_help` and no provider reads; only the plan-gated search can
+still proceed without the doctor. A destination office that does not allow the
+appointment's type on the routing the search resolves also returns `move_needs_staff`,
+because reschedule would refuse its slots with that same check.
+
+Move searches sign `moveOf`, and a plan-gated move is a move search. Booking refuses a
+slot with `moveOf`, and rescheduling refuses one whose `moveOf` names a different
+appointment, both as `invalid_booking_token`. Booking also refuses a `rescheduleToken`
+as a validation failure; only the reschedule route takes one.
+
 Slots accept `patientId`, `visitType`, `startDate`, `office`, `dob`, `routing`,
-`preauthRequired`, and `insurancePlanId`. Each search covers 14 days; use `startDate` to move the window.
+`preauthRequired`, `insurancePlanId`, and `rescheduleToken`. Each search covers 14 days; use `startDate` to move the window.
 `routing` is `not_accepted`, `bach_only`, `bach_licht`, `all_three`, or
 `optical_only`. Omitted, it is `all_three`, or `optical_only` for routine vision.
 Any other value is `invalid_input`.

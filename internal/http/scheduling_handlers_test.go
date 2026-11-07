@@ -318,3 +318,10 @@ func TestListSlotsIncompleteSearchCarriesTheRetryHint(t *testing.T) {
 		})
 	}
 }
+
+func TestListSlotsNamesAnInvalidRescheduleToken(t *testing.T) {
+	body, _ := postIdentity(t, "/api/scheduler/slots", map[string]any{"office": "Spring Hill", "startDate": "2026-06-03", "patientId": "12345", "dob": "01/15/1980", "rescheduleToken": "not-a-token"})
+	if body["status"] != "error" || body["outcome"] != "invalid_reschedule_token" || body["message"] == "" || body["slotCount"] != float64(0) {
+		t.Fatalf("reply = %v", body)
+	}
+}

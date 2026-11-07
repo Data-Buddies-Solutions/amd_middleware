@@ -29,6 +29,7 @@ type MinimumAge struct {
 
 type OfficeColumn struct {
 	ProfileID         int
+	ProviderKey       string
 	DisplayName       string
 	ShortName         string
 	MatchKey          string
@@ -252,8 +253,6 @@ func (r *registry) officeByID(officeID string) (*OfficeConfig, bool) {
 	return nil, false
 }
 
-const PreservedAppointmentTypeFallbackColor = "TEAL"
-
 func ResolveAppointmentTypeID(typeID int) (int, bool) {
 	providerTypeID, ok := selected().providerTypeIDs[typeID]
 	return providerTypeID, ok
@@ -379,6 +378,7 @@ func bindOffice(definition officeDefinition, binding officeBinding) *OfficeConfi
 		}
 		office.Columns[columnBinding.ColumnID] = OfficeColumn{
 			ProfileID:         columnBinding.ProfileID,
+			ProviderKey:       column.Provider.Key,
 			DisplayName:       column.Provider.DisplayName,
 			ShortName:         column.Provider.ShortName,
 			MatchKey:          column.Provider.MatchKey,

@@ -23,16 +23,71 @@ type ListCommand struct {
 	Routing         string `json:"routing"`
 	PreauthRequired bool   `json:"preauthRequired"`
 	InsurancePlanID string `json:"insurancePlanId,omitempty"`
+	RescheduleToken string `json:"rescheduleToken,omitempty"`
+}
+
+type moveSearch struct {
+	appointmentID     int
+	appointmentTypeID int
+	doctorKey         string
+	needsStaff        bool
 }
 
 func (s *service) List(ctx context.Context, command ListCommand) (AvailabilityResponse, error) {
+	patientID, err := domain.ParsePatientID(command.PatientID)
+	if err != nil {
+		return AvailabilityResponse{}, schedulingError(err.Error())
+	}
+	var move moveSearch
+	if command.RescheduleToken != "" {
+		command, move, err = s.bindMoveSearch(command, patientID)
+		if err != nil {
+			return AvailabilityResponse{}, err
+		}
+		if move.needsStaff {
+			return moveNeedsStaffResponse(command.StartDate, moveUnconfirmedMessage), nil
+		}
+	}
 	if command.Routing == "" {
 		command.Routing = string(domain.VisitRouting(command.VisitType))
 	}
-	return s.list(ctx, command)
+	return s.list(ctx, command, patientID, move)
 }
 
-func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityResponse, error) {
+func (s *service) bindMoveSearch(command ListCommand, patientID domain.PatientID) (ListCommand, moveSearch, error) {
+	policy, err := s.appointmentTokens.verifyReschedule(command.RescheduleToken, s.now().UTC())
+	if err != nil || patientID != policy.PatientID {
+		return command, moveSearch{}, invalidRescheduleTokenError()
+	}
+	visit := domain.AppointmentVisitType(policy.AppointmentTypeID)
+	planGated := command.InsurancePlanID != ""
+	if visit == "" || (!planGated && policy.DoctorKey == "") {
+		return command, moveSearch{needsStaff: true}, nil
+	}
+	if command.VisitType != "" && command.VisitType != visit {
+		return command, moveSearch{}, schedulingError("visitType does not match the appointment being moved. A move keeps its visit type.")
+	}
+	command.VisitType = visit
+	if planGated {
+		if command.Office == "" {
+			command.Office = policy.OfficeID
+		}
+		return command, moveSearch{appointmentID: policy.AppointmentID, appointmentTypeID: policy.AppointmentTypeID}, nil
+	}
+	if command.Office != "" {
+		office, err := domain.ResolveOffice(command.Office)
+		if err != nil {
+			return command, moveSearch{}, schedulingError(err.Error())
+		}
+		if office.ID != policy.OfficeID {
+			return command, moveSearch{}, schedulingError("office does not match the appointment being moved. Send insurancePlanId to search another office.")
+		}
+	}
+	command.Office = policy.OfficeID
+	return command, moveSearch{appointmentID: policy.AppointmentID, appointmentTypeID: policy.AppointmentTypeID, doctorKey: policy.DoctorKey}, nil
+}
+
+func (s *service) list(ctx context.Context, command ListCommand, patientID domain.PatientID, move moveSearch) (AvailabilityResponse, error) {
 	empty := AvailabilityResponse{}
 	now := s.now()
 	nowEastern := now.In(eastern)
@@ -45,10 +100,6 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 	startDate, err := time.Parse("2006-01-02", requestedDate)
 	if err != nil {
 		return empty, schedulingError("Invalid date format. Use YYYY-MM-DD.")
-	}
-	patientID, err := domain.ParsePatientID(command.PatientID)
-	if err != nil {
-		return empty, schedulingError(err.Error())
 	}
 	dob, err := domain.ParseDOB(command.DOB, now)
 	if err != nil {
@@ -107,6 +158,9 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 		(command.VisitType == domain.AppointmentVisitRoutineVision && routing != domain.RoutingOpticalOnly) {
 		return unsupportedVisit(), nil
 	}
+	if move.appointmentID != 0 && !office.AllowsAppointmentType(move.appointmentTypeID, routing) {
+		return moveNeedsStaffResponse(originalRequestedDate, moveTypeNotAllowedMessage), nil
+	}
 
 	setup, err := s.schedulerSetup(ctx, now.UTC())
 	if err != nil {
@@ -120,6 +174,9 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 	allowedColumns := policy.EligibleColumns(setup.Columns, routing, dob)
 	if plan != nil {
 		allowedColumns = columnsForProviders(office, allowedColumns, plan.AllowedProviders)
+	}
+	if move.doctorKey != "" {
+		allowedColumns = columnsForDoctor(office, allowedColumns, move.doctorKey)
 	}
 	if len(allowedColumns) == 0 {
 		return AvailabilityResponse{
@@ -209,7 +266,7 @@ func (s *service) list(ctx context.Context, command ListCommand) (AvailabilityRe
 
 	actualDate := slots[0].DateTime[:len("2006-01-02")]
 	tokenIssuedAt := s.now().UTC()
-	slots, tokenExpiresAt, err := s.signSlots(slots, office, routing, dob, patientID, tokenIssuedAt)
+	slots, tokenExpiresAt, err := s.signSlots(slots, office, routing, dob, slotClaims{patientID: patientID, moveOf: move.appointmentID}, tokenIssuedAt)
 	if err != nil {
 		return empty, schedulingError("Failed to create booking tokens: " + err.Error())
 	}
@@ -257,6 +314,32 @@ func columnsForProviders(office *domain.OfficeConfig, columns []domain.Scheduler
 		}
 	}
 	return kept
+}
+
+func columnsForDoctor(office *domain.OfficeConfig, columns []domain.SchedulerColumn, doctorKey string) []domain.SchedulerColumn {
+	kept := make([]domain.SchedulerColumn, 0, len(columns))
+	for _, column := range columns {
+		if office.Columns[column.ID].ProviderKey == doctorKey {
+			kept = append(kept, column)
+		}
+	}
+	return kept
+}
+
+const (
+	moveUnconfirmedMessage    = "This appointment's doctor or visit type could not be confirmed, so openings cannot be searched for this move. Offer to have office staff move it."
+	moveTypeNotAllowedMessage = "This office cannot take this patient's existing appointment type, so openings cannot be searched here for this move. Offer to have office staff move it."
+)
+
+func moveNeedsStaffResponse(requestedDate, message string) AvailabilityResponse {
+	return AvailabilityResponse{
+		Status:        AvailabilityStatusSuccess,
+		Outcome:       AvailabilityOutcomeMoveNeedsStaff,
+		RequestedDate: requestedDate,
+		NextAction:    AvailabilityNextActionStaffHelp,
+		Message:       message,
+		Slots:         []AvailabilitySlotOption{},
+	}
 }
 
 func noneResponse(requestedDate, searchStartDate, searchEndDate string) AvailabilityResponse {

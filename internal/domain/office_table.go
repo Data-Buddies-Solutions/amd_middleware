@@ -28,6 +28,7 @@ type columnDefinition struct {
 }
 
 type provider struct {
+	Key         string
 	DisplayName string
 	ShortName   string
 	MatchKey    string
@@ -55,15 +56,15 @@ type columnBinding struct {
 }
 
 var (
-	austinBach     = provider{DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH"}
-	josephLicht    = provider{DisplayName: "Dr. Joseph Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"}
-	noel           = provider{DisplayName: "Dr. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL"}
-	melissaOtero   = provider{DisplayName: "Dr. Melissa Otero", ShortName: "Dr. Otero", MatchKey: "OTERO"}
-	mariaCasas     = provider{DisplayName: "Dr. Maria Casas", ShortName: "Dr. Casas", MatchKey: "CASAS"}
-	kylerFarnan    = provider{DisplayName: "Dr. Kyler Farnan", ShortName: "Dr. Farnan", MatchKey: "FARNAN"}
-	gisselleCalero = provider{DisplayName: "Dr. Gisselle Calero", ShortName: "Dr. Calero", MatchKey: "CALERO"}
-	lisbetVidal    = provider{DisplayName: "Dr. Lisbet Vidal", ShortName: "Dr. Vidal", MatchKey: "VIDAL"}
-	miriamBach     = provider{DisplayName: "Dr. Miriam Bach", ShortName: "Dr. Miriam Bach", MatchKey: "BACH"}
+	austinBach     = provider{Key: "austin_bach", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH"}
+	josephLicht    = provider{Key: "joseph_licht", DisplayName: "Dr. Joseph Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"}
+	noel           = provider{Key: "noel", DisplayName: "Dr. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL"}
+	melissaOtero   = provider{Key: "melissa_otero", DisplayName: "Dr. Melissa Otero", ShortName: "Dr. Otero", MatchKey: "OTERO"}
+	mariaCasas     = provider{Key: "maria_casas", DisplayName: "Dr. Maria Casas", ShortName: "Dr. Casas", MatchKey: "CASAS"}
+	kylerFarnan    = provider{Key: "kyler_farnan", DisplayName: "Dr. Kyler Farnan", ShortName: "Dr. Farnan", MatchKey: "FARNAN"}
+	gisselleCalero = provider{Key: "gisselle_calero", DisplayName: "Dr. Gisselle Calero", ShortName: "Dr. Calero", MatchKey: "CALERO"}
+	lisbetVidal    = provider{Key: "lisbet_vidal", DisplayName: "Dr. Lisbet Vidal", ShortName: "Dr. Vidal", MatchKey: "VIDAL"}
+	miriamBach     = provider{Key: "miriam_bach", DisplayName: "Dr. Miriam Bach", ShortName: "Dr. Miriam Bach", MatchKey: "BACH"}
 )
 
 var AppointmentTypes = map[int]AppointmentType{

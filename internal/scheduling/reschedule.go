@@ -25,9 +25,16 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 	if err != nil || patientIDErr != nil || patientID != policy.PatientID || policy.AppointmentTypeID == 0 {
 		return RescheduleReceipt{}, invalidRescheduleTokenError()
 	}
-	booking, err := s.resolveBookingContext(command)
+	command.AppointmentTypeID = policy.AppointmentTypeID
+	booking, err := s.resolveBookingContext(command, policy.AppointmentTypeID)
 	if err != nil {
 		return RescheduleReceipt{}, err
+	}
+	if booking.token.MoveOf != 0 && booking.token.MoveOf != policy.AppointmentID {
+		return RescheduleReceipt{}, categorizedError(
+			CategoryInvalidBookingToken,
+			"This slot was offered to move a different appointment. Please check availability again.",
+		)
 	}
 	visit := domain.AppointmentVisitType(policy.AppointmentTypeID)
 	if visit == "" || (command.VisitCategory != "" && command.VisitCategory != visit) {

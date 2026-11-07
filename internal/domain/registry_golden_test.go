@@ -146,8 +146,8 @@ func writeGoldenOffice(b *strings.Builder, office *OfficeConfig) {
 		for _, w := range c.SameStartWindows {
 			windows = append(windows, fmt.Sprintf("%s %02d:%02d-%02d:%02d", w.Weekday.String()[:3], w.StartMinute/60, w.StartMinute%60, w.EndMinute/60, w.EndMinute%60))
 		}
-		fmt.Fprintf(b, "column\t%s\t%d\tprofile=%d\tdisplay=%s\tshort=%s\tmatch=%s\tminAge=%d\tcapacity=%d\twindows=%s\n",
-			office.ID, id, c.ProfileID, c.DisplayName, c.ShortName, c.MatchKey, c.MinAgeYears, c.SameStartCapacity, strings.Join(windows, ","))
+		fmt.Fprintf(b, "column\t%s\t%d\tprofile=%d\tprovider=%s\tdisplay=%s\tshort=%s\tmatch=%s\tminAge=%d\tcapacity=%d\twindows=%s\n",
+			office.ID, id, c.ProfileID, c.ProviderKey, c.DisplayName, c.ShortName, c.MatchKey, c.MinAgeYears, c.SameStartCapacity, strings.Join(windows, ","))
 		allows := []string{}
 		for _, d := range goldenDOBs() {
 			allows = append(allows, fmt.Sprintf("%s=%t", d.label, office.ColumnAllowsDOB(id, d.dob, goldenNow)))

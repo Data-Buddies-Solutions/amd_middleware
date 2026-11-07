@@ -81,9 +81,18 @@ type bookingContext struct {
 }
 
 func (s *service) Book(ctx context.Context, command BookCommand) (BookReceipt, error) {
-	booking, err := s.resolveBookingContext(command)
+	if command.RescheduleToken != "" {
+		return BookReceipt{}, schedulingError("rescheduleToken is accepted only when rescheduling. Booking creates a new visit.")
+	}
+	booking, err := s.resolveBookingContext(command, 0)
 	if err != nil {
 		return BookReceipt{}, err
+	}
+	if booking.token.MoveOf != 0 {
+		return BookReceipt{}, categorizedError(
+			CategoryInvalidBookingToken,
+			"This slot was offered to move an existing appointment, so it cannot book a new one. Please check availability again for a new visit.",
+		)
 	}
 	return s.book(ctx, booking)
 }
@@ -205,11 +214,12 @@ func (s *service) prepareBooking(ctx context.Context, booking bookingContext) (p
 	}, nil
 }
 
-func (s *service) resolveBookingContext(command BookCommand) (bookingContext, error) {
+func (s *service) resolveBookingContext(command BookCommand, preservedAppointmentType int) (bookingContext, error) {
 	patientID, patientIDErr := domain.ParsePatientID(command.PatientID)
 	booking := bookingContext{
-		command: command,
-		asOf:    s.now(),
+		command:                  command,
+		preservedAppointmentType: preservedAppointmentType,
+		asOf:                     s.now(),
 	}
 	if command.BookingToken == "" {
 		return bookingContext{}, categorizedError(
@@ -241,16 +251,6 @@ func (s *service) resolveBookingContext(command BookCommand) (bookingContext, er
 	}
 	booking.token = token
 	booking.office = office
-
-	if command.RescheduleToken != "" {
-		policy, err := s.appointmentTokens.verifyReschedule(command.RescheduleToken, s.now().UTC())
-		if err != nil || patientID != policy.PatientID {
-			return bookingContext{}, invalidRescheduleTokenError()
-		}
-		command.AppointmentTypeID = policy.AppointmentTypeID
-		booking.preservedAppointmentType = policy.AppointmentTypeID
-	}
-	booking.command = command
 
 	if patientIDErr != nil {
 		return bookingContext{}, schedulingError(patientIDErr.Error())
@@ -527,7 +527,7 @@ func buildBookReceipt(prepared preparedBooking, appointmentID int) BookReceipt {
 func (s *service) buildBookReceipt(prepared preparedBooking, appointmentID int) BookReceipt {
 	receipt := buildBookReceipt(prepared, appointmentID)
 	appointment := domain.PatientAppointment{
-		ID: appointmentID, Start: prepared.start,
+		ID: appointmentID, ColumnID: prepared.token.ColumnID, Start: prepared.start,
 		AppointmentTypeID: prepared.command.AppointmentTypeID, OfficeID: prepared.office.ID,
 	}
 	receipt.RescheduleToken, _ = s.appointmentTokens.IssueRescheduleToken(string(prepared.patientID), appointment)

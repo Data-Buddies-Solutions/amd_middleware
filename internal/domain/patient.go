@@ -38,6 +38,7 @@ type PatientDemographics struct {
 
 type PatientAppointment struct {
 	ID                int
+	ColumnID          int
 	Start             time.Time
 	Provider          string
 	Type              string

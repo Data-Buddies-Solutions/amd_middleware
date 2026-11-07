@@ -136,11 +136,8 @@ func (p schedulingPolicy) PrepareBooking(req bookingPolicyRequest) (bookingPolic
 		environmentTypeID = typeID
 	}
 	color, ok := p.office.AppointmentColor(typeID)
-	if !ok && !preservesExistingType {
-		return bookingPolicyDecision{}, &schedulingPolicyError{Message: fmt.Sprintf("Invalid appointment type ID: %d", typeID)}
-	}
 	if !ok {
-		color = domain.PreservedAppointmentTypeFallbackColor
+		return bookingPolicyDecision{}, &schedulingPolicyError{Message: fmt.Sprintf("Invalid appointment type ID: %d", typeID)}
 	}
 	if !preservesExistingType && !slices.Contains(p.AllowedAppointmentTypeIDs(routing, ""), typeID) {
 		return bookingPolicyDecision{}, &schedulingPolicyError{Message: fmt.Sprintf("Appointment type %d is not valid for routing %q at %s", typeID, routing, p.office.DisplayName)}
