@@ -103,7 +103,7 @@ func TestSchedulingHandlersMapStableErrorCategories(t *testing.T) {
 	)
 	var cancel schedulingmodule.CancelReceipt
 	json.NewDecoder(cancelResponse.Body).Decode(&cancel)
-	if cancel.Status != "error" || cancel.Outcome != "" || cancel.Message != "cancellationToken is required" {
+	if cancel.Status != "error" || cancel.Outcome != "validation" || cancel.Message != "cancellationToken is required" {
 		t.Fatalf("cancellation response = %#v", cancel)
 	}
 }

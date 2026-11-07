@@ -40,6 +40,7 @@ const (
 	categoryOwnershipMismatch        Category = "ownership_mismatch"
 	CategoryWriteFailed              Category = "write_failed"
 	CategoryIndeterminateWrite       Category = "indeterminate_write"
+	CategoryUnclassified             Category = "unclassified"
 )
 
 type Error struct {
@@ -58,7 +59,7 @@ func CategoryOf(err error) Category {
 	if errors.As(err, &schedulingErr) {
 		return schedulingErr.category
 	}
-	return CategoryValidation
+	return CategoryUnclassified
 }
 
 func ProviderFailureOf(err error) safeerrors.Category {
@@ -120,7 +121,7 @@ func categorizedProviderError(category Category, providerFailure safeerrors.Cate
 
 func providerError(err error, fallback string) error {
 	return &Error{
-		category:        CategoryValidation,
+		category:        CategoryUnclassified,
 		providerFailure: advancedmd.CategoryOf(err),
 		message:         providerFailureMessage(err, fallback),
 	}
@@ -128,6 +129,12 @@ func providerError(err error, fallback string) error {
 
 func providerWriteError(err error, conflictCategory Category, conflictMessage, rejectedMessage, failedMessage string) error {
 	failure := advancedmd.CategoryOf(err)
+	var classified *advancedmd.Error
+	if !errors.As(err, &classified) {
+		return categorizedProviderError(CategoryUnclassified, failure,
+			"The result of this change could not be determined. Do not retry automatically; load appointments before taking another action.",
+		)
+	}
 	switch failure {
 	case safeerrors.CategoryConflict:
 		return categorizedProviderError(conflictCategory, failure, conflictMessage)

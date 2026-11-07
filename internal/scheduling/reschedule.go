@@ -48,11 +48,7 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 	}
 	replacement, err := s.book(ctx, booking)
 	if err != nil {
-		status := "failed"
-		if CategoryOf(err) == CategoryIndeterminateWrite {
-			status = "uncertain"
-		}
-		return RescheduleReceipt{Status: status, Outcome: string(CategoryOf(err)), Failure: err, Message: err.Error() + " The original appointment was not cancelled."}, nil
+		return failedReplacementReceipt(err), nil
 	}
 	if replacement.AppointmentID <= 0 || replacement.AppointmentID == policy.AppointmentID {
 		err := categorizedError(CategoryIndeterminateWrite, "The replacement identity could not be verified. The original was not cancelled; ask staff to reconcile.")
@@ -71,6 +67,23 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 		return partial, nil
 	}
 	return RescheduleReceipt{Status: "completed", Booking: &replacement, Cancellation: &cancellation, Message: "The replacement is booked and the original appointment is cancelled."}, nil
+}
+
+func RescheduleFailureStatus(err error) string {
+	switch CategoryOf(err) {
+	case CategoryIndeterminateWrite, CategoryUnclassified:
+		return "uncertain"
+	default:
+		return "failed"
+	}
+}
+
+func failedReplacementReceipt(err error) RescheduleReceipt {
+	message := err.Error()
+	if CategoryOf(err) != CategoryUnclassified {
+		message += " The original appointment was not cancelled."
+	}
+	return RescheduleReceipt{Status: RescheduleFailureStatus(err), Outcome: string(CategoryOf(err)), Failure: err, Message: message}
 }
 
 func (s *service) verifyRescheduleOriginal(ctx context.Context, policy appointmentTokenPolicy) error {

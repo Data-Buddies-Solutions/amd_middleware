@@ -24,7 +24,7 @@ import (
 	"advancedmd-token-management/internal/session"
 )
 
-var updateIdentityGolden = flag.Bool("update", false, "rewrite testdata/identity.golden.tsv")
+var updateGolden = flag.Bool("update", false, "rewrite the golden files in testdata")
 
 const (
 	pinSecret        = "pin-api-secret"
@@ -683,7 +683,7 @@ func TestIdentityHandlingAcrossRoutesMatchesGolden(t *testing.T) {
 func checkIdentityGolden(t *testing.T, got string) {
 	t.Helper()
 	path := filepath.Join("testdata", "identity.golden.tsv")
-	if *updateIdentityGolden {
+	if *updateGolden {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
 		}
