@@ -232,6 +232,7 @@ func TestCancellationTokenRejectionsPerformNoProviderOperations(t *testing.T) {
 		appointment,
 	)
 	bookingToken, err := scheduling.SignSlotToken("test-scheduling-secret", scheduling.SlotPolicy{
+		PatientID:     "12345",
 		OfficeID:      "crystal_river",
 		Routing:       domain.RoutingBachOnly,
 		ColumnID:      1513,

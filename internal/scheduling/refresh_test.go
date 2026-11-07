@@ -31,12 +31,12 @@ func TestSetupWaiterCanCancelDuringRefresh(t *testing.T) {
 	records := &gatedSetupRecords{Adapter: recordsWithSetup(), started: make(chan struct{}), release: make(chan struct{})}
 	scheduler := scheduling.New(records, "secret", func() time.Time { return time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC) })
 	first := make(chan struct{})
-	go func() { scheduler.List(context.Background(), scheduling.ListCommand{}); close(first) }()
+	go func() { scheduler.List(context.Background(), plannedSearch(scheduling.ListCommand{})); close(first) }()
 	<-records.started
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 	waiter := make(chan error, 1)
-	go func() { _, err := scheduler.List(ctx, scheduling.ListCommand{}); waiter <- err }()
+	go func() { _, err := scheduler.List(ctx, plannedSearch(scheduling.ListCommand{})); waiter <- err }()
 	select {
 	case err := <-waiter:
 		if err == nil {
@@ -53,7 +53,7 @@ func TestSchedulerSetupStaleFallbackHasMaximumAge(t *testing.T) {
 	now := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
 	records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "10:00", 15))
 	scheduler := scheduling.New(records, "secret", func() time.Time { return now })
-	command := scheduling.ListCommand{StartDate: "2026-06-10"}
+	command := plannedSearch(scheduling.ListCommand{StartDate: "2026-06-10"})
 	if _, err := scheduler.List(context.Background(), command); err != nil {
 		t.Fatal(err)
 	}

@@ -121,8 +121,9 @@ To add a capability:
   not "none found".
 - **A slot is a signed promise.** Slot, cancellation, and reschedule tokens share one
   HMAC signer in [tokens.go](internal/scheduling/tokens.go). Booking revalidates the signed
-  facts against live state. `TestTokenFormatIsStable` pins the token bytes so in-flight
-  tokens survive a deploy.
+  facts against live state. `TestTokenFormatIsStable` pins the token bytes so a token
+  still verifies after a deploy. A write still refuses a token that lacks a claim it
+  requires, and the caller searches again.
 - **Refresh is bounded.** Scheduler setup waits honor cancellation, and a failed refresh
   can reuse cached setup for at most 24 hours. Authentication failures respect the retry
   cooldown.
@@ -180,16 +181,17 @@ sent (`visitType` is then required). A plan that does not clear scheduling (not
 accepted, unknown, pending, no doctor for the patient's age, or needing a referral,
 prior authorization, or staff verification) returns `outcome: insurance_not_cleared`
 with `insuranceDecision` and no provider reads. A cleared plan limits openings to the
-doctors who take it. Without `insurancePlanId`, openings are listed without an
-insurance decision. Office, visit type, age, and requested routing select providers;
-routine vision defaults to optical routing. Booking verifies patient identity, the
+doctors who take it. A search needs `patientId` and either `insurancePlanId` or
+`rescheduleToken`; anything else is `invalid_input` before any provider read. Office,
+visit type, age, and requested routing select providers; routine vision defaults to
+optical routing. Booking verifies patient identity, the
 signed slot, appointment policy, and live occupancy without re-triaging insurance.
 
 The slot token signs the `patientId` it was searched for. Booking or rescheduling
 for any other patient returns `patient_context_mismatch` and writes nothing. A
 `patientId` that does not parse is `invalid_input` before any provider read; a slot
-is never issued unbound because its patient could not be read. Tokens issued without
-the claim still verify until they expire.
+is never issued unbound because its patient could not be read. Book and reschedule
+refuse a token without the claim as `invalid_booking_token`.
 
 A move searches with `rescheduleToken`, which must belong to `patientId`. Without
 `insurancePlanId`, the token supplies the office, visit type, and doctor. Openings
@@ -204,10 +206,12 @@ still proceed without the doctor. A destination office that does not allow the
 appointment's type on the routing the search resolves also returns `move_needs_staff`,
 because reschedule would refuse its slots with that same check.
 
-Move searches sign `moveOf`, and a plan-gated move is a move search. Booking refuses a
-slot with `moveOf`, and rescheduling refuses one whose `moveOf` names a different
-appointment, both as `invalid_booking_token`. Booking also refuses a `rescheduleToken`
-as a validation failure; only the reschedule route takes one.
+Move searches sign `moveOf`, and a plan-gated move is a move search. A search with
+neither a plan nor a `rescheduleToken` is refused, so a slot without `moveOf` came from
+a plan search. Booking refuses a slot with `moveOf`. Rescheduling requires `moveOf`
+equal to the rescheduled appointment. Either refusal is `invalid_booking_token`. Booking
+also refuses a `rescheduleToken` as a validation failure; only the reschedule route
+takes one.
 
 Slots accept `patientId`, `visitType`, `startDate`, `office`, `dob`, `routing`,
 `preauthRequired`, `insurancePlanId`, and `rescheduleToken`. Each search covers 14 days; use `startDate` to move the window.

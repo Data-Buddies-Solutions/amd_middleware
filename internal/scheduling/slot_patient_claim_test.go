@@ -18,7 +18,7 @@ func twinRecords() *advancedmdtest.Adapter {
 
 func twinSlotToken(t *testing.T, svc scheduling.Scheduling, patientID string) string {
 	t.Helper()
-	available, err := svc.List(context.Background(), scheduling.ListCommand{PatientID: patientID, Office: "Crystal River", StartDate: "2026-06-03", DOB: "01/15/1980", VisitType: "medical"})
+	available, err := svc.List(context.Background(), scheduling.ListCommand{PatientID: patientID, Office: "Crystal River", StartDate: "2026-06-03", DOB: "01/15/1980", VisitType: "medical", InsurancePlanID: "self-pay-medical"})
 	if err != nil || len(available.Slots) == 0 {
 		t.Fatalf("availability: %v %+v", err, available)
 	}
@@ -69,7 +69,7 @@ func TestSlotTokenSearchedForOnePatientCannotMoveASameDOBPatient(t *testing.T) {
 func TestSlotTokenCarriesThePatientItWasSearchedFor(t *testing.T) {
 	now := mutationTestNow()
 	svc := scheduling.New(twinRecords(), "test-booking-secret", func() time.Time { return now })
-	for raw, want := range map[string]domain.PatientID{"12345": "12345", "pat12345": "12345", " pat12345 ": "12345", "": ""} {
+	for raw, want := range map[string]domain.PatientID{"12345": "12345", "pat12345": "12345", " pat12345 ": "12345"} {
 		policy, err := scheduling.VerifySlotToken("test-booking-secret", twinSlotToken(t, svc, raw), now)
 		if err != nil || policy.PatientID != want {
 			t.Errorf("patientId %q: policy patient %q, err %v", raw, policy.PatientID, err)
@@ -89,18 +89,5 @@ func TestSlotSearchRefusesAnUnparseablePatientIDBeforeAnyRead(t *testing.T) {
 	}
 	if records.SchedulerSetupCalls != 0 {
 		t.Errorf("refused searches read the scheduler %d times", records.SchedulerSetupCalls)
-	}
-}
-
-func TestSlotTokenWithoutAPatientClaimStillBooksDuringRollout(t *testing.T) {
-	records := twinRecords()
-	now := mutationTestNow()
-	svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
-	receipt, err := svc.Book(context.Background(), scheduling.BookCommand{
-		PatientID: "67890", DOB: "01/15/1980", BookingToken: twinSlotToken(t, svc, ""),
-		VisitCategory: "medical", AppointmentReason: "Blurry vision", ReferringDoctor: "none",
-	})
-	if err != nil || receipt.Status != "booked" || len(records.Bookings) != 1 {
-		t.Fatalf("receipt=%+v err=%v bookings=%d", receipt, err, len(records.Bookings))
 	}
 }
