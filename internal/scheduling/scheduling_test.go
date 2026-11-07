@@ -2,6 +2,7 @@ package scheduling_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,12 +26,12 @@ func TestListReturnsNoneOnlyAfterACompleteWindow(t *testing.T) {
 	}
 
 	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-		List(context.Background(), scheduling.ListCommand{
+		List(context.Background(), plannedSearch(scheduling.ListCommand{
 			StartDate: searchDate.Format("2006-01-02"),
 			Office:    "Spring Hill",
 			Routing:   string(domain.RoutingBachOnly),
 			DOB:       "01/15/1980",
-		})
+		}))
 	if err != nil {
 		t.Fatalf("List error = %v", err)
 	}
@@ -65,12 +66,12 @@ func TestListReportsIncompleteForUnusableColumnSchedule(t *testing.T) {
 		done := make(chan searchResult, 1)
 		go func() {
 			response, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-				List(context.Background(), scheduling.ListCommand{
+				List(context.Background(), plannedSearch(scheduling.ListCommand{
 					StartDate: searchDate.Format("2006-01-02"),
 					Office:    "Spring Hill",
 					Routing:   string(domain.RoutingBachOnly),
 					DOB:       "01/15/1980",
-				})
+				}))
 			done <- searchResult{response, err}
 		}()
 		select {
@@ -104,11 +105,11 @@ func TestListStartsAtStartDate(t *testing.T) {
 	}
 
 	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-		List(context.Background(), scheduling.ListCommand{
+		List(context.Background(), plannedSearch(scheduling.ListCommand{
 			StartDate: "2026-06-04",
 			Office:    "Spring Hill",
 			Routing:   string(domain.RoutingBachOnly),
-		})
+		}))
 	if err != nil {
 		t.Fatalf("List error = %v", err)
 	}
@@ -126,12 +127,12 @@ func TestListReturnsIncompleteWhenProviderReadsCannotProveNone(t *testing.T) {
 	}
 
 	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-		List(context.Background(), scheduling.ListCommand{
+		List(context.Background(), plannedSearch(scheduling.ListCommand{
 			StartDate: searchDate.Format("2006-01-02"),
 			Office:    "Spring Hill",
 			Routing:   string(domain.RoutingBachOnly),
 			DOB:       "01/15/1980",
-		})
+		}))
 	if err != nil {
 		t.Fatalf("List error = %v", err)
 	}
@@ -163,12 +164,12 @@ func TestListReturnsIncompleteWhenOneDayIsIncompleteAndTheRestAreFull(t *testing
 	records.IncompleteDays[searchDate.Format("2006-01-02")] = true
 
 	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-		List(context.Background(), scheduling.ListCommand{
+		List(context.Background(), plannedSearch(scheduling.ListCommand{
 			StartDate: searchDate.Format("2006-01-02"),
 			Office:    "Spring Hill",
 			Routing:   string(domain.RoutingBachOnly),
 			DOB:       "01/15/1980",
-		})
+		}))
 	if err != nil {
 		t.Fatalf("List error = %v", err)
 	}
@@ -180,13 +181,19 @@ func TestListReturnsIncompleteWhenOneDayIsIncompleteAndTheRestAreFull(t *testing
 func TestListExcludesRestrictedProviders(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	records := recordsWithSetup(testColumn(1210, 1993, 670, "09:00", "09:15", 15))
+	token, err := scheduling.NewAppointmentTokens("test-booking-secret", func() time.Time { return now }).IssueRescheduleToken("12345", domain.PatientAppointment{
+		ID: 1, ColumnID: 1210, AppointmentTypeID: 4245, OfficeID: "sweetwater", Start: now,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		List(context.Background(), scheduling.ListCommand{
-			StartDate: "2026-06-03",
-			Office:    "Sweetwater",
-			Routing:   string(domain.RoutingOpticalOnly),
-			DOB:       "06/01/2023",
+			PatientID:       "12345",
+			RescheduleToken: token,
+			StartDate:       "2026-06-03",
+			DOB:             "06/01/2023",
 		})
 	if err != nil {
 		t.Fatalf("List error = %v", err)
@@ -209,13 +216,13 @@ func TestListRoutesAPatientByTheirAgeOnTheEasternCalendar(t *testing.T) {
 			records := recordsWithSetup(testColumn(1550, 2076, 1568, "09:00", "09:15", 15))
 
 			result, err := scheduling.New(records, "test-booking-secret", func() time.Time { return tt.now }).
-				List(context.Background(), scheduling.ListCommand{
+				List(context.Background(), plannedSearch(scheduling.ListCommand{
 					StartDate: "2026-10-22",
 					Office:    "Spring Hill",
 					Routing:   string(domain.RoutingAll),
 					VisitType: domain.AppointmentVisitMedical,
 					DOB:       "10/21/2008",
-				})
+				}))
 			if err != nil {
 				t.Fatalf("List error = %v", err)
 			}
@@ -234,9 +241,9 @@ func TestListRejectsInvalidDOB(t *testing.T) {
 	)
 	scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
 
-	_, err := scheduler.List(context.Background(), scheduling.ListCommand{
+	_, err := scheduler.List(context.Background(), plannedSearch(scheduling.ListCommand{
 		StartDate: "2026-06-03", Office: "Spring Hill", Routing: string(domain.RoutingBachOnly), DOB: "not-a-date",
-	})
+	}))
 	if err == nil || err.Error() != "dob must be a valid date" {
 		t.Fatalf("invalid DOB error = %v", err)
 	}
@@ -251,9 +258,9 @@ func TestListPreservesAuthenticationFailureContract(t *testing.T) {
 		records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "09:15", 15))
 		records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryUnavailable)
 		_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-			List(context.Background(), scheduling.ListCommand{
+			List(context.Background(), plannedSearch(scheduling.ListCommand{
 				StartDate: "2026-06-03", Office: "Spring Hill", Routing: string(domain.RoutingBachOnly),
-			})
+			}))
 		if err == nil || err.Error() != want {
 			t.Fatalf("List error = %v, want %q", err, want)
 		}
@@ -266,9 +273,9 @@ func TestListPreservesAuthenticationFailureContract(t *testing.T) {
 		records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "09:15", 15))
 		records.ScheduleReadErrors["2026-06-03"] = advancedmd.NewError(safeerrors.CategoryAuthentication)
 		_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-			List(context.Background(), scheduling.ListCommand{
+			List(context.Background(), plannedSearch(scheduling.ListCommand{
 				StartDate: "2026-06-03", Office: "Spring Hill", Routing: string(domain.RoutingBachOnly),
-			})
+			}))
 		if err == nil || err.Error() != want {
 			t.Fatalf("List error = %v, want %q", err, want)
 		}
@@ -283,9 +290,9 @@ func TestListReportsAdapterInternalFailureAsInternal(t *testing.T) {
 	records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "09:15", 15))
 	records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryInternal)
 	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-		List(context.Background(), scheduling.ListCommand{
+		List(context.Background(), plannedSearch(scheduling.ListCommand{
 			StartDate: "2026-06-03", Office: "Spring Hill", Routing: string(domain.RoutingBachOnly),
-		})
+		}))
 	if got := scheduling.ProviderFailureOf(err); got != safeerrors.CategoryInternal {
 		t.Fatalf("ProviderFailureOf(error) = %q, want internal", got)
 	}
@@ -314,4 +321,20 @@ func testColumn(id, profileID, facilityID int, start, end string, interval int) 
 
 func scheduleRows(columnID int, appointments []domain.Appointment, blockHolds []domain.BlockHold) map[int]advancedmdtest.ColumnRows {
 	return map[int]advancedmdtest.ColumnRows{columnID: {Appointments: appointments, BlockHolds: blockHolds}}
+}
+
+func plannedSearch(command scheduling.ListCommand) scheduling.ListCommand {
+	if command.PatientID == "" {
+		command.PatientID = "12345"
+	}
+	if command.VisitType == "" {
+		command.VisitType = domain.AppointmentVisitMedical
+		if command.Routing == string(domain.RoutingOpticalOnly) {
+			command.VisitType = domain.AppointmentVisitRoutineVision
+		}
+	}
+	if command.InsurancePlanID == "" {
+		command.InsurancePlanID = "self-pay-" + strings.ReplaceAll(command.VisitType, "_", "-")
+	}
+	return command
 }

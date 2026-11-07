@@ -44,9 +44,9 @@ func TestBookRunsItsPreWriteReadsTogether(t *testing.T) {
 	records := patientStatusRecords()
 	records.BookAppointmentID = 777
 	now := mutationTestNow()
-	available, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{
+	available, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).List(context.Background(), plannedSearch(scheduling.ListCommand{
 		PatientID: "12345", Office: "Crystal River", StartDate: "2026-06-03", DOB: "01/15/1980", VisitType: "medical",
-	})
+	}))
 	if err != nil || len(available.Slots) == 0 {
 		t.Fatalf("List() = %+v, %v", available, err)
 	}
@@ -75,9 +75,9 @@ func (panickingVisitRecords) HasCompletedVisit(context.Context, string) (bool, e
 func TestBookRaisesAPreWriteReadPanicOnTheCallingGoroutine(t *testing.T) {
 	records := patientStatusRecords()
 	now := mutationTestNow()
-	available, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).List(context.Background(), scheduling.ListCommand{
+	available, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).List(context.Background(), plannedSearch(scheduling.ListCommand{
 		PatientID: "12345", Office: "Crystal River", StartDate: "2026-06-03", DOB: "01/15/1980", VisitType: "medical",
-	})
+	}))
 	if err != nil || len(available.Slots) == 0 {
 		t.Fatalf("List() = %+v, %v", available, err)
 	}

@@ -20,6 +20,7 @@ func TestBookingCommentIncludesReferringDoctorContact(t *testing.T) {
 		t.Run(scenario.name, func(t *testing.T) {
 			records, command, _ := rescheduleFixture(t)
 			command.RescheduleToken = ""
+			command.BookingToken = signedBookCommand(t, mutationTestNow()).BookingToken
 			command.AppointmentReason = "Eye follow-up"
 			command.ReferringDoctor = "Dr. Lee"
 			command.ReferringDoctorPhone = scenario.phone
@@ -40,6 +41,7 @@ func TestBookingAndRescheduleUseSignedSlotFields(t *testing.T) {
 			records, command, _ := rescheduleFixture(t)
 			if !reschedule {
 				command.RescheduleToken = ""
+				command.BookingToken = signedBookCommand(t, mutationTestNow()).BookingToken
 			}
 			svc := scheduling.New(records, "test-booking-secret", mutationTestNow)
 			var receipt scheduling.BookReceipt
@@ -90,6 +92,9 @@ func TestBookAllowsOmittedIntentWithExplicitOrPreservedType(t *testing.T) {
 		t.Run(mode, func(t *testing.T) {
 			records, command, _ := rescheduleFixture(t)
 			command.VisitCategory = ""
+			if mode != "reschedule" {
+				command.BookingToken = signedBookCommand(t, mutationTestNow()).BookingToken
+			}
 			if mode == "explicit" {
 				command.RescheduleToken = ""
 			} else {

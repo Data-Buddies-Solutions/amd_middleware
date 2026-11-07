@@ -18,7 +18,7 @@ func TestExistingPatientListsAndBooksWithoutInsuranceClarification(t *testing.T)
 			records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: plan, CarrierID: "car40887"}
 			now := mutationTestNow()
 			svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
-			result, err := svc.List(context.Background(), scheduling.ListCommand{PatientID: "12345", Office: "Crystal River", StartDate: "2026-06-03", DOB: "01/15/1980", VisitType: "medical"})
+			result, err := svc.List(context.Background(), plannedSearch(scheduling.ListCommand{PatientID: "12345", Office: "Crystal River", StartDate: "2026-06-03", DOB: "01/15/1980", VisitType: "medical"}))
 			if err != nil || result.Outcome != scheduling.AvailabilityOutcomeFound || len(result.Slots) == 0 {
 				t.Fatalf("existing patient inventory blocked: err=%v result=%+v", err, result)
 			}
@@ -40,7 +40,7 @@ func TestVisionCarrierIdentitySurvivesAvailabilityAndBooking(t *testing.T) {
 	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierID: accepted.CarrierID, CarrierName: "PREMIER EYE CARE"}
 	now := mutationTestNow()
 	svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
-	available, err := svc.List(context.Background(), scheduling.ListCommand{PatientID: "12345", Office: office.DisplayName, DOB: "01/15/1980", VisitType: "routine_vision", StartDate: "2026-06-03"})
+	available, err := svc.List(context.Background(), plannedSearch(scheduling.ListCommand{PatientID: "12345", Office: office.DisplayName, DOB: "01/15/1980", VisitType: "routine_vision", StartDate: "2026-06-03"}))
 	if err != nil || len(available.Slots) == 0 {
 		t.Fatalf("availability: %v %+v", err, available)
 	}
@@ -78,7 +78,7 @@ func TestListWithPlanDecidesThePlanBeforeReadingInventory(t *testing.T) {
 	list := func(planID string) (scheduling.AvailabilityResponse, int) {
 		records := recordsWithSetup(column)
 		svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
-		result, err := svc.List(context.Background(), scheduling.ListCommand{Office: "Spring Hill", StartDate: "2026-06-03", DOB: "01/15/1980", VisitType: "medical", InsurancePlanID: planID})
+		result, err := svc.List(context.Background(), plannedSearch(scheduling.ListCommand{Office: "Spring Hill", StartDate: "2026-06-03", DOB: "01/15/1980", VisitType: "medical", InsurancePlanID: planID}))
 		if err != nil {
 			t.Fatalf("List(%s) error = %v", planID, err)
 		}
@@ -102,7 +102,7 @@ func TestListWithPlanDecidesThePlanBeforeReadingInventory(t *testing.T) {
 func TestListWithPlanRequiresAVisitType(t *testing.T) {
 	now := mutationTestNow()
 	svc := scheduling.New(recordsWithSetup(), "test-booking-secret", func() time.Time { return now })
-	if _, err := svc.List(context.Background(), scheduling.ListCommand{Office: "Crystal River", StartDate: "2026-06-03", DOB: "01/15/1980", InsurancePlanID: "self-pay-medical"}); err == nil {
+	if _, err := svc.List(context.Background(), scheduling.ListCommand{PatientID: "12345", Office: "Crystal River", StartDate: "2026-06-03", DOB: "01/15/1980", InsurancePlanID: "self-pay-medical"}); err == nil {
 		t.Fatal("List without visitType accepted an insurance plan")
 	}
 }

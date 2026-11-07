@@ -30,10 +30,10 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 	if err != nil {
 		return RescheduleReceipt{}, err
 	}
-	if booking.token.MoveOf != 0 && booking.token.MoveOf != policy.AppointmentID {
+	if booking.token.MoveOf != policy.AppointmentID {
 		return RescheduleReceipt{}, categorizedError(
 			CategoryInvalidBookingToken,
-			"This slot was offered to move a different appointment. Please check availability again.",
+			"This slot was not offered to move this appointment. Please check availability again with the appointment's rescheduleToken.",
 		)
 	}
 	visit := domain.AppointmentVisitType(policy.AppointmentTypeID)

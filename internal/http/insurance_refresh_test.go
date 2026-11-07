@@ -160,7 +160,7 @@ func (rig *refreshRig) plans(t *testing.T, office string) insurance.PlanList {
 
 func (rig *refreshRig) slotsOutcome(t *testing.T, planID string) string {
 	t.Helper()
-	body := `{"office":"Sweetwater","startDate":"2026-06-03","dob":"01/15/1980","visitType":"medical","insurancePlanId":"` + planID + `"}`
+	body := `{"patientId":"123","office":"Sweetwater","startDate":"2026-06-03","dob":"01/15/1980","visitType":"medical","insurancePlanId":"` + planID + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer test-secret")
 	w := httptest.NewRecorder()

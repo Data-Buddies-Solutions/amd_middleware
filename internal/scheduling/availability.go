@@ -38,6 +38,12 @@ func (s *service) List(ctx context.Context, command ListCommand) (AvailabilityRe
 	if err != nil {
 		return AvailabilityResponse{}, schedulingError(err.Error())
 	}
+	if patientID == "" {
+		return AvailabilityResponse{}, schedulingError("patientId is required")
+	}
+	if command.RescheduleToken == "" && command.InsurancePlanID == "" {
+		return AvailabilityResponse{}, schedulingError("insurancePlanId is required to search for a new visit. Send rescheduleToken to move an appointment.")
+	}
 	var move moveSearch
 	if command.RescheduleToken != "" {
 		command, move, err = s.bindMoveSearch(command, patientID)
@@ -146,7 +152,7 @@ func (s *service) list(ctx context.Context, command ListCommand, patientID domai
 			Slots: []AvailabilitySlotOption{}, Message: "This office or routing does not support the requested visit type.",
 		}
 	}
-	if command.VisitType != "" && !office.SupportsVisit(command.VisitType) {
+	if !office.SupportsVisit(command.VisitType) {
 		return unsupportedVisit(), nil
 	}
 	if age, ok := dob.AgeOn(nowEastern); ok && command.VisitType == domain.AppointmentVisitRoutineVision && routineVisionTooYoung(office, age) {

@@ -13,7 +13,8 @@ func TestBookingUsesDirectoryRoundTripAndMedicalCategory(t *testing.T) {
 	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: "AETNA", CarrierID: "car40887"}
 	now := mutationTestNow()
 	token, err := scheduling.SignSlotToken("test-booking-secret", scheduling.SlotPolicy{
-		OfficeID: "hollywood", Routing: "bach_only", ColumnID: 1268, ProfileID: 620,
+		PatientID: "12345",
+		OfficeID:  "hollywood", Routing: "bach_only", ColumnID: 1268, ProfileID: 620,
 		StartDatetime: "2026-06-03T09:00", Duration: 15, DOB: "01/15/1980",
 		AppointmentTypeIDs: []int{1006, 1007}, SameStartCapacity: 2,
 		IssuedAt: now.Unix(), ExpiresAt: now.Add(15 * time.Minute).Unix(),
