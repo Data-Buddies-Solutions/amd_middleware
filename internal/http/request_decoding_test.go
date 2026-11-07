@@ -107,7 +107,7 @@ func TestJSONRoutesRejectUnknownFieldsBeforeTheFeature(t *testing.T) {
 		body       map[string]any
 		want       string
 	}
-	invalidBooking := `{"status":"error","message":"Invalid JSON body"}`
+	invalidBooking := `{"status":"error","outcome":"validation","message":"Invalid JSON body"}`
 	rejections := []rejection{
 		{"add patient", "/api/add-patient", map[string]any{"firstName": "Jane", "office": "spring-hill", "unexpected": true},
 			`{"status":"error","message":"Invalid JSON body"}`},
@@ -129,7 +129,7 @@ func TestJSONRoutesRejectUnknownFieldsBeforeTheFeature(t *testing.T) {
 			rejection{"book server-owned " + field, "/api/appointment/book", abitaBookingBody(map[string]any{field: value}), invalidBooking},
 			rejection{"reschedule server-owned " + field, "/api/appointment/reschedule",
 				abitaBookingBody(map[string]any{"rescheduleToken": "reschedule-token", field: value}),
-				`{"status":"failed","message":"Invalid JSON body"}`},
+				`{"status":"failed","outcome":"validation","message":"Invalid JSON body"}`},
 		)
 	}
 	for _, rejection := range rejections {

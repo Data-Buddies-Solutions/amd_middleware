@@ -155,6 +155,7 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 	if err := decodeStrict(r, &req); err != nil {
 		rejectInvalidRequest(w, r, schedulingmodule.CancelReceipt{
 			Status:  "error",
+			Outcome: string(schedulingmodule.CategoryValidation),
 			Message: "Invalid JSON body",
 		})
 		return
@@ -181,7 +182,7 @@ func (h *Handlers) HandleCancelAppointment(w http.ResponseWriter, r *http.Reques
 func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request) {
 	var req schedulingmodule.BookCommand
 	if err := decodeStrict(r, &req); err != nil {
-		rejectInvalidRequest(w, r, schedulingmodule.BookReceipt{Status: "error", Message: "Invalid JSON body"})
+		rejectInvalidRequest(w, r, schedulingmodule.BookReceipt{Status: "error", Outcome: string(schedulingmodule.CategoryValidation), Message: "Invalid JSON body"})
 		return
 	}
 	response, err := h.scheduling.Book(r.Context(), req)
@@ -199,11 +200,7 @@ func (h *Handlers) HandleBookAppointment(w http.ResponseWriter, r *http.Request)
 }
 
 func schedulingOutcome(err error) string {
-	category := schedulingmodule.CategoryOf(err)
-	if category == schedulingmodule.CategoryValidation {
-		return ""
-	}
-	return string(category)
+	return string(schedulingmodule.CategoryOf(err))
 }
 
 func (h *Handlers) HandleListAppointmentSlots(w http.ResponseWriter, r *http.Request) {
@@ -227,7 +224,8 @@ func (h *Handlers) HandleListAppointmentSlots(w http.ResponseWriter, r *http.Req
 
 func inventoryOutcome(err error) string {
 	switch {
-	case schedulingmodule.ProviderFailureOf(err) != safeerrors.CategoryNone:
+	case schedulingmodule.ProviderFailureOf(err) != safeerrors.CategoryNone,
+		schedulingmodule.CategoryOf(err) == schedulingmodule.CategoryUnclassified:
 		return schedulingmodule.AvailabilityOutcomeSearchIncomplete
 	case schedulingmodule.CategoryOf(err) == schedulingmodule.CategoryInvalidRescheduleToken:
 		return schedulingmodule.AvailabilityOutcomeInvalidRescheduleToken
@@ -288,7 +286,8 @@ func recordSchedulingError(ctx context.Context, err error) {
 	case schedulingmodule.CategoryProviderConflict,
 		schedulingmodule.CategoryProviderRejected,
 		schedulingmodule.CategoryWriteFailed,
-		schedulingmodule.CategoryIndeterminateWrite:
+		schedulingmodule.CategoryIndeterminateWrite,
+		schedulingmodule.CategoryUnclassified:
 		recordRequestOutcome(ctx, outcomeProviderFailure, safeerrors.CategoryUpstreamError)
 	default:
 		recordRequestOutcome(ctx, outcomeInvalidRequest, safeerrors.CategoryNone)
@@ -298,13 +297,13 @@ func recordSchedulingError(ctx context.Context, err error) {
 func (h *Handlers) HandleRescheduleAppointment(w http.ResponseWriter, r *http.Request) {
 	var req schedulingmodule.BookCommand
 	if err := decodeStrict(r, &req); err != nil {
-		rejectInvalidRequest(w, r, schedulingmodule.RescheduleReceipt{Status: "failed", Message: "Invalid JSON body"})
+		rejectInvalidRequest(w, r, schedulingmodule.RescheduleReceipt{Status: "failed", Outcome: string(schedulingmodule.CategoryValidation), Message: "Invalid JSON body"})
 		return
 	}
 	receipt, err := h.scheduling.Reschedule(r.Context(), req)
 	if err != nil {
 		recordSchedulingError(r.Context(), err)
-		receipt = schedulingmodule.RescheduleReceipt{Status: "failed", Outcome: schedulingOutcome(err), Message: err.Error()}
+		receipt = schedulingmodule.RescheduleReceipt{Status: schedulingmodule.RescheduleFailureStatus(err), Outcome: schedulingOutcome(err), Message: err.Error()}
 	}
 	if err == nil && receipt.Failure != nil {
 		recordSchedulingError(r.Context(), receipt.Failure)

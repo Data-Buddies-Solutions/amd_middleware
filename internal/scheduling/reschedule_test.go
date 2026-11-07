@@ -2,6 +2,8 @@ package scheduling_test
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -243,5 +245,31 @@ func TestRescheduleRefusesATypeTheTableDoesNotKnowBeforeAnyWrite(t *testing.T) {
 	}
 	if len(records.Bookings) != 0 || len(records.Cancellations) != 0 {
 		t.Fatalf("writes=%d/%d, want none", len(records.Bookings), len(records.Cancellations))
+	}
+}
+
+func TestRescheduleClaimsNothingAfterAnUntypedBookingError(t *testing.T) {
+	records, command, _ := rescheduleFixture(t)
+	records.BookAppointmentErr = errors.New("not an advancedmd error")
+	result, err := scheduling.New(records, "test-booking-secret", mutationTestNow).Reschedule(context.Background(), command)
+	if err != nil || result.Status != "uncertain" || result.Outcome != string(scheduling.CategoryUnclassified) {
+		t.Fatalf("result=%+v err=%v", result, err)
+	}
+	for _, claim := range []string{"not cancelled", "Failed", "try again"} {
+		if strings.Contains(result.Message, claim) {
+			t.Fatalf("message = %q claims %q about a write nobody classified", result.Message, claim)
+		}
+	}
+	if result.Failure == nil || len(records.Cancellations) != 0 {
+		t.Fatalf("failure=%v cancellations=%d", result.Failure, len(records.Cancellations))
+	}
+}
+
+func TestRescheduleReportsAnUntypedCancellationErrorAsPartial(t *testing.T) {
+	records, command, _ := rescheduleFixture(t)
+	records.CancelAppointmentErr = errors.New("not an advancedmd error")
+	result, err := scheduling.New(records, "test-booking-secret", mutationTestNow).Reschedule(context.Background(), command)
+	if err != nil || result.Status != "partial" || result.Outcome != string(scheduling.CategoryUnclassified) || result.Booking == nil {
+		t.Fatalf("result=%+v err=%v", result, err)
 	}
 }
