@@ -167,7 +167,7 @@ func TestSlotContractListsAndRevalidatesRepresentativeSchedules(t *testing.T) {
 			scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
 
 			result, err := scheduler.List(context.Background(), plannedSearch(scheduling.ListCommand{
-				StartDate: slotContractDate, Office: tt.office, Routing: string(tt.routing), DOB: "01/15/1980",
+				StartDate: slotContractDate, Office: tt.office, DOB: "01/15/1980",
 			}))
 			if err != nil {
 				t.Fatalf("List error = %v", err)
@@ -218,7 +218,7 @@ func slotContractAt(hour, minute int) time.Time {
 
 func slotContractBooking(office, token string) scheduling.BookCommand {
 	return scheduling.BookCommand{
-		PatientID: "12345", DOB: "01/15/1980", Office: office, BookingToken: token,
+		PatientID: "12345", DOB: "01/15/1980", BookingToken: token,
 		VisitCategory:     domain.AppointmentVisitMedical,
 		AppointmentReason: "Eye follow-up", ReferringDoctor: "none",
 	}

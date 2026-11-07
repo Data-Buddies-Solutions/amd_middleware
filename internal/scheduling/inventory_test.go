@@ -14,7 +14,7 @@ func TestListLoadsEveryEligibleSlotAcrossCalendarWindow(t *testing.T) {
 	const count = 14
 	records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "10:00", 15))
 	first := time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC)
-	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), plannedSearch(scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only"}))
+	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), plannedSearch(scheduling.ListCommand{Office: "Spring Hill"}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestListIncompleteCalendarCannotClaimCompleteInventory(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "10:00", 15))
 	records.IncompleteDays["2026-06-09"] = true
-	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), plannedSearch(scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only"}))
+	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), plannedSearch(scheduling.ListCommand{Office: "Spring Hill"}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestListReadsOnlyTheRequestedWindow(t *testing.T) {
 		end := start.AddDate(0, 0, 13)
 		before := len(records.ScheduleRangeQueries)
 		result, err := scheduler.List(context.Background(), plannedSearch(scheduling.ListCommand{
-			Office: "Spring Hill", Routing: "bach_only", StartDate: start.Format("2006-01-02"),
+			Office: "Spring Hill", StartDate: start.Format("2006-01-02"),
 		}))
 		if err != nil || result.Outcome != scheduling.AvailabilityOutcomeFound || len(result.Slots) != 40 {
 			t.Fatalf("result=%#v error=%v; want all 40 slots in this window", result, err)
@@ -93,27 +93,60 @@ func TestListRejectsInvalidOrPastStartBeforeProviderRead(t *testing.T) {
 }
 
 func TestListExcludesHeldAndFullSlots(t *testing.T) {
-	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "10:00", 15))
-	for i := 1; i <= 14; i++ {
-		day := time.Date(2026, 6, 1+i, 0, 0, 0, 0, time.UTC)
-		records.Schedule[day.Format("2006-01-02")] = scheduleRows(1513, []domain.Appointment{
-			{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
-			{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
-		}, []domain.BlockHold{{StartDateTime: day.Add(9*time.Hour + 30*time.Minute), EndDateTime: day.Add(10 * time.Hour)}})
+	for name, c := range map[string]struct {
+		today, start  string
+		offsetChanges bool
+	}{
+		"same offset":         {"2026-06-01", "2026-06-02", false},
+		"daylight time ahead": {"2026-02-23", "2026-03-09", true},
+		"standard time ahead": {"2026-10-19", "2026-11-02", true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			now := mustDate(t, c.today).Add(16 * time.Hour)
+			first := mustDate(t, c.start)
+			eastern, err := time.LoadLocation("America/New_York")
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, nowOffset := now.In(eastern).Zone()
+			_, slotOffset := first.Add(16 * time.Hour).In(eastern).Zone()
+			if (nowOffset != slotOffset) != c.offsetChanges {
+				t.Fatalf("fixture: offsets %d and %d, want change=%v", nowOffset, slotOffset, c.offsetChanges)
+			}
+			records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "10:00", 15))
+			for i := range 14 {
+				day := first.AddDate(0, 0, i)
+				records.Schedule[day.Format("2006-01-02")] = scheduleRows(1513, []domain.Appointment{
+					{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
+					{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
+				}, []domain.BlockHold{{StartDateTime: day.Add(9*time.Hour + 30*time.Minute), EndDateTime: day.Add(10 * time.Hour)}})
+			}
+			result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), plannedSearch(scheduling.ListCommand{Office: "Spring Hill", StartDate: c.start}))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.SearchedFrom != c.start || result.SearchedThrough != first.AddDate(0, 0, 13).Format("2006-01-02") {
+				t.Fatalf("wrong coverage: %s..%s", result.SearchedFrom, result.SearchedThrough)
+			}
+			if len(result.Slots) != 14 {
+				t.Fatalf("slots=%d want14", len(result.Slots))
+			}
+			for _, slot := range result.Slots {
+				if slot.Time != "9:15 AM" {
+					t.Fatalf("offered blocked/full slot: %s", slot.DateTime)
+				}
+			}
+		})
 	}
-	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), plannedSearch(scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only"}))
+}
+
+func mustDate(t *testing.T, value string) time.Time {
+	t.Helper()
+	date, err := time.Parse("2006-01-02", value)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Slots) != 14 {
-		t.Fatalf("slots=%d want14", len(result.Slots))
-	}
-	for _, slot := range result.Slots {
-		if slot.Time != "9:15 AM" {
-			t.Fatalf("offered blocked/full slot: %s", slot.Time)
-		}
-	}
+	return date
 }
 
 func TestListBlocksSlotsOverlappedByMultiSlotAppointments(t *testing.T) {
@@ -125,7 +158,7 @@ func TestListBlocksSlotsOverlappedByMultiSlotAppointments(t *testing.T) {
 			{StartDateTime: day.Add(9 * time.Hour), Duration: 60},
 		}, nil)
 	}
-	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), plannedSearch(scheduling.ListCommand{Office: "Spring Hill", Routing: "all_three"}))
+	result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), plannedSearch(scheduling.ListCommand{Office: "Spring Hill"}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,42 +169,6 @@ func TestListBlocksSlotsOverlappedByMultiSlotAppointments(t *testing.T) {
 		if slot.Time == "9:30 AM" {
 			t.Fatalf("offered slot overlapped by a 60-minute appointment: %s", slot.DateTime)
 		}
-	}
-}
-
-func TestPreauthInventoryExcludesOccupiedAndHeldWallClockSlots(t *testing.T) {
-	for _, date := range []string{"2026-01-05", "2026-06-01", "2026-02-23", "2026-10-19"} {
-		t.Run(date, func(t *testing.T) {
-			today, err := time.Parse("2006-01-02", date)
-			if err != nil {
-				t.Fatal(err)
-			}
-			now := today.Add(16 * time.Hour)
-			first := today.AddDate(0, 0, 14)
-			records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "10:00", 15))
-			for i := 0; i < 14; i++ {
-				day := first.AddDate(0, 0, i)
-				records.Schedule[day.Format("2006-01-02")] = scheduleRows(1513, []domain.Appointment{
-					{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
-					{StartDateTime: day.Add(9 * time.Hour), Duration: 15},
-				}, []domain.BlockHold{{StartDateTime: day.Add(9*time.Hour + 30*time.Minute), EndDateTime: day.Add(10 * time.Hour)}})
-			}
-			result, err := scheduling.New(records, "test-secret", func() time.Time { return now }).List(context.Background(), plannedSearch(scheduling.ListCommand{Office: "Spring Hill", Routing: "bach_only", PreauthRequired: true}))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if result.SearchedFrom != first.Format("2006-01-02") || result.SearchedThrough != first.AddDate(0, 0, 13).Format("2006-01-02") {
-				t.Fatalf("wrong coverage: %s..%s", result.SearchedFrom, result.SearchedThrough)
-			}
-			if len(result.Slots) != 14 {
-				t.Fatalf("slots=%d want14", len(result.Slots))
-			}
-			for _, slot := range result.Slots {
-				if slot.Time != "9:15 AM" {
-					t.Fatalf("offered occupied/held slot: %s", slot.DateTime)
-				}
-			}
-		})
 	}
 }
 

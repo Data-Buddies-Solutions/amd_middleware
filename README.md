@@ -183,8 +183,7 @@ prior authorization, or staff verification) returns `outcome: insurance_not_clea
 with `insuranceDecision` and no provider reads. A cleared plan limits openings to the
 doctors who take it. A search needs `patientId` and either `insurancePlanId` or
 `rescheduleToken`; anything else is `invalid_input` before any provider read. Office,
-visit type, age, and requested routing select providers; routine vision defaults to
-optical routing. Booking verifies patient identity, the
+visit type, and age select providers. Booking verifies patient identity, the
 signed slot, appointment policy, and live occupancy without re-triaging insurance.
 
 The slot token signs the `patientId` it was searched for. Booking or rescheduling
@@ -213,14 +212,10 @@ equal to the rescheduled appointment. Either refusal is `invalid_booking_token`.
 also refuses a `rescheduleToken` as a validation failure; only the reschedule route
 takes one.
 
-Slots accept `patientId`, `visitType`, `startDate`, `office`, `dob`, `routing`,
-`preauthRequired`, `insurancePlanId`, and `rescheduleToken`. Each search covers 14 days; use `startDate` to move the window.
-`routing` is `not_accepted`, `bach_only`, `bach_licht`, `all_three`, or
-`optical_only`. Omitted, it is `all_three`, or `optical_only` for routine vision.
-Any other value is `invalid_input`.
-The removed `insurancePlan`, `coverageType`, and `rangeDays` fields are rejected
-by the strict slots decoder. Deploy the Abita request cleanup (ACU-145) before
-deploying this contract change (ACU-146).
+Slots accept `patientId`, `visitType`, `startDate`, `office`, `dob`,
+`insurancePlanId`, and `rescheduleToken`. Each search covers 14 days; use `startDate` to
+move the window. Medical visits search the `all_three` tier and routine vision its
+optical tier, before the age rules.
 
 Booking and rescheduling obtain column, profile, start, duration, and routing
 from the verified `bookingToken`. Those fields and `insurancePlan` are no longer
@@ -230,8 +225,7 @@ Booking decides new versus established itself: the patient is established when
 AdvancedMD's `getpatientvisits` lists any completed visit (status `3`), and new
 otherwise. No-shows, cancellations, scheduled visits, and the legacy status `1`
 do not count. If that history cannot be read, the booking fails with
-`write_failed` and nothing is written. An explicit or rescheduled appointment
-type skips the read. Callers do not send `patientStatus`; it is rejected as an
+`write_failed` and nothing is written. A rescheduled appointment type skips the read. Callers do not send `patientStatus`; it is rejected as an
 unknown field.
 
 `POST /api/scheduler/slots` errors preserve the inventory envelope with `slots: []`.
@@ -365,30 +359,9 @@ plan only filters those doctors. Any `yes` doctor means the plan is accepted
 staff verification); otherwise any
 `pending` doctor sends the call to staff; otherwise it is not accepted.
 
-`POST /api/insurance/decision` takes whatever the caller said. An exact name wins.
-Otherwise the matcher finds every plan the words could mean, tolerating small typos,
-extra words, and fragments. If those plans all end the same way at this office, it
-answers with the best one; if not, it asks `Which of these is on your card` with up to
-four `options` (`planId`, `label`); with more possibilities it asks for the full plan
-name. Only "Medicare" or "Medicaid" with no plan name asks for the full plan name;
-other generic words alone, or no match for this visit type, ask for the card. Every decision for
-a plan carries its `planId` and `carrierId`.
-
-To answer that question, send the caller's words again with `offeredPlanIds` set to
-the offered `planId`s. The middleware picks the offered plan the words name ("Medicare"
-after the Aetna options is Aetna Medicare), asks again with the offered plans that still
-fit when the words are vague, and decides the words as a new plan when they name none of
-them. The voice agent never matches the answer itself.
-
-When the caller has no insurance and will pay themselves, the voice agent sends
-`selfPay: true` with no `plan` or `offeredPlanIds` (sending either with it is an invalid
-request). The middleware decides the office's self-pay plan for that coverage; it does not
-read "no insurance" out of the caller's words.
-
-`POST /api/add-patient` and `POST /api/patient/update-insurance` accept an optional
-`insurancePlanId`. When it is sent, the decision is made for that plan in the office's
-list and coverage and its carrier is written; the name is not matched again. Without
-it, the name is decided as above.
+`POST /api/add-patient` and `POST /api/patient/update-insurance` require
+`insurancePlanId`. The decision is made for that plan in the office's list and coverage,
+and its carrier is written.
 
 ## The scheduling handshake
 
@@ -403,7 +376,7 @@ sequenceDiagram
     participant D as Scheduling policy
     participant R as SchedulingRecords
 
-    C->>S: Search(date, office, routing, DOB)
+    C->>S: Search(date, office, DOB)
     S->>D: Resolve eligible columns and rules
     S->>R: Read live appointments and holds
     S-->>C: Slots + signed bookingToken
@@ -462,7 +435,6 @@ All `/api/*` routes require `Authorization: Bearer <API_SECRET>`.
 | `POST /api/patient/resolve` | Resolve identity, demographics, chart insurance, and upcoming appointments | `patient.Resolve` |
 | `POST /api/add-patient` | Create a patient and attach primary insurance | `patient.Create` |
 | `POST /api/patient/update-insurance` | Replace primary insurance | `patient.UpdateInsurance` |
-| `POST /api/insurance/decision` | Decide plan participation for an office from the caller's answer, matching offered plans first, or the office's self-pay plan when `selfPay` is set | `insurance.DecideOfferedAnswer`, `insurance.DecideSelfPay` |
 | `GET /api/insurance/plans?office=&coverage=` | List an office's plans for one coverage with each plan's family, self-pay flag, decision, carrier, caller notice, and other offices on the same insurance list that accept it, plus the `catalogRevisionId` every plan was decided from (read-only) | `insurance.ListPlans` |
 | `POST /api/insurance/catalog/validate` | Judge a candidate `InsuranceCatalog`: `200 {"valid": true}`, or `400 {"valid": false, "errors": [...]}` with every rule it breaks | `insurance.ValidateCatalog` |
 | `POST /api/scheduler/slots` | List openings as an inventory envelope | `scheduling.List` |

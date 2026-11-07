@@ -23,7 +23,7 @@ func TestEveryPatientRouteStripsThePatPrefixAndPadding(t *testing.T) {
 			t.Errorf("resolve %q = %v, calls %s", raw, resolved, calls)
 		}
 		updated, calls := postIdentity(t, "/api/patient/update-insurance", map[string]any{
-			"office": "Spring Hill", "patientId": raw, "dob": "01/15/1980", "insurance": "Meritain Health", "subscriberNum": "M101",
+			"office": "Spring Hill", "patientId": raw, "dob": "01/15/1980", "insurancePlanId": "meritain-health", "subscriberNum": "M101",
 		})
 		want := `amd addinsurance patient="101" carrier="car301578" subscribernum="M101"; amd enddateinsurance patient="101" insplan="ins101"; amd getdemographic patientid="101"`
 		if updated["status"] != "updated" || updated["patientId"] != "101" || calls != want {
@@ -31,7 +31,7 @@ func TestEveryPatientRouteStripsThePatPrefixAndPadding(t *testing.T) {
 		}
 	}
 	rejected, calls := postIdentity(t, "/api/patient/update-insurance", map[string]any{
-		"office": "Spring Hill", "patientId": "abc", "dob": "01/15/1980", "insurance": "Meritain Health", "subscriberNum": "M101",
+		"office": "Spring Hill", "patientId": "abc", "dob": "01/15/1980", "insurancePlanId": "meritain-health", "subscriberNum": "M101",
 	})
 	if rejected["outcome"] != "validation_failed" || rejected["message"] != "patientId must be numeric" || calls != "" {
 		t.Errorf("update-insurance abc = %v, calls %s", rejected, calls)
@@ -42,7 +42,7 @@ func TestEveryPatientRouteReadsPhonesAsTheSameDigits(t *testing.T) {
 	registration := map[string]any{
 		"firstName": "Jane", "lastName": "Roe", "dob": "01/15/1980",
 		"street": "1 Main St", "city": "Spring Hill", "state": "FL", "zip": "34606", "sex": "female",
-		"insurance": "Meritain Health", "subscriberName": "Jane Roe", "subscriberNum": "M123", "office": "Spring Hill",
+		"insurancePlanId": "meritain-health", "subscriberName": "Jane Roe", "subscriberNum": "M123", "office": "Spring Hill",
 	}
 	for _, raw := range []string{" ", "abc", "+"} {
 		created, calls := postIdentity(t, "/api/add-patient", with(registration, map[string]any{"phone": raw}))
@@ -66,14 +66,6 @@ func TestEveryDOBRouteRejectsAnInvalidDOB(t *testing.T) {
 		if resolved["status"] != "error" || resolved["message"] != "dob must be a valid date" || calls != "" {
 			t.Errorf("resolve phone + dob %q = %v, calls %s", raw, resolved, calls)
 		}
-		decided, _ := postIdentity(t, "/api/insurance/decision", map[string]any{"office": "Hollywood", "plan": "VSP", "coverageType": "routine_vision", "dob": raw})
-		if decided["status"] != "error" || decided["message"] != "dob must be a valid date" {
-			t.Errorf("insurance decision dob %q = %v", raw, decided)
-		}
-	}
-	decided, _ := postIdentity(t, "/api/insurance/decision", map[string]any{"office": "Hollywood", "plan": "VSP", "coverageType": "routine_vision", "dob": "May 1, 2020"})
-	if decided["outcome"] != "accepted" || len(decided["allowedProviders"].([]any)) != 2 {
-		t.Errorf("insurance decision for a six-year-old = %v", decided)
 	}
 }
 
@@ -87,7 +79,7 @@ func TestASpokenFullGivenNameMatchesAChartWithAMiddleName(t *testing.T) {
 		created, calls := postIdentity(t, "/api/add-patient", map[string]any{
 			"firstName": spoken, "lastName": "Smith", "dob": "01/15/1980", "phone": "9545550100",
 			"street": "1 Main St", "city": "Spring Hill", "state": "FL", "zip": "34606", "sex": "female",
-			"insurance": "Meritain Health", "subscriberName": "Mary Smith", "subscriberNum": "M123", "office": "Spring Hill",
+			"insurancePlanId": "meritain-health", "subscriberName": "Mary Smith", "subscriberNum": "M123", "office": "Spring Hill",
 		})
 		if created["outcome"] != "validation_failed" || strings.Contains(calls, "addpatient") {
 			t.Errorf("add-patient %q must find SMITH,MARY ANN: %v, calls %s", spoken, created, calls)
@@ -131,7 +123,7 @@ func TestBookingReceiptNamesThePatientFromTheChartName(t *testing.T) {
 	for raw, want := range map[string]string{"SMITH,MARY ANN": "Mary Ann Smith", "DOE,": "Doe", ",JANE": "Jane", "Jane McDoe": "Jane McDoe"} {
 		booked, _ := postIdentity(t, "/api/appointment/book", map[string]any{
 			"patientId": "12345", "patientName": raw, "dob": "01/15/1980",
-			"bookingToken": signedPinSlot(t, "01/15/1980"), "appointmentTypeId": 1007, "office": "Spring Hill",
+			"bookingToken": signedPinSlot(t, "01/15/1980"), "visitCategory": "medical",
 		})
 		if booked["status"] != "booked" || booked["patientName"] != want {
 			t.Errorf("patientName %q = %v, want %q", raw, booked["patientName"], want)

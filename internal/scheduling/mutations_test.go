@@ -102,25 +102,6 @@ func TestRescheduleRejectsACancellationTokenAsAuthorization(t *testing.T) {
 	}
 }
 
-func TestBookStillRejectsUnrecognizedTypeWithoutRescheduleAuthorization(t *testing.T) {
-	now := mutationTestNow()
-	records := bookingRecords()
-	command := signedBookCommand(t, now)
-	command.AppointmentTypeID = 9999
-
-	_, err := scheduling.New(
-		records,
-		"test-booking-secret",
-		func() time.Time { return now },
-	).Book(context.Background(), command)
-	if scheduling.CategoryOf(err) != scheduling.CategoryValidation {
-		t.Fatalf("Book error = %v, category = %q", err, scheduling.CategoryOf(err))
-	}
-	if len(records.Bookings) != 0 {
-		t.Fatalf("provider bookings = %d, want none", len(records.Bookings))
-	}
-}
-
 func TestBookRevalidatesProviderFromCachedSchedulerSetup(t *testing.T) {
 	now := mutationTestNow()
 	records := bookingRecords()
@@ -157,16 +138,9 @@ func TestBookRevalidatesPatientOfficeTypeProviderCapacityAndForce(t *testing.T) 
 			category: scheduling.CategoryPatientContextMismatch,
 		},
 		{
-			name: "office",
-			mutate: func(_ *advancedmdtest.Adapter, command *scheduling.BookCommand) {
-				command.Office = "Hollywood"
-			},
-			category: scheduling.CategoryInvalidBookingToken,
-		},
-		{
 			name: "appointment type",
-			mutate: func(_ *advancedmdtest.Adapter, command *scheduling.BookCommand) {
-				command.AppointmentTypeID = 1006
+			mutate: func(records *advancedmdtest.Adapter, _ *scheduling.BookCommand) {
+				records.CompletedVisits["12345"] = false
 			},
 			category: scheduling.CategoryInvalidBookingToken,
 		},
@@ -251,9 +225,8 @@ func TestBookUsesVerifiedPatientDOBWhenSignedSlotOmittedIt(t *testing.T) {
 
 	_, err = scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		Book(context.Background(), scheduling.BookCommand{
-			PatientID:         "12345",
-			BookingToken:      token,
-			AppointmentTypeID: 1007,
+			PatientID:    "12345",
+			BookingToken: token,
 		})
 	if scheduling.CategoryOf(err) != scheduling.CategoryValidation {
 		t.Fatalf("Book error = %v, category = %q", err, scheduling.CategoryOf(err))
@@ -444,22 +417,6 @@ func TestBookRequiresBookingTokenBeforeWrite(t *testing.T) {
 	}
 }
 
-func TestCancelRejectsOwnershipMismatchBeforeWrite(t *testing.T) {
-	now := mutationTestNow()
-	records := cancellationRecords()
-	command := cancellationCommand(t)
-	command.AppointmentID = 44444
-
-	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
-		Cancel(context.Background(), command)
-	if scheduling.CategoryOf(err) != scheduling.CategoryInvalidCancellationToken {
-		t.Fatalf("Cancel error = %v, category = %q", err, scheduling.CategoryOf(err))
-	}
-	if len(records.Cancellations) != 0 {
-		t.Fatalf("provider cancellations = %d, want none", len(records.Cancellations))
-	}
-}
-
 func TestCancelReturnsExplicitProviderFailuresWithoutRetry(t *testing.T) {
 	now := mutationTestNow()
 	tests := []struct {
@@ -568,6 +525,7 @@ func mutationTestNow() time.Time {
 func bookingRecords() *advancedmdtest.Adapter {
 	records := recordsWithSetup(testColumn(1513, 620, 1568, "09:00", "09:15", 15))
 	records.Demographics["12345"] = domain.PatientDemographics{CarrierName: "Self Pay", CarrierID: "car301672", DOB: "01/15/1980"}
+	records.CompletedVisits["12345"] = true
 	return records
 }
 
@@ -602,12 +560,11 @@ func signedSlotCommand(t *testing.T, now, start time.Time, moveOf int) schedulin
 		t.Fatalf("SignSlotToken error = %v", err)
 	}
 	return scheduling.BookCommand{
-		PatientID:         "12345",
-		PatientName:       "DOE,JANE",
-		DOB:               "01/15/1980",
-		BookingToken:      token,
-		AppointmentTypeID: 1007,
-		Office:            "Spring Hill",
+		VisitCategory: "medical",
+		PatientID:     "12345",
+		PatientName:   "DOE,JANE",
+		DOB:           "01/15/1980",
+		BookingToken:  token,
 	}
 }
 
@@ -662,7 +619,7 @@ func cancellationCommand(t *testing.T) scheduling.CancelCommand {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return scheduling.CancelCommand{PatientID: "pat12345", AppointmentID: 33333, Office: "Spring Hill", CancellationToken: token}
+	return scheduling.CancelCommand{PatientID: "pat12345", CancellationToken: token}
 }
 
 func TestBookAcceptsPrefixedPatientID(t *testing.T) {

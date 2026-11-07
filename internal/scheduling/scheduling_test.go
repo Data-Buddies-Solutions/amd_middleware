@@ -29,7 +29,6 @@ func TestListReturnsNoneOnlyAfterACompleteWindow(t *testing.T) {
 		List(context.Background(), plannedSearch(scheduling.ListCommand{
 			StartDate: searchDate.Format("2006-01-02"),
 			Office:    "Spring Hill",
-			Routing:   string(domain.RoutingBachOnly),
 			DOB:       "01/15/1980",
 		}))
 	if err != nil {
@@ -69,7 +68,6 @@ func TestListReportsIncompleteForUnusableColumnSchedule(t *testing.T) {
 				List(context.Background(), plannedSearch(scheduling.ListCommand{
 					StartDate: searchDate.Format("2006-01-02"),
 					Office:    "Spring Hill",
-					Routing:   string(domain.RoutingBachOnly),
 					DOB:       "01/15/1980",
 				}))
 			done <- searchResult{response, err}
@@ -108,7 +106,6 @@ func TestListStartsAtStartDate(t *testing.T) {
 		List(context.Background(), plannedSearch(scheduling.ListCommand{
 			StartDate: "2026-06-04",
 			Office:    "Spring Hill",
-			Routing:   string(domain.RoutingBachOnly),
 		}))
 	if err != nil {
 		t.Fatalf("List error = %v", err)
@@ -130,7 +127,6 @@ func TestListReturnsIncompleteWhenProviderReadsCannotProveNone(t *testing.T) {
 		List(context.Background(), plannedSearch(scheduling.ListCommand{
 			StartDate: searchDate.Format("2006-01-02"),
 			Office:    "Spring Hill",
-			Routing:   string(domain.RoutingBachOnly),
 			DOB:       "01/15/1980",
 		}))
 	if err != nil {
@@ -167,7 +163,6 @@ func TestListReturnsIncompleteWhenOneDayIsIncompleteAndTheRestAreFull(t *testing
 		List(context.Background(), plannedSearch(scheduling.ListCommand{
 			StartDate: searchDate.Format("2006-01-02"),
 			Office:    "Spring Hill",
-			Routing:   string(domain.RoutingBachOnly),
 			DOB:       "01/15/1980",
 		}))
 	if err != nil {
@@ -219,7 +214,6 @@ func TestListRoutesAPatientByTheirAgeOnTheEasternCalendar(t *testing.T) {
 				List(context.Background(), plannedSearch(scheduling.ListCommand{
 					StartDate: "2026-10-22",
 					Office:    "Spring Hill",
-					Routing:   string(domain.RoutingAll),
 					VisitType: domain.AppointmentVisitMedical,
 					DOB:       "10/21/2008",
 				}))
@@ -242,7 +236,7 @@ func TestListRejectsInvalidDOB(t *testing.T) {
 	scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
 
 	_, err := scheduler.List(context.Background(), plannedSearch(scheduling.ListCommand{
-		StartDate: "2026-06-03", Office: "Spring Hill", Routing: string(domain.RoutingBachOnly), DOB: "not-a-date",
+		StartDate: "2026-06-03", Office: "Spring Hill", DOB: "not-a-date",
 	}))
 	if err == nil || err.Error() != "dob must be a valid date" {
 		t.Fatalf("invalid DOB error = %v", err)
@@ -259,7 +253,7 @@ func TestListPreservesAuthenticationFailureContract(t *testing.T) {
 		records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryUnavailable)
 		_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 			List(context.Background(), plannedSearch(scheduling.ListCommand{
-				StartDate: "2026-06-03", Office: "Spring Hill", Routing: string(domain.RoutingBachOnly),
+				StartDate: "2026-06-03", Office: "Spring Hill",
 			}))
 		if err == nil || err.Error() != want {
 			t.Fatalf("List error = %v, want %q", err, want)
@@ -274,7 +268,7 @@ func TestListPreservesAuthenticationFailureContract(t *testing.T) {
 		records.ScheduleReadErrors["2026-06-03"] = advancedmd.NewError(safeerrors.CategoryAuthentication)
 		_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 			List(context.Background(), plannedSearch(scheduling.ListCommand{
-				StartDate: "2026-06-03", Office: "Spring Hill", Routing: string(domain.RoutingBachOnly),
+				StartDate: "2026-06-03", Office: "Spring Hill",
 			}))
 		if err == nil || err.Error() != want {
 			t.Fatalf("List error = %v, want %q", err, want)
@@ -291,7 +285,7 @@ func TestListReportsAdapterInternalFailureAsInternal(t *testing.T) {
 	records.SchedulerSetupError = advancedmd.NewError(safeerrors.CategoryInternal)
 	_, err := scheduling.New(records, "test-booking-secret", func() time.Time { return now }).
 		List(context.Background(), plannedSearch(scheduling.ListCommand{
-			StartDate: "2026-06-03", Office: "Spring Hill", Routing: string(domain.RoutingBachOnly),
+			StartDate: "2026-06-03", Office: "Spring Hill",
 		}))
 	if got := scheduling.ProviderFailureOf(err); got != safeerrors.CategoryInternal {
 		t.Fatalf("ProviderFailureOf(error) = %q, want internal", got)
@@ -329,9 +323,6 @@ func plannedSearch(command scheduling.ListCommand) scheduling.ListCommand {
 	}
 	if command.VisitType == "" {
 		command.VisitType = domain.AppointmentVisitMedical
-		if command.Routing == string(domain.RoutingOpticalOnly) {
-			command.VisitType = domain.AppointmentVisitRoutineVision
-		}
 	}
 	if command.InsurancePlanID == "" {
 		command.InsurancePlanID = "self-pay-" + strings.ReplaceAll(command.VisitType, "_", "-")

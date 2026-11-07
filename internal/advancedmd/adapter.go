@@ -52,12 +52,7 @@ func (a *Adapter) SearchPatients(ctx context.Context, search domain.PatientSearc
 	if err != nil {
 		return domain.PatientCandidateRead{}, err
 	}
-	var read domain.PatientCandidateRead
-	if search.Phone != "" {
-		read, err = a.xmlClient.LookupPatientByPhone(ctx, token, search.Phone)
-	} else {
-		read, err = a.xmlClient.LookupPatient(ctx, token, search.LastName, search.FirstName)
-	}
+	read, err := a.xmlClient.LookupPatientByPhone(ctx, token, search.Phone)
 	if err != nil {
 		return domain.PatientCandidateRead{}, a.classify(token, err)
 	}

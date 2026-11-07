@@ -28,11 +28,11 @@ func TestAppointmentTypeMatchesDOBUsesCatalogAgeBand(t *testing.T) {
 }
 
 func TestInvalidAppointmentTypeMessageUsesCatalog(t *testing.T) {
-	policy := newSchedulingPolicy(domain.DefaultOffice(), policyTestNow)
+	policy := newSchedulingPolicy(officeResolvingOnly(domain.DefaultOffice(), 9999), policyTestNow)
 	columnID := 1513
 	profileID := 620
 	_, policyErr := policy.PrepareBooking(bookingPolicyRequest{
-		ColumnID: columnID, ProfileID: profileID, AppointmentTypeID: 9999, Routing: domain.RoutingAll,
+		ColumnID: columnID, ProfileID: profileID, Routing: domain.RoutingAll,
 	})
 	const want = "Invalid appointment type ID: 9999. Valid types: 1004, 1005, 1006, 1007, 1008, 1010, 3364, 4244, 4245, 6167, 6168, 6169"
 	if policyErr == nil || policyErr.Message != want {
@@ -63,8 +63,10 @@ func TestSchedulingPolicy_FarnanAdultVisionColumnBooksOnlyAdultVision(t *testing
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			policy := newSchedulingPolicy(officeResolvingOnly(policy.office, tt.typeID), policy.asOf)
 			_, policyErr := policy.PrepareBooking(bookingPolicyRequest{
-				ColumnID: 1615, ProfileID: 2075, AppointmentTypeID: tt.typeID, Routing: tt.routing, DOB: tt.dob,
+				ColumnID: 1615, ProfileID: 2075, Routing: tt.routing, DOB: tt.dob,
+				Intent: appointmentIntent{VisitCategory: domain.AppointmentVisitType(tt.typeID)},
 			})
 			got := ""
 			if policyErr != nil {
@@ -86,14 +88,22 @@ func TestSchedulingPolicy_PrepareBookingRejectsAppointmentTypeForWrongAge(t *tes
 	policy := newSchedulingPolicy(domain.DefaultOffice(), policyTestNow)
 	adultDOB := domain.DOB(policyTestNow.AddDate(-30, 0, 0).Format("01/02/2006"))
 
+	policy = newSchedulingPolicy(officeResolvingOnly(policy.office, 1004), policy.asOf)
 	_, policyErr := policy.PrepareBooking(bookingPolicyRequest{
-		ColumnID:          1513,
-		ProfileID:         620,
-		AppointmentTypeID: 1004,
-		Routing:           domain.RoutingBachOnly,
-		DOB:               adultDOB,
+		ColumnID:  1513,
+		ProfileID: 620,
+		Routing:   domain.RoutingBachOnly,
+		DOB:       adultDOB,
+		Intent:    appointmentIntent{VisitCategory: domain.AppointmentVisitMedical},
 	})
 	if policyErr == nil {
 		t.Fatal("adult booking with pediatric appointment type succeeded")
 	}
+}
+
+func officeResolvingOnly(office *domain.OfficeConfig, typeID int) *domain.OfficeConfig {
+	resolving := *office
+	ladder := domain.AppointmentTypeLadder{NewPediatric: typeID, NewAdult: typeID, EstablishedPediatric: typeID, EstablishedAdult: typeID}
+	resolving.AppointmentTypes = domain.OfficeAppointmentTypes{PostOp: typeID, Medical: ladder, RoutineVision: ladder}
+	return &resolving
 }
