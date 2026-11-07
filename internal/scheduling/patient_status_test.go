@@ -28,7 +28,7 @@ func bookMedicalAtCrystalRiver(t *testing.T, records *advancedmdtest.Adapter) (s
 		t.Fatalf("availability: %v %+v", err, available)
 	}
 	return svc.Book(context.Background(), scheduling.BookCommand{
-		PatientID: "12345", DOB: "01/15/1980", Office: "Crystal River", BookingToken: available.Slots[0].BookingToken,
+		PatientID: "12345", DOB: "01/15/1980", BookingToken: available.Slots[0].BookingToken,
 		VisitCategory: "medical", AppointmentReason: "Blurry vision", ReferringDoctor: "none",
 	})
 }
@@ -51,7 +51,7 @@ func TestBookingClassifiesPatientFromCompletedVisits(t *testing.T) {
 			records := patientStatusRecords()
 			records.CompletedVisits["12345"] = c.completed
 			receipt, err := bookMedicalAtCrystalRiver(t, records)
-			if err != nil || len(records.Bookings) != 1 || receipt.AppointmentTypeID != c.want {
+			if err != nil || len(records.Bookings) != 1 || records.Bookings[0].ProviderAppointmentTypeID != c.want {
 				t.Fatalf("receipt=%+v err=%v writes=%d, want type %d", receipt, err, len(records.Bookings), c.want)
 			}
 			if records.CompletedVisitCalls != 1 {

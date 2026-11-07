@@ -209,7 +209,6 @@ func searchPatients(search domain.PatientSearch) func(context.Context, records) 
 
 func patientSearchScenarios() []scenario {
 	byPhone := domain.PatientSearch{Phone: "9542872010"}
-	byName := domain.PatientSearch{LastName: "Doe", FirstName: "Jane"}
 	return []scenario{
 		{
 			name: "phone search on one page is complete",
@@ -244,7 +243,7 @@ func patientSearchScenarios() []scenario {
 			want: outcome{Value: domain.PatientCandidateRead{Patients: []domain.Patient{}, Complete: true}},
 		},
 		{
-			name: "name search across two pages is complete",
+			name: "phone search across two pages is complete",
 			op:   "SearchPatients",
 			amd: func(p *advancedmdtest.Provider) {
 				reply(p, "lookuppatient",
@@ -252,20 +251,20 @@ func patientSearchScenarios() []scenario {
 					patientList(`"@itemcount":"2","@page":"2","@pagecount":"2"`, johnRow),
 				)
 			},
-			fake: func(f *advancedmdtest.Adapter) { f.PatientSearches[byName] = []domain.Patient{jane, john} },
-			call: searchPatients(byName),
+			fake: func(f *advancedmdtest.Adapter) { f.PatientSearches[byPhone] = []domain.Patient{jane, john} },
+			call: searchPatients(byPhone),
 			want: outcome{Value: domain.PatientCandidateRead{Patients: []domain.Patient{jane, john}, Complete: true}},
 		},
 		{
-			name: "name search from a legacy empty lookup is incomplete",
+			name: "phone search from a legacy empty lookup is incomplete",
 			op:   "SearchPatients",
 			amd: func(p *advancedmdtest.Provider) {
 				reply(p, "lookuppatient", patientList(`"@itemcount":"0"`))
 			},
 			fake: func(f *advancedmdtest.Adapter) {
-				f.IncompletePatientSearch = map[domain.PatientSearch]bool{byName: true}
+				f.IncompletePatientSearch = map[domain.PatientSearch]bool{byPhone: true}
 			},
-			call: searchPatients(byName),
+			call: searchPatients(byPhone),
 			want: outcome{Value: domain.PatientCandidateRead{Patients: []domain.Patient{}, Complete: false}},
 		},
 		{

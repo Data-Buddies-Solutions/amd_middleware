@@ -57,7 +57,6 @@ const (
 
 type ResolveCommand struct {
 	PatientID string `json:"patientId"`
-	LastName  string `json:"lastName"`
 	DOB       string `json:"dob"`
 	FirstName string `json:"firstName"`
 	Phone     string `json:"phone"`
@@ -68,7 +67,6 @@ type ResolveQuery struct {
 	PatientID domain.PatientID
 	Phone     domain.Phone
 	FirstName domain.PersonName
-	LastName  domain.PersonName
 	DOB       domain.DOB
 	OfficeID  string
 }
@@ -80,7 +78,6 @@ type Appointment struct {
 	Provider          string `json:"provider,omitempty"`
 	Type              string `json:"type,omitempty"`
 	VisitType         string `json:"visitType,omitempty"`
-	AppointmentTypeID int    `json:"appointmentTypeId,omitempty"`
 	Facility          string `json:"facility,omitempty"`
 	OfficeID          string `json:"officeId,omitempty"`
 	Office            string `json:"office,omitempty"`
@@ -108,11 +105,6 @@ type ResolveResult struct {
 	InsuranceCarrier    string                       `json:"insuranceCarrier,omitempty"`
 	InsuranceCarrierID  string                       `json:"insuranceCarrierId,omitempty"`
 	InsuranceNote       string                       `json:"insuranceNote,omitempty"`
-	InsPlanID           string                       `json:"insPlanId,omitempty"`
-	RespPartyID         string                       `json:"respPartyId,omitempty"`
-	AllowedProviders    []string                     `json:"allowedProviders,omitempty"`
-	RoutingAmbiguous    bool                         `json:"routingAmbiguous,omitempty"`
-	PreauthRequired     bool                         `json:"preauthRequired,omitempty"`
 	AppointmentsStatus  AppointmentsStatus           `json:"appointmentsStatus,omitempty"`
 	Appointments        []Appointment                `json:"appointments"`
 	AppointmentsMessage string                       `json:"appointmentsMessage,omitempty"`
@@ -151,7 +143,6 @@ type CreateCommand struct {
 	State           string `json:"state"`
 	Zip             string `json:"zip"`
 	Sex             string `json:"sex"`
-	Insurance       string `json:"insurance"`
 	InsurancePlanID string `json:"insurancePlanId"`
 	CoverageType    string `json:"coverageType"`
 	SubscriberName  string `json:"subscriberName"`
@@ -166,8 +157,6 @@ type CreateResult struct {
 	PatientID         string                       `json:"patientId,omitempty"`
 	Name              string                       `json:"name,omitempty"`
 	DOB               string                       `json:"dob,omitempty"`
-	AllowedProviders  []string                     `json:"allowedProviders,omitempty"`
-	PreauthRequired   bool                         `json:"preauthRequired,omitempty"`
 	Message           string                       `json:"message,omitempty"`
 	Observation       CreateObservation            `json:"-"`
 }
@@ -175,7 +164,6 @@ type CreateResult struct {
 type UpdateInsuranceCommand struct {
 	PatientID       string `json:"patientId"`
 	DOB             string `json:"dob"`
-	Insurance       string `json:"insurance"`
 	InsurancePlanID string `json:"insurancePlanId"`
 	CoverageType    string `json:"coverageType"`
 	SubscriberName  string `json:"subscriberName"`
@@ -191,8 +179,6 @@ type UpdateInsuranceResult struct {
 	PatientID         string                       `json:"patientId,omitempty"`
 	OldInsurance      string                       `json:"oldInsurance,omitempty"`
 	NewInsurance      string                       `json:"newInsurance,omitempty"`
-	AllowedProviders  []string                     `json:"allowedProviders,omitempty"`
-	PreauthRequired   bool                         `json:"preauthRequired,omitempty"`
 	Message           string                       `json:"message,omitempty"`
 }
 

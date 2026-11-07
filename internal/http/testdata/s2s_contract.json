@@ -29,7 +29,6 @@
         "dob",
         "email",
         "firstName",
-        "insurance",
         "insurancePlanId",
         "lastName",
         "office",
@@ -42,7 +41,6 @@
         "zip"
       ],
       "reply": [
-        "allowedProviders",
         "dob",
         "insuranceDecision",
         "insuranceDecision.allowedProviders",
@@ -70,17 +68,14 @@
         "name",
         "outcome",
         "patientId",
-        "preauthRequired",
         "status"
       ]
     },
     "POST /api/appointment/book": {
       "request": [
         "appointmentReason",
-        "appointmentTypeId",
         "bookingToken",
         "dob",
-        "office",
         "patientId",
         "patientName",
         "referringDoctor",
@@ -92,7 +87,6 @@
       ],
       "reply": [
         "appointmentId",
-        "appointmentTypeId",
         "appointmentTypeName",
         "cancellationToken",
         "duration",
@@ -114,9 +108,7 @@
     },
     "POST /api/appointment/cancel": {
       "request": [
-        "appointmentId",
         "cancellationToken",
-        "office",
         "patientId"
       ],
       "reply": [
@@ -129,10 +121,8 @@
     "POST /api/appointment/reschedule": {
       "request": [
         "appointmentReason",
-        "appointmentTypeId",
         "bookingToken",
         "dob",
-        "office",
         "patientId",
         "patientName",
         "referringDoctor",
@@ -145,7 +135,6 @@
       "reply": [
         "booking",
         "booking.appointmentId",
-        "booking.appointmentTypeId",
         "booking.appointmentTypeName",
         "booking.cancellationToken",
         "booking.duration",
@@ -177,15 +166,12 @@
       "request": [
         "dob",
         "firstName",
-        "lastName",
         "office",
         "patientId",
         "phone"
       ],
       "reply": [
-        "allowedProviders",
         "appointments",
-        "appointments.appointmentTypeId",
         "appointments.cancellationToken",
         "appointments.date",
         "appointments.facility",
@@ -200,7 +186,6 @@
         "appointmentsMessage",
         "appointmentsStatus",
         "dob",
-        "insPlanId",
         "insuranceCarrier",
         "insuranceCarrierId",
         "insuranceDecision",
@@ -236,10 +221,7 @@
         "name",
         "patientId",
         "phone",
-        "preauthRequired",
         "reason",
-        "respPartyId",
-        "routingAmbiguous",
         "status"
       ]
     },
@@ -247,7 +229,6 @@
       "request": [
         "coverageType",
         "dob",
-        "insurance",
         "insurancePlanId",
         "office",
         "patientId",
@@ -255,7 +236,6 @@
         "subscriberNum"
       ],
       "reply": [
-        "allowedProviders",
         "effect",
         "insuranceDecision",
         "insuranceDecision.allowedProviders",
@@ -284,7 +264,6 @@
         "oldInsurance",
         "outcome",
         "patientId",
-        "preauthRequired",
         "status"
       ]
     },
@@ -294,17 +273,13 @@
         "insurancePlanId",
         "office",
         "patientId",
-        "preauthRequired",
         "rescheduleToken",
-        "routing",
         "startDate",
         "visitType"
       ],
       "reply": [
-        "actualDate",
         "availabilityFound",
         "bookingTokenExpiresAt",
-        "dateShifted",
         "insuranceDecision",
         "insuranceDecision.allowedProviders",
         "insuranceDecision.answer",

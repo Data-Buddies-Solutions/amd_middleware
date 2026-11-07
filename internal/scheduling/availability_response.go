@@ -43,8 +43,6 @@ type AvailabilityResponse struct {
 	Outcome               string                       `json:"outcome"`
 	AvailabilityFound     bool                         `json:"availabilityFound"`
 	RequestedDate         string                       `json:"requestedDate,omitempty"`
-	ActualDate            string                       `json:"actualDate,omitempty"`
-	DateShifted           bool                         `json:"dateShifted,omitempty"`
 	SearchedFrom          string                       `json:"searchedFrom,omitempty"`
 	SearchedThrough       string                       `json:"searchedThrough,omitempty"`
 	BookingTokenExpiresAt string                       `json:"bookingTokenExpiresAt,omitempty"`

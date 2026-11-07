@@ -237,9 +237,9 @@ func (r pinRecords) ReadPatientAppointments(_ context.Context, query domain.Pati
 	return pinAppointmentRead(query.PatientID), nil
 }
 
-func (r pinRecords) HasCompletedVisit(ctx context.Context, patientID string) (bool, error) {
+func (r pinRecords) HasCompletedVisit(_ context.Context, patientID string) (bool, error) {
 	r.calls.record("completed-visits patient=%q", patientID)
-	return r.amd.HasCompletedVisit(ctx, patientID)
+	return true, nil
 }
 
 func (r pinRecords) ReadPatientAppointmentsForDay(_ context.Context, query advancedmd.AppointmentDayQuery) (advancedmd.AppointmentRead, error) {
@@ -531,18 +531,13 @@ func TestIdentityHandlingAcrossRoutesMatchesGolden(t *testing.T) {
 		{"firstName + dob invalid", map[string]any{"firstName": "Jane", "dob": "02/30/1980"}},
 		{"firstName + dob future", map[string]any{"firstName": "Jane", "dob": "2099-01-01"}},
 		{"firstName + dob padded dob", map[string]any{"firstName": "Jane", "dob": "01/15/1980 "}},
-		{"lastName + dob", map[string]any{"lastName": "Smith", "dob": "03/20/1982"}},
-		{"lastName + dob diacritics", map[string]any{"lastName": "García", "dob": "01/15/1980"}},
-		{"lastName + firstName + dob", map[string]any{"lastName": "Smith", "firstName": "Mary", "dob": "01/15/1980"}},
-		{"lastName + firstName Mary Ann + dob", map[string]any{"lastName": "Smith", "firstName": "Mary Ann", "dob": "01/15/1980"}},
-		{"lastName without dob", map[string]any{"lastName": "Smith"}},
 		{"dob only", map[string]any{"dob": "01/15/1980"}},
 	})
 
 	create := map[string]any{
 		"firstName": "Jane", "lastName": "Roe", "dob": "01/15/1980", "phone": "9545550199",
 		"street": "1 Main St", "city": "Spring Hill", "state": "FL", "zip": "34606", "sex": "female",
-		"insurance": "Meritain Health", "subscriberName": "Jane Roe", "subscriberNum": "M123", "office": "Spring Hill",
+		"insurancePlanId": "meritain-health", "subscriberName": "Jane Roe", "subscriberNum": "M123", "office": "Spring Hill",
 	}
 	run("add-patient", "/api/add-patient", create, []pinCase{
 		{"baseline", nil},
@@ -574,7 +569,7 @@ func TestIdentityHandlingAcrossRoutesMatchesGolden(t *testing.T) {
 		{"household member", map[string]any{"firstName": "Peter", "lastName": "Smith", "phone": "9545550100"}},
 	})
 
-	update := map[string]any{"patientId": "101", "dob": "01/15/1980", "insurance": "Meritain Health", "subscriberNum": "M101", "office": "Spring Hill"}
+	update := map[string]any{"patientId": "101", "dob": "01/15/1980", "insurancePlanId": "meritain-health", "subscriberNum": "M101", "office": "Spring Hill"}
 	run("update-insurance", "/api/patient/update-insurance", update, []pinCase{
 		{"baseline", nil},
 		{"patientId pat prefix", map[string]any{"patientId": "pat101"}},
@@ -595,7 +590,7 @@ func TestIdentityHandlingAcrossRoutesMatchesGolden(t *testing.T) {
 
 	book := map[string]any{
 		"patientId": "12345", "patientName": "DOE,JANE", "dob": "01/15/1980",
-		"bookingToken": signedPinSlot(t, "01/15/1980"), "appointmentTypeId": 1007, "office": "Spring Hill",
+		"bookingToken": signedPinSlot(t, "01/15/1980"), "visitCategory": "medical",
 	}
 	undatedSlot := signedPinSlot(t, "")
 	run("book", "/api/appointment/book", book, []pinCase{
@@ -629,7 +624,6 @@ func TestIdentityHandlingAcrossRoutesMatchesGolden(t *testing.T) {
 	})
 
 	reschedule := with(book, map[string]any{
-		"visitCategory":   "medical",
 		"bookingToken":    signedPinSlotFor(t, "01/15/1980", pinOriginal.ID),
 		"rescheduleToken": pinAppointmentToken(t, "reschedule", pinOriginal),
 	})
@@ -647,7 +641,7 @@ func TestIdentityHandlingAcrossRoutesMatchesGolden(t *testing.T) {
 	})
 
 	cancellable := domain.PatientAppointment{ID: 33333, Start: pinStart, OfficeID: "spring_hill", Office: "Spring Hill"}
-	cancel := map[string]any{"cancellationToken": pinAppointmentToken(t, "cancel", cancellable), "appointmentId": 33333, "office": "Spring Hill"}
+	cancel := map[string]any{"cancellationToken": pinAppointmentToken(t, "cancel", cancellable)}
 	run("cancel", "/api/appointment/cancel", cancel, []pinCase{
 		{"token only", nil},
 		{"patientId numeric", map[string]any{"patientId": "12345"}},
@@ -658,11 +652,11 @@ func TestIdentityHandlingAcrossRoutesMatchesGolden(t *testing.T) {
 		{"patientId bare pat", map[string]any{"patientId": "pat"}},
 	})
 
-	slots := map[string]any{"office": "Spring Hill", "startDate": "2026-06-03", "routing": "bach_only", "visitType": "medical", "patientId": "12345", "insurancePlanId": "self-pay-medical"}
+	slots := map[string]any{"office": "Spring Hill", "startDate": "2026-06-03", "visitType": "medical", "patientId": "12345", "insurancePlanId": "self-pay-medical"}
 	run("slots", "/api/scheduler/slots", slots, []pinCase{
 		{"no identity", map[string]any{"patientId": nil}},
 		{"no plan and no move", map[string]any{"insurancePlanId": nil}},
-		{"move", map[string]any{"insurancePlanId": nil, "office": nil, "visitType": nil, "routing": nil, "rescheduleToken": pinAppointmentToken(t, "reschedule", pinOriginal)}},
+		{"move", map[string]any{"insurancePlanId": nil, "office": nil, "visitType": nil, "rescheduleToken": pinAppointmentToken(t, "reschedule", pinOriginal)}},
 		{"plan-gated move", map[string]any{"office": nil, "rescheduleToken": pinAppointmentToken(t, "reschedule", pinOriginal)}},
 		{"patientId numeric", map[string]any{"patientId": "12345"}},
 		{"patientId pat prefix", map[string]any{"patientId": "pat12345"}},
@@ -675,19 +669,6 @@ func TestIdentityHandlingAcrossRoutesMatchesGolden(t *testing.T) {
 		{"dob future", map[string]any{"dob": "2099-01-01"}},
 		{"dob garbage", map[string]any{"dob": "garbage"}},
 		{"dob padded", map[string]any{"dob": "01/15/1980 "}},
-	})
-
-	decision := map[string]any{"plan": "VSP", "coverageType": "routine_vision", "office": "Hollywood"}
-	run("insurance-decision", "/api/insurance/decision", decision, []pinCase{
-		{"no dob", nil},
-		{"dob adult", map[string]any{"dob": "01/15/1980"}},
-		{"dob adult iso", map[string]any{"dob": "1980-01-15"}},
-		{"dob six years old", map[string]any{"dob": "05/01/2020"}},
-		{"dob six years old words", map[string]any{"dob": "May 1, 2020"}},
-		{"dob three years old", map[string]any{"dob": "05/01/2023"}},
-		{"dob three years old iso", map[string]any{"dob": "2023-05-01"}},
-		{"dob garbage", map[string]any{"dob": "garbage"}},
-		{"dob future", map[string]any{"dob": "2099-01-01"}},
 	})
 
 	checkIdentityGolden(t, strings.Join(rows, "\n")+"\n")

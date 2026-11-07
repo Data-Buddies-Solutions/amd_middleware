@@ -10,37 +10,6 @@ import (
 	"advancedmd-token-management/internal/safeerrors"
 )
 
-func (h *Handlers) HandleInsuranceDecision(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Plan         string   `json:"plan"`
-		CoverageType string   `json:"coverageType"`
-		Office       string   `json:"office"`
-		DOB          string   `json:"dob"`
-		Offered      []string `json:"offeredPlanIds"`
-		SelfPay      bool     `json:"selfPay"`
-	}
-	if decodeStrict(r, &req) != nil || (req.SelfPay && (req.Plan != "" || len(req.Offered) > 0)) {
-		rejectInvalidRequest(w, r, errorResponse{Status: "error", Message: "Invalid insurance request"})
-		return
-	}
-	office, err := domain.ResolveOffice(req.Office)
-	if err != nil {
-		rejectInvalidRequest(w, r, errorResponse{Status: "error", Message: "Unknown office"})
-		return
-	}
-	now := h.now()
-	dob, err := domain.ParseDOB(req.DOB, now)
-	if err != nil {
-		rejectInvalidRequest(w, r, errorResponse{Status: "error", Message: err.Error()})
-		return
-	}
-	if req.SelfPay {
-		respond(w, insurance.DecideSelfPay(req.CoverageType, office, dob, now))
-		return
-	}
-	respond(w, insurance.DecideOfferedAnswer(req.Plan, req.Offered, req.CoverageType, office, dob, now))
-}
-
 func (h *Handlers) HandleInsurancePlans(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	officeKey := query.Get("office")

@@ -25,11 +25,11 @@ func (p *patient) Resolve(ctx context.Context, query ResolveQuery) (ResolveResul
 		return p.resolvePatient(ctx, domain.Patient{ID: string(query.PatientID)}, "", office)
 	}
 
-	if query.Phone == "" && query.LastName == "" && query.FirstName != "" && query.DOB != "" {
+	if query.Phone == "" && query.FirstName != "" && query.DOB != "" {
 		return p.resolveFirstNameDOB(ctx, query, office)
 	}
 
-	search := patientSearch(query)
+	search := domain.PatientSearch{Phone: string(query.Phone)}
 	searchStarted := time.Now()
 	read, err := p.advancedMD.SearchPatients(ctx, search)
 	observation := ResolutionObservation{
@@ -85,16 +85,6 @@ func (p *patient) Resolve(ctx context.Context, query ResolveQuery) (ResolveResul
 	result.Observation.CandidateCountBucket = observation.CandidateCountBucket
 	result.Observation.PatientSearchComplete = observation.PatientSearchComplete
 	return result, err
-}
-
-func patientSearch(query ResolveQuery) domain.PatientSearch {
-	if query.Phone != "" {
-		return domain.PatientSearch{Phone: string(query.Phone)}
-	}
-	return domain.PatientSearch{
-		FirstName: string(query.FirstName),
-		LastName:  string(query.LastName),
-	}
 }
 
 func selectPatients(patients []domain.Patient, query ResolveQuery) []domain.Patient {
@@ -261,7 +251,6 @@ func (p *patient) resolvePatientWithDemographics(ctx context.Context, candidate 
 				result.Observation.AppointmentOutcome = "error"
 				return result, nil
 			}
-			resolved.AppointmentTypeID = appointment.AppointmentTypeID
 			resolved.VisitType = domain.AppointmentVisitType(appointment.AppointmentTypeID)
 			resolved.OfficeID = appointment.OfficeID
 			resolved.Office = appointment.Office
@@ -325,8 +314,6 @@ func appointmentLoadOutcome(appointments []domain.PatientAppointment, err error)
 
 func applyDemographics(result *ResolveResult, demographics domain.PatientDemographics, office *domain.OfficeConfig, patientDOB domain.DOB, asOf time.Time) {
 	result.InsuranceCarrier = demographics.CarrierName
-	result.InsPlanID = demographics.InsPlanID
-	result.RespPartyID = demographics.RespPartyID
 	result.InsuranceCarrierID = demographics.CarrierID
 	result.InsuranceNote = maskedInsuranceNote(demographics.InsuranceNote)
 	if demographics.CarrierID == "" {
@@ -334,9 +321,6 @@ func applyDemographics(result *ResolveResult, demographics domain.PatientDemogra
 	}
 	decision := insurance.DecideChartInsurance(demographics, "medical", office, patientDOB, asOf)
 	result.InsuranceDecision = &decision
-	result.AllowedProviders = decision.AllowedProviders
-	result.RoutingAmbiguous = decision.Participation == "unknown"
-	result.PreauthRequired = len(decision.Requirements) > 0
 }
 
 const maxInsuranceNoteRunes = 300
@@ -374,14 +358,11 @@ func multipleMatchesMessage(query ResolveQuery, count int) string {
 	if query.Phone != "" && query.FirstName != "" && query.DOB == "" {
 		return fmt.Sprintf("Found %d patients with that name and phone number. Please provide date of birth.", count)
 	}
-	if query.Phone != "" {
-		return fmt.Sprintf("Found %d patients for this phone number. Ask the caller to confirm their name.", count)
-	}
-	return fmt.Sprintf("Found %d patients with that last name and DOB. Please provide first name.", count)
+	return fmt.Sprintf("Found %d patients for this phone number. Ask the caller to confirm their name.", count)
 }
 
 func (c ResolveCommand) Parse(officeID string, asOf time.Time) (ResolveQuery, string) {
-	hasLookupFields := c.Phone != "" || c.FirstName != "" || c.LastName != "" || c.DOB != ""
+	hasLookupFields := c.Phone != "" || c.FirstName != "" || c.DOB != ""
 	if c.PatientID != "" {
 		id, err := domain.ParsePatientID(c.PatientID)
 		if err != nil || id == "" {
@@ -396,8 +377,8 @@ func (c ResolveCommand) Parse(officeID string, asOf time.Time) (ResolveQuery, st
 	if err != nil {
 		return ResolveQuery{}, err.Error()
 	}
-	if phone == "" && (c.FirstName == "" && c.LastName == "" || c.DOB == "") {
-		return ResolveQuery{}, "Provide patientId, phone, phone + firstName, phone + dob, firstName + dob, or lastName + dob"
+	if phone == "" && (c.FirstName == "" || c.DOB == "") {
+		return ResolveQuery{}, "Provide patientId, phone, phone + firstName, phone + dob, or firstName + dob"
 	}
 	dob, err := domain.ParseDOB(c.DOB, asOf)
 	if err != nil {
@@ -406,7 +387,6 @@ func (c ResolveCommand) Parse(officeID string, asOf time.Time) (ResolveQuery, st
 	return ResolveQuery{
 		Phone:     phone,
 		FirstName: domain.NewPersonName(c.FirstName),
-		LastName:  domain.NewPersonName(c.LastName),
 		DOB:       dob,
 		OfficeID:  officeID,
 	}, ""

@@ -34,7 +34,7 @@ func TestRequestLogPreservesRescheduleReceiptFailure(t *testing.T) {
 			records.SchedulerSetupError = advancedmd.NewError(tc.category)
 			now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 			scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now })
-			_, failure := scheduler.List(context.Background(), schedulingmodule.ListCommand{PatientID: "123", VisitType: "medical", InsurancePlanID: "self-pay-medical", Office: "Spring Hill", StartDate: "2026-06-03", Routing: "bach_only"})
+			_, failure := scheduler.List(context.Background(), schedulingmodule.ListCommand{PatientID: "123", VisitType: "medical", InsurancePlanID: "self-pay-medical", Office: "Spring Hill", StartDate: "2026-06-03"})
 			if failure == nil {
 				t.Fatal("expected scheduling provider failure")
 			}
@@ -332,7 +332,7 @@ func TestRequestLogPreservesAvailabilityProviderFailureCategory(t *testing.T) {
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/api/scheduler/slots",
-		strings.NewReader(`{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","startDate":"2026-06-03","office":"Spring Hill","routing":"bach_only"}`),
+		strings.NewReader(`{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","startDate":"2026-06-03","office":"Spring Hill"}`),
 	)
 	req.Header.Set("Authorization", "Bearer test-secret")
 	w := httptest.NewRecorder()
@@ -603,7 +603,7 @@ func TestRequestLogRecordsAddPatientBaselineSearchCompleteness(t *testing.T) {
 	const createBody = `{
 		"firstName":"Jane","lastName":"Doe","dob":"01/15/1980","phone":"9542872010",
 		"street":"123 Main St","city":"Spring Hill","state":"FL","zip":"34609","sex":"female",
-		"insurance":"Humana Medicare","subscriberName":"Jane Doe","subscriberNum":"H123","office":"Spring Hill"
+		"insurancePlanId":"humana-medicare","subscriberName":"Jane Doe","subscriberNum":"H123","office":"Spring Hill"
 	}`
 	for _, tc := range []struct {
 		name       string

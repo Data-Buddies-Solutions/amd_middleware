@@ -37,6 +37,7 @@ func newMoveFixture() moveFixture {
 		testColumn(hollywoodBach, 620, 1480, "13:00", "13:15", 15),
 	)
 	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierName: "Self Pay", CarrierID: "car301672"}
+	records.CompletedVisits["12345"] = true
 	records.BookAppointmentID = 98765
 	return moveFixture{records: records, svc: scheduling.New(records, "test-booking-secret", clock), tokens: scheduling.NewAppointmentTokens("test-booking-secret", clock)}
 }
@@ -158,7 +159,7 @@ func (f moveFixture) moveOnce(t *testing.T, current scheduling.BookReceipt, repl
 	if err != nil {
 		t.Fatal(err)
 	}
-	visit := domain.PatientAppointment{ID: current.AppointmentID, ColumnID: springHillBach, Start: start, AppointmentTypeID: current.AppointmentTypeID, OfficeID: "spring_hill", Office: "Spring Hill"}
+	visit := domain.PatientAppointment{ID: current.AppointmentID, ColumnID: springHillBach, Start: start, AppointmentTypeID: 1007, OfficeID: "spring_hill", Office: "Spring Hill"}
 	f.records.AppointmentResults["12345"] = appointmentResult([]domain.PatientAppointment{visit}, true)
 	f.records.BookAppointmentID = replacement
 	receipt, err := f.svc.Reschedule(context.Background(), moveCommand(slot.BookingToken, current.RescheduleToken))

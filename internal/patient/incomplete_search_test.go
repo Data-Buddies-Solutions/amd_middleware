@@ -127,7 +127,6 @@ func TestResolveReportsAnIncompletePhoneOrNameSearchAsUnresolved(t *testing.T) {
 		search  domain.PatientSearch
 	}{
 		{"phone", patient.ResolveCommand{Phone: "954-287-2010"}, domain.PatientSearch{Phone: "9542872010"}},
-		{"last name and DOB", patient.ResolveCommand{LastName: "Doe", DOB: "01/15/1980"}, domain.PatientSearch{LastName: "Doe"}},
 	}
 	completeStatus := []patient.Status{patient.StatusNotFound, patient.StatusVerified, patient.StatusMultipleMatches}
 	for _, search := range searches {

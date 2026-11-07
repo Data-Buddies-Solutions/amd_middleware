@@ -32,13 +32,13 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 	now := p.now()
 	patientID, patientIDErr := domain.ParsePatientID(command.PatientID)
 	dob, dobErr := domain.ParseDOB(command.DOB, now)
-	decision := decideInsurance(command.Insurance, command.InsurancePlanID, command.CoverageType, office, dob, now)
+	decision := decideInsurance(command.InsurancePlanID, command.CoverageType, office, dob, now)
 	command.SubscriberNum = subscriberNumber(decision.SelfPay, command.SubscriberNum)
-	if (patientID == "" && patientIDErr == nil) || command.DOB == "" || firstNonEmpty(command.Insurance, command.InsurancePlanID) == "" || command.SubscriberNum == "" {
+	if (patientID == "" && patientIDErr == nil) || command.DOB == "" || command.InsurancePlanID == "" || command.SubscriberNum == "" {
 		return UpdateInsuranceResult{
 			Status:  UpdateInsuranceStatusError,
 			Outcome: MutationValidationFailed,
-			Message: "patientId, dob, insurance, and subscriberNum are required",
+			Message: "patientId, dob, insurancePlanId, and subscriberNum are required",
 		}
 	}
 	if patientIDErr != nil {
@@ -94,9 +94,7 @@ func (p *patient) UpdateInsurance(ctx context.Context, command UpdateInsuranceCo
 		Status:            UpdateInsuranceStatusUpdated,
 		PatientID:         string(patientID),
 		OldInsurance:      chart.CarrierName,
-		NewInsurance:      firstNonEmpty(command.Insurance, decision.CanonicalPlan),
-		AllowedProviders:  decision.AllowedProviders,
-		PreauthRequired:   len(decision.Requirements) > 0,
+		NewInsurance:      decision.CanonicalPlan,
 		InsuranceDecision: &decision,
 		Message:           "Insurance updated successfully",
 	}

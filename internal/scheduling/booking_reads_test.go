@@ -53,7 +53,7 @@ func TestBookRunsItsPreWriteReadsTogether(t *testing.T) {
 
 	overlap := &overlapRecords{Adapter: records, visitsStarted: make(chan struct{}), dayStarted: make(chan struct{})}
 	receipt, err := scheduling.New(overlap, "test-booking-secret", func() time.Time { return now }).Book(context.Background(), scheduling.BookCommand{
-		PatientID: "12345", DOB: "01/15/1980", Office: "Crystal River", BookingToken: available.Slots[0].BookingToken,
+		PatientID: "12345", DOB: "01/15/1980", BookingToken: available.Slots[0].BookingToken,
 		VisitCategory: "medical", AppointmentReason: "Blurry vision", ReferringDoctor: "none",
 	})
 	if err != nil || receipt.Status != "booked" {
@@ -88,7 +88,7 @@ func TestBookRaisesAPreWriteReadPanicOnTheCallingGoroutine(t *testing.T) {
 		}
 	}()
 	scheduling.New(panickingVisitRecords{records}, "test-booking-secret", func() time.Time { return now }).Book(context.Background(), scheduling.BookCommand{
-		PatientID: "12345", DOB: "01/15/1980", Office: "Crystal River", BookingToken: available.Slots[0].BookingToken,
+		PatientID: "12345", DOB: "01/15/1980", BookingToken: available.Slots[0].BookingToken,
 		VisitCategory: "medical", AppointmentReason: "Blurry vision", ReferringDoctor: "none",
 	})
 }

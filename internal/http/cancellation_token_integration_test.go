@@ -78,8 +78,6 @@ func TestCancellationTokenCancelsPairedOfficeAppointmentWithoutRediscovery(t *te
 
 	cancelRecorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{
 		"patientId":         "12345",
-		"appointmentId":     33333,
-		"office":            "Crystal River",
 		"cancellationToken": appointment.CancellationToken,
 	})
 	var cancelled scheduling.CancelReceipt
@@ -196,8 +194,6 @@ func TestPresentEmptyCancellationTokenDoesNotFallBackToRediscovery(t *testing.T)
 
 	recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{
 		"patientId":         "12345",
-		"appointmentId":     33333,
-		"office":            "Spring Hill",
 		"cancellationToken": "",
 	})
 	var response scheduling.CancelReceipt
@@ -258,17 +254,7 @@ func TestCancellationTokenRejectionsPerformNoProviderOperations(t *testing.T) {
 		{
 			name:  "wrong patient",
 			token: validToken,
-			body:  map[string]any{"patientId": "99999", "appointmentId": 33333, "office": "Crystal River"},
-		},
-		{
-			name:  "wrong appointment",
-			token: validToken,
-			body:  map[string]any{"patientId": "12345", "appointmentId": 44444, "office": "Crystal River"},
-		},
-		{
-			name:  "wrong office",
-			token: validToken,
-			body:  map[string]any{"patientId": "12345", "appointmentId": 33333, "office": "Spring Hill"},
+			body:  map[string]any{"patientId": "99999"},
 		},
 	}
 
@@ -291,9 +277,7 @@ func TestCancellationTokenRejectionsPerformNoProviderOperations(t *testing.T) {
 			body := test.body
 			if body == nil {
 				body = map[string]any{
-					"patientId":     "12345",
-					"appointmentId": 33333,
-					"office":        "Crystal River",
+					"patientId": "12345",
 				}
 			}
 			body["cancellationToken"] = test.token
@@ -334,9 +318,9 @@ func TestCancellationAndBookingTokensAreNotInterchangeable(t *testing.T) {
 		testNow)
 
 	recorder := postJSON(t, handlers.HandleBookAppointment, "/api/appointment/book", map[string]any{
-		"patientId":         "12345",
-		"bookingToken":      cancellationToken,
-		"appointmentTypeId": 1007,
+		"patientId":     "12345",
+		"bookingToken":  cancellationToken,
+		"visitCategory": "medical",
 	})
 	var response scheduling.BookReceipt
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
@@ -377,8 +361,6 @@ func TestCancellationTelemetryReportsOperationBudgetWithoutSensitiveValues(t *te
 
 	recorder := postAuthenticatedJSON(t, router, "/api/appointment/cancel", map[string]any{
 		"patientId":         "12345",
-		"appointmentId":     33333,
-		"office":            "Spring Hill",
 		"cancellationToken": token + "tampered",
 	})
 	var response scheduling.CancelReceipt
@@ -567,7 +549,7 @@ func TestCancellationRequiresTokenBeforeProviderCalls(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	records := newCancellationTokenRecords()
 	handlers := NewHandlers(nil, patient.New(records, testAppointmentTokens, testNow), scheduling.New(records, "test-scheduling-secret", func() time.Time { return now }), nil, testNow)
-	recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{"patientId": "12345", "appointmentId": 33333, "office": "Spring Hill"})
+	recorder := postJSON(t, handlers.HandleCancelAppointment, "/api/appointment/cancel", map[string]any{"patientId": "12345"})
 	var response scheduling.CancelReceipt
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 		t.Fatal(err)

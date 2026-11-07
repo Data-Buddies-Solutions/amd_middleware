@@ -37,12 +37,12 @@ func TestBookingAndCancellationRoutesRetainAuthenticationAndSuccessContracts(t *
 	}{
 		{
 			path:   "/api/appointment/book",
-			body:   `{"patientId":"12345","bookingToken":"signed-slot","appointmentTypeId":1007}`,
+			body:   `{"patientId":"12345","bookingToken":"signed-slot"}`,
 			status: "booked",
 		},
 		{
 			path:   "/api/appointment/cancel",
-			body:   `{"patientId":"12345","appointmentId":98765,"office":"Spring Hill"}`,
+			body:   `{"patientId":"12345"}`,
 			status: "cancelled",
 		},
 	}
@@ -112,9 +112,9 @@ func TestCancelRouteDecodesEveryFieldIntoTheCommand(t *testing.T) {
 	scheduler := &recordingScheduling{cancelReceipt: schedulingmodule.CancelReceipt{Status: "cancelled"}}
 	router := NewRouter(&Handlers{scheduling: scheduler}, "agent-secret", nil)
 	recorder := postAuthenticatedJSON(t, router, "/api/appointment/cancel", map[string]any{
-		"appointmentId": 33333, "patientId": "12345", "office": "Spring Hill", "cancellationToken": "cancellation-token",
+		"patientId": "12345", "cancellationToken": "cancellation-token",
 	})
-	want := schedulingmodule.CancelCommand{AppointmentID: 33333, PatientID: "12345", Office: "Spring Hill", CancellationToken: "cancellation-token"}
+	want := schedulingmodule.CancelCommand{PatientID: "12345", CancellationToken: "cancellation-token"}
 	if recorder.Code != http.StatusOK || scheduler.cancelCommand != want {
 		t.Fatalf("status=%d command=%#v, want %#v", recorder.Code, scheduler.cancelCommand, want)
 	}
@@ -152,7 +152,7 @@ func TestListSlotsRouteRequiresAuthenticationAndPreservesWindow(t *testing.T) {
 	scheduler := &recordingScheduling{listResponse: schedulingmodule.AvailabilityResponse{Status: "success", Outcome: "no_availability", Slots: []schedulingmodule.AvailabilitySlotOption{}}}
 	router := NewRouter(&Handlers{scheduling: scheduler}, "test-api-secret", nil)
 	for _, authenticated := range []bool{false, true} {
-		request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"startDate":"2026-11-02","office":"Spring Hill","routing":"bach_only","dob":"01/15/1980","preauthRequired":true}`))
+		request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"startDate":"2026-11-02","office":"Spring Hill","dob":"01/15/1980"}`))
 		if authenticated {
 			request.Header.Set("Authorization", "test-api-secret")
 		}
@@ -164,7 +164,7 @@ func TestListSlotsRouteRequiresAuthenticationAndPreservesWindow(t *testing.T) {
 			}
 			continue
 		}
-		if response.Code != http.StatusOK || scheduler.listCalls != 1 || scheduler.listCommand.StartDate != "2026-11-02" || scheduler.listCommand.DOB != "01/15/1980" || !scheduler.listCommand.PreauthRequired {
+		if response.Code != http.StatusOK || scheduler.listCalls != 1 || scheduler.listCommand.StartDate != "2026-11-02" || scheduler.listCommand.DOB != "01/15/1980" {
 			t.Fatalf("status=%d command=%#v", response.Code, scheduler.listCommand)
 		}
 	}
@@ -217,44 +217,6 @@ func TestListSlotsErrorsPreserveInventoryContract(t *testing.T) {
 	}
 }
 
-func TestListSlotsRoutingContract(t *testing.T) {
-	for _, tc := range []struct {
-		name, body string
-		searches   bool
-	}{
-		{name: "unknown routing", body: `{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","office":"Spring Hill","startDate":"2026-06-03","routing":"bach-only"}`},
-		{name: "abita medical without routing", body: `{"insurancePlanId":"self-pay-medical","office":"Spring Hill","startDate":"2026-06-03","patientId":"123","visitType":"medical","dob":"01/15/1980"}`, searches: true},
-		{name: "abita routine vision without routing", body: `{"insurancePlanId":"self-pay-routine-vision","office":"Spring Hill","startDate":"2026-06-03","patientId":"123","visitType":"routine_vision","dob":"01/15/1980"}`, searches: true},
-		{name: "not_accepted", body: `{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","office":"Spring Hill","startDate":"2026-06-03","routing":"not_accepted"}`, searches: true},
-		{name: "bach_only", body: `{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","office":"Spring Hill","startDate":"2026-06-03","routing":"bach_only"}`, searches: true},
-		{name: "bach_licht", body: `{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","office":"Spring Hill","startDate":"2026-06-03","routing":"bach_licht"}`, searches: true},
-		{name: "all_three", body: `{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","office":"Spring Hill","startDate":"2026-06-03","routing":"all_three"}`, searches: true},
-		{name: "optical_only", body: `{"patientId":"123","visitType":"routine_vision","insurancePlanId":"self-pay-routine-vision","office":"Spring Hill","startDate":"2026-06-03","routing":"optical_only"}`, searches: true},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			records := advancedmdtest.NewAdapter()
-			scheduler := schedulingmodule.New(records, "secret", func() time.Time { return time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC) })
-			handlers := NewHandlers(nil, nil, scheduler, nil, testNow)
-			response := httptest.NewRecorder()
-			handlers.HandleListAppointmentSlots(response, httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(tc.body)))
-			var got schedulingmodule.AvailabilityResponse
-			if err := json.Unmarshal(response.Body.Bytes(), &got); err != nil {
-				t.Fatal(err)
-			}
-			searched := records.SchedulerSetupCalls != 0 || len(records.ScheduleRangeQueries) != 0 || len(records.ColumnDayReads) != 0
-			if tc.searches {
-				if got.Outcome == schedulingmodule.AvailabilityOutcomeInvalidInput || !searched {
-					t.Fatalf("searched=%v inventory=%s", searched, response.Body.String())
-				}
-				return
-			}
-			if got.Status != "error" || got.Outcome != schedulingmodule.AvailabilityOutcomeInvalidInput || got.Slots == nil || got.ShouldRetrySameSearch || got.Message == "" || searched {
-				t.Fatalf("searched=%v inventory=%s", searched, response.Body.String())
-			}
-		})
-	}
-}
-
 func TestListSlotsRejectsRemovedFieldsBeforeScheduling(t *testing.T) {
 	for _, field := range []string{`"insurancePlan":"ignored"`, `"coverageType":"medical"`, `"rangeDays":14`} {
 		t.Run(field, func(t *testing.T) {
@@ -298,7 +260,7 @@ func TestListSlotsIncompleteSearchCarriesTheRetryHint(t *testing.T) {
 			tc.inject(records)
 			scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now })
 			router := NewRouter(&Handlers{scheduling: scheduler}, "test-secret", nil)
-			request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","startDate":"2026-06-03","office":"Spring Hill","routing":"bach_only","dob":"01/15/1980"}`))
+			request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","startDate":"2026-06-03","office":"Spring Hill","dob":"01/15/1980"}`))
 			request.Header.Set("Authorization", "Bearer test-secret")
 			response := httptest.NewRecorder()
 

@@ -65,7 +65,6 @@ func (p schedulingPolicy) EligibleColumns(columns []domain.SchedulerColumn, rout
 type bookingPolicyRequest struct {
 	ColumnID                   int
 	ProfileID                  int
-	AppointmentTypeID          int
 	Routing                    domain.RoutingRule
 	DOB                        domain.DOB
 	Intent                     appointmentIntent
@@ -99,11 +98,8 @@ func (p schedulingPolicy) PrepareBooking(req bookingPolicyRequest) (bookingPolic
 	}
 
 	routing := p.office.SchedulingRouting(req.Routing, req.DOB, p.asOf)
-	typeID := req.AppointmentTypeID
-	preservesExistingType := req.PreservedAppointmentTypeID > 0
-	if preservesExistingType {
-		typeID = req.PreservedAppointmentTypeID
-	}
+	typeID := req.PreservedAppointmentTypeID
+	preservesExistingType := typeID > 0
 	if typeID == 0 {
 		resolution := resolveAppointmentTypeForIntent(p.office, routing, req.Intent, req.DOB, p.asOf)
 		if resolution.AppointmentTypeID == 0 {
