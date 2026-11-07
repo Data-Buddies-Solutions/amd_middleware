@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [9.1.2](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v9.1.1...v9.1.2) (2026-11-07)
+
+
+### Bug Fixes
+
+* **scheduling:** sign the patient into slot tokens ([#334](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/334)) ([63c9f3c](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/63c9f3ceb23782f61b4955f3531a3936fa331edd))
+
 ## [9.1.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v9.1.0...v9.1.1) (2026-11-04)
 
 
