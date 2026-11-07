@@ -291,7 +291,7 @@ func openSchedule(columnIDs []int) domain.ScheduleReadResult {
 func pinAppointmentRead(patientID string) advancedmd.AppointmentRead {
 	appointments := map[string][]domain.PatientAppointment{
 		"101": {{
-			ID: 33101, Start: pinStart, Provider: "Dr. Austin Bach", Type: "Established Adult Medical (Follow Up)",
+			ID: 33101, ColumnID: 1513, Start: pinStart, Provider: "Dr. Austin Bach", Type: "Established Adult Medical (Follow Up)",
 			AppointmentTypeID: 1007, Facility: "Abita Eye Group Spring Hill", OfficeID: "spring_hill", Office: "Spring Hill",
 		}},
 		"12345": {pinOriginal},
@@ -307,7 +307,7 @@ type pinHarness struct {
 var pinStart = time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC)
 
 var pinOriginal = domain.PatientAppointment{
-	ID: 54321, Start: time.Date(2026, 6, 4, 9, 0, 0, 0, time.UTC), Provider: "Dr. Austin Bach",
+	ID: 54321, ColumnID: 1513, Start: time.Date(2026, 6, 4, 9, 0, 0, 0, time.UTC), Provider: "Dr. Austin Bach",
 	AppointmentTypeID: 1007, OfficeID: "spring_hill", Office: "Spring Hill",
 }
 

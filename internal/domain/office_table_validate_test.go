@@ -89,7 +89,12 @@ func TestOfficeTableValidationRejectsBrokenTables(t *testing.T) {
 		{"office rule names a type from the wrong lane", "office hollywood: post-op appointment type: appointment type 1010 is routine_vision, want medical", func(t *testing.T, table *officeTable) {
 			officeDefinitionFor(t, table, "hollywood").AppointmentTypes.PostOp = 1010
 		}},
-		{"provider without a display name", "office north_miami_beach_optical: column miriam_bach needs a display name", func(t *testing.T, table *officeTable) {
+		{"doctors sharing a provider key", "provider key austin_bach names both", func(t *testing.T, table *officeTable) {
+			column := officeDefinitionFor(t, table, "north_miami_beach_optical").Columns["miriam_bach"]
+			column.Provider.Key = "austin_bach"
+			officeDefinitionFor(t, table, "north_miami_beach_optical").Columns["miriam_bach"] = column
+		}},
+		{"provider without a display name", "office north_miami_beach_optical: column miriam_bach needs a provider key, display name", func(t *testing.T, table *officeTable) {
 			column := officeDefinitionFor(t, table, "north_miami_beach_optical").Columns["miriam_bach"]
 			column.Provider.DisplayName = ""
 			officeDefinitionFor(t, table, "north_miami_beach_optical").Columns["miriam_bach"] = column

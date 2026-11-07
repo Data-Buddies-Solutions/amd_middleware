@@ -211,3 +211,37 @@ func TestRescheduleAcceptsPrefixedPatientID(t *testing.T) {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}
 }
+
+func rescheduleTokenFor(t *testing.T, patientID string, appointment domain.PatientAppointment) string {
+	t.Helper()
+	token, err := scheduling.NewAppointmentTokens("test-booking-secret", mutationTestNow).IssueRescheduleToken(patientID, appointment)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return token
+}
+
+func TestRescheduleRefusesATokenIssuedForAnotherPatient(t *testing.T) {
+	records, command, old := rescheduleFixture(t)
+	command.RescheduleToken = rescheduleTokenFor(t, "67890", old)
+	_, err := scheduling.New(records, "test-booking-secret", mutationTestNow).Reschedule(context.Background(), command)
+	if got := scheduling.CategoryOf(err); got != scheduling.CategoryInvalidRescheduleToken {
+		t.Fatalf("err=%v category=%q", err, got)
+	}
+	if len(records.Bookings) != 0 || len(records.Cancellations) != 0 {
+		t.Fatalf("writes=%d/%d, want none", len(records.Bookings), len(records.Cancellations))
+	}
+}
+
+func TestRescheduleRefusesATypeTheTableDoesNotKnowBeforeAnyWrite(t *testing.T) {
+	records, command, old := rescheduleFixture(t)
+	old.AppointmentTypeID = 9999
+	command.RescheduleToken = rescheduleTokenFor(t, "12345", old)
+	_, err := scheduling.New(records, "test-booking-secret", mutationTestNow).Reschedule(context.Background(), command)
+	if got := scheduling.CategoryOf(err); got != scheduling.CategoryValidation {
+		t.Fatalf("err=%v category=%q", err, got)
+	}
+	if len(records.Bookings) != 0 || len(records.Cancellations) != 0 {
+		t.Fatalf("writes=%d/%d, want none", len(records.Bookings), len(records.Cancellations))
+	}
+}

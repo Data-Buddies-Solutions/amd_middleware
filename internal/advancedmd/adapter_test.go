@@ -654,7 +654,7 @@ func TestAdapterPreservesUnrecognizedProductionAppointmentType(t *testing.T) {
 		Start:                     time.Date(2026, 6, 3, 9, 0, 0, 0, time.UTC),
 		Duration:                  15,
 		ProviderAppointmentTypeID: 9999,
-		AppointmentColor:          domain.PreservedAppointmentTypeFallbackColor,
+		AppointmentColor:          "TEAL",
 	})
 	if err != nil {
 		t.Fatalf("BookAppointment error = %v", err)
@@ -667,7 +667,7 @@ func TestAdapterPreservesUnrecognizedProductionAppointmentType(t *testing.T) {
 	if !ok || typePayload["id"] != float64(9999) {
 		t.Fatalf("booking type = %#v", bookingPayload["type"])
 	}
-	if bookingPayload["color"] != domain.PreservedAppointmentTypeFallbackColor {
+	if bookingPayload["color"] != "TEAL" {
 		t.Fatalf("booking color = %#v", bookingPayload["color"])
 	}
 }

@@ -394,6 +394,7 @@ func patientAppointmentRead(
 
 		read.Appointments = append(read.Appointments, domain.PatientAppointment{
 			ID:                raw.ID,
+			ColumnID:          raw.ColumnID,
 			Start:             start,
 			Provider:          provider,
 			Type:              typeName,

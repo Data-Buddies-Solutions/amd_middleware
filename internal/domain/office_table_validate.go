@@ -26,9 +26,17 @@ func validateOfficeTable(table officeTable) error {
 	if _, ok := definitions[defaultOfficeID]; !ok {
 		return fmt.Errorf("default office %s is not in the table", defaultOfficeID)
 	}
+	providerKeys := map[string]string{}
 	for _, definition := range table.Offices {
 		if err := validateOfficeDefinition(definition, definitions); err != nil {
 			return fmt.Errorf("office %s: %w", definition.ID, err)
+		}
+		for _, column := range definition.Columns {
+			p := column.Provider
+			if name, ok := providerKeys[p.Key]; ok && name != p.DisplayName {
+				return fmt.Errorf("provider key %s names both %s and %s", p.Key, name, p.DisplayName)
+			}
+			providerKeys[p.Key] = p.DisplayName
 		}
 	}
 	if len(table.Environments) != len(environments) {
@@ -49,8 +57,8 @@ func validateOfficeTable(table officeTable) error {
 func validateOfficeDefinition(definition officeDefinition, definitions map[string]officeDefinition) error {
 	for _, key := range slices.Sorted(maps.Keys(definition.Columns)) {
 		p := definition.Columns[key].Provider
-		if p.DisplayName == "" || p.ShortName == "" || p.MatchKey == "" {
-			return fmt.Errorf("column %s needs a display name, short name, and match key", key)
+		if p.Key == "" || p.DisplayName == "" || p.ShortName == "" || p.MatchKey == "" {
+			return fmt.Errorf("column %s needs a provider key, display name, short name, and match key", key)
 		}
 	}
 	for _, rule := range slices.Sorted(maps.Keys(definition.RoutingTiers)) {

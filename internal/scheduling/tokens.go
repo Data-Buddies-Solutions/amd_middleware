@@ -39,6 +39,7 @@ type SlotPolicy struct {
 	Duration           int                `json:"duration"`
 	DOB                domain.DOB         `json:"dob,omitempty"`
 	PatientID          domain.PatientID   `json:"patientId,omitempty"`
+	MoveOf             int                `json:"moveOf,omitempty"`
 	AppointmentTypeIDs []int              `json:"appointmentTypeIds,omitempty"`
 	SameStartBooked    int                `json:"sameStartBooked,omitempty"`
 	SameStartCapacity  int                `json:"sameStartCapacity,omitempty"`
@@ -54,6 +55,7 @@ type appointmentTokenPolicy struct {
 	AppointmentID     int              `json:"appointmentId"`
 	AppointmentTypeID int              `json:"appointmentTypeId,omitempty"`
 	OfficeID          string           `json:"officeId"`
+	DoctorKey         string           `json:"doctorKey,omitempty"`
 	Start             string           `json:"start"`
 	IssuedAt          int64            `json:"iat"`
 	ExpiresAt         int64            `json:"exp"`
@@ -122,7 +124,8 @@ func (t *AppointmentTokens) issue(rawPatientID string, appointment domain.Patien
 		appointment.Start.IsZero() {
 		return "", errTokenInvalid
 	}
-	if _, ok := domain.LookupOfficeByID(appointment.OfficeID); !ok {
+	office, ok := domain.LookupOfficeByID(appointment.OfficeID)
+	if !ok {
 		return "", errTokenInvalid
 	}
 	now := t.now().UTC()
@@ -133,6 +136,7 @@ func (t *AppointmentTokens) issue(rawPatientID string, appointment domain.Patien
 		AppointmentID:     appointment.ID,
 		AppointmentTypeID: appointment.AppointmentTypeID,
 		OfficeID:          appointment.OfficeID,
+		DoctorKey:         office.Columns[appointment.ColumnID].ProviderKey,
 		Start:             appointment.Start.UTC().Format(time.RFC3339),
 		IssuedAt:          now.Unix(),
 		ExpiresAt:         now.Add(tokenTTL).Unix(),

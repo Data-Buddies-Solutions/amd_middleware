@@ -2,6 +2,7 @@ package scheduling_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -56,104 +57,45 @@ func TestBookFailedRevalidationCanRetryWithoutClaimingSlotConflict(t *testing.T)
 	}
 }
 
-func TestBookPreservesAnyAppointmentTypeFromSignedRescheduleToken(t *testing.T) {
+func TestBookRefusesARescheduleToken(t *testing.T) {
 	now := mutationTestNow()
-	records := bookingRecords()
-	records.BookAppointmentID = 98765
-	command := signedBookCommand(t, now)
-	command.AppointmentTypeID = 1007
-	rescheduleToken, err := scheduling.NewAppointmentTokens(
-		"test-booking-secret",
-		func() time.Time { return now },
-	).IssueRescheduleToken("12345", domain.PatientAppointment{
-		ID:                54321,
-		Start:             time.Date(2026, 6, 2, 9, 0, 0, 0, time.UTC),
-		AppointmentTypeID: 9999,
-		OfficeID:          "spring_hill",
-	})
+	clock := func() time.Time { return now }
+	tokens := scheduling.NewAppointmentTokens("test-booking-secret", clock)
+	appointment := matchingAppointmentAt(54321, time.Date(2026, 6, 2, 9, 0, 0, 0, time.UTC))
+	valid, err := tokens.IssueRescheduleToken("12345", appointment)
 	if err != nil {
-		t.Fatalf("IssueCancellationToken error = %v", err)
+		t.Fatal(err)
 	}
-	command.RescheduleToken = rescheduleToken
-
-	receipt, err := scheduling.New(
-		records,
-		"test-booking-secret",
-		func() time.Time { return now },
-	).Book(context.Background(), command)
-	if err != nil {
-		t.Fatalf("Book error = %v", err)
-	}
-	if receipt.AppointmentTypeID != 9999 {
-		t.Fatalf("receipt appointment type = %d, want 9999", receipt.AppointmentTypeID)
-	}
-	if receipt.RescheduleToken == "" {
-		t.Fatal("receipt reschedule token is empty")
-	}
-	if len(records.Bookings) != 1 ||
-		records.Bookings[0].ProviderAppointmentTypeID != 9999 ||
-		records.Bookings[0].AppointmentColor != domain.PreservedAppointmentTypeFallbackColor {
-		t.Fatalf("provider bookings = %#v", records.Bookings)
-	}
-
-	corrected := signedBookCommand(t, now)
-	corrected.RescheduleToken = receipt.RescheduleToken
-	if _, err := scheduling.New(
-		records,
-		"test-booking-secret",
-		func() time.Time { return now },
-	).Book(context.Background(), corrected); err != nil {
-		t.Fatalf("corrected Book error = %v", err)
-	}
-	if len(records.Bookings) != 2 || records.Bookings[1].ProviderAppointmentTypeID != 9999 {
-		t.Fatalf("corrected provider bookings = %#v", records.Bookings)
+	for name, token := range map[string]string{"valid": valid, "malformed": "invalid-token"} {
+		t.Run(name, func(t *testing.T) {
+			records := bookingRecords()
+			command := signedBookCommand(t, now)
+			command.RescheduleToken = token
+			_, err := scheduling.New(records, "test-booking-secret", clock).Book(context.Background(), command)
+			if scheduling.CategoryOf(err) != scheduling.CategoryValidation || !strings.Contains(err.Error(), "rescheduleToken") {
+				t.Fatalf("Book error = %v, category = %q", err, scheduling.CategoryOf(err))
+			}
+			if len(records.Bookings) != 0 || records.SchedulerSetupCalls != 0 {
+				t.Fatalf("bookings = %d, setup reads = %d, want none", len(records.Bookings), records.SchedulerSetupCalls)
+			}
+		})
 	}
 }
 
-func TestBookRejectsCancellationTokenAsRescheduleAuthorization(t *testing.T) {
+func TestRescheduleRejectsACancellationTokenAsAuthorization(t *testing.T) {
 	now := mutationTestNow()
+	clock := func() time.Time { return now }
 	records := bookingRecords()
 	command := signedBookCommand(t, now)
-	token, err := scheduling.NewAppointmentTokens(
-		"test-booking-secret",
-		func() time.Time { return now },
-	).IssueCancellationToken("12345", domain.PatientAppointment{
-		ID:                54321,
-		Start:             time.Date(2026, 6, 2, 9, 0, 0, 0, time.UTC),
-		AppointmentTypeID: 9999,
-		OfficeID:          "spring_hill",
-	})
+	token, err := scheduling.NewAppointmentTokens("test-booking-secret", clock).
+		IssueCancellationToken("12345", matchingAppointmentAt(54321, time.Date(2026, 6, 2, 9, 0, 0, 0, time.UTC)))
 	if err != nil {
-		t.Fatalf("IssueCancellationToken error = %v", err)
+		t.Fatal(err)
 	}
 	command.RescheduleToken = token
-
-	_, err = scheduling.New(
-		records,
-		"test-booking-secret",
-		func() time.Time { return now },
-	).Book(context.Background(), command)
+	_, err = scheduling.New(records, "test-booking-secret", clock).Reschedule(context.Background(), command)
 	if scheduling.CategoryOf(err) != scheduling.CategoryInvalidRescheduleToken {
-		t.Fatalf("Book error = %v, category = %q", err, scheduling.CategoryOf(err))
-	}
-	if len(records.Bookings) != 0 {
-		t.Fatalf("provider bookings = %d, want none", len(records.Bookings))
-	}
-}
-
-func TestBookRejectsInvalidRescheduleTokenBeforeWrite(t *testing.T) {
-	now := mutationTestNow()
-	records := bookingRecords()
-	command := signedBookCommand(t, now)
-	command.RescheduleToken = "invalid-token"
-
-	_, err := scheduling.New(
-		records,
-		"test-booking-secret",
-		func() time.Time { return now },
-	).Book(context.Background(), command)
-	if scheduling.CategoryOf(err) != scheduling.CategoryInvalidRescheduleToken {
-		t.Fatalf("Book error = %v, category = %q", err, scheduling.CategoryOf(err))
+		t.Fatalf("Reschedule error = %v, category = %q", err, scheduling.CategoryOf(err))
 	}
 	if len(records.Bookings) != 0 {
 		t.Fatalf("provider bookings = %d, want none", len(records.Bookings))

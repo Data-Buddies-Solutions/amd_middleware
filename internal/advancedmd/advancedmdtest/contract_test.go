@@ -398,6 +398,7 @@ func demographicScenarios() []scenario {
 
 var bachFollowUp = domain.PatientAppointment{
 	ID:                9570263,
+	ColumnID:          1513,
 	Start:             time.Date(2026, 8, 3, 9, 0, 0, 0, time.UTC),
 	Provider:          "Dr. Austin Bach",
 	Type:              "Established Adult Medical (Follow Up)",
@@ -409,6 +410,7 @@ var bachFollowUp = domain.PatientAppointment{
 
 var lichtCrystalRiver = domain.PatientAppointment{
 	ID:                9570264,
+	ColumnID:          1593,
 	Start:             time.Date(2026, 8, 15, 9, 0, 0, 0, time.UTC),
 	Provider:          "Dr. Joseph Licht",
 	Type:              "Crystal River Established Patient",

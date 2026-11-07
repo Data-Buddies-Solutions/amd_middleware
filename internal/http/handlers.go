@@ -216,17 +216,24 @@ func (h *Handlers) HandleListAppointmentSlots(w http.ResponseWriter, r *http.Req
 	response, err := h.scheduling.List(r.Context(), req)
 	if err != nil {
 		recordSchedulingError(r.Context(), err)
-		outcome := schedulingmodule.AvailabilityOutcomeInvalidInput
-		if schedulingmodule.ProviderFailureOf(err) != safeerrors.CategoryNone {
-			outcome = schedulingmodule.AvailabilityOutcomeSearchIncomplete
-		}
-		respond(w, inventoryError(outcome, err.Error()))
+		respond(w, inventoryError(inventoryOutcome(err), err.Error()))
 		return
 	}
 	if response.Status == schedulingmodule.AvailabilityStatusError {
 		recordRequestOutcome(r.Context(), outcomeProviderFailure, safeerrors.CategoryInvalidResponse)
 	}
 	respond(w, response)
+}
+
+func inventoryOutcome(err error) string {
+	switch {
+	case schedulingmodule.ProviderFailureOf(err) != safeerrors.CategoryNone:
+		return schedulingmodule.AvailabilityOutcomeSearchIncomplete
+	case schedulingmodule.CategoryOf(err) == schedulingmodule.CategoryInvalidRescheduleToken:
+		return schedulingmodule.AvailabilityOutcomeInvalidRescheduleToken
+	default:
+		return schedulingmodule.AvailabilityOutcomeInvalidInput
+	}
 }
 
 func inventoryError(outcome, message string) schedulingmodule.AvailabilityResponse {
