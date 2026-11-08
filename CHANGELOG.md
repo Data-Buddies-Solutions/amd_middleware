@@ -4,6 +4,17 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [11.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v10.0.0...v11.0.0) (2026-11-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **http:** delete request and reply fields nothing reads ([#342](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/342))
+
+### Code Refactoring
+
+* **http:** delete request and reply fields nothing reads ([#342](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/342)) ([8e477f1](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/8e477f15dda4b1cba2347ce32e8975150191d206))
+
 ## [10.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v9.2.0...v10.0.0) (2026-11-08)
 
 
