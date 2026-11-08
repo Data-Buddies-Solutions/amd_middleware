@@ -25,7 +25,6 @@ func (s *service) Reschedule(ctx context.Context, command BookCommand) (Reschedu
 	if err != nil || patientIDErr != nil || patientID != policy.PatientID || policy.AppointmentTypeID == 0 {
 		return RescheduleReceipt{}, invalidRescheduleTokenError()
 	}
-	command.AppointmentTypeID = policy.AppointmentTypeID
 	booking, err := s.resolveBookingContext(command, policy.AppointmentTypeID)
 	if err != nil {
 		return RescheduleReceipt{}, err

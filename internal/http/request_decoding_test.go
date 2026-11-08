@@ -12,7 +12,7 @@ import (
 	schedulingmodule "advancedmd-token-management/internal/scheduling"
 )
 
-const abitaS2SCommit = "35b3afd8384ce56d4e7b43612a0f3070d1f9d430"
+const abitaS2SCommit = "aab7cfd9278169e2d07bfc8db936446e32b020d3"
 
 var abitaS2SRequestBodies = []struct {
 	name    string
@@ -26,21 +26,17 @@ var abitaS2SRequestBodies = []struct {
 	{"add patient required", "/api/add-patient", map[string]any{
 		"firstName": "Jane", "lastName": "Doe", "dob": "01/15/1980", "street": "12 Main St", "city": "Spring Hill",
 		"state": "FL", "zip": "34609", "sex": "female", "phone": "3525550100", "aptSuite": "",
-		"insurance": "Aetna Commercial", "subscriberName": "Jane Doe", "subscriberNum": "M123", "office": "spring-hill",
+		"insurancePlanId": "aetna-commercial-medical", "subscriberName": "Jane Doe", "subscriberNum": "M123", "office": "spring-hill",
 	}, []string{"Create"}},
 	{"add patient with optional fields", "/api/add-patient", map[string]any{
 		"firstName": "Jane", "lastName": "Doe", "dob": "01/15/1980", "street": "12 Main St", "city": "Spring Hill",
 		"state": "FL", "zip": "34609", "sex": "female", "phone": "3525550100", "aptSuite": "Apt 2",
-		"insurance": "VSP", "subscriberName": "Jane Doe", "subscriberNum": "M123", "office": "spring-hill",
+		"subscriberName": "Jane Doe", "subscriberNum": "M123", "office": "spring-hill",
 		"insurancePlanId": "plan-1", "email": "jane@example.com", "coverageType": "routine_vision",
 	}, []string{"Create"}},
 	{"update insurance required", "/api/patient/update-insurance", map[string]any{
-		"patientId": "12345", "dob": "01/15/1980", "insurance": "Aetna Commercial", "coverageType": "medical",
+		"patientId": "12345", "dob": "01/15/1980", "insurancePlanId": "aetna-commercial-medical", "coverageType": "medical",
 		"subscriberNum": "M123", "office": "spring-hill",
-	}, []string{"UpdateInsurance"}},
-	{"update insurance with plan id", "/api/patient/update-insurance", map[string]any{
-		"patientId": "12345", "dob": "01/15/1980", "insurance": "Aetna Commercial", "coverageType": "medical",
-		"subscriberNum": "M123", "office": "spring-hill", "insurancePlanId": "plan-1",
 	}, []string{"UpdateInsurance"}},
 	{"add patient by plan id", "/api/add-patient", map[string]any{
 		"firstName": "Jane", "lastName": "Doe", "dob": "01/15/1980", "street": "12 Main St", "city": "Spring Hill",
@@ -69,12 +65,6 @@ var abitaS2SRequestBodies = []struct {
 		"rescheduleToken": "reschedule-token", "referringDoctorPhone": "3525550101", "referringDoctorAddress": "1 Clinic Way",
 	}), []string{"Reschedule"}},
 	{"cancel", "/api/appointment/cancel", map[string]any{"patientId": "12345", "cancellationToken": "cancellation-token"}, []string{"Cancel"}},
-	{"insurance decision", "/api/insurance/decision", map[string]any{
-		"office": "spring-hill", "plan": "Aetna", "coverageType": "medical", "dob": "01/15/1980",
-	}, nil},
-	{"insurance decision with offered plans", "/api/insurance/decision", map[string]any{
-		"office": "spring-hill", "plan": "Aetna", "coverageType": "medical", "dob": "01/15/1980", "offeredPlanIds": []string{"plan-1"},
-	}, nil},
 }
 
 func abitaBookingBody(extra map[string]any) map[string]any {

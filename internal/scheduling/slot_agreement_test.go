@@ -203,8 +203,12 @@ func (c agreementCase) scheduler() (scheduling.Scheduling, *advancedmdtest.Adapt
 }
 
 func (c agreementCase) list(scheduler scheduling.Scheduling) (scheduling.AvailabilityResponse, error) {
+	visit := domain.AppointmentVisitMedical
+	if c.target.routing == domain.RoutingOpticalOnly {
+		visit = domain.AppointmentVisitRoutineVision
+	}
 	result, err := scheduler.List(context.Background(), plannedSearch(scheduling.ListCommand{
-		StartDate: c.first.Format("2006-01-02"), Office: c.target.office, Routing: string(c.target.routing), DOB: "01/15/1980",
+		StartDate: c.first.Format("2006-01-02"), Office: c.target.office, DOB: "01/15/1980", VisitType: visit,
 	}))
 	if err != nil {
 		return result, fmt.Errorf("List error = %w", err)
@@ -244,7 +248,7 @@ func (c agreementCase) check() ([]scheduling.AvailabilitySlotOption, error) {
 
 func (c agreementCase) book(scheduler scheduling.Scheduling, token string) (scheduling.BookReceipt, error) {
 	return scheduler.Book(context.Background(), scheduling.BookCommand{
-		PatientID: "12345", DOB: "01/15/1980", Office: c.target.office, BookingToken: token,
+		PatientID: "12345", DOB: "01/15/1980", BookingToken: token,
 		VisitCategory:     c.target.visit,
 		AppointmentReason: "Eye follow-up", ReferringDoctor: "none",
 	})

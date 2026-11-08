@@ -16,12 +16,12 @@ func TestUndecidedInsuranceIsRejectedBeforeAnyInsuranceMutation(t *testing.T) {
 		records.Demographics["123"] = domain.PatientDemographics{DOB: "01/02/1980", RespPartyID: "resp123", InsuranceStateKnown: true}
 		create := validCreateCommand()
 		create.Office = "Hollywood"
-		create.Insurance = plan
+		create.InsurancePlanID = plan
 		created := patient.New(records, testAppointmentTokens, testNow).Create(context.Background(), create)
 		if created.Outcome != patient.MutationValidationFailed || records.CreatePatientCalls != 0 {
 			t.Fatalf("%s: creation accepted an undecided plan: %+v", plan, created)
 		}
-		result := patient.New(records, testAppointmentTokens, testNow).UpdateInsurance(context.Background(), patient.UpdateInsuranceCommand{PatientID: "123", DOB: "01/02/1980", Insurance: plan, SubscriberNum: "synthetic", Office: "Hollywood"})
+		result := patient.New(records, testAppointmentTokens, testNow).UpdateInsurance(context.Background(), patient.UpdateInsuranceCommand{PatientID: "123", DOB: "01/02/1980", InsurancePlanID: plan, SubscriberNum: "synthetic", Office: "Hollywood"})
 		if result.Outcome != patient.MutationValidationFailed {
 			t.Fatalf("%s: %+v", plan, result)
 		}
@@ -31,33 +31,29 @@ func TestUndecidedInsuranceIsRejectedBeforeAnyInsuranceMutation(t *testing.T) {
 	}
 }
 
-func TestInsurancePlanIDDecidesWritesWithoutMatchingTheName(t *testing.T) {
+func TestInsurancePlanIDDecidesWrites(t *testing.T) {
 	springHill, _ := domain.LookupOfficeByID("spring_hill")
 	accepted := insurance.DecideInsurance(writableMedicalPlan, "medical", springHill, "01/15/1980", testNow())
 	if accepted.Outcome != "accepted" || accepted.PlanID == "" || accepted.CarrierID != writableMedicalCarrier {
 		t.Fatalf("fixture plan not accepted: %+v", accepted)
 	}
 
-	for _, name := range []string{"words that match no plan", ""} {
-		records := advancedmdtest.NewAdapter()
-		create := validCreateCommand()
-		create.Insurance = name
-		create.InsurancePlanID = accepted.PlanID
-		created := patient.New(records, testAppointmentTokens, testNow).Create(context.Background(), create)
-		if created.Status != patient.CreateStatusCreated || created.InsuranceDecision.PlanID != accepted.PlanID ||
-			len(records.Insurances) != 1 || records.Insurances[0].CarrierID != accepted.CarrierID {
-			t.Fatalf("name %q: create = %+v insurances = %+v", name, created, records.Insurances)
-		}
+	records := advancedmdtest.NewAdapter()
+	create := validCreateCommand()
+	create.InsurancePlanID = accepted.PlanID
+	created := patient.New(records, testAppointmentTokens, testNow).Create(context.Background(), create)
+	if created.Status != patient.CreateStatusCreated || created.InsuranceDecision.PlanID != accepted.PlanID ||
+		len(records.Insurances) != 1 || records.Insurances[0].CarrierID != accepted.CarrierID {
+		t.Fatalf("create = %+v insurances = %+v", created, records.Insurances)
+	}
 
-		records = advancedmdtest.NewAdapter()
-		records.Demographics["123"] = domain.PatientDemographics{DOB: "01/15/1980", RespPartyID: "resp123", InsuranceStateKnown: true}
-		update := validUpdateInsuranceCommand()
-		update.Insurance = name
-		update.InsurancePlanID = accepted.PlanID
-		updated := patient.New(records, testAppointmentTokens, testNow).UpdateInsurance(context.Background(), update)
-		if updated.Status != patient.UpdateInsuranceStatusUpdated || len(records.Insurances) != 1 || records.Insurances[0].CarrierID != accepted.CarrierID {
-			t.Fatalf("name %q: update = %+v insurances = %+v", name, updated, records.Insurances)
-		}
+	records = advancedmdtest.NewAdapter()
+	records.Demographics["123"] = domain.PatientDemographics{DOB: "01/15/1980", RespPartyID: "resp123", InsuranceStateKnown: true}
+	update := validUpdateInsuranceCommand()
+	update.InsurancePlanID = accepted.PlanID
+	updated := patient.New(records, testAppointmentTokens, testNow).UpdateInsurance(context.Background(), update)
+	if updated.Status != patient.UpdateInsuranceStatusUpdated || len(records.Insurances) != 1 || records.Insurances[0].CarrierID != accepted.CarrierID {
+		t.Fatalf("update = %+v insurances = %+v", updated, records.Insurances)
 	}
 }
 
@@ -79,7 +75,7 @@ func TestUnknownInsurancePlanIDIsRejectedBeforeWrites(t *testing.T) {
 func TestSelfPayPlanDefaultsTheSubscriberNumber(t *testing.T) {
 	records := advancedmdtest.NewAdapter()
 	create := validCreateCommand()
-	create.Insurance = "Self Pay"
+	create.InsurancePlanID = "self-pay-medical"
 	create.SubscriberNum = ""
 	created := patient.New(records, testAppointmentTokens, testNow).Create(context.Background(), create)
 	if created.Status != patient.CreateStatusCreated || !created.InsuranceDecision.SelfPay ||
@@ -90,15 +86,15 @@ func TestSelfPayPlanDefaultsTheSubscriberNumber(t *testing.T) {
 
 func TestSelfPayWithoutSubscriberNumberWritesZeros(t *testing.T) {
 	for _, tc := range []struct{ plan, subscriber, want string }{
-		{"Self Pay", "", "0000"},
-		{"cash", "  ", "0000"},
-		{"Self Pay", "ABC123", "ABC123"},
-		{"Humana PPO", "synthetic", "synthetic"},
+		{"self-pay-medical", "", "0000"},
+		{"self-pay-medical", "  ", "0000"},
+		{"self-pay-medical", "ABC123", "ABC123"},
+		{"meritain-health", "synthetic", "synthetic"},
 	} {
 		t.Run(tc.plan+"/"+tc.subscriber, func(t *testing.T) {
 			records := advancedmdtest.NewAdapter()
 			records.Demographics["123"] = domain.PatientDemographics{DOB: "01/02/1980", RespPartyID: "resp123", InsuranceStateKnown: true}
-			result := patient.New(records, testAppointmentTokens, testNow).UpdateInsurance(context.Background(), patient.UpdateInsuranceCommand{PatientID: "123", Insurance: tc.plan, SubscriberNum: tc.subscriber, Office: "Hollywood", DOB: "01/02/1980"})
+			result := patient.New(records, testAppointmentTokens, testNow).UpdateInsurance(context.Background(), patient.UpdateInsuranceCommand{PatientID: "123", InsurancePlanID: tc.plan, SubscriberNum: tc.subscriber, Office: "Hollywood", DOB: "01/02/1980"})
 			if result.Status != patient.UpdateInsuranceStatusUpdated || len(records.Insurances) != 1 || records.Insurances[0].SubscriberNum != tc.want {
 				t.Fatalf("result=%+v records=%+v", result, records.Insurances)
 			}

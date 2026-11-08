@@ -10,9 +10,7 @@ import (
 )
 
 type CancelCommand struct {
-	AppointmentID     int    `json:"appointmentId,omitempty"`
 	PatientID         string `json:"patientId,omitempty"`
-	Office            string `json:"office,omitempty"`
 	CancellationToken string `json:"cancellationToken,omitempty"`
 }
 
@@ -86,16 +84,6 @@ func (s *service) cancelWithToken(
 			return CancelReceipt{}, invalidCancellationTokenError()
 		}
 	}
-	if command.AppointmentID != 0 && command.AppointmentID != policy.AppointmentID {
-		return CancelReceipt{}, invalidCancellationTokenError()
-	}
-	office := policy.office
-	if command.Office != "" {
-		requestedOffice, err := domain.ResolveOffice(command.Office)
-		if err != nil || requestedOffice.ID != office.ID {
-			return CancelReceipt{}, invalidCancellationTokenError()
-		}
-	}
 	return s.cancelVerifiedAppointment(
 		ctx,
 		advancedmd.Cancellation{AppointmentID: policy.AppointmentID},
@@ -104,7 +92,7 @@ func (s *service) cancelWithToken(
 			Start:    policy.start,
 			OfficeID: policy.OfficeID,
 		},
-		office,
+		policy.office,
 		telemetry,
 	)
 }

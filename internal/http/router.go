@@ -26,7 +26,6 @@ func NewRouter(handlers *Handlers, apiSecret string, maintenanceAuthorizer Maint
 	r.Route("/api", func(r chi.Router) {
 		r.Use(authMiddleware(apiSecret))
 
-		r.Post("/insurance/decision", handlers.HandleInsuranceDecision)
 		r.Get("/insurance/plans", handlers.HandleInsurancePlans)
 		r.Post("/insurance/catalog/validate", handlers.HandleValidateInsuranceCatalog)
 		r.Post("/patient/resolve", handlers.HandlePatientResolve)

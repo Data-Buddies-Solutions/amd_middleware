@@ -19,7 +19,7 @@ import (
 	"advancedmd-token-management/internal/session"
 )
 
-func TestAdapterSearchPatientsByNameUsesControlledXMLRPCServer(t *testing.T) {
+func TestAdapterSearchPatientsByPhoneUsesControlledXMLRPCServer(t *testing.T) {
 	var requestBody map[string]any
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
@@ -45,10 +45,7 @@ func TestAdapterSearchPatientsByNameUsesControlledXMLRPCServer(t *testing.T) {
 		nil,
 		time.Now,
 	)
-	got, err := adapter.SearchPatients(context.Background(), domain.PatientSearch{
-		LastName:  "Doe",
-		FirstName: "Jane",
-	})
+	got, err := adapter.SearchPatients(context.Background(), domain.PatientSearch{Phone: "9542872010"})
 	if err != nil {
 		t.Fatalf("SearchPatients() error = %v", err)
 	}
@@ -56,7 +53,7 @@ func TestAdapterSearchPatientsByNameUsesControlledXMLRPCServer(t *testing.T) {
 		t.Fatalf("SearchPatients() = %+v, want no matches", got)
 	}
 	message := requestBody["ppmdmsg"].(map[string]any)
-	if message["@action"] != "lookuppatient" || message["@name"] != "Doe,Jane" {
+	if message["@action"] != "lookuppatient" || message["@phone"] != "9542872010" {
 		t.Fatalf("ppmdmsg = %#v", message)
 	}
 }

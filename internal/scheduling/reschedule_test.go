@@ -179,14 +179,13 @@ func TestAppointmentClassificationAndBackendVisitPolicy(t *testing.T) {
 	}{
 		{"Crystal River", "optical_only", domain.PatientAppointment{ID: 1, ColumnID: 1593, AppointmentTypeID: 1010, OfficeID: "crystal_river", Start: mutationTestNow()}},
 		{"North Miami Beach Optical", "optical_only", domain.PatientAppointment{ID: 2, ColumnID: 1601, AppointmentTypeID: 1007, OfficeID: "north_miami_beach_optical", Start: mutationTestNow()}},
-		{"Spring Hill", "optical_only", domain.PatientAppointment{ID: 3, ColumnID: 1513, AppointmentTypeID: 1007, OfficeID: "spring_hill", Start: mutationTestNow()}},
 	} {
 		records := bookingRecords()
 		token, tokenErr := scheduling.NewAppointmentTokens("test-booking-secret", mutationTestNow).IssueRescheduleToken("12345", tc.visit)
 		if tokenErr != nil {
 			t.Fatal(tokenErr)
 		}
-		result, err := scheduling.New(records, "test-booking-secret", mutationTestNow).List(context.Background(), scheduling.ListCommand{PatientID: "12345", RescheduleToken: token, Routing: tc.routing, DOB: "01/15/1980", StartDate: "2026-06-03"})
+		result, err := scheduling.New(records, "test-booking-secret", mutationTestNow).List(context.Background(), scheduling.ListCommand{PatientID: "12345", RescheduleToken: token, DOB: "01/15/1980", StartDate: "2026-06-03"})
 		if err != nil || result.Outcome != scheduling.AvailabilityOutcomeNoEligibleProviders || len(result.Slots) != 0 {
 			t.Fatalf("%+v: %+v %v", tc, result, err)
 		}

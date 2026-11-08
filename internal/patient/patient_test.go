@@ -76,22 +76,17 @@ func TestResolveReturnsCompletePatientForPhoneLookup(t *testing.T) {
 		InsuranceCarrier:   "HUMANA MEDICARE",
 		InsuranceCarrierID: "car40906",
 		InsuranceNote:      "Humana Gold Plus HMO member H####, DOB 01/15/####",
-		InsPlanID:          "ins789",
-		RespPartyID:        "resp456",
-		AllowedProviders:   []string{"Dr. Bach"},
-		RoutingAmbiguous:   false,
 		AppointmentsStatus: patient.AppointmentsFound,
 		Appointments: []patient.Appointment{{
-			ID:                9570263,
-			Date:              "Wednesday, March 18, 2026",
-			Time:              "12:00 PM",
-			Provider:          "Dr. Austin Bach",
-			Type:              "Established Adult Medical (Follow Up)",
-			AppointmentTypeID: 1007,
-			VisitType:         "medical",
-			Facility:          "Abita Eye Group Spring Hill",
-			OfficeID:          "spring_hill",
-			Office:            "Spring Hill",
+			ID:        9570263,
+			Date:      "Wednesday, March 18, 2026",
+			Time:      "12:00 PM",
+			Provider:  "Dr. Austin Bach",
+			Type:      "Established Adult Medical (Follow Up)",
+			VisitType: "medical",
+			Facility:  "Abita Eye Group Spring Hill",
+			OfficeID:  "spring_hill",
+			Office:    "Spring Hill",
 		}},
 		Message: "Patient verified with 1 appointment(s)",
 	}
@@ -574,30 +569,30 @@ func TestResolvePreservesMalformedAndTimeoutSearchErrors(t *testing.T) {
 
 func validCreateCommand() patient.CreateCommand {
 	return patient.CreateCommand{
-		FirstName:      "Jane",
-		LastName:       "Doe",
-		DOB:            "01/15/1980",
-		Phone:          "9542872010",
-		Street:         "123 Main St",
-		City:           "Spring Hill",
-		State:          "FL",
-		Zip:            "34609",
-		Sex:            "female",
-		Insurance:      writableMedicalPlan,
-		SubscriberName: "Jane Doe",
-		SubscriberNum:  "H123",
-		Office:         "Spring Hill",
+		FirstName:       "Jane",
+		LastName:        "Doe",
+		DOB:             "01/15/1980",
+		Phone:           "9542872010",
+		Street:          "123 Main St",
+		City:            "Spring Hill",
+		State:           "FL",
+		Zip:             "34609",
+		Sex:             "female",
+		InsurancePlanID: "meritain-health",
+		SubscriberName:  "Jane Doe",
+		SubscriberNum:   "H123",
+		Office:          "Spring Hill",
 	}
 }
 
 func validUpdateInsuranceCommand() patient.UpdateInsuranceCommand {
 	return patient.UpdateInsuranceCommand{
-		PatientID:      "123",
-		DOB:            "01/15/1980",
-		Insurance:      writableMedicalPlan,
-		SubscriberName: "Jane Doe",
-		SubscriberNum:  "H123",
-		Office:         "Spring Hill",
+		PatientID:       "123",
+		DOB:             "01/15/1980",
+		InsurancePlanID: "meritain-health",
+		SubscriberName:  "Jane Doe",
+		SubscriberNum:   "H123",
+		Office:          "Spring Hill",
 	}
 }
 
@@ -630,18 +625,6 @@ func TestResolveSelectsPatientByVerifiedDemographics(t *testing.T) {
 			name:    "phone first name and DOB",
 			command: patient.ResolveCommand{Phone: "555-222-3333", FirstName: "Jane", DOB: "01-15-1980"},
 			search:  domain.PatientSearch{Phone: "5552223333"},
-			wantID:  "123",
-		},
-		{
-			name:    "last name and DOB",
-			command: patient.ResolveCommand{LastName: "Döe", DOB: "03/20/1982"},
-			search:  domain.PatientSearch{LastName: "Doe"},
-			wantID:  "456",
-		},
-		{
-			name:    "last name first name and DOB",
-			command: patient.ResolveCommand{LastName: "Döe", FirstName: "Ja", DOB: "01/15/1980"},
-			search:  domain.PatientSearch{LastName: "Doe", FirstName: "Ja"},
 			wantID:  "123",
 		},
 	}
@@ -724,7 +707,7 @@ func TestResolveRefreshesKnownPatientByID(t *testing.T) {
 	if got.Name != "DOE,JANE" {
 		t.Fatalf("Name = %q, want DOE,JANE", got.Name)
 	}
-	if got.DOB != "01/15/1980" || got.RoutingAmbiguous || got.InsuranceDecision == nil || !got.InsuranceDecision.CanSchedule {
+	if got.DOB != "01/15/1980" || got.InsuranceDecision == nil || !got.InsuranceDecision.CanSchedule {
 		t.Fatalf("demographics = %+v", got)
 	}
 	if got.AppointmentsStatus != patient.AppointmentsFound || len(got.Appointments) != 1 {
@@ -1028,9 +1011,10 @@ func TestResolveAppliesPreauthorizationAndPediatricProviderPolicy(t *testing.T) 
 			if err != nil {
 				t.Fatalf("Resolve() error = %v", err)
 			}
-			if !slices.Equal(got.AllowedProviders, test.wantProviders) ||
-				got.PreauthRequired != test.wantPreauth ||
-				got.RoutingAmbiguous != test.wantAmbiguous {
+			decision := got.InsuranceDecision
+			if decision == nil || !slices.Equal(decision.AllowedProviders, test.wantProviders) ||
+				(len(decision.Requirements) > 0) != test.wantPreauth ||
+				(decision.Participation == "unknown") != test.wantAmbiguous {
 				t.Fatalf("policy result = %+v", got)
 			}
 		})
@@ -1047,22 +1031,10 @@ func assertResolveResult(t *testing.T, got, want patient.ResolveResult) {
 		got.InsuranceCarrier != want.InsuranceCarrier ||
 		got.InsuranceCarrierID != want.InsuranceCarrierID ||
 		got.InsuranceNote != want.InsuranceNote ||
-		got.InsPlanID != want.InsPlanID ||
-		got.RespPartyID != want.RespPartyID ||
-		got.RoutingAmbiguous != want.RoutingAmbiguous ||
-		got.PreauthRequired != want.PreauthRequired ||
 		got.AppointmentsStatus != want.AppointmentsStatus ||
 		got.AppointmentsMessage != want.AppointmentsMessage ||
 		got.Message != want.Message {
 		t.Fatalf("Resolve() = %+v, want %+v", got, want)
-	}
-	if len(got.AllowedProviders) != len(want.AllowedProviders) {
-		t.Fatalf("AllowedProviders = %v, want %v", got.AllowedProviders, want.AllowedProviders)
-	}
-	for i := range want.AllowedProviders {
-		if got.AllowedProviders[i] != want.AllowedProviders[i] {
-			t.Fatalf("AllowedProviders = %v, want %v", got.AllowedProviders, want.AllowedProviders)
-		}
 	}
 	if len(got.Appointments) != len(want.Appointments) {
 		t.Fatalf("Appointments = %+v, want %+v", got.Appointments, want.Appointments)

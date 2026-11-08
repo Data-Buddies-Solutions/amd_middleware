@@ -23,7 +23,7 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 	}
 	now := p.now()
 	dob, dobErr := domain.ParseDOB(command.DOB, now)
-	decision := decideInsurance(command.Insurance, command.InsurancePlanID, command.CoverageType, office, dob, now)
+	decision := decideInsurance(command.InsurancePlanID, command.CoverageType, office, dob, now)
 	command.SubscriberNum = subscriberNumber(decision.SelfPay, command.SubscriberNum)
 	if missing := createMissingFields(command); len(missing) > 0 {
 		return CreateResult{
@@ -103,8 +103,6 @@ func (p *patient) Create(ctx context.Context, command CreateCommand) (result Cre
 		PatientID:         created.ID,
 		Name:              created.Name,
 		DOB:               string(dob),
-		AllowedProviders:  decision.AllowedProviders,
-		PreauthRequired:   len(decision.Requirements) > 0,
 		InsuranceDecision: &decision,
 		Message:           "Patient created and insurance attached successfully",
 	}
@@ -128,7 +126,7 @@ func createMissingFields(command CreateCommand) []string {
 		{"state", command.State},
 		{"zip", command.Zip},
 		{"sex", command.Sex},
-		{"insurance", firstNonEmpty(command.Insurance, command.InsurancePlanID)},
+		{"insurancePlanId", command.InsurancePlanID},
 		{"subscriberName", command.SubscriberName},
 		{"subscriberNum", command.SubscriberNum},
 	}

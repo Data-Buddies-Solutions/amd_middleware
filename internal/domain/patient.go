@@ -14,9 +14,7 @@ func (p Patient) Name() RecordName {
 }
 
 type PatientSearch struct {
-	Phone     string
-	FirstName string
-	LastName  string
+	Phone string
 }
 
 type PatientCandidateRead struct {

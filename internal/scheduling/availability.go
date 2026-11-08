@@ -20,8 +20,6 @@ type ListCommand struct {
 	StartDate       string `json:"startDate,omitempty"`
 	Office          string `json:"office"`
 	DOB             string `json:"dob,omitempty"`
-	Routing         string `json:"routing"`
-	PreauthRequired bool   `json:"preauthRequired"`
 	InsurancePlanID string `json:"insurancePlanId,omitempty"`
 	RescheduleToken string `json:"rescheduleToken,omitempty"`
 }
@@ -53,9 +51,6 @@ func (s *service) List(ctx context.Context, command ListCommand) (AvailabilityRe
 		if move.needsStaff {
 			return moveNeedsStaffResponse(command.StartDate, moveUnconfirmedMessage), nil
 		}
-	}
-	if command.Routing == "" {
-		command.Routing = string(domain.VisitRouting(command.VisitType))
 	}
 	return s.list(ctx, command, patientID, move)
 }
@@ -101,7 +96,6 @@ func (s *service) list(ctx context.Context, command ListCommand, patientID domai
 	if requestedDate == "" {
 		requestedDate = nowEastern.AddDate(0, 0, 1).Format("2006-01-02")
 	}
-	originalRequestedDate := requestedDate
 
 	startDate, err := time.Parse("2006-01-02", requestedDate)
 	if err != nil {
@@ -111,16 +105,9 @@ func (s *service) list(ctx context.Context, command ListCommand, patientID domai
 	if err != nil {
 		return empty, schedulingError(err.Error())
 	}
-	requestedRouting, err := domain.ParseRoutingRule(command.Routing)
-	if err != nil {
-		return empty, schedulingError(err.Error())
-	}
 
 	if startDate.Format("2006-01-02") <= nowEastern.Format("2006-01-02") {
 		return empty, schedulingError("Same-day and past-date appointments are not available. Please search for tomorrow or later.")
-	}
-	if command.PreauthRequired {
-		startDate = enforcePreauthMinDate(startDate, nowEastern)
 	}
 	searchStartDate := startDate.Format("2006-01-02")
 	maxDate := startDate.AddDate(0, 0, availabilityWindowDays-1)
@@ -141,14 +128,14 @@ func (s *service) list(ctx context.Context, command ListCommand, patientID domai
 		}
 		decision := insurance.DecidePlan(command.InsurancePlanID, command.VisitType, office, dob, now)
 		if !decision.CanSchedule {
-			return insuranceNotClearedResponse(originalRequestedDate, decision), nil
+			return insuranceNotClearedResponse(requestedDate, decision), nil
 		}
 		plan = &decision
 	}
 	unsupportedVisit := func() AvailabilityResponse {
 		return AvailabilityResponse{
 			Status: AvailabilityStatusSuccess, Outcome: AvailabilityOutcomeNoEligibleProviders,
-			RequestedDate: originalRequestedDate, NextAction: AvailabilityNextActionAskDifferentPreferences,
+			RequestedDate: requestedDate, NextAction: AvailabilityNextActionAskDifferentPreferences,
 			Slots: []AvailabilitySlotOption{}, Message: "This office or routing does not support the requested visit type.",
 		}
 	}
@@ -159,13 +146,9 @@ func (s *service) list(ctx context.Context, command ListCommand, patientID domai
 		return empty, schedulingError(office.RoutineVisionMinimumAge.Message)
 	}
 
-	routing := office.SchedulingRouting(requestedRouting, dob, now)
-	if (command.VisitType == domain.AppointmentVisitMedical && routing == domain.RoutingOpticalOnly) ||
-		(command.VisitType == domain.AppointmentVisitRoutineVision && routing != domain.RoutingOpticalOnly) {
-		return unsupportedVisit(), nil
-	}
+	routing := office.SchedulingRouting(domain.VisitRouting(command.VisitType), dob, now)
 	if move.appointmentID != 0 && !office.AllowsAppointmentType(move.appointmentTypeID, routing) {
-		return moveNeedsStaffResponse(originalRequestedDate, moveTypeNotAllowedMessage), nil
+		return moveNeedsStaffResponse(requestedDate, moveTypeNotAllowedMessage), nil
 	}
 
 	setup, err := s.schedulerSetup(ctx, now.UTC())
@@ -189,7 +172,7 @@ func (s *service) list(ctx context.Context, command ListCommand, patientID domai
 			Status:                AvailabilityStatusSuccess,
 			Outcome:               AvailabilityOutcomeNoEligibleProviders,
 			AvailabilityFound:     false,
-			RequestedDate:         originalRequestedDate,
+			RequestedDate:         requestedDate,
 			ShouldRetrySameSearch: false,
 			NextAction:            AvailabilityNextActionAskDifferentPreferences,
 			Message:               "No eligible providers found for this office, routing, and DOB.",
@@ -264,13 +247,12 @@ func (s *service) list(ctx context.Context, command ListCommand, patientID domai
 	}
 
 	if searchIncomplete {
-		return incompleteResponse(originalRequestedDate, searchStartDate, searchEndDate, unavailableDataChecks), nil
+		return incompleteResponse(requestedDate, searchStartDate, searchEndDate, unavailableDataChecks), nil
 	}
 	if len(slots) == 0 {
-		return noneResponse(originalRequestedDate, searchStartDate, searchEndDate), nil
+		return noneResponse(requestedDate, searchStartDate, searchEndDate), nil
 	}
 
-	actualDate := slots[0].DateTime[:len("2006-01-02")]
 	tokenIssuedAt := s.now().UTC()
 	slots, tokenExpiresAt, err := s.signSlots(slots, office, routing, dob, slotClaims{patientID: patientID, moveOf: move.appointmentID}, tokenIssuedAt)
 	if err != nil {
@@ -280,24 +262,14 @@ func (s *service) list(ctx context.Context, command ListCommand, patientID domai
 		Status:                AvailabilityStatusSuccess,
 		Outcome:               AvailabilityOutcomeFound,
 		AvailabilityFound:     true,
-		RequestedDate:         originalRequestedDate,
+		RequestedDate:         requestedDate,
 		ShouldRetrySameSearch: false,
 		NextAction:            availabilityNextActionOfferSlots,
-		ActualDate:            actualDate,
-		DateShifted:           actualDate != originalRequestedDate,
 		SearchedFrom:          searchStartDate,
 		SearchedThrough:       searchEndDate,
 		BookingTokenExpiresAt: tokenExpiresAt.Format(time.RFC3339),
 		Slots:                 slots,
 	}, nil
-}
-
-func enforcePreauthMinDate(requestedDate, now time.Time) time.Time {
-	minDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, 14)
-	if requestedDate.Before(minDate) {
-		return minDate
-	}
-	return requestedDate
 }
 
 func insuranceNotClearedResponse(requestedDate string, decision insurance.InsuranceDecision) AvailabilityResponse {
