@@ -35,7 +35,10 @@ func TestExistingPatientListsAndBooksWithoutInsuranceClarification(t *testing.T)
 
 func TestVisionCarrierIdentitySurvivesAvailabilityAndBooking(t *testing.T) {
 	office, _ := domain.ResolveOffice("North Miami Beach Optical")
-	accepted := insurance.DecideInsurance("Devoted", "routine_vision", office, "01/15/1980", mutationTestNow())
+	accepted := insurance.DecidePlan("devoted-medicare-hmo-vision", "routine_vision", office, "01/15/1980", mutationTestNow())
+	if !accepted.CanSchedule || accepted.CarrierID == "" {
+		t.Fatalf("fixture plan not accepted: %+v", accepted)
+	}
 	records := recordsWithSetup(testColumn(1601, 621, 1582, "09:00", "09:15", 15))
 	records.Demographics["12345"] = domain.PatientDemographics{DOB: "01/15/1980", CarrierID: accepted.CarrierID, CarrierName: "PREMIER EYE CARE"}
 	now := mutationTestNow()

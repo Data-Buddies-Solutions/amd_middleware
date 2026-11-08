@@ -18,7 +18,7 @@ func TestRealDataEmbossSpecialtyKeepsPremierCarrier(t *testing.T) {
 				t.Errorf("renamed plan = %+v", want)
 			}
 			for _, name := range []string{"Emboss Specialty", "Premier Eye Care", "Premier"} {
-				if got := DecideInsurance(name, "routine_vision", o, adultDOB, testNow); !reflect.DeepEqual(got, want) {
+				if got := decideHeard(name, "routine_vision", o, adultDOB, testNow); !reflect.DeepEqual(got, want) {
 					t.Errorf("%q: got %+v, want %+v", name, got, want)
 				}
 			}
@@ -33,8 +33,8 @@ func TestRealDataEmbossSpecialtyKeepsPremierCarrier(t *testing.T) {
 }
 
 func TestRealDataAetnaBetterAtSouthFloridaOffices(t *testing.T) {
-	hollywood := DecideInsurance("Aetna Better", "medical", office(t, "hollywood"), adultDOB, testNow)
-	sweetwater := DecideInsurance("Aetna Better", "medical", office(t, "sweetwater"), adultDOB, testNow)
+	hollywood := decideHeard("Aetna Better", "medical", office(t, "hollywood"), adultDOB, testNow)
+	sweetwater := decideHeard("Aetna Better", "medical", office(t, "sweetwater"), adultDOB, testNow)
 	if hollywood.Outcome != "not_accepted" || hollywood.PlanID != sweetwater.PlanID || hollywood.PlanID == "" {
 		t.Fatalf("hollywood = %+v", hollywood)
 	}
@@ -46,12 +46,12 @@ func TestRealDataAetnaBetterAtSouthFloridaOffices(t *testing.T) {
 func TestRealDataBareAetnaAsksWithResolvableOptions(t *testing.T) {
 	for _, officeID := range []string{"hollywood", "sweetwater"} {
 		o := office(t, officeID)
-		d := DecideInsurance("Aetna", "medical", o, adultDOB, testNow)
+		d := decideHeard("Aetna", "medical", o, adultDOB, testNow)
 		if d.Outcome != "needs_clarification" || len(d.Options) < 2 {
 			t.Fatalf("%s: decision = %+v", officeID, d)
 		}
 		for _, option := range d.Options {
-			if again := DecideInsurance(option.Label, "medical", o, adultDOB, testNow); again.PlanID != option.PlanID {
+			if again := decideHeard(option.Label, "medical", o, adultDOB, testNow); again.PlanID != option.PlanID {
 				t.Fatalf("%s: option %q resolved to %+v", officeID, option.Label, again)
 			}
 		}
@@ -64,14 +64,14 @@ func TestRealDataSouthFloridaKnowsTheNamesMainAccepted(t *testing.T) {
 		"Tricare Humana Military (Select)": "tricare-select",
 		"Tricare Humana Military (Prime)":  "tricare-prime",
 	} {
-		if d := DecideInsurance(heard, "medical", office(t, "hollywood"), adultDOB, testNow); d.PlanID != planID {
+		if d := decideHeard(heard, "medical", office(t, "hollywood"), adultDOB, testNow); d.PlanID != planID {
 			t.Errorf("%q: decision = %+v", heard, d)
 		}
 	}
 }
 
 func TestRealDataSpringHillHumanaMedicareKeepsItsCarrier(t *testing.T) {
-	d := DecideInsurance("Humana Medicare", "medical", office(t, "spring_hill"), adultDOB, testNow)
+	d := decideHeard("Humana Medicare", "medical", office(t, "spring_hill"), adultDOB, testNow)
 	if d.Outcome != "accepted" || d.CarrierID != "car40906" || !slices.Equal(d.AllowedProviders, []string{"Dr. Bach"}) {
 		t.Fatalf("decision = %+v", d)
 	}
@@ -84,7 +84,7 @@ func TestRealDataSimplyMedicaidAsksForTheSubscriberNumber(t *testing.T) {
 		{"north_miami_beach_optical", "routine_vision"},
 		{"spring_hill", "medical"}, {"spring_hill", "routine_vision"},
 	} {
-		d := DecideInsurance("Simply Medicaid", c.coverage, office(t, c.office), adultDOB, testNow)
+		d := decideHeard("Simply Medicaid", c.coverage, office(t, c.office), adultDOB, testNow)
 		if d.Outcome != "accepted" || d.CallerNotice != simplySubscriberNotice || !strings.HasSuffix(d.Answer, simplySubscriberNotice) {
 			t.Errorf("%s %s: decision = %+v", c.office, c.coverage, d)
 		}
@@ -99,7 +99,7 @@ func TestRealDataLeonRoutesToTheLeonCoordinator(t *testing.T) {
 		t.Run(officeID, func(t *testing.T) {
 			o := office(t, officeID)
 			chart := DecideChartInsurance(domain.PatientDemographics{CarrierID: "car40908", CarrierName: "LEON MEDICAL CENTER HEALTH PLAN"}, "medical", o, adultDOB, testNow)
-			said := DecideInsurance("Leon Medical Center", "medical", o, adultDOB, testNow)
+			said := decideHeard("Leon Medical Center", "medical", o, adultDOB, testNow)
 			for _, d := range []InsuranceDecision{chart, said} {
 				if d.PlanID != "leon-medical-center-health-plan" || d.Participation != "accepted" || d.CanSchedule || d.Reason != "requirement" || d.CallerNotice != notice {
 					t.Fatalf("decision = %+v", d)

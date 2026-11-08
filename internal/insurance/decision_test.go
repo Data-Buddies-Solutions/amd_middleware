@@ -13,6 +13,10 @@ import (
 
 var testNow = time.Date(2026, time.June, 1, 16, 0, 0, 0, time.UTC)
 
+func decideHeard(heard, coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {
+	return decideInsurance(active.Load().listForOffice(office.ID), heard, coverage, office, dob, asOf)
+}
+
 func dobYearsAgo(years int) domain.DOB {
 	return domain.DOB(testNow.AddDate(-years, 0, -1).Format("01/02/2006"))
 }
@@ -139,17 +143,18 @@ func TestDecidePlanRequiresThePlanInTheOfficeListAndCoverage(t *testing.T) {
 func TestDecideSelfPayWithoutASelfPayPlanIsNotAccepted(t *testing.T) {
 	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
 	hollywood := office(t, "hollywood")
-	if d := DecideSelfPay("medical", hollywood, adultDOB, testNow); !reflect.DeepEqual(d, DecidePlan("self-pay-medical", "medical", hollywood, adultDOB, testNow)) || !d.SelfPay {
+	list := active.Load().listForOffice(hollywood.ID)
+	if d := decideSelfPay(list, "medical", hollywood, adultDOB, testNow); !reflect.DeepEqual(d, DecidePlan("self-pay-medical", "medical", hollywood, adultDOB, testNow)) || !d.SelfPay {
 		t.Fatalf("hollywood medical = %+v", d)
 	}
-	if d := DecideSelfPay("routine_vision", hollywood, adultDOB, testNow); d.Outcome != "not_accepted" || d.CanSchedule || d.PlanID != "" || d.Answer != answerNoSelfPay {
+	if d := decideSelfPay(list, "routine_vision", hollywood, adultDOB, testNow); d.Outcome != "not_accepted" || d.CanSchedule || d.PlanID != "" || d.Answer != answerNoSelfPay {
 		t.Fatalf("hollywood routine vision = %+v", d)
 	}
 }
 
 func TestDecisionsRejectUnsupportedCoverage(t *testing.T) {
 	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
-	d := DecideInsurance("Aetna Medicare", "medical", office(t, "north_miami_beach_optical"), adultDOB, testNow)
+	d := DecidePlan("aetna-medicare", "medical", office(t, "north_miami_beach_optical"), adultDOB, testNow)
 	if d.Outcome != "not_accepted" || d.Answer != answerOfficeNoCoverage {
 		t.Fatalf("office without medical = %+v", d)
 	}
@@ -161,7 +166,7 @@ func TestDecisionsRejectUnsupportedCoverage(t *testing.T) {
 
 func TestInsuranceDecisionJSON(t *testing.T) {
 	useSyntheticCatalog(t, syntheticSouthFlorida(), nil, nil)
-	accepted, err := json.Marshal(DecideInsurance("Aetna Medicare", "medical", office(t, "hollywood"), adultDOB, testNow))
+	accepted, err := json.Marshal(DecidePlan("aetna-medicare", "medical", office(t, "hollywood"), adultDOB, testNow))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +175,7 @@ func TestInsuranceDecisionJSON(t *testing.T) {
 			t.Fatalf("missing %s in %s", field, accepted)
 		}
 	}
-	asked, err := json.Marshal(DecideInsurance("Aetna", "medical", office(t, "hollywood"), adultDOB, testNow))
+	asked, err := json.Marshal(decideHeard("Aetna", "medical", office(t, "hollywood"), adultDOB, testNow))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,9 +209,9 @@ func TestDecisionsNameTheirReasonAndCallerNotice(t *testing.T) {
 		{"not accepted", DecidePlan("aetna-commercial", "medical", hollywood, adultDOB, testNow), "not_accepted", ""},
 		{"unknown plan", DecidePlan("missing", "medical", hollywood, adultDOB, testNow), "ask_card", ""},
 		{"unknown coverage", DecidePlan("aetna-medicare", "dental", hollywood, adultDOB, testNow), "ask_coverage", ""},
-		{"office without coverage", DecideInsurance("Aetna Medicare", "medical", office(t, "north_miami_beach_optical"), adultDOB, testNow), "office_no_coverage", ""},
-		{"several plans", DecideInsurance("Aetna", "medical", hollywood, adultDOB, testNow), "choose_plan", ""},
-		{"program only", DecideInsurance("Medicare please", "medical", hollywood, adultDOB, testNow), "ask_full_name", ""},
+		{"office without coverage", DecidePlan("aetna-medicare", "medical", office(t, "north_miami_beach_optical"), adultDOB, testNow), "office_no_coverage", ""},
+		{"several plans", decideHeard("Aetna", "medical", hollywood, adultDOB, testNow), "choose_plan", ""},
+		{"program only", decideHeard("Medicare please", "medical", hollywood, adultDOB, testNow), "ask_full_name", ""},
 		{"chart carrier unknown", DecideChartInsurance(domain.PatientDemographics{CarrierID: "car999"}, "medical", hollywood, adultDOB, testNow), "chart_unverified", ""},
 	}
 	for _, tc := range tests {

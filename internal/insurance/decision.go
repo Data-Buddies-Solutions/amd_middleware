@@ -51,10 +51,6 @@ type InsuranceDecision struct {
 	Options          []InsuranceOption      `json:"options,omitempty"`
 }
 
-func DecideInsurance(heard, coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {
-	return decideInsurance(active.Load().listForOffice(office.ID), heard, coverage, office, dob, asOf)
-}
-
 func decideInsurance(list planList, heard, coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {
 	d, ok := startDecision(coverage, office)
 	if !ok {
@@ -94,10 +90,6 @@ func decidePlan(list planList, planID, coverage string, office *domain.OfficeCon
 		}
 	}
 	return d
-}
-
-func DecideSelfPay(coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {
-	return decideSelfPay(active.Load().listForOffice(office.ID), coverage, office, dob, asOf)
 }
 
 func decideSelfPay(list planList, coverage string, office *domain.OfficeConfig, dob domain.DOB, asOf time.Time) InsuranceDecision {

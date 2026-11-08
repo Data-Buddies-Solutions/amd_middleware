@@ -130,23 +130,6 @@ func (c *AdvancedMDClient) doXMLRPCRequest(ctx context.Context, tokenData *sessi
 	return body, nil
 }
 
-func (c *AdvancedMDClient) LookupPatient(ctx context.Context, tokenData *session.TokenData, lastName string, firstName string) (domain.PatientCandidateRead, error) {
-	name := lastName
-	if firstName != "" {
-		name = lastName + "," + firstName
-	}
-
-	reqBody := amdLookupRequest{
-		PPMDMsg: amdLookupMsg{
-			Action: "lookuppatient",
-			Class:  "api",
-			Name:   name,
-		},
-	}
-
-	return c.doPatientLookup(ctx, tokenData, reqBody)
-}
-
 func (c *AdvancedMDClient) LookupPatientCandidates(ctx context.Context, tokenData *session.TokenData, firstName, dob string) (domain.PatientCandidateRead, error) {
 	return c.doPatientLookup(ctx, tokenData, amdLookupRequest{PPMDMsg: amdLookupMsg{Action: "lookuppatient", Class: "api", Name: "," + firstName, DOB: dob}})
 }
