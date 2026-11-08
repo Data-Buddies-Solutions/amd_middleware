@@ -4,6 +4,17 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [10.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v9.2.0...v10.0.0) (2026-11-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **scheduling:** require patient and intent claims on slot tokens ([#341](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/341))
+
+### Features
+
+* **scheduling:** require patient and intent claims on slot tokens ([#341](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/341)) ([f71f298](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/f71f298c60ce65df9bd45ac31c372c0fe8a0257a))
+
 ## [9.2.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v9.1.2...v9.2.0) (2026-11-07)
 
 
