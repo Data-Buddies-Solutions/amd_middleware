@@ -166,9 +166,9 @@ func TestSlotContractListsAndRevalidatesRepresentativeSchedules(t *testing.T) {
 			records.Schedule[slotContractDate] = scheduleRows(tt.column.ID, tt.appointments, tt.holds)
 			scheduler := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
 
-			result, err := scheduler.List(context.Background(), scheduling.ListCommand{
+			result, err := scheduler.List(context.Background(), plannedSearch(scheduling.ListCommand{
 				StartDate: slotContractDate, Office: tt.office, Routing: string(tt.routing), DOB: "01/15/1980",
-			})
+			}))
 			if err != nil {
 				t.Fatalf("List error = %v", err)
 			}
@@ -233,6 +233,7 @@ func signSlotContractToken(t *testing.T, now time.Time, officeID string, routing
 	}
 	slices.Sort(typeIDs)
 	signed, err := scheduling.SignSlotToken("test-booking-secret", scheduling.SlotPolicy{
+		PatientID:          "12345",
 		OfficeID:           officeID,
 		Routing:            routing,
 		ColumnID:           columnID,

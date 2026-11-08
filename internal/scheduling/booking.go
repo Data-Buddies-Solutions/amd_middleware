@@ -258,7 +258,13 @@ func (s *service) resolveBookingContext(command BookCommand, preservedAppointmen
 	if patientID == "" {
 		return bookingContext{}, schedulingError("patientId is required")
 	}
-	if token.PatientID != "" && token.PatientID != patientID {
+	if token.PatientID == "" {
+		return bookingContext{}, categorizedError(
+			CategoryInvalidBookingToken,
+			"This slot was not offered for a specific patient. Please check availability again.",
+		)
+	}
+	if token.PatientID != patientID {
 		return bookingContext{}, categorizedError(
 			CategoryPatientContextMismatch,
 			"The selected slot does not match the verified patient. Please check availability again.",

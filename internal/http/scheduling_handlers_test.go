@@ -191,7 +191,7 @@ func TestListSlotsErrorsPreserveInventoryContract(t *testing.T) {
 		readFailure         bool
 	}{
 		{name: "invalid JSON", body: `{`, outcome: "invalid_input"},
-		{name: "provider read", body: `{"office":"Spring Hill","startDate":"2026-06-03"}`, outcome: "availability_search_incomplete", readFailure: true},
+		{name: "provider read", body: `{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","office":"Spring Hill","startDate":"2026-06-03"}`, outcome: "availability_search_incomplete", readFailure: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			records := advancedmdtest.NewAdapter()
@@ -222,14 +222,14 @@ func TestListSlotsRoutingContract(t *testing.T) {
 		name, body string
 		searches   bool
 	}{
-		{name: "unknown routing", body: `{"office":"Spring Hill","startDate":"2026-06-03","routing":"bach-only"}`},
-		{name: "abita medical without routing", body: `{"office":"Spring Hill","startDate":"2026-06-03","patientId":"123","visitType":"medical","dob":"01/15/1980"}`, searches: true},
-		{name: "abita routine vision without routing", body: `{"office":"Spring Hill","startDate":"2026-06-03","patientId":"123","visitType":"routine_vision","dob":"01/15/1980"}`, searches: true},
-		{name: "not_accepted", body: `{"office":"Spring Hill","startDate":"2026-06-03","routing":"not_accepted"}`, searches: true},
-		{name: "bach_only", body: `{"office":"Spring Hill","startDate":"2026-06-03","routing":"bach_only"}`, searches: true},
-		{name: "bach_licht", body: `{"office":"Spring Hill","startDate":"2026-06-03","routing":"bach_licht"}`, searches: true},
-		{name: "all_three", body: `{"office":"Spring Hill","startDate":"2026-06-03","routing":"all_three"}`, searches: true},
-		{name: "optical_only", body: `{"office":"Spring Hill","startDate":"2026-06-03","routing":"optical_only"}`, searches: true},
+		{name: "unknown routing", body: `{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","office":"Spring Hill","startDate":"2026-06-03","routing":"bach-only"}`},
+		{name: "abita medical without routing", body: `{"insurancePlanId":"self-pay-medical","office":"Spring Hill","startDate":"2026-06-03","patientId":"123","visitType":"medical","dob":"01/15/1980"}`, searches: true},
+		{name: "abita routine vision without routing", body: `{"insurancePlanId":"self-pay-routine-vision","office":"Spring Hill","startDate":"2026-06-03","patientId":"123","visitType":"routine_vision","dob":"01/15/1980"}`, searches: true},
+		{name: "not_accepted", body: `{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","office":"Spring Hill","startDate":"2026-06-03","routing":"not_accepted"}`, searches: true},
+		{name: "bach_only", body: `{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","office":"Spring Hill","startDate":"2026-06-03","routing":"bach_only"}`, searches: true},
+		{name: "bach_licht", body: `{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","office":"Spring Hill","startDate":"2026-06-03","routing":"bach_licht"}`, searches: true},
+		{name: "all_three", body: `{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","office":"Spring Hill","startDate":"2026-06-03","routing":"all_three"}`, searches: true},
+		{name: "optical_only", body: `{"patientId":"123","visitType":"routine_vision","insurancePlanId":"self-pay-routine-vision","office":"Spring Hill","startDate":"2026-06-03","routing":"optical_only"}`, searches: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			records := advancedmdtest.NewAdapter()
@@ -298,7 +298,7 @@ func TestListSlotsIncompleteSearchCarriesTheRetryHint(t *testing.T) {
 			tc.inject(records)
 			scheduler := schedulingmodule.New(records, "test-booking-secret", func() time.Time { return now })
 			router := NewRouter(&Handlers{scheduling: scheduler}, "test-secret", nil)
-			request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"startDate":"2026-06-03","office":"Spring Hill","routing":"bach_only","dob":"01/15/1980"}`))
+			request := httptest.NewRequest(http.MethodPost, "/api/scheduler/slots", strings.NewReader(`{"patientId":"123","visitType":"medical","insurancePlanId":"self-pay-medical","startDate":"2026-06-03","office":"Spring Hill","routing":"bach_only","dob":"01/15/1980"}`))
 			request.Header.Set("Authorization", "Bearer test-secret")
 			response := httptest.NewRecorder()
 

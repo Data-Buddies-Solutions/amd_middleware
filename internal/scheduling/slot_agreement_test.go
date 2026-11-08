@@ -203,9 +203,9 @@ func (c agreementCase) scheduler() (scheduling.Scheduling, *advancedmdtest.Adapt
 }
 
 func (c agreementCase) list(scheduler scheduling.Scheduling) (scheduling.AvailabilityResponse, error) {
-	result, err := scheduler.List(context.Background(), scheduling.ListCommand{
+	result, err := scheduler.List(context.Background(), plannedSearch(scheduling.ListCommand{
 		StartDate: c.first.Format("2006-01-02"), Office: c.target.office, Routing: string(c.target.routing), DOB: "01/15/1980",
-	})
+	}))
 	if err != nil {
 		return result, fmt.Errorf("List error = %w", err)
 	}

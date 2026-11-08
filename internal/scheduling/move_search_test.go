@@ -287,7 +287,6 @@ func TestMoveSearchRefusesAnExpiredOrForeignToken(t *testing.T) {
 	}{
 		"expired":       {expired, "12345", token},
 		"other patient": {f.svc, "67890", token},
-		"no patient":    {f.svc, "", token},
 		"tampered":      {f.svc, "12345", token + "x"},
 	} {
 		_, err := c.svc.List(context.Background(), scheduling.ListCommand{PatientID: c.patient, RescheduleToken: c.token, StartDate: "2026-06-30", DOB: "01/15/1980"})
@@ -328,6 +327,58 @@ func TestMoveSlotCannotBookOrMoveAnotherAppointment(t *testing.T) {
 	}
 	if _, err := f.svc.Reschedule(context.Background(), moveCommand(slot.BookingToken, f.rescheduleToken(t, other))); scheduling.CategoryOf(err) != scheduling.CategoryInvalidBookingToken {
 		t.Errorf("move of another appointment: err=%v", err)
+	}
+	if len(f.records.Bookings) != 0 || len(f.records.Cancellations) != 0 {
+		t.Errorf("wrote %d bookings and %d cancellations", len(f.records.Bookings), len(f.records.Cancellations))
+	}
+}
+
+func TestPlanlessSearchWithoutAMoveTokenIsRefused(t *testing.T) {
+	f := newMoveFixture()
+	for name, command := range map[string]scheduling.ListCommand{
+		"no plan":    {PatientID: "12345", Office: "Spring Hill", VisitType: "medical", StartDate: "2026-06-03", DOB: "01/15/1980"},
+		"no patient": {Office: "Spring Hill", VisitType: "medical", InsurancePlanID: "self-pay-medical", StartDate: "2026-06-03", DOB: "01/15/1980"},
+	} {
+		available, err := f.svc.List(context.Background(), command)
+		if err == nil || scheduling.CategoryOf(err) != scheduling.CategoryValidation || len(available.Slots) != 0 {
+			t.Errorf("%s: outcome=%q err=%v", name, available.Outcome, err)
+		}
+	}
+	if f.records.SchedulerSetupCalls != 0 {
+		t.Errorf("refused searches read the scheduler %d times", f.records.SchedulerSetupCalls)
+	}
+}
+
+func TestWritesRequireTheirSignedClaims(t *testing.T) {
+	now := mutationTestNow()
+	sign := func(t *testing.T, patient domain.PatientID, moveOf int) string {
+		t.Helper()
+		token, err := scheduling.SignSlotToken("test-booking-secret", scheduling.SlotPolicy{
+			OfficeID: "spring_hill", Routing: domain.RoutingBachOnly, ColumnID: springHillBach, ProfileID: 620,
+			StartDatetime: "2026-06-03T09:00", Duration: 15, DOB: "01/15/1980", AppointmentTypeIDs: []int{1006, 1007},
+			PatientID: patient, MoveOf: moveOf, SameStartCapacity: 2, IssuedAt: now.Unix(), ExpiresAt: now.Add(15 * time.Minute).Unix(),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return token
+	}
+	f := newMoveFixture()
+	visit := bachVisit(54321)
+	f.records.AppointmentResults["12345"] = appointmentResult([]domain.PatientAppointment{visit}, true)
+	rescheduleToken := f.rescheduleToken(t, visit)
+	command := moveCommand(sign(t, "", 0), "")
+	command.VisitCategory = "medical"
+	if _, err := f.svc.Book(context.Background(), command); scheduling.CategoryOf(err) != scheduling.CategoryInvalidBookingToken {
+		t.Errorf("book, no patient claim: err=%v", err)
+	}
+	for name, token := range map[string]string{
+		"no patient claim": sign(t, "", 54321),
+		"no move claim":    sign(t, "12345", 0),
+	} {
+		if _, err := f.svc.Reschedule(context.Background(), moveCommand(token, rescheduleToken)); scheduling.CategoryOf(err) != scheduling.CategoryInvalidBookingToken {
+			t.Errorf("move, %s: err=%v", name, err)
+		}
 	}
 	if len(f.records.Bookings) != 0 || len(f.records.Cancellations) != 0 {
 		t.Errorf("wrote %d bookings and %d cancellations", len(f.records.Bookings), len(f.records.Cancellations))

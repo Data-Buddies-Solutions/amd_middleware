@@ -399,7 +399,13 @@ func tokenClaims(value any) any {
 
 func signedPinSlot(t *testing.T, dob domain.DOB) string {
 	t.Helper()
+	return signedPinSlotFor(t, dob, 0)
+}
+
+func signedPinSlotFor(t *testing.T, dob domain.DOB, moveOf int) string {
+	t.Helper()
 	token, err := schedulingmodule.SignSlotToken(pinBookingSecret, schedulingmodule.SlotPolicy{
+		PatientID: "12345", MoveOf: moveOf,
 		OfficeID: "spring_hill", Routing: domain.RoutingBachOnly, ColumnID: 1513, ProfileID: 620,
 		StartDatetime: pinStart.Format("2006-01-02T15:04"), Duration: 15, DOB: dob,
 		AppointmentTypeIDs: []int{1007}, SameStartCapacity: 2,
@@ -610,6 +616,7 @@ func TestIdentityHandlingAcrossRoutesMatchesGolden(t *testing.T) {
 		{"undated slot dob garbage", map[string]any{"bookingToken": undatedSlot, "dob": "garbage"}},
 		{"undated slot dob future", map[string]any{"bookingToken": undatedSlot, "dob": "2099-01-01"}},
 		{"undated slot dob other day", map[string]any{"bookingToken": undatedSlot, "dob": "01/16/1980"}},
+		{"slot for a move", map[string]any{"bookingToken": signedPinSlotFor(t, "01/15/1980", pinOriginal.ID)}},
 		{"undated slot patientId letters and dob garbage", map[string]any{"bookingToken": undatedSlot, "patientId": "abc", "dob": "garbage"}},
 		{"patientName comma space", map[string]any{"patientName": "Doe, Jane"}},
 		{"patientName lowercase plain", map[string]any{"patientName": "jane doe"}},
@@ -623,6 +630,7 @@ func TestIdentityHandlingAcrossRoutesMatchesGolden(t *testing.T) {
 
 	reschedule := with(book, map[string]any{
 		"visitCategory":   "medical",
+		"bookingToken":    signedPinSlotFor(t, "01/15/1980", pinOriginal.ID),
 		"rescheduleToken": pinAppointmentToken(t, "reschedule", pinOriginal),
 	})
 	run("reschedule", "/api/appointment/reschedule", reschedule, []pinCase{
@@ -634,6 +642,8 @@ func TestIdentityHandlingAcrossRoutesMatchesGolden(t *testing.T) {
 		{"patientId other patient", map[string]any{"patientId": "99999"}},
 		{"patientId missing", map[string]any{"patientId": ""}},
 		{"dob other day", map[string]any{"dob": "01/16/1980"}},
+		{"slot for a new visit", map[string]any{"bookingToken": signedPinSlot(t, "01/15/1980")}},
+		{"slot for another move", map[string]any{"bookingToken": signedPinSlotFor(t, "01/15/1980", 777)}},
 	})
 
 	cancellable := domain.PatientAppointment{ID: 33333, Start: pinStart, OfficeID: "spring_hill", Office: "Spring Hill"}
@@ -648,9 +658,12 @@ func TestIdentityHandlingAcrossRoutesMatchesGolden(t *testing.T) {
 		{"patientId bare pat", map[string]any{"patientId": "pat"}},
 	})
 
-	slots := map[string]any{"office": "Spring Hill", "startDate": "2026-06-03", "routing": "bach_only", "visitType": "medical"}
+	slots := map[string]any{"office": "Spring Hill", "startDate": "2026-06-03", "routing": "bach_only", "visitType": "medical", "patientId": "12345", "insurancePlanId": "self-pay-medical"}
 	run("slots", "/api/scheduler/slots", slots, []pinCase{
-		{"no identity", nil},
+		{"no identity", map[string]any{"patientId": nil}},
+		{"no plan and no move", map[string]any{"insurancePlanId": nil}},
+		{"move", map[string]any{"insurancePlanId": nil, "office": nil, "visitType": nil, "routing": nil, "rescheduleToken": pinAppointmentToken(t, "reschedule", pinOriginal)}},
+		{"plan-gated move", map[string]any{"office": nil, "rescheduleToken": pinAppointmentToken(t, "reschedule", pinOriginal)}},
 		{"patientId numeric", map[string]any{"patientId": "12345"}},
 		{"patientId pat prefix", map[string]any{"patientId": "pat12345"}},
 		{"patientId letters", map[string]any{"patientId": "abc"}},
