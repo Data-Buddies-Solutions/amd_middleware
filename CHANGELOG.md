@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [11.0.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v11.0.0...v11.0.1) (2026-11-13)
+
+
+### Bug Fixes
+
+* **insurance:** delete plan-name entry points that no route reaches ([#345](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/345)) ([59eb85b](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/59eb85b9b972df465e0fe9657afdc58ff8cf5468))
+
 ## [11.0.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v10.0.0...v11.0.0) (2026-11-08)
 
 
