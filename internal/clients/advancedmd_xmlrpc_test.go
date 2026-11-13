@@ -47,7 +47,7 @@ func newTestXMLRPCClientAt(t *testing.T, handler http.Handler, now func() time.T
 	return NewAdvancedMDClient(httpClient, now), tokenData, server.Close
 }
 
-func TestAdvancedMDClient_LookupPatient_SingleResult(t *testing.T) {
+func TestAdvancedMDClient_LookupPatientCandidates_SingleResult(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Cookie") != "token=test-token" {
 			t.Errorf("Expected Cookie 'token=test-token', got %q", r.Header.Get("Cookie"))
@@ -81,9 +81,9 @@ func TestAdvancedMDClient_LookupPatient_SingleResult(t *testing.T) {
 	client, tokenData, cleanup := newTestXMLRPCClient(t, handler)
 	defer cleanup()
 
-	read, err := client.LookupPatient(context.Background(), tokenData, "Smith", "")
+	read, err := client.LookupPatientCandidates(context.Background(), tokenData, "John", "01/15/1980")
 	if err != nil {
-		t.Fatalf("LookupPatient failed: %v", err)
+		t.Fatalf("LookupPatientCandidates failed: %v", err)
 	}
 	patients := read.Patients
 

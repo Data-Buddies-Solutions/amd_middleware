@@ -43,7 +43,7 @@ func TestPatientLookupDiagnostics(t *testing.T) {
 				if lookup == "phone" {
 					_, err = client.LookupPatientByPhone(ctx, token, "2025550100")
 				} else {
-					_, err = client.LookupPatient(ctx, token, "Synthetic", "Patient")
+					_, err = client.LookupPatientCandidates(ctx, token, "Synthetic", "01/15/1980")
 				}
 				if (err != nil) != (test.category != "") {
 					t.Fatalf("error = %v, want category %q", err, test.category)

@@ -37,7 +37,7 @@ func TestDecideInsuranceNeverPicksAPlanTheCallerContradicted(t *testing.T) {
 		{"Cigna PPO", "routine_vision", "cigna-vision"},
 	}
 	for _, tc := range tests {
-		d := DecideInsurance(tc.heard, tc.coverage, hollywood, adultDOB, testNow)
+		d := decideHeard(tc.heard, tc.coverage, hollywood, adultDOB, testNow)
 		if d.PlanID != tc.planID {
 			t.Errorf("%q %s: decision = %+v", tc.heard, tc.coverage, d)
 		}

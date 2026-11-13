@@ -93,7 +93,7 @@ func TestLookupPatientRejectsIncompletePages(t *testing.T) {
 			})
 			client, token, cleanup := newTestXMLRPCClient(t, handler)
 			defer cleanup()
-			read, err := client.LookupPatient(context.Background(), token, "", "Jane")
+			read, err := client.LookupPatientCandidates(context.Background(), token, "Jane", "01/15/1980")
 			if err == nil || len(read.Patients) != 0 {
 				t.Fatalf("incomplete lookup returned patients: count=%d err=%v", len(read.Patients), err)
 			}

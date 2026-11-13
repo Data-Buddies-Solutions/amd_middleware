@@ -33,7 +33,7 @@ func TestUndecidedInsuranceIsRejectedBeforeAnyInsuranceMutation(t *testing.T) {
 
 func TestInsurancePlanIDDecidesWrites(t *testing.T) {
 	springHill, _ := domain.LookupOfficeByID("spring_hill")
-	accepted := insurance.DecideInsurance(writableMedicalPlan, "medical", springHill, "01/15/1980", testNow())
+	accepted := insurance.DecidePlan("meritain-health", "medical", springHill, "01/15/1980", testNow())
 	if accepted.Outcome != "accepted" || accepted.PlanID == "" || accepted.CarrierID != writableMedicalCarrier {
 		t.Fatalf("fixture plan not accepted: %+v", accepted)
 	}
