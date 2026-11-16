@@ -4,6 +4,13 @@ Release Please owns new versioned sections at the top of this file. The dated
 `[Unreleased]` sections below predate the automation and remain as historical
 records.
 
+## [11.1.0](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v11.0.1...v11.1.0) (2026-11-16)
+
+
+### Features
+
+* **scheduling:** book adult medical patients into Dr. Bach's adult medical columns ([#347](https://github.com/Data-Buddies-Solutions/amd_middleware/issues/347)) ([bea34d9](https://github.com/Data-Buddies-Solutions/amd_middleware/commit/bea34d9781168c375bb563fbf1bff9a8745de59b))
+
 ## [11.0.1](https://github.com/Data-Buddies-Solutions/amd_middleware/compare/v11.0.0...v11.0.1) (2026-11-13)
 
 
