@@ -413,4 +413,8 @@ func TestMovesKeepDrBachAndDrVillafuerteApartAndKeepPostOpOutOfTheAdultMedicalCo
 			}
 		})
 	}
+	staffBooked := f.search(t, scheduling.ListCommand{RescheduleToken: f.rescheduleToken(t, hollywoodVisit(hollywoodAdultMedical, 1008))})
+	if staffBooked.Outcome != scheduling.AvailabilityOutcomeMoveNeedsStaff || len(staffBooked.Slots) != 0 {
+		t.Fatalf("move of a post-op visit staff put in the adult medical column = %q %+v, want move_needs_staff", staffBooked.Outcome, staffBooked.Slots)
+	}
 }

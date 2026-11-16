@@ -168,7 +168,11 @@ func (s *service) list(ctx context.Context, command ListCommand, patientID domai
 		allowedColumns = columnsForDoctor(office, allowedColumns, move.doctorKey)
 	}
 	if move.appointmentID != 0 {
-		allowedColumns = columnsForAppointmentType(office, allowedColumns, move.appointmentTypeID)
+		typed := columnsForAppointmentType(office, allowedColumns, move.appointmentTypeID)
+		if len(typed) == 0 && len(allowedColumns) > 0 {
+			return moveNeedsStaffResponse(requestedDate, moveTypeNotAllowedMessage), nil
+		}
+		allowedColumns = typed
 	}
 	if len(allowedColumns) == 0 {
 		return AvailabilityResponse{

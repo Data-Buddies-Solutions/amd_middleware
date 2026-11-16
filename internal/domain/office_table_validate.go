@@ -32,11 +32,12 @@ func validateOfficeTable(table officeTable) error {
 			return fmt.Errorf("office %s: %w", definition.ID, err)
 		}
 		for _, column := range definition.Columns {
-			p := column.Provider
-			if name, ok := providerKeys[p.Key]; ok && name != p.DisplayName {
-				return fmt.Errorf("provider key %s names both %s and %s", p.Key, name, p.DisplayName)
+			for _, p := range []provider{column.Provider, column.billingProvider()} {
+				if name, ok := providerKeys[p.Key]; ok && name != p.DisplayName {
+					return fmt.Errorf("provider key %s names both %s and %s", p.Key, name, p.DisplayName)
+				}
+				providerKeys[p.Key] = p.DisplayName
 			}
-			providerKeys[p.Key] = p.DisplayName
 		}
 	}
 	if len(table.Environments) != len(environments) {
@@ -57,9 +58,10 @@ func validateOfficeTable(table officeTable) error {
 func validateOfficeDefinition(definition officeDefinition, definitions map[string]officeDefinition) error {
 	for _, key := range slices.Sorted(maps.Keys(definition.Columns)) {
 		column := definition.Columns[key]
-		p := column.Provider
-		if p.Key == "" || p.DisplayName == "" || p.ShortName == "" || p.MatchKey == "" {
-			return fmt.Errorf("column %s needs a provider key, display name, short name, and match key", key)
+		for _, p := range []provider{column.Provider, column.billingProvider()} {
+			if p.Key == "" || p.DisplayName == "" || p.ShortName == "" || p.MatchKey == "" {
+				return fmt.Errorf("column %s needs a provider key, display name, short name, and match key", key)
+			}
 		}
 		for _, typeID := range column.AppointmentTypeIDs {
 			if _, ok := AppointmentTypes[typeID]; !ok {

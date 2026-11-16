@@ -40,6 +40,18 @@ func TestOfficeTableValidationRejectsBrokenTables(t *testing.T) {
 			column.AppointmentTypeIDs = []int{1006, 9999}
 			office.Columns["bach_adult_medical"] = column
 		}},
+		{"incomplete billing provider", "office hollywood: column bach_adult_medical needs a provider key, display name, short name, and match key", func(t *testing.T, table *officeTable) {
+			office := officeDefinitionFor(t, table, "hollywood")
+			column := office.Columns["bach_adult_medical"]
+			column.BillingProvider.ShortName = ""
+			office.Columns["bach_adult_medical"] = column
+		}},
+		{"billing provider key reused for another name", "provider key austin_bach names both Dr. Austin Bach and Dr. Someone Else", func(t *testing.T, table *officeTable) {
+			office := officeDefinitionFor(t, table, "hollywood")
+			column := office.Columns["bach_adult_medical"]
+			column.BillingProvider.DisplayName = "Dr. Someone Else"
+			office.Columns["bach_adult_medical"] = column
+		}},
 		{"missing office binding", "prod: office crystal_river has no binding and is not marked unavailable", func(t *testing.T, table *officeTable) {
 			delete(table.Environments[Prod].Offices, "crystal_river")
 		}},
