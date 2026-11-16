@@ -385,3 +385,32 @@ func TestWritesRequireTheirSignedClaims(t *testing.T) {
 		t.Errorf("wrote %d bookings and %d cancellations", len(f.records.Bookings), len(f.records.Cancellations))
 	}
 }
+
+func TestMovesKeepDrBachAndDrVillafuerteApartAndKeepPostOpOutOfTheAdultMedicalColumn(t *testing.T) {
+	const hollywoodAdultMedical = 1617
+	f := newMoveFixture()
+	f.records.SchedulerSetup.Columns = append(f.records.SchedulerSetup.Columns, testColumn(hollywoodAdultMedical, 620, 1480, "14:00", "14:15", 15))
+	hollywoodVisit := func(columnID, typeID int) domain.PatientAppointment {
+		visit := bachVisit(54321)
+		visit.ColumnID, visit.OfficeID, visit.Office, visit.AppointmentTypeID = columnID, "hollywood", "Hollywood", typeID
+		return visit
+	}
+	cases := []struct {
+		name    string
+		command scheduling.ListCommand
+		want    []int
+	}{
+		{name: "Dr. Bach visit stays with Dr. Bach", command: scheduling.ListCommand{RescheduleToken: f.rescheduleToken(t, hollywoodVisit(hollywoodBach, 1007))}, want: []int{hollywoodBach}},
+		{name: "Dr. Villafuerte visit stays with Dr. Villafuerte", command: scheduling.ListCommand{RescheduleToken: f.rescheduleToken(t, hollywoodVisit(hollywoodAdultMedical, 1007))}, want: []int{hollywoodAdultMedical}},
+		{name: "plan move of an adult medical visit may use either", command: scheduling.ListCommand{RescheduleToken: f.rescheduleToken(t, hollywoodVisit(hollywoodBach, 1007)), InsurancePlanID: "self-pay-medical"}, want: []int{hollywoodBach, hollywoodAdultMedical}},
+		{name: "plan move of a post-op visit skips the adult medical column", command: scheduling.ListCommand{RescheduleToken: f.rescheduleToken(t, hollywoodVisit(hollywoodBach, 1008)), InsurancePlanID: "self-pay-medical"}, want: []int{hollywoodBach}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			available := f.search(t, c.command)
+			if got := slotColumns(available.Slots); !slices.Equal(got, c.want) {
+				t.Fatalf("columns = %v (%q: %s), want %v", got, available.Outcome, available.Message, c.want)
+			}
+		})
+	}
+}

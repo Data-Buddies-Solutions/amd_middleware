@@ -56,9 +56,15 @@ func validateOfficeTable(table officeTable) error {
 
 func validateOfficeDefinition(definition officeDefinition, definitions map[string]officeDefinition) error {
 	for _, key := range slices.Sorted(maps.Keys(definition.Columns)) {
-		p := definition.Columns[key].Provider
+		column := definition.Columns[key]
+		p := column.Provider
 		if p.Key == "" || p.DisplayName == "" || p.ShortName == "" || p.MatchKey == "" {
 			return fmt.Errorf("column %s needs a provider key, display name, short name, and match key", key)
+		}
+		for _, typeID := range column.AppointmentTypeIDs {
+			if _, ok := AppointmentTypes[typeID]; !ok {
+				return fmt.Errorf("column %s limits visits to unknown appointment type %d", key, typeID)
+			}
 		}
 	}
 	for _, rule := range slices.Sorted(maps.Keys(definition.RoutingTiers)) {

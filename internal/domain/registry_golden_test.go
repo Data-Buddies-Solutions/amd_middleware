@@ -148,6 +148,10 @@ func writeGoldenOffice(b *strings.Builder, office *OfficeConfig) {
 		}
 		fmt.Fprintf(b, "column\t%s\t%d\tprofile=%d\tprovider=%s\tdisplay=%s\tshort=%s\tmatch=%s\tminAge=%d\tcapacity=%d\twindows=%s\n",
 			office.ID, id, c.ProfileID, c.ProviderKey, c.DisplayName, c.ShortName, c.MatchKey, c.MinAgeYears, c.SameStartCapacity, strings.Join(windows, ","))
+		if c.BillingDisplayName != c.DisplayName || len(c.AppointmentTypeIDs) > 0 {
+			fmt.Fprintf(b, "columnRules\t%s\t%d\tbilling=%s\tbillingShort=%s\ttypes=%s\tlookup=%s\n",
+				office.ID, id, c.BillingDisplayName, c.BillingShortName, goldenJoinIDs(c.AppointmentTypeIDs), office.AppointmentProviderName(id, "BACH, AUSTIN"))
+		}
 		allows := []string{}
 		for _, d := range goldenDOBs() {
 			allows = append(allows, fmt.Sprintf("%s=%t", d.label, office.ColumnAllowsDOB(id, d.dob, goldenNow)))

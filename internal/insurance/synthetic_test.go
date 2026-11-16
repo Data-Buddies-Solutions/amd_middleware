@@ -69,8 +69,8 @@ func syntheticRegion(t *testing.T, id string, offices []string, plans []plan) Ca
 	table := CatalogTable{ID: "doctors", Offices: offices, Rows: []CatalogRow{}}
 	for _, officeID := range offices {
 		for _, column := range office(t, officeID).Columns {
-			if !slices.Contains(table.Doctors, column.DisplayName) {
-				table.Doctors = append(table.Doctors, column.DisplayName)
+			if !slices.Contains(table.Doctors, column.BillingDisplayName) {
+				table.Doctors = append(table.Doctors, column.BillingDisplayName)
 			}
 		}
 	}

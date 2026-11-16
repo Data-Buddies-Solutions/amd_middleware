@@ -21,10 +21,19 @@ type officeDefinition struct {
 }
 
 type columnDefinition struct {
-	Provider          provider
-	MinAgeYears       int
-	SameStartCapacity int
-	SameStartWindows  []SameStartWindow
+	Provider           provider
+	BillingProvider    provider
+	MinAgeYears        int
+	AppointmentTypeIDs []int
+	SameStartCapacity  int
+	SameStartWindows   []SameStartWindow
+}
+
+func (c columnDefinition) billingProvider() provider {
+	if c.BillingProvider.Key == "" {
+		return c.Provider
+	}
+	return c.BillingProvider
 }
 
 type provider struct {
@@ -56,15 +65,16 @@ type columnBinding struct {
 }
 
 var (
-	austinBach     = provider{Key: "austin_bach", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH"}
-	josephLicht    = provider{Key: "joseph_licht", DisplayName: "Dr. Joseph Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"}
-	noel           = provider{Key: "noel", DisplayName: "Dr. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL"}
-	melissaOtero   = provider{Key: "melissa_otero", DisplayName: "Dr. Melissa Otero", ShortName: "Dr. Otero", MatchKey: "OTERO"}
-	mariaCasas     = provider{Key: "maria_casas", DisplayName: "Dr. Maria Casas", ShortName: "Dr. Casas", MatchKey: "CASAS"}
-	kylerFarnan    = provider{Key: "kyler_farnan", DisplayName: "Dr. Kyler Farnan", ShortName: "Dr. Farnan", MatchKey: "FARNAN"}
-	gisselleCalero = provider{Key: "gisselle_calero", DisplayName: "Dr. Gisselle Calero", ShortName: "Dr. Calero", MatchKey: "CALERO"}
-	lisbetVidal    = provider{Key: "lisbet_vidal", DisplayName: "Dr. Lisbet Vidal", ShortName: "Dr. Vidal", MatchKey: "VIDAL"}
-	miriamBach     = provider{Key: "miriam_bach", DisplayName: "Dr. Miriam Bach", ShortName: "Dr. Miriam Bach", MatchKey: "BACH"}
+	austinBach       = provider{Key: "austin_bach", DisplayName: "Dr. Austin Bach", ShortName: "Dr. Bach", MatchKey: "BACH"}
+	josephLicht      = provider{Key: "joseph_licht", DisplayName: "Dr. Joseph Licht", ShortName: "Dr. Licht", MatchKey: "LICHT"}
+	noel             = provider{Key: "noel", DisplayName: "Dr. Noel", ShortName: "Dr. Noel", MatchKey: "NOEL"}
+	melissaOtero     = provider{Key: "melissa_otero", DisplayName: "Dr. Melissa Otero", ShortName: "Dr. Otero", MatchKey: "OTERO"}
+	mariaCasas       = provider{Key: "maria_casas", DisplayName: "Dr. Maria Casas", ShortName: "Dr. Casas", MatchKey: "CASAS"}
+	kylerFarnan      = provider{Key: "kyler_farnan", DisplayName: "Dr. Kyler Farnan", ShortName: "Dr. Farnan", MatchKey: "FARNAN"}
+	gisselleCalero   = provider{Key: "gisselle_calero", DisplayName: "Dr. Gisselle Calero", ShortName: "Dr. Calero", MatchKey: "CALERO"}
+	lisbetVidal      = provider{Key: "lisbet_vidal", DisplayName: "Dr. Lisbet Vidal", ShortName: "Dr. Vidal", MatchKey: "VIDAL"}
+	miriamBach       = provider{Key: "miriam_bach", DisplayName: "Dr. Miriam Bach", ShortName: "Dr. Miriam Bach", MatchKey: "BACH"}
+	carolVillafuerte = provider{Key: "carol_villafuerte", DisplayName: "Dr. Carol Villafuerte", ShortName: "Dr. Villafuerte", MatchKey: "VILLAFUERTE"}
 )
 
 var AppointmentTypes = map[int]AppointmentType{
@@ -153,15 +163,16 @@ func newOfficeTable() officeTable {
 				Columns: map[string]columnDefinition{
 					"bach":                {Provider: austinBach, SameStartCapacity: 2},
 					"bach_2":              {Provider: austinBach, SameStartCapacity: 2},
+					"bach_adult_medical":  {Provider: carolVillafuerte, BillingProvider: austinBach, MinAgeYears: 18, AppointmentTypeIDs: []int{1006, 1007}},
 					"farnan":              {Provider: kylerFarnan, MinAgeYears: 5, SameStartCapacity: 2, SameStartWindows: hollywoodSweetwaterRoutineDoubleBookWindows},
 					"farnan_adult_vision": {Provider: kylerFarnan, MinAgeYears: 18},
 					"vidal":               {Provider: lisbetVidal, MinAgeYears: 7, SameStartCapacity: 2, SameStartWindows: hollywoodSweetwaterRoutineDoubleBookWindows},
 					"calero":              {Provider: gisselleCalero, MinAgeYears: 4, SameStartCapacity: 2, SameStartWindows: hollywoodSweetwaterRoutineDoubleBookWindows},
 				},
 				RoutingTiers: map[RoutingRule][]string{
-					RoutingBachOnly:    {"bach", "bach_2"},
-					RoutingBachLicht:   {"bach", "bach_2"},
-					RoutingAll:         {"bach", "bach_2"},
+					RoutingBachOnly:    {"bach", "bach_2", "bach_adult_medical"},
+					RoutingBachLicht:   {"bach", "bach_2", "bach_adult_medical"},
+					RoutingAll:         {"bach", "bach_2", "bach_adult_medical"},
 					RoutingOpticalOnly: {"farnan", "farnan_adult_vision", "vidal", "calero"},
 				},
 				PediatricRouting:           RoutingBachOnly,
@@ -172,16 +183,17 @@ func newOfficeTable() officeTable {
 				ID:          "sweetwater",
 				DisplayName: "Sweetwater",
 				Columns: map[string]columnDefinition{
-					"bach":   {Provider: austinBach, SameStartCapacity: 2},
-					"bach_2": {Provider: austinBach, SameStartCapacity: 2},
-					"casas":  {Provider: mariaCasas, MinAgeYears: 7, SameStartCapacity: 2, SameStartWindows: hollywoodSweetwaterRoutineDoubleBookWindows},
-					"farnan": {Provider: kylerFarnan, MinAgeYears: 5, SameStartCapacity: 2, SameStartWindows: hollywoodSweetwaterRoutineDoubleBookWindows},
-					"calero": {Provider: gisselleCalero, MinAgeYears: 4, SameStartCapacity: 2, SameStartWindows: hollywoodSweetwaterRoutineDoubleBookWindows},
+					"bach":               {Provider: austinBach, SameStartCapacity: 2},
+					"bach_2":             {Provider: austinBach, SameStartCapacity: 2},
+					"bach_adult_medical": {Provider: carolVillafuerte, BillingProvider: austinBach, MinAgeYears: 18, AppointmentTypeIDs: []int{1006, 1007}},
+					"casas":              {Provider: mariaCasas, MinAgeYears: 7, SameStartCapacity: 2, SameStartWindows: hollywoodSweetwaterRoutineDoubleBookWindows},
+					"farnan":             {Provider: kylerFarnan, MinAgeYears: 5, SameStartCapacity: 2, SameStartWindows: hollywoodSweetwaterRoutineDoubleBookWindows},
+					"calero":             {Provider: gisselleCalero, MinAgeYears: 4, SameStartCapacity: 2, SameStartWindows: hollywoodSweetwaterRoutineDoubleBookWindows},
 				},
 				RoutingTiers: map[RoutingRule][]string{
-					RoutingBachOnly:    {"bach", "bach_2"},
-					RoutingBachLicht:   {"bach", "bach_2"},
-					RoutingAll:         {"bach", "bach_2"},
+					RoutingBachOnly:    {"bach", "bach_2", "bach_adult_medical"},
+					RoutingBachLicht:   {"bach", "bach_2", "bach_adult_medical"},
+					RoutingAll:         {"bach", "bach_2", "bach_adult_medical"},
 					RoutingOpticalOnly: {"casas", "farnan", "calero"},
 				},
 				PediatricRouting:           RoutingBachOnly,
@@ -232,6 +244,7 @@ func newOfficeTable() officeTable {
 						Columns: map[string]columnBinding{
 							"bach":                {ColumnID: 1268, ProfileID: 620},
 							"bach_2":              {ColumnID: 1478, ProfileID: 620},
+							"bach_adult_medical":  {ColumnID: 1617, ProfileID: 620},
 							"farnan":              {ColumnID: 1555, ProfileID: 2075},
 							"farnan_adult_vision": {ColumnID: 1615, ProfileID: 2075},
 							"vidal":               {ColumnID: 1510, ProfileID: 2057},
@@ -243,11 +256,12 @@ func newOfficeTable() officeTable {
 						FacilityID:       670,
 						DefaultProfileID: 620,
 						Columns: map[string]columnBinding{
-							"bach":   {ColumnID: 682, ProfileID: 620},
-							"bach_2": {ColumnID: 1307, ProfileID: 620},
-							"casas":  {ColumnID: 1296, ProfileID: 1996},
-							"farnan": {ColumnID: 1554, ProfileID: 2075},
-							"calero": {ColumnID: 1210, ProfileID: 1993},
+							"bach":               {ColumnID: 682, ProfileID: 620},
+							"bach_2":             {ColumnID: 1307, ProfileID: 620},
+							"bach_adult_medical": {ColumnID: 1616, ProfileID: 620},
+							"casas":              {ColumnID: 1296, ProfileID: 1996},
+							"farnan":             {ColumnID: 1554, ProfileID: 2075},
+							"calero":             {ColumnID: 1210, ProfileID: 1993},
 						},
 					},
 					"north_miami_beach_optical": {

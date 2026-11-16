@@ -28,14 +28,21 @@ type MinimumAge struct {
 }
 
 type OfficeColumn struct {
-	ProfileID         int
-	ProviderKey       string
-	DisplayName       string
-	ShortName         string
-	MatchKey          string
-	MinAgeYears       int
-	SameStartCapacity int
-	SameStartWindows  []SameStartWindow
+	ProfileID          int
+	ProviderKey        string
+	DisplayName        string
+	ShortName          string
+	MatchKey           string
+	BillingDisplayName string
+	BillingShortName   string
+	MinAgeYears        int
+	AppointmentTypeIDs []int
+	SameStartCapacity  int
+	SameStartWindows   []SameStartWindow
+}
+
+func (c OfficeColumn) AllowsAppointmentType(typeID int) bool {
+	return len(c.AppointmentTypeIDs) == 0 || slices.Contains(c.AppointmentTypeIDs, typeID)
 }
 
 type SameStartWindow struct {
@@ -171,13 +178,20 @@ func (o *OfficeConfig) providerNamesForColumnIDs(colIDs []int, allowed map[int]b
 			continue
 		}
 		col, ok := o.Columns[id]
-		if !ok || seen[col.ShortName] {
+		if !ok || seen[col.BillingShortName] {
 			continue
 		}
-		seen[col.ShortName] = true
-		names = append(names, col.ShortName)
+		seen[col.BillingShortName] = true
+		names = append(names, col.BillingShortName)
 	}
 	return names
+}
+
+func (o *OfficeConfig) AppointmentProviderName(columnID int, amdName string) string {
+	if col, ok := o.Columns[columnID]; ok && col.DisplayName != col.BillingDisplayName {
+		return col.DisplayName
+	}
+	return o.FriendlyProviderName(amdName)
 }
 
 func (o *OfficeConfig) FriendlyProviderName(amdName string) string {
@@ -222,8 +236,8 @@ func TableOfficeProviderNames(officeID string) ([]string, bool) {
 		}
 		names := []string{}
 		for _, column := range definition.Columns {
-			if !slices.Contains(names, column.Provider.DisplayName) {
-				names = append(names, column.Provider.DisplayName)
+			if name := column.billingProvider().DisplayName; !slices.Contains(names, name) {
+				names = append(names, name)
 			}
 		}
 		sort.Strings(names)
@@ -377,14 +391,17 @@ func bindOffice(definition officeDefinition, binding officeBinding) *OfficeConfi
 			continue
 		}
 		office.Columns[columnBinding.ColumnID] = OfficeColumn{
-			ProfileID:         columnBinding.ProfileID,
-			ProviderKey:       column.Provider.Key,
-			DisplayName:       column.Provider.DisplayName,
-			ShortName:         column.Provider.ShortName,
-			MatchKey:          column.Provider.MatchKey,
-			MinAgeYears:       column.MinAgeYears,
-			SameStartCapacity: column.SameStartCapacity,
-			SameStartWindows:  column.SameStartWindows,
+			ProfileID:          columnBinding.ProfileID,
+			ProviderKey:        column.Provider.Key,
+			DisplayName:        column.Provider.DisplayName,
+			ShortName:          column.Provider.ShortName,
+			MatchKey:           column.Provider.MatchKey,
+			BillingDisplayName: column.billingProvider().DisplayName,
+			BillingShortName:   column.billingProvider().ShortName,
+			MinAgeYears:        column.MinAgeYears,
+			AppointmentTypeIDs: column.AppointmentTypeIDs,
+			SameStartCapacity:  column.SameStartCapacity,
+			SameStartWindows:   column.SameStartWindows,
 		}
 	}
 	for rule, keys := range definition.RoutingTiers {

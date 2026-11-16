@@ -34,6 +34,12 @@ func TestOfficeTableValidationRejectsBrokenTables(t *testing.T) {
 		{"duplicate column ID", "prod: column ID 1513 is bound to spring_hill/bach and hollywood/bach", func(t *testing.T, table *officeTable) {
 			table.Environments[Prod].Offices["hollywood"].Columns["bach"] = columnBinding{ColumnID: 1513, ProfileID: 620}
 		}},
+		{"column limited to an unknown appointment type", "office hollywood: column bach_adult_medical limits visits to unknown appointment type 9999", func(t *testing.T, table *officeTable) {
+			office := officeDefinitionFor(t, table, "hollywood")
+			column := office.Columns["bach_adult_medical"]
+			column.AppointmentTypeIDs = []int{1006, 9999}
+			office.Columns["bach_adult_medical"] = column
+		}},
 		{"missing office binding", "prod: office crystal_river has no binding and is not marked unavailable", func(t *testing.T, table *officeTable) {
 			delete(table.Environments[Prod].Offices, "crystal_river")
 		}},

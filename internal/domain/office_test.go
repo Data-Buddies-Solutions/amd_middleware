@@ -194,14 +194,14 @@ func TestOfficeConfig_HollywoodAndSweetwaterColumns(t *testing.T) {
 			name:       "hollywood",
 			office:     mustOffice(t, "hollywood"),
 			facilityID: 1480,
-			columns:    []int{1268, 1478, 1555, 1615, 1510, 1305},
+			columns:    []int{1268, 1478, 1617, 1555, 1615, 1510, 1305},
 			optical:    []int{1555, 1615, 1510, 1305},
 		},
 		{
 			name:       "sweetwater",
 			office:     mustOffice(t, "sweetwater"),
 			facilityID: 670,
-			columns:    []int{682, 1307, 1296, 1554, 1210},
+			columns:    []int{682, 1307, 1616, 1296, 1554, 1210},
 			optical:    []int{1296, 1554, 1210},
 		},
 	}
@@ -221,6 +221,38 @@ func TestOfficeConfig_HollywoodAndSweetwaterColumns(t *testing.T) {
 				if !optical[columnID] {
 					t.Fatalf("expected optical routing to include column %d", columnID)
 				}
+			}
+		})
+	}
+}
+
+func TestOfficeConfig_BachAdultMedicalColumnsShowDrVillafuerteAndTakeDrBachsInsurance(t *testing.T) {
+	for officeID, columnID := range map[string]int{"hollywood": 1617, "sweetwater": 1616} {
+		t.Run(officeID, func(t *testing.T) {
+			office := mustOffice(t, officeID)
+			col, ok := office.Columns[columnID]
+			if !ok {
+				t.Fatalf("column %d is not configured", columnID)
+			}
+			if col.ProfileID != 620 || col.ProviderKey != "carol_villafuerte" || col.DisplayName != "Dr. Carol Villafuerte" || col.ShortName != "Dr. Villafuerte" {
+				t.Fatalf("column %d = %+v, want Dr. Carol Villafuerte on Dr. Bach's profile 620", columnID, col)
+			}
+			if col.MinAgeYears != 18 || col.SameStartCapacity != 0 {
+				t.Fatalf("column %d = %+v, want adults only and single-booked", columnID, col)
+			}
+			for _, rule := range []RoutingRule{RoutingBachOnly, RoutingBachLicht, RoutingAll} {
+				if !office.ColumnsForRouting(rule)[columnID] {
+					t.Fatalf("routing %s lacks column %d", rule, columnID)
+				}
+				if got := office.ProvidersForRouting(rule); !slices.Equal(got, []string{"Dr. Bach"}) {
+					t.Fatalf("insurance providers for %s = %v, want only Dr. Bach", rule, got)
+				}
+			}
+			if office.ColumnsForRouting(RoutingOpticalOnly)[columnID] {
+				t.Fatalf("routine vision routing offers column %d", columnID)
+			}
+			if names, _ := TableOfficeProviderNames(officeID); slices.Contains(names, "Dr. Carol Villafuerte") {
+				t.Fatalf("insurance catalog doctors = %v, want no Dr. Villafuerte column", names)
 			}
 		})
 	}
@@ -289,17 +321,18 @@ func TestOfficeConfig_SameStartCapacityScope(t *testing.T) {
 			singleBook: []int{1593},
 		},
 		{
-			name:       "sweetwater all columns have same-start capacity",
+			name:       "sweetwater adult medical column remains single-booked",
 			env:        Prod,
 			office:     "sweetwater",
 			doubleBook: []int{682, 1307, 1296, 1554, 1210},
+			singleBook: []int{1616},
 		},
 		{
-			name:       "hollywood adult vision column remains single-booked",
+			name:       "hollywood adult vision and adult medical columns remain single-booked",
 			env:        Prod,
 			office:     "hollywood",
 			doubleBook: []int{1268, 1478, 1555, 1510, 1305},
-			singleBook: []int{1615},
+			singleBook: []int{1615, 1617},
 		},
 		{
 			name:       "sandbox spring hill all columns double-bookable",
