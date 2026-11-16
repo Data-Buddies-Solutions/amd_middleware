@@ -1,6 +1,7 @@
 package scheduling
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -81,6 +82,55 @@ func TestSchedulingPolicy_FarnanAdultVisionColumnBooksOnlyAdultVision(t *testing
 	columns := []domain.SchedulerColumn{{ID: 1555, FacilityID: 1480}, {ID: 1615, FacilityID: 1480}}
 	if got := policy.EligibleColumns(columns, domain.RoutingOpticalOnly, minor); len(got) != 1 || got[0].ID != 1555 {
 		t.Fatalf("EligibleColumns for a 17-year-old = %+v, want only 1555", got)
+	}
+}
+
+func TestSchedulingPolicy_BachAdultMedicalColumnsBookOnlyAdultMedicalExams(t *testing.T) {
+	adult := domain.DOB(policyTestNow.AddDate(-18, 0, 0).Format("01/02/2006"))
+	minor := domain.DOB(policyTestNow.AddDate(-18, 0, 1).Format("01/02/2006"))
+	newVisit := appointmentIntent{VisitCategory: domain.AppointmentVisitMedical, PatientStatus: domain.AppointmentPatientNew}
+	followUp := appointmentIntent{VisitCategory: domain.AppointmentVisitMedical, PatientStatus: domain.AppointmentPatientEstablished}
+	postOp := appointmentIntent{VisitCategory: domain.AppointmentVisitMedical, PatientStatus: domain.AppointmentPatientEstablished, VisitReason: "post-op check"}
+	vision := appointmentIntent{VisitCategory: domain.AppointmentVisitRoutineVision, PatientStatus: domain.AppointmentPatientNew}
+	const refused = "Dr. Villafuerte sees only New Adult Medical or Established Adult Medical (Follow Up) visits, not Post Op. Choose an opening with another doctor."
+	for officeID, columnID := range map[string]int{"hollywood": 1617, "sweetwater": 1616} {
+		office, ok := domain.LookupOfficeByID(officeID)
+		if !ok {
+			t.Fatalf("expected office %s", officeID)
+		}
+		policy := newSchedulingPolicy(office, policyTestNow)
+		tests := []struct {
+			name      string
+			routing   domain.RoutingRule
+			dob       domain.DOB
+			intent    appointmentIntent
+			preserved int
+			wantType  int
+			wantErr   string
+		}{
+			{name: "new adult medical", routing: domain.RoutingAll, dob: adult, intent: newVisit, wantType: 1006},
+			{name: "established adult medical", routing: domain.RoutingBachOnly, dob: adult, intent: followUp, wantType: 1007},
+			{name: "moved adult medical", routing: domain.RoutingAll, dob: adult, preserved: 1007, wantType: 1007},
+			{name: "post-op reason", routing: domain.RoutingAll, dob: adult, intent: postOp, wantErr: refused},
+			{name: "moved post-op", routing: domain.RoutingAll, dob: adult, preserved: 1008, wantErr: refused},
+			{name: "minor", routing: domain.RoutingAll, dob: minor, intent: newVisit, wantErr: "Dr. Villafuerte requires patient age 18 or older"},
+			{name: "no DOB", routing: domain.RoutingAll, intent: newVisit, wantErr: "Dr. Villafuerte requires patient DOB to verify age 18 or older"},
+			{name: "routine vision", routing: domain.RoutingOpticalOnly, dob: adult, intent: vision, wantErr: fmt.Sprintf("Column %d is not valid for routing \"optical_only\" at %s", columnID, office.DisplayName)},
+		}
+		for _, tt := range tests {
+			t.Run(officeID+"/"+tt.name, func(t *testing.T) {
+				decision, policyErr := policy.PrepareBooking(bookingPolicyRequest{
+					ColumnID: columnID, ProfileID: 620, Routing: tt.routing, DOB: tt.dob, Intent: tt.intent, PreservedAppointmentTypeID: tt.preserved,
+				})
+				got := ""
+				if policyErr != nil {
+					got = policyErr.Message
+				}
+				if got != tt.wantErr || decision.AppointmentTypeID != tt.wantType {
+					t.Fatalf("PrepareBooking = type %d error %q, want type %d error %q", decision.AppointmentTypeID, got, tt.wantType, tt.wantErr)
+				}
+			})
+		}
 	}
 }
 

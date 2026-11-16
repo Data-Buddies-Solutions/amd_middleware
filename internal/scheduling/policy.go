@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"advancedmd-token-management/internal/domain"
@@ -145,6 +146,9 @@ func (p schedulingPolicy) PrepareBooking(req bookingPolicyRequest) (bookingPolic
 		}
 		return bookingPolicyDecision{}, &schedulingPolicyError{Message: message}
 	}
+	if !column.AllowsAppointmentType(typeID) {
+		return bookingPolicyDecision{}, &schedulingPolicyError{Message: columnTypeRefusal(column, typeID)}
+	}
 	if !preservesExistingType && !slices.Contains(p.AllowedAppointmentTypeIDs(routing, req.DOB), typeID) {
 		return bookingPolicyDecision{}, &schedulingPolicyError{Message: fmt.Sprintf("Appointment type %d is not valid for routing %q at %s", typeID, routing, p.office.DisplayName)}
 	}
@@ -154,4 +158,12 @@ func (p schedulingPolicy) PrepareBooking(req bookingPolicyRequest) (bookingPolic
 		EnvironmentTypeID: environmentTypeID,
 		Color:             color,
 	}, nil
+}
+
+func columnTypeRefusal(column domain.OfficeColumn, typeID int) string {
+	names := make([]string, 0, len(column.AppointmentTypeIDs))
+	for _, id := range column.AppointmentTypeIDs {
+		names = append(names, domain.AppointmentTypes[id].Name)
+	}
+	return fmt.Sprintf("%s sees only %s visits, not %s. Choose an opening with another doctor.", column.ShortName, strings.Join(names, " or "), domain.AppointmentTypes[typeID].Name)
 }

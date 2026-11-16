@@ -378,7 +378,7 @@ func patientAppointmentRead(
 		} else {
 			read.Complete = false
 		}
-		provider := office.FriendlyProviderName(raw.Provider)
+		provider := office.AppointmentProviderName(raw.ColumnID, raw.Provider)
 		if strings.TrimSpace(raw.Provider) == "" || provider == "" {
 			read.Complete = false
 		}

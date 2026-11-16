@@ -3,9 +3,11 @@ package scheduling_test
 import (
 	"context"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
+	"advancedmd-token-management/internal/advancedmd/advancedmdtest"
 	"advancedmd-token-management/internal/domain"
 	"advancedmd-token-management/internal/insurance"
 	"advancedmd-token-management/internal/scheduling"
@@ -107,5 +109,57 @@ func TestListWithPlanRequiresAVisitType(t *testing.T) {
 	svc := scheduling.New(recordsWithSetup(), "test-booking-secret", func() time.Time { return now })
 	if _, err := svc.List(context.Background(), scheduling.ListCommand{PatientID: "12345", Office: "Crystal River", StartDate: "2026-06-03", DOB: "01/15/1980", InsurancePlanID: "self-pay-medical"}); err == nil {
 		t.Fatal("List without visitType accepted an insurance plan")
+	}
+}
+
+func TestBachAdultMedicalColumnShowsDrVillafuerteAndFollowsDrBachsInsurance(t *testing.T) {
+	office, _ := domain.ResolveOffice("Hollywood")
+	now := mutationTestNow()
+	for planID, wantAccepted := range map[string]bool{"aetna-medicare-medical": true, "avmed-entrust-medical": false} {
+		if d := insurance.DecidePlan(planID, "medical", office, "01/15/1980", now); d.CanSchedule != wantAccepted || (wantAccepted && !slices.Equal(d.AllowedProviders, []string{"Dr. Bach"})) {
+			t.Fatalf("fixture plan %s = %+v, want accepted=%t for Dr. Bach", planID, d, wantAccepted)
+		}
+	}
+	search := func(planID, dob string) (*advancedmdtest.Adapter, scheduling.Scheduling, scheduling.AvailabilityResponse) {
+		records := recordsWithSetup(
+			testColumn(1268, 620, 1480, "09:00", "09:15", 15),
+			testColumn(1617, 620, 1480, "10:00", "10:15", 15),
+		)
+		records.Demographics["12345"] = domain.PatientDemographics{DOB: dob, CarrierName: "Aetna", CarrierID: "car40887"}
+		records.CompletedVisits["12345"] = true
+		records.BookAppointmentID = 98765
+		svc := scheduling.New(records, "test-booking-secret", func() time.Time { return now })
+		result, err := svc.List(context.Background(), scheduling.ListCommand{PatientID: "12345", Office: "Hollywood", StartDate: "2026-06-03", DOB: dob, VisitType: "medical", InsurancePlanID: planID})
+		if err != nil {
+			t.Fatalf("List(%s, %s) error = %v", planID, dob, err)
+		}
+		return records, svc, result
+	}
+
+	records, svc, accepted := search("aetna-medicare-medical", "01/15/1980")
+	if got := slotColumns(accepted.Slots); !slices.Equal(got, []int{1268, 1617}) {
+		t.Fatalf("accepted plan columns = %v, want Dr. Bach's 1268 and the adult medical 1617", got)
+	}
+	villafuerte := accepted.Slots[slices.IndexFunc(accepted.Slots, func(slot scheduling.AvailabilitySlotOption) bool { return slot.ColumnID == 1617 })]
+	if villafuerte.Provider != "Dr. Carol Villafuerte" || villafuerte.ProfileID != 620 {
+		t.Fatalf("adult medical slot = %+v, want Dr. Carol Villafuerte on profile 620", villafuerte)
+	}
+	booked, err := svc.Book(context.Background(), scheduling.BookCommand{PatientID: "12345", DOB: "01/15/1980", BookingToken: villafuerte.BookingToken, VisitCategory: "medical", VisitReason: "Glaucoma follow up", AppointmentReason: "Glaucoma follow up", ReferringDoctor: "none"})
+	if err != nil || booked.ProviderName != "Dr. Carol Villafuerte" || len(records.Bookings) != 1 || records.Bookings[0].ColumnID != 1617 || records.Bookings[0].ProviderAppointmentTypeID != 1007 {
+		t.Fatalf("book = %+v err=%v writes=%+v, want Established Adult Medical with Dr. Carol Villafuerte in 1617", booked, err, records.Bookings)
+	}
+
+	records, svc, postOpSearch := search("aetna-medicare-medical", "01/15/1980")
+	postOpSlot := postOpSearch.Slots[slices.IndexFunc(postOpSearch.Slots, func(slot scheduling.AvailabilitySlotOption) bool { return slot.ColumnID == 1617 })]
+	_, err = svc.Book(context.Background(), scheduling.BookCommand{PatientID: "12345", DOB: "01/15/1980", BookingToken: postOpSlot.BookingToken, VisitCategory: "medical", VisitReason: "post-op check", AppointmentReason: "post-op check", ReferringDoctor: "none"})
+	if err == nil || !strings.Contains(err.Error(), "Dr. Villafuerte sees only") || len(records.Bookings) != 0 {
+		t.Fatalf("post-op book err = %v writes=%d, want a refusal naming Dr. Villafuerte", err, len(records.Bookings))
+	}
+
+	if _, _, minor := search("aetna-medicare-medical", "01/15/2010"); slices.Contains(slotColumns(minor.Slots), 1617) {
+		t.Fatalf("minor columns = %v, want no adult medical column", slotColumns(minor.Slots))
+	}
+	if _, _, refused := search("avmed-entrust-medical", "01/15/1980"); refused.Outcome != scheduling.AvailabilityOutcomeInsuranceNotCleared || len(refused.Slots) != 0 {
+		t.Fatalf("plan Dr. Bach does not take = %+v, want insurance_not_cleared", refused)
 	}
 }

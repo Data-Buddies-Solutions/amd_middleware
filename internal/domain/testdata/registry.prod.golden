@@ -269,6 +269,9 @@ column	hollywood	1555	profile=2075	provider=kyler_farnan	display=Dr. Kyler Farna
 columnDOB	hollywood	1555	none=false invalid=false age3=false age4=false age5=true age6=true age7=true age10=true age17=true age18=true age40=true
 column	hollywood	1615	profile=2075	provider=kyler_farnan	display=Dr. Kyler Farnan	short=Dr. Farnan	match=FARNAN	minAge=18	capacity=0	windows=
 columnDOB	hollywood	1615	none=false invalid=false age3=false age4=false age5=false age6=false age7=false age10=false age17=false age18=true age40=true
+column	hollywood	1617	profile=620	provider=carol_villafuerte	display=Dr. Carol Villafuerte	short=Dr. Villafuerte	match=VILLAFUERTE	minAge=18	capacity=0	windows=
+columnRules	hollywood	1617	billing=Dr. Austin Bach	billingShort=Dr. Bach	types=1006,1007	lookup=Dr. Carol Villafuerte
+columnDOB	hollywood	1617	none=false invalid=false age3=false age4=false age5=false age6=false age7=false age10=false age17=false age18=true age40=true
 routing	hollywood	not_accepted	columns=nil	providers=nil	supports=false	adult=not_accepted	minor=not_accepted
 routingDOB	hollywood	not_accepted	none	columns=nil	providers=nil
 routingDOB	hollywood	not_accepted	invalid	columns=nil	providers=nil
@@ -282,8 +285,8 @@ routingDOB	hollywood	not_accepted	age17	columns=nil	providers=nil
 routingDOB	hollywood	not_accepted	age18	columns=nil	providers=nil
 routingDOB	hollywood	not_accepted	age40	columns=nil	providers=nil
 allowsTypes	hollywood	not_accepted	
-routing	hollywood	bach_only	columns=[1268,1478]	providers=[Dr. Bach]	supports=true	adult=bach_only	minor=bach_only
-routingDOB	hollywood	bach_only	none	columns=[1268,1478]	providers=[Dr. Bach]
+routing	hollywood	bach_only	columns=[1268,1478,1617]	providers=[Dr. Bach]	supports=true	adult=bach_only	minor=bach_only
+routingDOB	hollywood	bach_only	none	columns=[1268,1478,1617]	providers=[Dr. Bach]
 routingDOB	hollywood	bach_only	invalid	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	bach_only	age3	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	bach_only	age4	columns=[1268,1478]	providers=[Dr. Bach]
@@ -292,11 +295,11 @@ routingDOB	hollywood	bach_only	age6	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	bach_only	age7	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	bach_only	age10	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	bach_only	age17	columns=[1268,1478]	providers=[Dr. Bach]
-routingDOB	hollywood	bach_only	age18	columns=[1268,1478]	providers=[Dr. Bach]
-routingDOB	hollywood	bach_only	age40	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_only	age18	columns=[1268,1478,1617]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_only	age40	columns=[1268,1478,1617]	providers=[Dr. Bach]
 allowsTypes	hollywood	bach_only	1004,1005,1006,1007,1008
-routing	hollywood	bach_licht	columns=[1268,1478]	providers=[Dr. Bach]	supports=true	adult=bach_licht	minor=bach_only
-routingDOB	hollywood	bach_licht	none	columns=[1268,1478]	providers=[Dr. Bach]
+routing	hollywood	bach_licht	columns=[1268,1478,1617]	providers=[Dr. Bach]	supports=true	adult=bach_licht	minor=bach_only
+routingDOB	hollywood	bach_licht	none	columns=[1268,1478,1617]	providers=[Dr. Bach]
 routingDOB	hollywood	bach_licht	invalid	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	bach_licht	age3	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	bach_licht	age4	columns=[1268,1478]	providers=[Dr. Bach]
@@ -305,11 +308,11 @@ routingDOB	hollywood	bach_licht	age6	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	bach_licht	age7	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	bach_licht	age10	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	bach_licht	age17	columns=[1268,1478]	providers=[Dr. Bach]
-routingDOB	hollywood	bach_licht	age18	columns=[1268,1478]	providers=[Dr. Bach]
-routingDOB	hollywood	bach_licht	age40	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_licht	age18	columns=[1268,1478,1617]	providers=[Dr. Bach]
+routingDOB	hollywood	bach_licht	age40	columns=[1268,1478,1617]	providers=[Dr. Bach]
 allowsTypes	hollywood	bach_licht	1004,1005,1006,1007,1008
-routing	hollywood	all_three	columns=[1268,1478]	providers=[Dr. Bach]	supports=true	adult=all_three	minor=bach_only
-routingDOB	hollywood	all_three	none	columns=[1268,1478]	providers=[Dr. Bach]
+routing	hollywood	all_three	columns=[1268,1478,1617]	providers=[Dr. Bach]	supports=true	adult=all_three	minor=bach_only
+routingDOB	hollywood	all_three	none	columns=[1268,1478,1617]	providers=[Dr. Bach]
 routingDOB	hollywood	all_three	invalid	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	all_three	age3	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	all_three	age4	columns=[1268,1478]	providers=[Dr. Bach]
@@ -318,8 +321,8 @@ routingDOB	hollywood	all_three	age6	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	all_three	age7	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	all_three	age10	columns=[1268,1478]	providers=[Dr. Bach]
 routingDOB	hollywood	all_three	age17	columns=[1268,1478]	providers=[Dr. Bach]
-routingDOB	hollywood	all_three	age18	columns=[1268,1478]	providers=[Dr. Bach]
-routingDOB	hollywood	all_three	age40	columns=[1268,1478]	providers=[Dr. Bach]
+routingDOB	hollywood	all_three	age18	columns=[1268,1478,1617]	providers=[Dr. Bach]
+routingDOB	hollywood	all_three	age40	columns=[1268,1478,1617]	providers=[Dr. Bach]
 allowsTypes	hollywood	all_three	1004,1005,1006,1007,1008
 routing	hollywood	optical_only	columns=[1305,1510,1555,1615]	providers=[Dr. Farnan,Dr. Vidal,Dr. Calero]	supports=true	adult=optical_only	minor=optical_only
 routingDOB	hollywood	optical_only	none	columns=[1305,1510,1555,1615]	providers=[Dr. Farnan,Dr. Vidal,Dr. Calero]
@@ -374,6 +377,9 @@ column	sweetwater	1307	profile=620	provider=austin_bach	display=Dr. Austin Bach	
 columnDOB	sweetwater	1307	none=true invalid=true age3=true age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
 column	sweetwater	1554	profile=2075	provider=kyler_farnan	display=Dr. Kyler Farnan	short=Dr. Farnan	match=FARNAN	minAge=5	capacity=2	windows=Mon 08:30-10:45,Mon 13:30-14:30,Tue 08:30-10:45,Tue 13:30-14:30,Wed 08:30-10:45,Wed 13:30-14:30,Thu 08:30-10:45,Thu 13:30-14:30,Fri 08:30-11:45
 columnDOB	sweetwater	1554	none=false invalid=false age3=false age4=false age5=true age6=true age7=true age10=true age17=true age18=true age40=true
+column	sweetwater	1616	profile=620	provider=carol_villafuerte	display=Dr. Carol Villafuerte	short=Dr. Villafuerte	match=VILLAFUERTE	minAge=18	capacity=0	windows=
+columnRules	sweetwater	1616	billing=Dr. Austin Bach	billingShort=Dr. Bach	types=1006,1007	lookup=Dr. Carol Villafuerte
+columnDOB	sweetwater	1616	none=false invalid=false age3=false age4=false age5=false age6=false age7=false age10=false age17=false age18=true age40=true
 column	sweetwater	682	profile=620	provider=austin_bach	display=Dr. Austin Bach	short=Dr. Bach	match=BACH	minAge=0	capacity=2	windows=
 columnDOB	sweetwater	682	none=true invalid=true age3=true age4=true age5=true age6=true age7=true age10=true age17=true age18=true age40=true
 routing	sweetwater	not_accepted	columns=nil	providers=nil	supports=false	adult=not_accepted	minor=not_accepted
@@ -389,8 +395,8 @@ routingDOB	sweetwater	not_accepted	age17	columns=nil	providers=nil
 routingDOB	sweetwater	not_accepted	age18	columns=nil	providers=nil
 routingDOB	sweetwater	not_accepted	age40	columns=nil	providers=nil
 allowsTypes	sweetwater	not_accepted	
-routing	sweetwater	bach_only	columns=[1307,682]	providers=[Dr. Bach]	supports=true	adult=bach_only	minor=bach_only
-routingDOB	sweetwater	bach_only	none	columns=[1307,682]	providers=[Dr. Bach]
+routing	sweetwater	bach_only	columns=[1307,1616,682]	providers=[Dr. Bach]	supports=true	adult=bach_only	minor=bach_only
+routingDOB	sweetwater	bach_only	none	columns=[1307,1616,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	bach_only	invalid	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	bach_only	age3	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	bach_only	age4	columns=[1307,682]	providers=[Dr. Bach]
@@ -399,11 +405,11 @@ routingDOB	sweetwater	bach_only	age6	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	bach_only	age7	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	bach_only	age10	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	bach_only	age17	columns=[1307,682]	providers=[Dr. Bach]
-routingDOB	sweetwater	bach_only	age18	columns=[1307,682]	providers=[Dr. Bach]
-routingDOB	sweetwater	bach_only	age40	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_only	age18	columns=[1307,1616,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_only	age40	columns=[1307,1616,682]	providers=[Dr. Bach]
 allowsTypes	sweetwater	bach_only	1004,1005,1006,1007,1008
-routing	sweetwater	bach_licht	columns=[1307,682]	providers=[Dr. Bach]	supports=true	adult=bach_licht	minor=bach_only
-routingDOB	sweetwater	bach_licht	none	columns=[1307,682]	providers=[Dr. Bach]
+routing	sweetwater	bach_licht	columns=[1307,1616,682]	providers=[Dr. Bach]	supports=true	adult=bach_licht	minor=bach_only
+routingDOB	sweetwater	bach_licht	none	columns=[1307,1616,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	bach_licht	invalid	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	bach_licht	age3	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	bach_licht	age4	columns=[1307,682]	providers=[Dr. Bach]
@@ -412,11 +418,11 @@ routingDOB	sweetwater	bach_licht	age6	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	bach_licht	age7	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	bach_licht	age10	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	bach_licht	age17	columns=[1307,682]	providers=[Dr. Bach]
-routingDOB	sweetwater	bach_licht	age18	columns=[1307,682]	providers=[Dr. Bach]
-routingDOB	sweetwater	bach_licht	age40	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_licht	age18	columns=[1307,1616,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	bach_licht	age40	columns=[1307,1616,682]	providers=[Dr. Bach]
 allowsTypes	sweetwater	bach_licht	1004,1005,1006,1007,1008
-routing	sweetwater	all_three	columns=[1307,682]	providers=[Dr. Bach]	supports=true	adult=all_three	minor=bach_only
-routingDOB	sweetwater	all_three	none	columns=[1307,682]	providers=[Dr. Bach]
+routing	sweetwater	all_three	columns=[1307,1616,682]	providers=[Dr. Bach]	supports=true	adult=all_three	minor=bach_only
+routingDOB	sweetwater	all_three	none	columns=[1307,1616,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	all_three	invalid	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	all_three	age3	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	all_three	age4	columns=[1307,682]	providers=[Dr. Bach]
@@ -425,8 +431,8 @@ routingDOB	sweetwater	all_three	age6	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	all_three	age7	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	all_three	age10	columns=[1307,682]	providers=[Dr. Bach]
 routingDOB	sweetwater	all_three	age17	columns=[1307,682]	providers=[Dr. Bach]
-routingDOB	sweetwater	all_three	age18	columns=[1307,682]	providers=[Dr. Bach]
-routingDOB	sweetwater	all_three	age40	columns=[1307,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	all_three	age18	columns=[1307,1616,682]	providers=[Dr. Bach]
+routingDOB	sweetwater	all_three	age40	columns=[1307,1616,682]	providers=[Dr. Bach]
 allowsTypes	sweetwater	all_three	1004,1005,1006,1007,1008
 routing	sweetwater	optical_only	columns=[1210,1296,1554]	providers=[Dr. Casas,Dr. Farnan,Dr. Calero]	supports=true	adult=optical_only	minor=optical_only
 routingDOB	sweetwater	optical_only	none	columns=[1210,1296,1554]	providers=[Dr. Casas,Dr. Farnan,Dr. Calero]

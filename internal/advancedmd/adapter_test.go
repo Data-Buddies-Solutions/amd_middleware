@@ -624,6 +624,29 @@ func TestPatientAppointmentReadPreservesUnrecognizedTypeForRescheduling(t *testi
 	}
 }
 
+func TestPatientAppointmentReadNamesDrVillafuerteForDrBachsAdultMedicalColumn(t *testing.T) {
+	office, _ := domain.LookupOfficeByID("hollywood")
+	read := patientAppointmentRead(
+		[]clients.AMDAppointmentResponse{
+			{ID: 1, StartDateTime: "2026-08-14T09:00:00", ColumnID: 1617, PatientID: 12345, Provider: "BACH, AUSTIN", AppointmentTypes: []int{1006}},
+			{ID: 2, StartDateTime: "2026-08-14T10:00:00", ColumnID: 1268, PatientID: 12345, Provider: "BACH, AUSTIN", AppointmentTypes: []int{1007}},
+		},
+		12345,
+		map[int]*domain.OfficeConfig{1617: office, 1268: office},
+		office,
+		nil,
+	)
+	if !read.Complete || len(read.Appointments) != 2 {
+		t.Fatalf("appointment read = %#v", read)
+	}
+	if got := read.Appointments[0].Provider; got != "Dr. Carol Villafuerte" {
+		t.Fatalf("adult medical column provider = %q, want Dr. Carol Villafuerte", got)
+	}
+	if got := read.Appointments[1].Provider; got != "Dr. Austin Bach" {
+		t.Fatalf("regular Bach column provider = %q, want Dr. Austin Bach", got)
+	}
+}
+
 func TestAdapterPreservesUnrecognizedProductionAppointmentType(t *testing.T) {
 	var bookingPayload map[string]any
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -78,8 +78,8 @@ func doctorsForPatient(accepting []string, coverage string, office *domain.Offic
 
 func displayName(office *domain.OfficeConfig, shortName string) string {
 	for _, column := range office.Columns {
-		if column.ShortName == shortName {
-			return column.DisplayName
+		if column.BillingShortName == shortName {
+			return column.BillingDisplayName
 		}
 	}
 	return ""

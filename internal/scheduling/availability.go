@@ -167,6 +167,13 @@ func (s *service) list(ctx context.Context, command ListCommand, patientID domai
 	if move.doctorKey != "" {
 		allowedColumns = columnsForDoctor(office, allowedColumns, move.doctorKey)
 	}
+	if move.appointmentID != 0 {
+		typed := columnsForAppointmentType(office, allowedColumns, move.appointmentTypeID)
+		if len(typed) == 0 && len(allowedColumns) > 0 {
+			return moveNeedsStaffResponse(requestedDate, moveTypeNotAllowedMessage), nil
+		}
+		allowedColumns = typed
+	}
 	if len(allowedColumns) == 0 {
 		return AvailabilityResponse{
 			Status:                AvailabilityStatusSuccess,
@@ -287,7 +294,7 @@ func insuranceNotClearedResponse(requestedDate string, decision insurance.Insura
 func columnsForProviders(office *domain.OfficeConfig, columns []domain.SchedulerColumn, providers []string) []domain.SchedulerColumn {
 	kept := make([]domain.SchedulerColumn, 0, len(columns))
 	for _, column := range columns {
-		if slices.Contains(providers, office.Columns[column.ID].ShortName) {
+		if slices.Contains(providers, office.Columns[column.ID].BillingShortName) {
 			kept = append(kept, column)
 		}
 	}
@@ -298,6 +305,16 @@ func columnsForDoctor(office *domain.OfficeConfig, columns []domain.SchedulerCol
 	kept := make([]domain.SchedulerColumn, 0, len(columns))
 	for _, column := range columns {
 		if office.Columns[column.ID].ProviderKey == doctorKey {
+			kept = append(kept, column)
+		}
+	}
+	return kept
+}
+
+func columnsForAppointmentType(office *domain.OfficeConfig, columns []domain.SchedulerColumn, typeID int) []domain.SchedulerColumn {
+	kept := make([]domain.SchedulerColumn, 0, len(columns))
+	for _, column := range columns {
+		if office.Columns[column.ID].AllowsAppointmentType(typeID) {
 			kept = append(kept, column)
 		}
 	}
